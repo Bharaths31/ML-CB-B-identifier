@@ -117,12 +117,48 @@ pip install -r requirements.txt
 ---
 
 ## Data Preparation
-1. Place the raw images under `data/raw/` following the layout shown in the **Directory Structure** (`cattle/<breed>/`, `buffalo/<breed>/`).
-2. Generate stratified train/val/test splits:
+
+### 1. Download the Dataset
+Download the dataset archive (`breed-cattle-buffalo.zip`) from Kaggle using `curl`:
+
 ```bash
-python -m src.data_pipeline   # scans raw/ and writes CSVs to data/splits/
+#!/bin/bash
+curl -L -o ~/Downloads/breed-cattle-buffalo.zip \
+  https://www.kaggle.com/api/v1/datasets/download/algsoch/breed-cattle-buffalo
 ```
-   - For a quick smoke‑test, the training script can create tiny splits automatically (`--smoke-test`).
+
+### 2. Extract & Prepare Images for Training
+Extract the downloaded archive into `data/raw/` in the project root:
+
+```bash
+# Create the target directory
+mkdir -p data/raw
+
+# Unzip the dataset into data/raw/
+unzip -q ~/Downloads/breed-cattle-buffalo.zip -d data/raw/
+```
+
+Ensure the extracted raw images follow the expected species and breed directory layout:
+```text
+data/raw/
+├── cattle/
+│   ├── gir/
+│   ├── sahiwal/
+│   └── ... (57 cattle breeds)
+└── buffalo/
+    ├── murrah/
+    ├── jafarabadi/
+    └── ... (18 buffalo breeds)
+```
+
+### 3. Generate Train / Val / Test Splits
+Run the data pipeline script to scan `data/raw/` and generate stratified split CSVs (`train.csv`, `val.csv`, `test.csv`) under `data/splits/`:
+
+```bash
+python -m src.data_pipeline   # scans data/raw/ and writes CSVs to data/splits/
+```
+
+> **Note**: For a quick smoke-test, the training script can generate tiny splits automatically (`python -m src.train --smoke-test --skip-qat`).
 
 ---
 
