@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cattle &amp; Buffalo Breed Studio</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+</head>
+<body>
+  <header>
+    <h1>Cattle &amp; Buffalo Breed Studio</h1>
+    <div class="chips" id="status-chips"></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="predict">Predict</button>
+    <button class="tab" data-tab="train">Train</button>
+    <button class="tab" data-tab="evaluate">Evaluate</button>
+    <button class="tab" data-tab="memory">Memory</button>
+    <button class="tab" data-tab="debug">Debug</button>
+  </nav>
+
+  <main>
+    <section id="tab-predict" class="panel active">
+      <div class="grid-2">
+        <div class="column">
+          <div class="card">
+            <h2>Upload &amp; Preview</h2>
+            <div id="dropzone" class="dropzone">
+              <p>Drop an image here, click to browse, or use the buttons below</p>
+              <input type="file" id="image-input" accept="image/*" hidden>
+              <div class="row">
+                <button id="browse-btn">Browse</button>
+                <button id="sample-btn" class="ghost" title="Loads any image already present in the training set">Load sample</button>
+              </div>
+            </div>
+            <div id="preview-wrap" class="preview-wrap hidden">
+              <img id="preview" alt="preview">
+              <button id="clear-btn" class="ghost">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="card">
+            <h2>Analysis &amp; Results</h2>
+            <div class="row" style="margin-top:0">
+              <label>Backbone
+                <select id="predict-backbone">
+                  <option value="lite2">lite2</option>
+                  <option value="lite4">lite4</option>
+                </select>
+              </label>
+              <button id="analyze-btn" class="primary">Analyze</button>
+            </div>
+            <div id="predict-error" class="error hidden"></div>
+            <div id="result" class="hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-train" class="panel">
+      <div class="card">
+        <h2>Training</h2>
+        <div class="form-grid">
+          <label>Backbone
+            <select id="train-backbone">
+              <option value="lite2">lite2</option>
+              <option value="lite4">lite4</option>
+            </select>
+          </label>
+          <label>Phase 1 epochs
+            <input type="number" id="p1" min="0" placeholder="default">
+          </label>
+          <label>Phase 2 epochs
+            <input type="number" id="p2" min="0" placeholder="default">
+          </label>
+          <label>Phase 3 epochs
+            <input type="number" id="p3" min="0" placeholder="default">
+          </label>
+          <label class="check"><input type="checkbox" id="smoke"> Smoke test (1 epoch, 2 batches)</label>
+          <label class="check"><input type="checkbox" id="skip-qat"> Skip QAT (phase 3)</label>
+        </div>
+        <div class="row">
+          <button id="train-start" class="primary">Start training</button>
+          <button id="train-stop" class="danger">Stop</button>
+        </div>
+        <div id="train-status" class="job-status"></div>
+        <div id="train-pbar" class="pbar-wrap hidden"></div>
+        <pre id="train-log" class="console"></pre>
+      </div>
+    </section>
+
+    <section id="tab-evaluate" class="panel">
+      <div class="card">
+        <h2>Evaluate on test set</h2>
+        <div class="row">
+          <label>Backbone
+            <select id="eval-backbone">
+              <option value="lite2">lite2</option>
+              <option value="lite4">lite4</option>
+            </select>
+          </label>
+          <button id="eval-run" class="primary">Run evaluation</button>
+        </div>
+        <div id="eval-status" class="job-status"></div>
+        <div id="eval-pbar" class="pbar-wrap hidden"></div>
+        <div id="metrics-panel"></div>
+        <pre id="eval-log" class="console"></pre>
+      </div>
+    </section>
+
+    <section id="tab-memory" class="panel">
+      <div class="grid-2">
+        <div class="column">
+          <div class="card">
+            <h2>Store a memory</h2>
+            <label>Text
+              <textarea id="mem-text" rows="2"
+                placeholder="e.g. Alice's farm in Kaimoor keeps Sahiwal cows for milk"></textarea>
+            </label>
+            <div class="form-grid">
+              <label>user_id<input id="mem-user" placeholder="alice"></label>
+              <label>agent_id<input id="mem-agent" placeholder="breed-assistant"></label>
+              <label>run_id<input id="mem-run" placeholder="session-1"></label>
+            </div>
+            <label class="check"><input type="checkbox" id="mem-infer" checked>
+              LLM extraction / dedupe (requires LLM)</label>
+            <div class="row">
+              <button id="mem-add-btn" class="primary">Store</button>
+              <button id="mem-add-demo" class="ghost">Store sample facts</button>
+            </div>
+            <div id="mem-add-out" class="job-status" style="white-space:pre-wrap"></div>
+          </div>
+
+          <div class="card">
+            <h2>Recall relevant context (token-efficient)</h2>
+            <label>Query
+              <textarea id="recall-query" rows="2"
+                placeholder="e.g. What dairy cows does Alice keep?"></textarea>
+            </label>
+            <div class="form-grid">
+              <label>user_id<input id="recall-user" value="alice"></label>
+              <label>agent_id<input id="recall-agent" placeholder="(any)"></label>
+              <label>run_id<input id="recall-run" placeholder="(all sessions)"></label>
+              <label>top_k<input type="number" id="recall-topk" value="5" min="1"></label>
+            </div>
+            <div class="row"><button id="recall-btn" class="primary">Recall</button></div>
+            <div id="recall-stats" class="job-status" style="margin-top:12px"></div>
+            <pre id="recall-context" class="console" style="height:150px"></pre>
+          </div>
+
+          <div class="card">
+            <h2>Memory-aware chat</h2>
+            <label>Message
+              <textarea id="chat-message" rows="2"
+                placeholder="e.g. Which of Alice's breeds are best for milk?"></textarea>
+            </label>
+            <div class="form-grid">
+              <label>user_id<input id="chat-user" value="alice"></label>
+              <label>agent_id<input id="chat-agent" value="breed-assistant"></label>
+              <label>run_id<input id="chat-run" placeholder="session-1"></label>
+              <label>System hint<input id="chat-hint"
+                value="You answer cattle &amp; buffalo questions from the recalled memories."></label>
+            </div>
+            <div class="row"><button id="chat-btn" class="primary">Ask</button></div>
+            <div id="chat-error" class="error hidden"></div>
+            <div id="chat-reply" class="job-status" style="white-space:pre-wrap; margin-top:12px; font-weight:500"></div>
+            <div id="chat-stats" class="job-status" style="margin-top:12px"></div>
+            <pre id="chat-context" class="console" style="height:120px"></pre>
+          </div>
+        </div>
+
+        <div class="column">
+          <div class="card">
+            <h2>Context memory (Mem0)</h2>
+            <div id="memory-status" class="kv"></div>
+          </div>
+
+          <div class="card">
+            <h2>Stored memories</h2>
+            <div class="row" style="margin-top:0">
+              <label>user_id<input id="list-user" value="alice"></label>
+              <label>agent_id<input id="list-agent" placeholder="(all)"></label>
+              <label>run_id<input id="list-run" placeholder="(all)"></label>
+            </div>
+            <div class="row">
+              <button id="mem-list-btn">List</button>
+              <button id="mem-clear-btn" class="danger">Clear scope</button>
+              <button id="mem-reset-btn" class="danger">Reset all</button>
+            </div>
+            <div id="mem-list" class="kv" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-debug" class="panel">
+      <div class="grid-2">
+        <div class="column">
+          <div class="card">
+            <h2>System &amp; debug</h2>
+            <div id="debug-status" class="kv"></div>
+          </div>
+          <div class="card">
+            <h2>Utilities</h2>
+            <div class="row">
+              <button id="verify-btn">Run verification</button>
+              <label>Export
+                <select id="export-mode">
+                  <option value="onnx">onnx</option>
+                  <option value="int8">int8</option>
+                  <option value="float16">float16</option>
+                  <option value="portable">portable (self-contained)</option>
+                </select>
+              </label>
+              <button id="export-btn" class="primary">Export</button>
+            </div>
+        <div id="util-status" class="job-status"></div>
+        <div id="util-pbar" class="pbar-wrap hidden"></div>
+        <pre id="util-log" class="console"></pre>
+          </div>
+        </div>
+        <div class="column">
+          <div class="card">
+            <h2>Dataset</h2>
+            <div id="dataset-panel" class="kv"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>webapp/server.py &middot; FastAPI + PyTorch</footer>
+
+  <script src="/static/app.js?v=4"></script>
+</body>
+</html>
