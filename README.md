@@ -330,6 +330,11 @@ For complete architecture specifications, dataset schema, training flow, Google 
 ---
 
 ## Changelog
+**2026-09-06 – Hotfix: Colab `total_memory` & Clone Fix**
+- Fixed an `AttributeError` caused by using `total_mem` instead of PyTorch's `total_memory` in `setup_device()`.
+- Enhanced Colab notebook's GitHub clone cell with robust `rm -rf` and error checking to ensure fresh code is pulled properly.
+- Updated `CONTEXT.md` knowledge base with a Colab Gotchas table.
+
 **2026‑09‑06 – Google Colab & SOTA Mobile Training Suite**
 - Added full Google Colab T4 GPU trainer (`colab/cattle_buffalo_trainer.ipynb` and `colab/cattle_buffalo_trainer.py`).
 - Added 3 project setup methods (GitHub public clone `https://github.com/Bharaths31/ML-CB-B-identifier`, zip upload, Google Drive).
