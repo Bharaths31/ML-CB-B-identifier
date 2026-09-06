@@ -510,6 +510,7 @@ model = BreedClassifier(
 if not os.path.exists(weights_path):
     print(f"⚠️  {weights_path} not found — training backbone from scratch")
 model.to(device)
+model = model.to(memory_format=torch.channels_last)
 
 trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = sum(p.numel() for p in model.parameters())
@@ -559,6 +560,7 @@ train_phase(
     weight_decay=WEIGHT_DECAY,
     grad_accum_steps=GRAD_ACCUM,
     label_smoothing=LABEL_SMOOTHING,
+    eval_every=cfg.EVAL_EVERY_PHASE1,
 )
 
 # ─── Phase 2: Full multi-task fine-tuning ───
@@ -571,8 +573,13 @@ model.train()
 warmup_ep = min(WARMUP_EPOCHS, PHASE2_EPOCHS - 1)
 print(f"[train] LR schedule: {warmup_ep}ep warmup → cosine decay")
 
+compiled_model = model
+if hasattr(torch, "compile"):
+    print("[train] compiling model for phase 2 (this may take a minute)...")
+    compiled_model = torch.compile(model, mode="reduce-overhead")
+
 train_phase(
-    model, train_loader, val_loader, device,
+    compiled_model, train_loader, val_loader, device,
     phase=2, epochs=PHASE2_EPOCHS, lr=PHASE2_LR,
     loss_weights=(LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
     scheduler_factory=lambda opt: _build_warmup_cosine_scheduler(
@@ -582,6 +589,7 @@ train_phase(
     weight_decay=WEIGHT_DECAY,
     grad_accum_steps=GRAD_ACCUM,
     label_smoothing=LABEL_SMOOTHING,
+    eval_every=cfg.EVAL_EVERY_PHASE2,
 )
 
 # ─── Phase 3: QAT ───
@@ -604,6 +612,7 @@ if not SKIP_QAT:
         weight_decay=WEIGHT_DECAY,
         grad_accum_steps=GRAD_ACCUM,
         label_smoothing=LABEL_SMOOTHING,
+        eval_every=cfg.EVAL_EVERY_PHASE3,
     )
 
     if qat_ok:

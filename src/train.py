@@ -14,6 +14,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from tqdm import tqdm
 
 from .config import (BACKBONE_WEIGHTS, BATCH_SIZE, CHECKPOINT_DIR,
+                     EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
                      GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
                      LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_CATTLE,
                      NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS,
@@ -44,6 +45,7 @@ def setup_device(requested):
         # Enable TF32 for Ampere+ GPUs (huge speedup, negligible precision loss)
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
+        torch.set_float32_matmul_precision("high")
         use_amp = True
         gpu_name = torch.cuda.get_device_name(0)
         gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
@@ -170,7 +172,7 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 loss_weights, scheduler_factory, checkpoint_path,
                 scaler=None, max_batches=None, best_key="combined_top1",
                 set_train=None, weight_decay=0.0,
-                grad_accum_steps=1, label_smoothing=0.0):
+                grad_accum_steps=1, label_smoothing=0.0, eval_every=1):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
     params = [p for p in model.parameters() if p.requires_grad]
@@ -190,20 +192,27 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             label_smoothing=label_smoothing)
         if scheduler is not None:
             scheduler.step()
-        metrics = evaluate_epoch(model, val_loader, device,
-                                 max_batches=max_batches)
-        acc = metrics[best_key]
-        tag = f"phase{phase} epoch {epoch}/{epochs}"
-        print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} ce_c={ce_c:.4f} "
-              f"ce_buf={ce_buf:.4f} | val binary={metrics['binary_acc']:.4f} "
-              f"cattle={metrics['cattle_acc']:.4f} buffalo={metrics['buffalo_acc']:.4f} "
-              f"top1={metrics['combined_top1']:.4f}", flush=True)
-        if acc >= best:
-            best = acc
-            torch.save({"phase": phase, "epoch": epoch, "val_top1": acc,
-                        "state_dict": model.state_dict()}, checkpoint_path)
-        phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{acc:.4f}",
-                               refresh=False)
+
+        if epoch % eval_every == 0 or epoch == epochs:
+            metrics = evaluate_epoch(model, val_loader, device,
+                                     max_batches=max_batches)
+            acc = metrics[best_key]
+            tag = f"phase{phase} epoch {epoch}/{epochs}"
+            print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} ce_c={ce_c:.4f} "
+                  f"ce_buf={ce_buf:.4f} | val binary={metrics['binary_acc']:.4f} "
+                  f"cattle={metrics['cattle_acc']:.4f} buffalo={metrics['buffalo_acc']:.4f} "
+                  f"top1={metrics['combined_top1']:.4f}", flush=True)
+            if acc >= best:
+                best = acc
+                sd = model._orig_mod.state_dict() if hasattr(model, "_orig_mod") else model.state_dict()
+                torch.save({"phase": phase, "epoch": epoch, "val_top1": acc,
+                            "state_dict": sd}, checkpoint_path)
+            phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{acc:.4f}",
+                                   refresh=False)
+        else:
+            tag = f"phase{phase} epoch {epoch}/{epochs}"
+            print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} ce_c={ce_c:.4f} ce_buf={ce_buf:.4f} | val=skipped", flush=True)
+            phase_pbar.set_postfix(loss=f"{loss:.4f}", refresh=False)
 
     phase_pbar.close()
     print(f"[train] phase{phase} best val top1: {best:.4f} -> {checkpoint_path}")
@@ -308,6 +317,7 @@ def main():
     parser.add_argument("--phase3-epochs", type=int, default=None)
     parser.add_argument("--skip-qat", action="store_true")
     parser.add_argument("--smoke-test", action="store_true")
+    parser.add_argument("--no-compile", action="store_true", help="disable torch.compile")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--export-dir", default=PORTABLE_EXPORT_DIR,
                         help="directory for portable model export")
@@ -367,6 +377,7 @@ def main():
     if not os.path.exists(weights):
         print(f"[train] WARNING: {weights} not found, training backbone from scratch")
     model.to(device)
+    model = model.to(memory_format=torch.channels_last)
 
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
@@ -415,24 +426,32 @@ def main():
                 set_train=lambda m: (m.train(), m.backbone_eval()),
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
-                label_smoothing=args.label_smoothing)
+                label_smoothing=args.label_smoothing,
+                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE1)
 
     # --- Phase 2: Full multi-task fine-tuning ---
     model.unfreeze_all()
     model.train()
+    
+    compiled_model = model
+    if not args.no_compile and hasattr(torch, "compile") and not args.smoke_test:
+        print("[train] compiling model for phase 2 (this may take a minute)...")
+        compiled_model = torch.compile(model, mode="reduce-overhead")
+
     warmup_ep = min(args.warmup_epochs, phase2 - 1) if not args.smoke_test else 0
     print(f"\n[train] phase 2: multi-task fine-tune, lr={PHASE2_LR:.0e} "
           f"(warmup={warmup_ep}ep + cosine), "
           f"{phase2} epochs, weights "
           f"({LOSS_WEIGHT_BINARY}/{LOSS_WEIGHT_CATTLE}/{LOSS_WEIGHT_BUFFALO})")
-    train_phase(model, train_loader, val_loader, device, 2, phase2, PHASE2_LR,
+    train_phase(compiled_model, train_loader, val_loader, device, 2, phase2, PHASE2_LR,
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
                 lambda opt: _build_warmup_cosine_scheduler(
                     opt, warmup_ep, phase2),
                 f"{base}_phase2_best.pt", scaler, max_batches,
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
-                label_smoothing=args.label_smoothing)
+                label_smoothing=args.label_smoothing,
+                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE2)
 
     # --- Phase 3: QAT (optional) ---
     best_checkpoint = f"{base}_phase2_best.pt"
@@ -447,7 +466,8 @@ def main():
                     None, f"{base}_phase3_best.pt", None, max_batches,
                     weight_decay=args.weight_decay,
                     grad_accum_steps=args.grad_accum,
-                    label_smoothing=args.label_smoothing)
+                    label_smoothing=args.label_smoothing,
+                    eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE3)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat

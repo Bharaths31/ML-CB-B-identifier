@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 from tqdm import tqdm
 
-from .config import (CUTMIX_ALPHA, IMAGE_SIZE, MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
+from .config import (CACHE_IMAGES, CUTMIX_ALPHA, IMAGE_SIZE, MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
                      NUM_CATTLE_BREEDS, RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS,
                      RAW_DATA_DIR, SMOKE_SAMPLES_PER_BREED, SPLIT_DIR,
                      TEST_RATIO, TRAIN_RATIO, VAL_RATIO)
@@ -211,18 +211,34 @@ def _eval_transform():
 
 
 class CattleBuffaloDataset(Dataset):
-    def __init__(self, manifest, cattle_classes, buffalo_classes, transform=None):
+    def __init__(self, manifest, cattle_classes, buffalo_classes, transform=None, cache_images=False):
         self.manifest = manifest.reset_index(drop=True)
         self.cattle_classes = cattle_classes
         self.buffalo_classes = buffalo_classes
         self.transform = transform or _eval_transform()
+        self._use_cache = cache_images
+        self._image_cache = {}
+
+    def enable_cache(self):
+        self._use_cache = True
+
+    def disable_cache(self):
+        self._use_cache = False
+        self._image_cache.clear()
 
     def __len__(self):
         return len(self.manifest)
 
     def __getitem__(self, idx):
         row = self.manifest.iloc[idx]
-        image = Image.open(row["path"]).convert("RGB")
+        
+        if self._use_cache and idx in self._image_cache:
+            image = self._image_cache[idx]
+        else:
+            image = Image.open(row["path"]).convert("RGB")
+            if self._use_cache:
+                self._image_cache[idx] = image
+
         if self.transform is not None:
             image = self.transform(image)
         is_cattle = row["binary_label"] == 0
@@ -291,7 +307,7 @@ def mixed_collate(batch):
             images, labels = cutmix(images, labels)
         else:
             images, labels = mixup(images, labels)
-    return images, labels
+    return images.to(memory_format=torch.channels_last), labels
 
 
 def _make_weighted_sampler(df):
@@ -330,11 +346,11 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
         pin_memory = torch.cuda.is_available()
 
     train_ds = CattleBuffaloDataset(train_df, cattle_classes, buffalo_classes,
-                                    transform=_train_transform())
+                                    transform=_train_transform(), cache_images=CACHE_IMAGES)
     val_ds = CattleBuffaloDataset(val_df, cattle_classes, buffalo_classes,
-                                  transform=_eval_transform())
+                                  transform=_eval_transform(), cache_images=CACHE_IMAGES)
     test_ds = CattleBuffaloDataset(test_df, cattle_classes, buffalo_classes,
-                                   transform=_eval_transform())
+                                   transform=_eval_transform(), cache_images=CACHE_IMAGES)
 
     prefetch = 4 if num_workers > 0 else None
     train_loader = DataLoader(

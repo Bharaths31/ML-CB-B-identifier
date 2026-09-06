@@ -18,8 +18,8 @@ def evaluate_epoch(model, loader, device, max_batches=None):
                  bar_format="{l_bar}{bar:30}{r_bar}")):
         if max_batches is not None and step >= max_batches:
             break
-        images = images.to(device)
-        labels = {k: v.to(device) for k, v in labels.items()}
+        images = images.to(device, non_blocking=True)
+        labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
         out = model(images)
         bin_pred = out["binary"].argmax(1)
         bin_true = labels["binary"].argmax(1)
@@ -30,7 +30,8 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         cmask = labels["cattle_mask"] > 0.5
         bmask = labels["buffalo_mask"] > 0.5
 
-        n_binary += images.size(0)
+        bs = images.size(0)
+        n_binary += bs
         correct_binary += (bin_pred == bin_true).sum().item()
         binary_tp += ((bin_pred == 1) & (bin_true == 1)).sum().item()
         binary_fp += ((bin_pred == 1) & (bin_true == 0)).sum().item()
@@ -41,19 +42,23 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         n_buffalo += bmask.sum().item()
         correct_buffalo += (buffalo_pred[bmask] == buffalo_true[bmask]).sum().item()
 
-        for i in range(images.size(0)):
-            if bin_pred[i] == 0:
-                ok = (cattle_pred[i] == cattle_true[i]) and (bin_true[i] == 0)
-            else:
-                ok = (buffalo_pred[i] == buffalo_true[i]) and (bin_true[i] == 1)
-            correct_combined += int(ok)
-            n_combined += 1
-            if bin_true[i] == 0:
-                hit = cattle_true[i] in out["cattle"][i].topk(3).indices
-            else:
-                hit = buffalo_true[i] in out["buffalo"][i].topk(3).indices
-            correct_top3 += int(hit)
-            n_top3 += 1
+        # --- Vectorized combined top-1 accuracy ---
+        # A prediction is correct if the binary head is right AND the
+        # selected breed head matches the true breed.
+        cattle_hit = (bin_pred == 0) & (bin_true == 0) & (cattle_pred == cattle_true)
+        buffalo_hit = (bin_pred == 1) & (bin_true == 1) & (buffalo_pred == buffalo_true)
+        correct_combined += (cattle_hit | buffalo_hit).sum().item()
+        n_combined += bs
+
+        # --- Vectorized top-3 accuracy ---
+        cattle_top3 = out["cattle"].topk(3, dim=1).indices  # (B, 3)
+        buffalo_top3 = out["buffalo"].topk(3, dim=1).indices  # (B, 3)
+        cattle_in_top3 = (cattle_top3 == cattle_true.unsqueeze(1)).any(dim=1)
+        buffalo_in_top3 = (buffalo_top3 == buffalo_true.unsqueeze(1)).any(dim=1)
+        is_cattle = (bin_true == 0)
+        top3_hit = torch.where(is_cattle, cattle_in_top3, buffalo_in_top3)
+        correct_top3 += top3_hit.sum().item()
+        n_top3 += bs
 
     def acc(c, n):
         return c / n if n else 0.0
