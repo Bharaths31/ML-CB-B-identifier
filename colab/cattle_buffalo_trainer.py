@@ -26,7 +26,7 @@ def check_gpu():
         print("❌ No GPU detected! Go to: Runtime → Change runtime type → T4 GPU")
         return False
     gpu = torch.cuda.get_device_name(0)
-    mem = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+    mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
     print(f"✅ GPU: {gpu} ({mem:.1f} GB VRAM)")
     print(f"   PyTorch: {torch.__version__}")
     print(f"   CUDA: {torch.version.cuda}")
@@ -897,7 +897,7 @@ if torch.cuda.is_available():
     allocated = torch.cuda.memory_allocated() / (1024**3)
     reserved = torch.cuda.memory_reserved() / (1024**3)
     max_allocated = torch.cuda.max_memory_allocated() / (1024**3)
-    total = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+    total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
     print(f"GPU Memory:")
     print(f"  Allocated: {allocated:.2f} GB")
     print(f"  Reserved:  {reserved:.2f} GB")

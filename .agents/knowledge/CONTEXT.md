@@ -500,7 +500,12 @@ python webapp/server.py       # → http://localhost:8000
 
 ### Project Setup Options (in Colab)
 
-1. **GitHub clone** (recommended): `git clone https://github.com/Bharaths31/ML-CB-B-identifier`
+1. **GitHub clone** (recommended):
+   ```bash
+   !rm -rf /content/project   # force-refresh to pick up latest code
+   !git clone https://github.com/Bharaths31/ML-CB-B-identifier /content/project
+   ```
+   > **Important**: Always `rm -rf /content/project` before cloning so that updated code (bug fixes, new features) is pulled correctly. Simply re-running the clone cell without deleting first silently keeps the old cached copy.
 2. **Upload `colab_project.zip`**: created by `python scripts/create_colab_project_zip.py`
 3. **Google Drive mount**: copy `colab_project.zip` from `My Drive/ML-CB-B-identifier/`
 
@@ -521,6 +526,14 @@ python webapp/server.py       # → http://localhost:8000
 | `pin_memory` | True | Faster CPU→GPU transfer |
 | AMP | phases 1-2 only | Disabled for QAT phase 3 |
 | Dataset location | `/content/data/raw/` | Local SSD, not Drive |
+
+### Known Colab Gotchas
+
+| Symptom | Root Cause | Fix |
+|---|---|---|
+| `AttributeError: 'torch._C._CudaDeviceProperties' object has no attribute 'total_mem'` | PyTorch attribute is `total_memory`, not `total_mem` | **Fixed** in `src/train.py:49` and `colab/cattle_buffalo_trainer.py:29,900` |
+| Re-running GitHub clone cell doesn't pick up new code | Colab re-uses cached `/content/project/` directory | Add `!rm -rf /content/project` before `git clone` in §1 |
+| Runtime restarts wipe all files | Colab free tier has ephemeral storage | Re-run all cells from §0 top-to-bottom after any restart |
 
 ---
 
@@ -552,6 +565,20 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-06 — Hotfix: CUDA `total_mem` AttributeError
+
+**Bug Fix:**
+- Fixed `AttributeError: 'torch._C._CudaDeviceProperties' object has no attribute 'total_mem'` that crashed §6 Training on Colab T4
+- Root cause: PyTorch uses `total_memory`, not `total_mem`
+- Fixed in `src/train.py` (`setup_device()`) and both occurrences in `colab/cattle_buffalo_trainer.py`
+- Regenerated `colab/cattle_buffalo_trainer.ipynb` from fixed `.py`
+
+**Documentation:**
+- Added Colab gotchas table to `CONTEXT.md` §14 covering: `total_mem` bug, GitHub clone cache issue, runtime restart behaviour
+- Added `rm -rf /content/project` before `git clone` in §14 best practices to ensure latest code is always used
+
+---
 
 ### 2026-09-06 — Colab + SOTA Hyperparameters + Android QAT
 
