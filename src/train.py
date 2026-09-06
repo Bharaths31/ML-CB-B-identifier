@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import os
 import random
 import shutil
@@ -8,15 +9,16 @@ import time
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.optim import Adam
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from tqdm import tqdm
 
 from .config import (BACKBONE_WEIGHTS, BATCH_SIZE, CHECKPOINT_DIR,
+                     GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
                      LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_CATTLE,
                      NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS,
                      PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR,
-                     RAW_DATA_DIR, SEED, SPLIT_DIR)
+                     RAW_DATA_DIR, SEED, SPLIT_DIR, WARMUP_EPOCHS, WEIGHT_DECAY)
 from .data_pipeline import get_dataloaders, prepare_smoke_splits, prepare_splits
 from .metrics import evaluate_epoch
 from .model import BreedClassifier
@@ -60,14 +62,27 @@ def setup_device(requested):
 # Loss functions
 # ---------------------------------------------------------------------------
 
-def soft_ce(pred, target):
+def soft_ce(pred, target, label_smoothing=0.0):
+    """Soft cross-entropy with optional label smoothing.
+
+    When label_smoothing > 0, target distribution is smoothed:
+        target_smooth = (1 - ε) * target + ε / num_classes
+    This prevents overconfident predictions and improves generalization.
+    """
+    if label_smoothing > 0.0:
+        n_classes = pred.size(1)
+        target = (1.0 - label_smoothing) * target + label_smoothing / n_classes
     return -(target * F.log_softmax(pred, dim=1)).sum(dim=1)
 
 
-def masked_loss(out, labels, w_binary, w_cattle, w_buffalo):
-    ce_binary = soft_ce(out["binary"], labels["binary"]).mean()
-    ce_cattle = (soft_ce(out["cattle"], labels["cattle"]) * labels["cattle_mask"])
-    ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"]) * labels["buffalo_mask"])
+def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
+                label_smoothing=0.0):
+    ce_binary = soft_ce(out["binary"], labels["binary"],
+                        label_smoothing).mean()
+    ce_cattle = (soft_ce(out["cattle"], labels["cattle"],
+                         label_smoothing) * labels["cattle_mask"])
+    ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"],
+                          label_smoothing) * labels["buffalo_mask"])
     denom_c = labels["cattle_mask"].sum().clamp(min=1.0)
     denom_b = labels["buffalo_mask"].sum().clamp(min=1.0)
     ce_cattle = ce_cattle.sum() / denom_c
@@ -81,8 +96,10 @@ def masked_loss(out, labels, w_binary, w_cattle, w_buffalo):
 # ---------------------------------------------------------------------------
 
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
-              max_batches=None, set_train=None, desc="train"):
-    """Run one training epoch with optional AMP (mixed-precision)."""
+              max_batches=None, set_train=None, desc="train",
+              grad_accum_steps=1, label_smoothing=0.0):
+    """Run one training epoch with optional AMP, gradient accumulation,
+    and label smoothing."""
     set_train = set_train or (lambda m: m.train())
     set_train(model)
     running = []
@@ -91,31 +108,43 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
 
     pbar = tqdm(loader, desc=desc, total=total, leave=False,
                 bar_format="{l_bar}{bar:30}{r_bar}")
+    optimizer.zero_grad(set_to_none=True)
+
     for step, (images, labels) in enumerate(pbar):
         if max_batches is not None and step >= max_batches:
             break
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
-        optimizer.zero_grad(set_to_none=True)
 
         if use_amp:
             with torch.amp.autocast("cuda"):
                 out = model(images)
-                loss, ce_b, ce_c, ce_buf = masked_loss(out, labels, *loss_weights)
+                loss, ce_b, ce_c, ce_buf = masked_loss(
+                    out, labels, *loss_weights,
+                    label_smoothing=label_smoothing)
+                loss = loss / grad_accum_steps
             scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            scaler.step(optimizer)
-            scaler.update()
+            if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
         else:
             out = model(images)
-            loss, ce_b, ce_c, ce_buf = masked_loss(out, labels, *loss_weights)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            loss, ce_b, ce_c, ce_buf = masked_loss(
+                out, labels, *loss_weights,
+                label_smoothing=label_smoothing)
+            loss_scaled = loss / grad_accum_steps
+            loss_scaled.backward()
+            if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
-        running.append((loss.item(), ce_b.item(), ce_c.item(), ce_buf.item()))
-        pbar.set_postfix(loss=f"{loss.item():.4f}", refresh=False)
+        running.append((loss.item() * grad_accum_steps, ce_b.item(),
+                        ce_c.item(), ce_buf.item()))
+        pbar.set_postfix(loss=f"{running[-1][0]:.4f}", refresh=False)
 
     pbar.close()
     if not running:
@@ -123,13 +152,29 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
     return tuple(sum(x[i] for x in running) / len(running) for i in range(4))
 
 
+def _build_warmup_cosine_scheduler(optimizer, warmup_epochs, total_epochs):
+    """Create a linear-warmup + cosine-annealing LR schedule."""
+    if warmup_epochs <= 0:
+        return CosineAnnealingLR(optimizer, T_max=total_epochs)
+
+    warmup_sched = LambdaLR(
+        optimizer, lr_lambda=lambda epoch: (epoch + 1) / warmup_epochs)
+    cosine_sched = CosineAnnealingLR(
+        optimizer, T_max=max(1, total_epochs - warmup_epochs))
+    return SequentialLR(
+        optimizer, schedulers=[warmup_sched, cosine_sched],
+        milestones=[warmup_epochs])
+
+
 def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 loss_weights, scheduler_factory, checkpoint_path,
                 scaler=None, max_batches=None, best_key="combined_top1",
-                set_train=None):
-    """Train a single phase with progress tracking and optional AMP."""
+                set_train=None, weight_decay=0.0,
+                grad_accum_steps=1, label_smoothing=0.0):
+    """Train a single phase with AdamW, optional AMP, gradient accumulation,
+    and label smoothing."""
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = Adam(params, lr=lr)
+    optimizer = AdamW(params, lr=lr, weight_decay=weight_decay)
     scheduler = scheduler_factory(optimizer) if scheduler_factory else None
     best = 0.0
 
@@ -140,7 +185,9 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
         loss, ce_b, ce_c, ce_buf = run_epoch(
             model, loader, optimizer, device, loss_weights, scaler,
             max_batches, set_train=set_train,
-            desc=f"phase{phase} e{epoch}/{epochs}")
+            desc=f"phase{phase} e{epoch}/{epochs}",
+            grad_accum_steps=grad_accum_steps,
+            label_smoothing=label_smoothing)
         if scheduler is not None:
             scheduler.step()
         metrics = evaluate_epoch(model, val_loader, device,
@@ -266,6 +313,16 @@ def main():
                         help="directory for portable model export")
     parser.add_argument("--no-export", action="store_true",
                         help="skip automatic portable export after training")
+    # --- SOTA hyperparameter args ---
+    parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY,
+                        help="AdamW weight decay (default: 1e-2)")
+    parser.add_argument("--label-smoothing", type=float, default=LABEL_SMOOTHING,
+                        help="label smoothing factor (default: 0.1)")
+    parser.add_argument("--warmup-epochs", type=int, default=WARMUP_EPOCHS,
+                        help="linear warmup epochs for phase 2 (default: 3)")
+    parser.add_argument("--grad-accum", type=int,
+                        default=GRADIENT_ACCUMULATION_STEPS,
+                        help="gradient accumulation steps (default: 2)")
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -335,6 +392,12 @@ def main():
     print(f"  Dataset: {summary.get('train', '?')} train / "
           f"{summary.get('val', '?')} val images")
     print(f"  Batch size: {args.batch_size}, Workers: {args.num_workers}")
+    print(f"  Optimizer: AdamW (wd={args.weight_decay}), "
+          f"Label smoothing: {args.label_smoothing}")
+    print(f"  Gradient accumulation: {args.grad_accum} steps "
+          f"(effective batch={args.batch_size * args.grad_accum})")
+    if args.warmup_epochs > 0:
+        print(f"  Warmup: {args.warmup_epochs} epochs (phase 2)")
     print(f"{'=' * 60}\n")
 
     start_time = time.time()
@@ -349,18 +412,27 @@ def main():
     train_phase(model, train_loader, val_loader, device, 1, phase1, PHASE1_LR,
                 (1.0, 0.0, 0.0), None, f"{base}_phase1_best.pt", scaler,
                 max_batches, best_key="binary_acc",
-                set_train=lambda m: (m.train(), m.backbone_eval()))
+                set_train=lambda m: (m.train(), m.backbone_eval()),
+                weight_decay=args.weight_decay,
+                grad_accum_steps=args.grad_accum,
+                label_smoothing=args.label_smoothing)
 
     # --- Phase 2: Full multi-task fine-tuning ---
     model.unfreeze_all()
     model.train()
-    print(f"\n[train] phase 2: multi-task fine-tune, lr=1e-4 cosine, "
+    warmup_ep = min(args.warmup_epochs, phase2 - 1) if not args.smoke_test else 0
+    print(f"\n[train] phase 2: multi-task fine-tune, lr={PHASE2_LR:.0e} "
+          f"(warmup={warmup_ep}ep + cosine), "
           f"{phase2} epochs, weights "
           f"({LOSS_WEIGHT_BINARY}/{LOSS_WEIGHT_CATTLE}/{LOSS_WEIGHT_BUFFALO})")
     train_phase(model, train_loader, val_loader, device, 2, phase2, PHASE2_LR,
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
-                lambda opt: CosineAnnealingLR(opt, T_max=phase2),
-                f"{base}_phase2_best.pt", scaler, max_batches)
+                lambda opt: _build_warmup_cosine_scheduler(
+                    opt, warmup_ep, phase2),
+                f"{base}_phase2_best.pt", scaler, max_batches,
+                weight_decay=args.weight_decay,
+                grad_accum_steps=args.grad_accum,
+                label_smoothing=args.label_smoothing)
 
     # --- Phase 3: QAT (optional) ---
     best_checkpoint = f"{base}_phase2_best.pt"
@@ -372,7 +444,10 @@ def main():
               f"lr={PHASE3_LR:.0e}, {phase3} epochs")
         train_phase(model, train_loader, val_loader, device, 3, phase3, PHASE3_LR,
                     (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
-                    None, f"{base}_phase3_best.pt", None, max_batches)
+                    None, f"{base}_phase3_best.pt", None, max_batches,
+                    weight_decay=args.weight_decay,
+                    grad_accum_steps=args.grad_accum,
+                    label_smoothing=args.label_smoothing)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat

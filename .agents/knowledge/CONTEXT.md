@@ -99,6 +99,11 @@ Mini Project/
 │   ├── evaluate.py             # Full evaluation with confusion matrices
 │   ├── export.py               # ONNX, INT8, float16, portable export
 │   └── verify.py               # Quick architecture sanity check
+├── colab/
+│   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)
+│   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
+│   ├── convert_to_notebook.py  # .py → .ipynb converter
+│   └── README.md               # Colab setup instructions
 ├── webapp/
 │   ├── server.py               # FastAPI backend (predict, train, evaluate, memory)
 │   └── static/
@@ -173,9 +178,16 @@ class BreedClassifier(nn.Module):
 
 | Phase | What | Frozen | LR | Epochs | Loss Weights |
 |---|---|---|---|---|---|
-| 1 | Binary head warmup | backbone + attention + breed heads | 1e-3 | 5 | bin=1.0, cat=0.0, buf=0.0 |
-| 2 | Multi-task fine-tune | nothing | 1e-4 (cosine) | 30 | bin=0.5, cat=0.25, buf=0.25 |
-| 3 | QAT (optional) | nothing | 1e-5 | 10 | bin=0.5, cat=0.25, buf=0.25 |
+| 1 | Binary head warmup | backbone + attention + breed heads | 3e-3 | 5 | bin=1.0, cat=0.0, buf=0.0 |
+| 2 | Multi-task fine-tune | nothing | 2e-4 (warmup+cosine) | 40 | bin=0.5, cat=0.25, buf=0.25 |
+| 3 | QAT (for Android) | nothing | 5e-6 | 10 | bin=0.5, cat=0.25, buf=0.25 |
+
+### SOTA Optimizations
+
+- **Optimizer**: AdamW (weight_decay=1e-2) — decoupled weight decay for better generalization
+- **Label smoothing**: 0.1 — prevents overconfident predictions
+- **LR schedule**: Linear warmup (3 epochs) → Cosine annealing (Phase 2)
+- **Gradient accumulation**: 2 steps (effective batch = 128 with batch_size=64)
 
 ### CUDA Optimization
 
@@ -232,12 +244,12 @@ data/raw/
 
 ### Split Strategy
 
-- **Full training**: 80/10/10 stratified per breed
+- **Full training**: 85/10/5 stratified per breed (optimized for maximum training data)
 - **Smoke test**: 5 images/breed → 60/20/20 split (tiny but real)
 
 ### Augmentation
 
-- **Train**: Resize(260) → CenterCrop(260) → RandAugment(ops=2, mag=9) → ToTensor()
+- **Train**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=9) → ToTensor()
 - **Eval**: Resize(260) → CenterCrop(260) → ToTensor()
 - **Batch mixing**: 50% chance of CutMix(α=0.4) or MixUp(α=0.2) via `mixed_collate`
 
@@ -333,13 +345,17 @@ outputs/export/portable/<backbone>_phase2_best/
 | `FEATURE_DIM` | 1280 | Backbone output dimension |
 | `BINARY_DIM` | 256 | Binary head hidden dim |
 | `BREED_DIM` | 512 | Breed head hidden dim |
-| `DROPOUT` | 0.3 | Breed head dropout |
-| `BATCH_SIZE` | 32 | Default batch size |
+| `DROPOUT` | 0.4 | Breed head dropout |
+| `BATCH_SIZE` | 64 | Default batch size |
 | `NUM_WORKERS` | 4 | DataLoader workers |
-| `TRAIN/VAL/TEST_RATIO` | 0.8/0.1/0.1 | Split ratios |
-| `PHASE{1,2,3}_EPOCHS` | 5/30/10 | Training epochs |
-| `PHASE{1,2,3}_LR` | 1e-3/1e-4/1e-5 | Learning rates |
+| `TRAIN/VAL/TEST_RATIO` | 0.85/0.10/0.05 | Split ratios |
+| `PHASE{1,2,3}_EPOCHS` | 5/40/10 | Training epochs |
+| `PHASE{1,2,3}_LR` | 3e-3/2e-4/5e-6 | Learning rates |
 | `LOSS_WEIGHT_*` | 0.5/0.25/0.25 | Multi-task loss weights |
+| `WEIGHT_DECAY` | 1e-2 | AdamW weight decay |
+| `LABEL_SMOOTHING` | 0.1 | Label smoothing factor |
+| `WARMUP_EPOCHS` | 3 | Linear warmup epochs (phase 2) |
+| `GRADIENT_ACCUMULATION_STEPS` | 2 | Grad accum steps |
 | `SMOKE_SAMPLES_PER_BREED` | 5 | Images per breed in smoke test |
 | `CUTMIX_ALPHA` | 0.4 | CutMix beta distribution α |
 | `MIXUP_ALPHA` | 0.2 | MixUp beta distribution α |
@@ -474,7 +490,100 @@ python webapp/server.py       # → http://localhost:8000
 
 ---
 
-## 14. Changelog
+## 14. Colab Training
+
+### Notebook Location
+
+- `colab/cattle_buffalo_trainer.ipynb` — main Colab notebook
+- `colab/cattle_buffalo_trainer.py` — same content as percent-format script
+- `colab/README.md` — setup instructions
+
+### Project Setup Options (in Colab)
+
+1. **GitHub clone** (recommended): `git clone https://github.com/Bharaths31/ML-CB-B-identifier`
+2. **Upload `colab_project.zip`**: created by `python scripts/create_colab_project_zip.py`
+3. **Google Drive mount**: copy `colab_project.zip` from `My Drive/ML-CB-B-identifier/`
+
+### Dataset Options (in Colab)
+
+1. **Kaggle API**: auto-downloads cattle + buffalo datasets
+2. **Upload `archive.zip`**: created by `python scripts/create_colab_archive.py`
+3. **Google Drive**: copy `archive.zip` from Drive
+
+### T4 GPU Optimizations
+
+| Setting | Value | Reason |
+|---|---|---|
+| `batch_size` | 64 | Maximizes T4 utilization (15 GB VRAM) |
+| `grad_accum` | 2 | Effective batch = 128 |
+| `num_workers` | 2 | Colab has 2 CPU cores |
+| `prefetch_factor` | 4 | Keeps GPU fed |
+| `pin_memory` | True | Faster CPU→GPU transfer |
+| AMP | phases 1-2 only | Disabled for QAT phase 3 |
+| Dataset location | `/content/data/raw/` | Local SSD, not Drive |
+
+---
+
+## 15. Android Deployment
+
+### QAT Pipeline
+
+Phase 3 (QAT) produces an INT8-ready model for mobile inference:
+1. Conv-BN fusion: merges batch norm into convolutions
+2. QAT training: inserts fake-quantize observers, fine-tunes with quantization noise
+3. INT8 conversion: `torch.ao.quantization.convert()` produces true INT8 weights
+4. Checkpoint: `<backbone>_quantized.pt`
+
+### Export Formats for Android
+
+| Format | File | Use Case |
+|---|---|---|
+| Portable | `portable/<backbone>_*/model.pt` | PyTorch Mobile / custom runtime |
+| ONNX | `<backbone>_fp32.onnx` | ONNX Runtime Mobile, TFLite via converter |
+| INT8 | `<backbone>_quantized.pt` | Smallest size, fastest inference |
+
+### Model Sizes (approximate)
+
+| Backbone | FP32 | INT8 (post-QAT) |
+|---|---|---|
+| lite2 | ~24 MB | ~6 MB |
+| lite4 | ~50 MB | ~13 MB |
+
+---
+
+## 16. Changelog
+
+### 2026-09-06 — Colab + SOTA Hyperparameters + Android QAT
+
+**Colab Training:**
+- Created `colab/` directory with full training notebook
+- 3 project setup options: GitHub clone, zip upload, Google Drive
+- 3 dataset options: Kaggle API, archive upload, Google Drive
+- Hyperparameter configuration cell with all tunable parameters
+- Image prediction cell for testing with uploaded images
+- Export & download: portable bundle + ONNX + INT8
+- GPU memory monitor cell
+
+**SOTA Hyperparameters:**
+- Switched from Adam → AdamW (weight_decay=1e-2)
+- Added label smoothing (0.1) to soft cross-entropy
+- Added linear warmup scheduler (3 epochs) before cosine annealing
+- Added gradient accumulation (2 steps, effective batch=128)
+- Increased batch size 32 → 64
+- Optimized split ratio 80/10/10 → 85/10/5
+- Phase 2 epochs 30 → 40, LR 1e-4 → 2e-4
+- Phase 1 LR 1e-3 → 3e-3
+- Phase 3 LR 1e-5 → 5e-6
+- Dropout 0.3 → 0.4
+
+**Data Pipeline:**
+- Train augmentation: added RandomResizedCrop, RandomHorizontalFlip, ColorJitter
+- Added prefetch_factor=4 to all DataLoaders
+
+**Android Deployment:**
+- QAT (Phase 3) enabled by default (not skipped)
+- Auto INT8 conversion after QAT
+- ONNX export in Colab notebook for mobile deployment
 
 ### 2026-09-05 — Major Update
 

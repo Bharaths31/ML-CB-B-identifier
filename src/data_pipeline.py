@@ -191,8 +191,11 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
 
 def _train_transform():
     return transforms.Compose([
-        transforms.Resize(IMAGE_SIZE),
-        transforms.CenterCrop(IMAGE_SIZE),
+        transforms.Resize(IMAGE_SIZE + 28),  # 288px for scale variation
+        transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2,
+                               saturation=0.2, hue=0.1),
         transforms.RandAugment(num_ops=RANDAUGMENT_OPS,
                                magnitude=RANDAUGMENT_MAGNITUDE),
         transforms.ToTensor(),
@@ -333,16 +336,20 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
     test_ds = CattleBuffaloDataset(test_df, cattle_classes, buffalo_classes,
                                    transform=_eval_transform())
 
+    prefetch = 4 if num_workers > 0 else None
     train_loader = DataLoader(
         train_ds, batch_size=batch_size, sampler=_make_weighted_sampler(train_df),
         num_workers=num_workers, collate_fn=mixed_collate, drop_last=True,
-        pin_memory=pin_memory, persistent_workers=num_workers > 0)
+        pin_memory=pin_memory, persistent_workers=num_workers > 0,
+        prefetch_factor=prefetch)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False,
                             num_workers=num_workers, pin_memory=pin_memory,
-                            persistent_workers=num_workers > 0)
+                            persistent_workers=num_workers > 0,
+                            prefetch_factor=prefetch)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False,
                              num_workers=num_workers, pin_memory=pin_memory,
-                             persistent_workers=num_workers > 0)
+                             persistent_workers=num_workers > 0,
+                             prefetch_factor=prefetch)
     return train_loader, val_loader, test_loader
 
 

@@ -1,82 +1,75 @@
 #!/usr/bin/env python3
 """
-Create colab_project.zip containing all source code needed for Colab training.
-Usage: python scripts/create_colab_project_zip.py
+Create colab_project.zip containing only the files needed for Colab training.
+Usage: python scripts/create_colab_project_zip.py [--include-lite4]
 Outputs: colab_project.zip in project root
 """
+import argparse
 import zipfile
 import pathlib
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 ARCHIVE_OUT = PROJECT_ROOT / "colab_project.zip"
 
-# Files/dirs to include
-INCLUDE = [
-    "src",
-    "scripts",
-    "data_collection.py",
-    "efficientnet_lite2.pth",
-    "efficientnet_lite4.pth",
+# Core files always included
+CORE_INCLUDES = [
+    "src/__init__.py",
+    "src/config.py",
+    "src/data_pipeline.py",
+    "src/model.py",
+    "src/cbam.py",
+    "src/efficientnet_lite.py",
+    "src/train.py",
+    "src/metrics.py",
+    "src/evaluate.py",
+    "src/export.py",
+    "src/verify.py",
     "requirements.txt",
-    "setup.sh",
-    "setup_venv.py",
+    "efficientnet_lite2.pth",
 ]
-
-# Files/dirs to exclude
-EXCLUDE = [
-    "__pycache__",
-    ".pyc",
-    ".git",
-    ".venv",
-    "data",
-    "outputs",
-    "flutter_app",
-    "webapp",
-    "memory",
-    "archive.zip",
-    "colab_project.zip",
-    "*.ipynb",
-    ".opencode",
-    "ADR.md",
-]
-
-
-def should_include(path: pathlib.Path) -> bool:
-    rel = path.relative_to(PROJECT_ROOT)
-    # Check exclude patterns
-    for pattern in EXCLUDE:
-        if pattern in str(rel) or path.name == pattern:
-            return False
-    return True
 
 
 def main():
-    print(f"📦  Creating colab_project.zip from {PROJECT_ROOT}...")
+    parser = argparse.ArgumentParser(
+        description="Create colab_project.zip for Colab training")
+    parser.add_argument("--include-lite4", action="store_true",
+                        help="include efficientnet_lite4.pth (~50 MB)")
+    parser.add_argument("--output", default=str(ARCHIVE_OUT),
+                        help="output zip path")
+    args = parser.parse_args()
 
-    if ARCHIVE_OUT.exists():
-        ARCHIVE_OUT.unlink()
+    includes = list(CORE_INCLUDES)
+    if args.include_lite4:
+        includes.append("efficientnet_lite4.pth")
 
-    with zipfile.ZipFile(ARCHIVE_OUT, "w", zipfile.ZIP_DEFLATED) as zf:
-        for item in INCLUDE:
+    out_path = pathlib.Path(args.output)
+    if out_path.exists():
+        out_path.unlink()
+
+    print(f"📦  Creating {out_path.name}...")
+    file_count = 0
+    total_bytes = 0
+
+    with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in includes:
             src = PROJECT_ROOT / item
             if not src.exists():
                 print(f"  ⚠️  Skipping missing: {item}")
                 continue
+            zf.write(src, item)
+            size_mb = src.stat().st_size / (1024 * 1024)
+            total_bytes += src.stat().st_size
+            file_count += 1
+            print(f"  ✓ {item} ({size_mb:.2f} MB)")
 
-            if src.is_file():
-                if should_include(src):
-                    zf.write(src, item)
-                    print(f"  ✓ {item}")
-            else:
-                for file_path in src.rglob("*"):
-                    if file_path.is_file() and should_include(file_path):
-                        arcname = file_path.relative_to(PROJECT_ROOT)
-                        zf.write(file_path, str(arcname))
-                        print(f"  ✓ {arcname}")
+    zip_size = out_path.stat().st_size / (1024 * 1024)
+    total_mb = total_bytes / (1024 * 1024)
 
-    size_mb = ARCHIVE_OUT.stat().st_size / (1024 * 1024)
-    print(f"✅  Created {ARCHIVE_OUT} ({size_mb:.1f} MB)")
-    print(f"   Upload this to Colab, then run: !unzip -q /content/colab_project.zip -d /content/colab_project")
+    print(f"\n✅ Created {out_path}")
+    print(f"   Files:            {file_count}")
+    print(f"   Uncompressed:     {total_mb:.1f} MB")
+    print(f"   Compressed:       {zip_size:.1f} MB")
+    print(f"\n🚀 Upload to Colab or Google Drive, then run the notebook")
     return 0
 
 
