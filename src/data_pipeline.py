@@ -233,11 +233,16 @@ class CattleBuffaloDataset(Dataset):
         row = self.manifest.iloc[idx]
         
         if self._use_cache and idx in self._image_cache:
-            image = self._image_cache[idx]
+            img_bytes = self._image_cache[idx]
+            import io
+            image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
         else:
-            image = Image.open(row["path"]).convert("RGB")
+            with open(row["path"], "rb") as f:
+                img_bytes = f.read()
             if self._use_cache:
-                self._image_cache[idx] = image
+                self._image_cache[idx] = img_bytes
+            import io
+            image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
         if self.transform is not None:
             image = self.transform(image)
@@ -282,7 +287,7 @@ def _rand_bbox(size, lam):
 def cutmix(images, labels, alpha=CUTMIX_ALPHA):
     batch = images.size(0)
     lam = np.random.beta(alpha, alpha)
-    perm = torch.randperm(batch)
+    perm = torch.randperm(batch, device=images.device)
     x1, y1, x2, y2 = _rand_bbox(images.size(), lam)
     images[:, :, x1:x2, y1:y2] = images[perm, :, x1:x2, y1:y2]
     area = (x2 - x1) * (y2 - y1) / (images.size(2) * images.size(3))
@@ -293,7 +298,7 @@ def cutmix(images, labels, alpha=CUTMIX_ALPHA):
 
 def mixup(images, labels, alpha=MIXUP_ALPHA):
     lam = np.random.beta(alpha, alpha)
-    perm = torch.randperm(images.size(0))
+    perm = torch.randperm(images.size(0), device=images.device)
     images = lam * images + (1.0 - lam) * images[perm]
     labels = {k: lam * labels[k] + (1.0 - lam) * labels[k][perm] for k in labels}
     return images, labels
@@ -302,11 +307,6 @@ def mixup(images, labels, alpha=MIXUP_ALPHA):
 def mixed_collate(batch):
     images = torch.stack([b[0] for b in batch])
     labels = {k: torch.stack([b[1][k] for b in batch]) for k in batch[0][1]}
-    if len(images) > 1 and random.random() < 0.5:
-        if random.random() < 0.5:
-            images, labels = cutmix(images, labels)
-        else:
-            images, labels = mixup(images, labels)
     return images.to(memory_format=torch.channels_last), labels
 
 

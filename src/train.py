@@ -118,6 +118,13 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
 
+        if desc.startswith("train") and len(images) > 1 and random.random() < 0.5:
+            from .data_pipeline import cutmix, mixup
+            if random.random() < 0.5:
+                images, labels = cutmix(images, labels)
+            else:
+                images, labels = mixup(images, labels)
+
         if use_amp:
             with torch.amp.autocast("cuda"):
                 out = model(images)

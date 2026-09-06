@@ -71,7 +71,7 @@ SMOKE_SAMPLES_PER_BREED = 5
 EVAL_EVERY_PHASE1 = 1   # Evaluate every epoch (short phase, keep all checks)
 EVAL_EVERY_PHASE2 = 5   # Evaluate every 5 epochs in the long fine-tune phase
 EVAL_EVERY_PHASE3 = 2   # Evaluate every 2 epochs in QAT
-CACHE_IMAGES = True      # Cache decoded PIL images in RAM after first epoch
+CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 
 SPECIES_LABELS = {"cattle": 0, "buffalo": 1}
 

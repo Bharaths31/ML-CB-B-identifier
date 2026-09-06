@@ -251,7 +251,8 @@ data/raw/
 
 - **Train**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=9) → ToTensor()
 - **Eval**: Resize(260) → CenterCrop(260) → ToTensor()
-- **Batch mixing**: 50% chance of CutMix(α=0.4) or MixUp(α=0.2) via `mixed_collate`
+- **Batch mixing**: 50% chance of CutMix(α=0.4) or MixUp(α=0.2) applied directly on the GPU during the training loop.
+- **Caching**: `CACHE_IMAGES` stores raw JPEG bytes in RAM, preventing OOMs while bypassing disk I/O.
 
 ### Label Encoding
 
@@ -524,6 +525,8 @@ python webapp/server.py       # → http://localhost:8000
 | `num_workers` | 2 | Colab has 2 CPU cores |
 | `prefetch_factor` | 4 | Keeps GPU fed |
 | `pin_memory` | True | Faster CPU→GPU transfer |
+| CPU Offloading | GPU MixUp/CutMix | Tensor slicing moved to GPU to unblock CPU |
+| Memory Caching | Byte Caching | Caching JPEG bytes prevents RAM OOM while keeping fast IO |
 | AMP | phases 1-2 only | Disabled for QAT phase 3 |
 | Dataset location | `/content/data/raw/` | Local SSD, not Drive |
 
@@ -565,6 +568,12 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-06 — Hotfix: Colab CPU Bottleneck & OOM Prevention
+
+**Performance Fixes:**
+- Switched `CattleBuffaloDataset` caching strategy from storing `PIL.Image` objects (which caused massive memory leaks and OOMs on Colab) to caching raw JPEG `bytes`. This completely skips slow disk I/O after the first epoch without exhausting system RAM.
+- Moved `CutMix` and `MixUp` augmentations from the CPU-bound `mixed_collate` function to the GPU inside `run_epoch`. This offloads heavy tensor slicing to the CUDA device, significantly increasing training throughput and un-starving the GPU.
 
 ### 2026-09-06 — Hotfix: CUDA `total_mem` AttributeError
 

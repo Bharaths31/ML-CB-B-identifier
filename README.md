@@ -209,7 +209,8 @@ The ML pipeline is upgraded with State-of-the-Art (SOTA) computer vision techniq
 | **LR Scheduler** | Step / Constant | **Linear Warmup (3 ep) + Cosine Annealing** | Prevents initial gradient shocks and ensures smooth convergence |
 | **Gradient Accumulation** | `1` step | `2` steps | Effective batch size of 128 for high stability |
 | **Dropout** | `0.3` | `0.4` | Enhanced regularization on dense classification heads |
-| **Data Augmentation** | Standard Flip/Color | **RandAugment + RandomResizedCrop(260) + CutMix/MixUp** | SOTA data regularization |
+| **Data Augmentation** | Standard Flip/Color | **RandAugment + GPU-Accelerated CutMix/MixUp** | SOTA regularization offloaded to GPU to prevent CPU bottlenecks |
+| **Data Caching** | Disk reads or PIL Caching | **Raw JPEG Byte Caching** | Prevents RAM OOM errors while completely skipping slow disk IO after epoch 1 |
 | **DataLoader Prefetching** | Standard | `prefetch_factor=4`, `pin_memory=True` | Eliminates CPU-GPU bottleneck on Colab T4 |
 
 ---

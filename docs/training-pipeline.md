@@ -25,6 +25,7 @@
 - `non_blocking=True` on `.to(device)` transfers
 - `optimizer.zero_grad(set_to_none=True)` — faster than fill with zeros
 - Gradient clipping: `clip_grad_norm_(max_norm=1.0)`
+- **GPU-Accelerated Augmentation**: CutMix and MixUp operations are executed on the CUDA device to relieve CPU DataLoader bottlenecks.
 
 ### CPU Fallback
 
