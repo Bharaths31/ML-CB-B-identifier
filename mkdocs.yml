@@ -1,0 +1,62 @@
+site_name: Cattle & Buffalo Breed Classifier
+site_description: Documentation for the ML-CB-B-identifier project
+repo_url: https://github.com/Bharaths31/ML-CB-B-identifier
+repo_name: Bharaths31/ML-CB-B-identifier
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - tables
+  - admonition
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Model & Training:
+    - Model Architecture: model-architecture.md
+    - Training Pipeline: training-pipeline.md
+    - Google Colab Training: colab-training.md
+  - Data & Processing: data-pipeline.md
+  - Deployment & Export:
+    - Export Formats: export-deployment.md
+    - Android Deployment: android-deployment.md
+  - Web Application: webapp.md
+  - Reference:
+    - Configuration: config-reference.md
+    - API Reference: api-reference.md
+    - Memory Layer (Mem0): memory-layer.md
+  - Operations & Gotchas:
+    - Common Operations: common-operations.md
+    - Constraints & Gotchas: constraints-gotchas.md
+  - Changelog: changelog.md
