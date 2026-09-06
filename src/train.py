@@ -350,6 +350,26 @@ def main():
 
     device, use_amp = setup_device(args.device)
 
+    # --- Auto-scale batch size for VRAM constraints ---
+    if device.type == "cuda":
+        total_memory_gb = torch.cuda.get_device_properties(device).total_memory / (1024**3)
+        print(f"[train] Detected GPU with {total_memory_gb:.1f} GB VRAM")
+        
+        target_effective_batch = args.batch_size * args.grad_accum
+        
+        if total_memory_gb < 6.0:
+            args.batch_size = 16  # Fits on 4GB cards like RTX 3050
+        elif total_memory_gb < 10.0:
+            args.batch_size = 32  # Fits on 8GB cards like RTX 3070
+        elif total_memory_gb < 16.0:
+            args.batch_size = 64  # Fits on 12-15GB cards like T4
+        else:
+            args.batch_size = 128 # 24GB cards like RTX 3090/4090
+            
+        args.grad_accum = max(1, target_effective_batch // args.batch_size)
+        print(f"[train] Auto-scaled: batch_size={args.batch_size}, grad_accum={args.grad_accum}")
+
+
     # --- Data preparation ---
     print()
     if args.smoke_test:

@@ -202,12 +202,12 @@ The ML pipeline is upgraded with State-of-the-Art (SOTA) computer vision techniq
 | Hyperparameter / Feature | Previous Value | New SOTA Value | Rationale |
 |--------------------------|----------------|----------------|-----------|
 | **Train / Val / Test Split** | `80 / 10 / 10` | `85 / 10 / 5` | Provides 5% more training images per breed to combat class imbalance |
-| **Batch Size** | `32` | `64` | Fully utilizes T4 GPU VRAM (15 GB) for stable batch norm statistics |
+| **Batch Size** | `32` | **Auto-Scaled (16 to 128)** | Dynamically adapts to local VRAM (e.g. 4GB RTX 3050 up to 24GB RTX 4090) |
 | **Optimizer** | `Adam` | `AdamW` | Weight decay regularizes deep EfficientNet-Lite feature extractors |
 | **Weight Decay** | `0.0` | `1e-2` (0.01) | Prevents overfitting on high-resolution fine-grained breed features |
 | **Label Smoothing** | `0.0` | `0.1` | Prevents overconfidence on visually similar cattle/buffalo breeds |
 | **LR Scheduler** | Step / Constant | **Linear Warmup (3 ep) + Cosine Annealing** | Prevents initial gradient shocks and ensures smooth convergence |
-| **Gradient Accumulation** | `1` step | `2` steps | Effective batch size of 128 for high stability |
+| **Gradient Accumulation** | `1` step | **Auto-Scaled** | Maintains an effective batch size of 128 regardless of VRAM constraints |
 | **Dropout** | `0.3` | `0.4` | Enhanced regularization on dense classification heads |
 | **Data Augmentation** | Standard Flip/Color | **RandAugment + GPU-Accelerated CutMix/MixUp** | SOTA regularization offloaded to GPU to prevent CPU bottlenecks |
 | **Data Caching** | Disk reads or PIL Caching | **Raw JPEG Byte Caching** | Prevents RAM OOM errors while completely skipping slow disk IO after epoch 1 |

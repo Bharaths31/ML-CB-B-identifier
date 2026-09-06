@@ -520,8 +520,8 @@ python webapp/server.py       # → http://localhost:8000
 
 | Setting | Value | Reason |
 |---|---|---|
-| `batch_size` | 64 | Maximizes T4 utilization (15 GB VRAM) |
-| `grad_accum` | 2 | Effective batch = 128 |
+| `batch_size` | Auto | Dynamically detects VRAM (16 on 4GB GPUs up to 128 on 24GB GPUs) |
+| `grad_accum` | Auto | Adjusts with batch size to maintain a constant effective batch of 128 |
 | `num_workers` | 2 | Colab has 2 CPU cores |
 | `prefetch_factor` | 4 | Keeps GPU fed |
 | `pin_memory` | True | Faster CPU→GPU transfer |
@@ -572,6 +572,7 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ### 2026-09-06 — Hotfix: Colab CPU Bottleneck & OOM Prevention
 
 **Performance Fixes:**
+- Implemented **Dynamic VRAM Auto-Scaling** in `train.py`. The script now detects physical GPU VRAM and automatically adjusts `batch_size` and `grad_accum` to support hardware ranging from 4GB local cards (e.g., RTX 3050) up to 24GB+ instances, while maintaining an effective batch size of 128.
 - Switched `CattleBuffaloDataset` caching strategy from storing `PIL.Image` objects (which caused massive memory leaks and OOMs on Colab) to caching raw JPEG `bytes`. This completely skips slow disk I/O after the first epoch without exhausting system RAM.
 - Moved `CutMix` and `MixUp` augmentations from the CPU-bound `mixed_collate` function to the GPU inside `run_epoch`. This offloads heavy tensor slicing to the CUDA device, significantly increasing training throughput and un-starving the GPU.
 
