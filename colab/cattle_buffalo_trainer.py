@@ -54,18 +54,37 @@ assert check_gpu(), "GPU required for training!"
 # ============================================================
 #  OPTION A: CLONE FROM GITHUB (Recommended)
 # ============================================================
+import shutil
 GITHUB_REPO = "https://github.com/Bharaths31/ML-CB-B-identifier"
 PROJECT_DIR = "/content/project"
 
-if not os.path.exists(PROJECT_DIR):
-    !git clone {GITHUB_REPO} {PROJECT_DIR}
-    print(f"✅ Cloned repo to {PROJECT_DIR}")
-else:
-    print(f"✅ Project already exists at {PROJECT_DIR}")
+# Step 1: Move to /content FIRST to avoid corrupting shell cwd
+os.chdir("/content")
 
-# Verify src/ exists
+# Step 2: Remove old clone if it exists (force-refresh to pick up latest code)
+if os.path.exists(PROJECT_DIR):
+    shutil.rmtree(PROJECT_DIR)
+    print(f"🗑️  Removed old clone at {PROJECT_DIR}")
+
+# Step 3: Clone fresh
+import subprocess
+result = subprocess.run(
+    ["git", "clone", GITHUB_REPO, PROJECT_DIR],
+    capture_output=True, text=True
+)
+if result.returncode != 0:
+    print(f"❌ Clone failed:\n{result.stderr}")
+    raise RuntimeError("git clone failed — check the repo URL and your internet connection")
+print(f"✅ Cloned repo to {PROJECT_DIR}")
+
+# Step 4: Add to Python path so `import src` works
+import sys
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)
+
+# Step 5: Verify src/ structure
 assert os.path.exists(f"{PROJECT_DIR}/src/config.py"), \
-    f"❌ src/config.py not found in {PROJECT_DIR}"
+    f"❌ src/config.py not found in {PROJECT_DIR} — clone may have nested the repo incorrectly"
 print(f"✅ Source code ready at {PROJECT_DIR}/src/")
 
 # %%
@@ -100,14 +119,22 @@ print(f"✅ Source code ready at {PROJECT_DIR}/src/")
 
 # %%
 # ============================================================
-#  ADD PROJECT TO PYTHON PATH
+#  ADD PROJECT TO PYTHON PATH  (shared — runs after A, B, or C)
 # ============================================================
 import sys
+# Ensure PROJECT_DIR is defined (in case user jumped straight here)
+PROJECT_DIR = PROJECT_DIR if 'PROJECT_DIR' in dir() else "/content/project"
+
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
-os.chdir(PROJECT_DIR)
-print(f"✅ Working directory: {os.getcwd()}")
-print(f"✅ Python path includes: {PROJECT_DIR}")
+
+# chdir to PROJECT_DIR so relative imports work, but only if it exists
+if os.path.exists(PROJECT_DIR):
+    os.chdir(PROJECT_DIR)
+    print(f"✅ Working directory: {os.getcwd()}")
+    print(f"✅ Python path includes: {PROJECT_DIR}")
+else:
+    raise RuntimeError(f"❌ {PROJECT_DIR} does not exist — run one of the setup options above first")
 
 # Verify imports work
 try:
