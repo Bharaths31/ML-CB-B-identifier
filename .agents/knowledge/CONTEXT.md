@@ -29,7 +29,7 @@
 |---|---|
 | **Goal** | Classify images of Indian cattle (57 breeds) and buffalo (18 breeds) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) |
-| **Stack** | Python 3.11+, PyTorch 2.13, FastAPI, Vanilla JS frontend |
+| **Stack** | Python 3.11+, PyTorch >= 2.1.0, FastAPI, Vanilla JS frontend |
 | **Training** | 3-phase: binary warmup → multi-task fine-tune → optional QAT |
 | **Deployment** | ONNX, INT8, float16, or portable self-contained folder |
 | **Dataset** | `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |

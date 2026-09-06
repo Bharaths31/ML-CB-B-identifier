@@ -8,15 +8,18 @@
 - [Prerequisites](#prerequisites)
 - [Setup & Virtual Environment](#setup--virtual-environment)
 - [Data Preparation](#data-preparation)
+- [Google Colab Training Setup](#google-colab-training-setup)
+- [SOTA Hyperparameter & Pipeline Suite](#sota-hyperparameter--pipeline-suite)
 - [Quick Sanity Check (verify)](#quick-sanity-check-verify)
 - [Training](#training)
   - [Full training](#full-training)
   - [Smoke‑test training](#smoke-test-training)
 - [Evaluation](#evaluation)
-- [Exporting the Model](#exporting-the-model)
+- [Exporting the Model & Android Deployment](#exporting-the-model--android-deployment)
 - [Running the FastAPI Webapp](#running-the-fastapi-webapp)
 - [Memory Layer (Mem0)](#memory-layer-mem0)
 - [Common Scripts & Commands](#common-scripts--commands)
+- [Knowledge Base](#knowledge-base)
 - [Known Constraints & Gotchas](#known-constraints--gotchas)
 - [Changelog](#changelog)
 
@@ -158,7 +161,56 @@ Run the data pipeline script to scan `data/raw/` and generate stratified split C
 python -m src.data_pipeline   # scans data/raw/ and writes CSVs to data/splits/
 ```
 
-> **Note**: For a quick smoke-test, the training script can generate tiny splits automatically (`python -m src.train --smoke-test --skip-qat`).
+> **Optimized Split Strategy**:
+> - **Train Ratio**: `85%` (0.85) — allocated more training images to maximize accuracy across 75 fine-grained breeds.
+> - **Val Ratio**: `10%` (0.10) — used for hyperparameter tuning and learning rate scheduling.
+> - **Test Ratio**: `5%` (0.05) — preserved for final benchmark evaluation.
+
+---
+
+## Google Colab Training Setup
+
+For GPU-accelerated training using **Google Colab Free T4 GPU** (15 GB VRAM, 2 CPU cores), use the dedicated notebook located in `colab/`:
+
+- **Jupyter Notebook**: [`colab/cattle_buffalo_trainer.ipynb`](file:///home/ragnarok/Documents/College/ML-CB-B-identifier/colab/cattle_buffalo_trainer.ipynb)
+- **Percent Script**: [`colab/cattle_buffalo_trainer.py`](file:///home/ragnarok/Documents/College/ML-CB-B-identifier/colab/cattle_buffalo_trainer.py)
+
+### Colab Workflow Overview
+1. **Environment Setup (Flexible Setup Options)**:
+   - **Option A (Recommended)**: Clone directly from the GitHub repository (`https://github.com/Bharaths31/ML-CB-B-identifier`).
+   - **Option B**: Upload `colab_project.zip` generated via `python scripts/create_colab_project_zip.py`.
+   - **Option C**: Mount Google Drive and link the project folder.
+2. **Dataset Loading**:
+   - **Option A (Recommended)**: Direct Kaggle dataset download via `curl` with auto-extraction into `data/raw/`.
+   - **Option B**: Upload custom zip or load from Google Drive.
+3. **Hyperparameter Customization**:
+   - Interactively configure `BATCH_SIZE`, `PHASE1_LR`, `PHASE2_LR`, `PHASE3_LR`, `EPOCHS`, `WEIGHT_DECAY`, `LABEL_SMOOTHING`, and `WARMUP_EPOCHS` directly in dedicated notebook cells.
+4. **Three-Phase Mobile-Optimized Training**:
+   - Phase 1: Binary species warm-up (`Cattle vs Buffalo`).
+   - Phase 2: Full multi-task breed fine-tuning (`AdamW + Cosine Scheduler + Label Smoothing + CutMix/MixUp`).
+   - Phase 3: Quantization-Aware Training (QAT) for INT8 Android mobile deployment.
+5. **Interactive Prediction & Evaluation**:
+   - Predict species and breed on any uploaded test image using `evaluate_single_image()`.
+   - Download trained model checkpoints, ONNX exports, or portable zip directly to local disk or Google Drive.
+
+---
+
+## SOTA Hyperparameter & Pipeline Suite
+
+The ML pipeline is upgraded with State-of-the-Art (SOTA) computer vision techniques:
+
+| Hyperparameter / Feature | Previous Value | New SOTA Value | Rationale |
+|--------------------------|----------------|----------------|-----------|
+| **Train / Val / Test Split** | `80 / 10 / 10` | `85 / 10 / 5` | Provides 5% more training images per breed to combat class imbalance |
+| **Batch Size** | `32` | `64` | Fully utilizes T4 GPU VRAM (15 GB) for stable batch norm statistics |
+| **Optimizer** | `Adam` | `AdamW` | Weight decay regularizes deep EfficientNet-Lite feature extractors |
+| **Weight Decay** | `0.0` | `1e-2` (0.01) | Prevents overfitting on high-resolution fine-grained breed features |
+| **Label Smoothing** | `0.0` | `0.1` | Prevents overconfidence on visually similar cattle/buffalo breeds |
+| **LR Scheduler** | Step / Constant | **Linear Warmup (3 ep) + Cosine Annealing** | Prevents initial gradient shocks and ensures smooth convergence |
+| **Gradient Accumulation** | `1` step | `2` steps | Effective batch size of 128 for high stability |
+| **Dropout** | `0.3` | `0.4` | Enhanced regularization on dense classification heads |
+| **Data Augmentation** | Standard Flip/Color | **RandAugment + RandomResizedCrop(260) + CutMix/MixUp** | SOTA data regularization |
+| **DataLoader Prefetching** | Standard | `prefetch_factor=4`, `pin_memory=True` | Eliminates CPU-GPU bottleneck on Colab T4 |
 
 ---
 
@@ -196,16 +248,21 @@ Metrics are stored in `outputs/metrics/` as JSON files and accompanying PNG visu
 
 ---
 
-## Exporting the Model
-The `export` module supports four modes:
-| Mode | Command | Result |
-|------|---------|--------|
-| `onnx` | `python -m src.export --mode onnx --backbone lite2` | `<backbone>_fp32.onnx` (opset 13) |
-| `int8` | `python -m src.export --mode int8 --backbone lite2` | PTQ‑calibrated INT8 checkpoint |
-| `float16` | `python -m src.export --mode float16 --backbone lite2` | TorchScript‑traced FP16 model |
-| `portable` | `python -m src.export --mode portable --backbone lite2` | Self‑contained folder with `model.pt`, class‑maps, and `model_info.json` |
+## Exporting the Model & Android Deployment
 
-The portable bundle is ready for framework‑free deployment (e.g., embedded C++ inference) because it contains the raw `state_dict` and all label maps.
+The `export` module supports four export modes for mobile and edge deployment:
+
+| Mode | Command | Result | Deployment Target |
+|------|---------|--------|-------------------|
+| `onnx` | `python -m src.export --mode onnx --backbone lite2` | `<backbone>_fp32.onnx` (opset 13) | Cross-platform / ONNX Runtime Mobile |
+| `int8` | `python -m src.export --mode int8 --backbone lite2` | QAT/PTQ INT8 quantized checkpoint | Android NNAPI / Edge CPU |
+| `float16` | `python -m src.export --mode float16 --backbone lite2` | TorchScript FP16 traced model | Mobile GPU (Vulkan/Metal) |
+| `portable` | `python -m src.export --mode portable --backbone lite2` | Self-contained folder with `model.pt`, class maps, and `model_info.json` | Python / C++ embedded inference |
+
+### Android Deployment Workflow
+1. Run Phase 3 **Quantization-Aware Training (QAT)** via `python -m src.train --phase3-epochs 10` or via the Google Colab notebook cell.
+2. Export the INT8 ONNX or TorchScript bundle using `python -m src.export --mode onnx` or `--mode int8`.
+3. Load the INT8 model in Android using **ONNX Runtime for Android** or **PyTorch Mobile Android SDK** for real-time offline breed classification on mid-range smartphones.
 
 ---
 
@@ -231,15 +288,17 @@ The optional memory service (`memory/service.py`) provides a **ChromaDB‑backed
 ---
 
 ## Common Scripts & Commands
-| Script | Purpose |
-|--------|---------|
+| Script / Notebook | Purpose |
+|-------------------|---------|
 | `setup_venv.py` | Creates `.venv` + installs `requirements.txt` |
 | `setup.sh` | Convenience wrapper that calls `setup_venv.py` and prints usage |
-| `create_training_zip.py` | Packages a minimal training archive (`training_package.zip`) that excludes the webapp and memory layers – useful for distribution or cloud training |
-| `src/data_pipeline.py` | Scans `data/raw/` and writes CSV splits |
+| `scripts/create_colab_project_zip.py` | Generates lightweight `colab_project.zip` containing `src/`, `requirements.txt`, and pretrained weights |
+| `colab/cattle_buffalo_trainer.ipynb` | Google Colab Jupyter Notebook optimized for T4 GPU free tier |
+| `colab/cattle_buffalo_trainer.py` | Percent-script format of the Colab trainer notebook |
+| `src/data_pipeline.py` | Scans `data/raw/` and writes 85/10/5 CSV splits |
 | `src/verify.py` | Architecture sanity check |
-| `src/train.py` | 3‑phase training pipeline (supports `--smoke-test`, `--skip-qat`, device selection) |
-| `src/evaluate.py` | Computes per‑head accuracy, F1, and confusion matrices |
+| `src/train.py` | 3‑phase training pipeline (AdamW, Cosine LR, QAT, Label Smoothing) |
+| `src/evaluate.py` | Computes per‑head accuracy, F1, confusion matrices, and single-image prediction |
 | `src/export.py` | Export to ONNX / INT8 / FP16 / portable bundle |
 | `webapp/server.py` | FastAPI backend with endpoints for prediction, training, evaluation, export, and memory |
 
@@ -254,6 +313,12 @@ Typical workflow:
 
 ---
 
+## Knowledge Base
+For complete architecture specifications, dataset schema, training flow, Google Colab workflow, and Android quantization details, refer to the project knowledge base:
+- **Full Architecture & System Specification**: [`.agents/knowledge/CONTEXT.md`](file:///home/ragnarok/Documents/College/ML-CB-B-identifier/.agents/knowledge/CONTEXT.md)
+
+---
+
 ## Known Constraints & Gotchas
 - **QAT + CUDA AMP**: Phase 3 disables the AMP scaler because quantization observers aren’t compatible with mixed precision.
 - **Backbone weight files** (`efficientnet_lite2.pth`, `efficientnet_lite4.pth`) must exist in the repo root; otherwise the backbone is trained from scratch.
@@ -265,6 +330,14 @@ Typical workflow:
 ---
 
 ## Changelog
+**2026‑09‑06 – Google Colab & SOTA Mobile Training Suite**
+- Added full Google Colab T4 GPU trainer (`colab/cattle_buffalo_trainer.ipynb` and `colab/cattle_buffalo_trainer.py`).
+- Added 3 project setup methods (GitHub public clone `https://github.com/Bharaths31/ML-CB-B-identifier`, zip upload, Google Drive).
+- Updated dataset split ratio to `85% Train / 10% Val / 5% Test` for improved fine-grained breed accuracy.
+- Integrated SOTA hyperparameters: `AdamW`, `weight_decay=1e-2`, `label_smoothing=0.1`, `warmup_epochs=3`, `CosineAnnealingLR`, `gradient_accumulation_steps=2`, `RandAugment`, `RandomResizedCrop`.
+- Enabled QAT (Quantization-Aware Training) for mid-range Android smartphone INT8 ONNX/PyTorch deployment.
+- Updated project requirements and comprehensive Knowledge Base (`.agents/knowledge/CONTEXT.md`).
+
 **2026‑09‑05 – Major Update**
 - Added CUDA optimizations (`cudnn.benchmark`, TF32, AMP, gradient clipping).
 - Implemented real mini‑dataset for smoke‑test (5 images per breed).
