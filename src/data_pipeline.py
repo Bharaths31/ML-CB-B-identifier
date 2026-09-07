@@ -23,9 +23,14 @@ IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 def _collect_rows(data_root):
     rows = []
     for species, binary in (("cattle", 0), ("buffalo", 1)):
-        species_dir = os.path.join(data_root, species)
-        if not os.path.isdir(species_dir):
-            print(f"[data] missing directory: {species_dir}")
+        species_dir = None
+        for root, dirs, _ in os.walk(data_root):
+            if species in dirs:
+                species_dir = os.path.join(root, species)
+                break
+                
+        if not species_dir or not os.path.isdir(species_dir):
+            print(f"[data] missing directory: {species}")
             continue
         breeds = sorted(os.listdir(species_dir))
         for breed in tqdm(breeds, desc=f"scanning {species}", leave=False,

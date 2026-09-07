@@ -215,11 +215,17 @@ else:
 #  VERIFY DATASET
 # ============================================================
 DATA_RAW = f"{PROJECT_DIR}/data/raw"
-cattle_dir = f"{DATA_RAW}/cattle"
-buffalo_dir = f"{DATA_RAW}/buffalo"
+cattle_dir = None
+buffalo_dir = None
 
-cattle_breeds = sorted(os.listdir(cattle_dir)) if os.path.exists(cattle_dir) else []
-buffalo_breeds = sorted(os.listdir(buffalo_dir)) if os.path.exists(buffalo_dir) else []
+for root, dirs, _ in os.walk(DATA_RAW):
+    if "cattle" in dirs and cattle_dir is None:
+        cattle_dir = os.path.join(root, "cattle")
+    if "buffalo" in dirs and buffalo_dir is None:
+        buffalo_dir = os.path.join(root, "buffalo")
+
+cattle_breeds = sorted(os.listdir(cattle_dir)) if cattle_dir and os.path.exists(cattle_dir) else []
+buffalo_breeds = sorted(os.listdir(buffalo_dir)) if buffalo_dir and os.path.exists(buffalo_dir) else []
 
 cattle_breeds = [b for b in cattle_breeds if os.path.isdir(f"{cattle_dir}/{b}")]
 buffalo_breeds = [b for b in buffalo_breeds if os.path.isdir(f"{buffalo_dir}/{b}")]
