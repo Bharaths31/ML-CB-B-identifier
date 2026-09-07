@@ -19,7 +19,7 @@
 
 ### Dataset Options (in Colab)
 
-1. **Kaggle API**: auto-downloads cattle + buffalo datasets
+1. **Kaggle API / Direct Download**: auto-downloads unified `algsoch/breed-cattle-buffalo` dataset containing both cattle and buffalo breeds
 2. **Upload `archive.zip`**: created by `python scripts/create_colab_archive.py`
 3. **Google Drive**: copy `archive.zip` from Drive
 

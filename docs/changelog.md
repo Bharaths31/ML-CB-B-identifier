@@ -1,5 +1,15 @@
 # 16. Changelog
 
+### 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update
+
+**Dataset Pipeline & Colab Notebook:**
+- Updated dataset download source to unified Kaggle dataset `algsoch/breed-cattle-buffalo` containing pre-structured `cattle/` (57 breeds) and `buffalo/` (18 breeds) subdirectories.
+- Simplified Kaggle download logic in `colab/cattle_buffalo_trainer.py` to extract directly into `data/raw/`, eliminating redundant file moving operations and outdated inline comments.
+- Regenerated `colab/cattle_buffalo_trainer.ipynb` from updated python script.
+- Updated project documentation across `README.md`, `docs/`, and knowledge base.
+
+---
+
 ### 2026-09-06 — Hotfix: CUDA `total_mem` AttributeError
 
 **Bug Fix:**

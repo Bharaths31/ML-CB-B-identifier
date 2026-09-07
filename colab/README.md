@@ -44,7 +44,7 @@ The notebook will mount your Drive and copy it automatically.
 
 | Method | How |
 |--------|-----|
-| **Kaggle API** | Set your Kaggle credentials in the notebook, it downloads & extracts automatically |
+| **Kaggle API** | Set Kaggle credentials, auto-downloads and extracts `algsoch/breed-cattle-buffalo` into `data/raw/` |
 | **Upload archive.zip** | Create locally with `python scripts/create_colab_archive.py`, then upload to Colab |
 | **Google Drive** | Upload `archive.zip` to Drive, notebook copies it |
 

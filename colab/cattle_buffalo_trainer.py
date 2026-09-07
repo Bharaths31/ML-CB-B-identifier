@@ -161,9 +161,8 @@ except ImportError as e:
 KAGGLE_USERNAME = ""  # ← Fill in your Kaggle username
 KAGGLE_KEY = ""       # ← Fill in your Kaggle API key
 
-# Kaggle dataset slugs
-CATTLE_DATASET = "atharvadarpude/indian-cattle-image-dataset"
-BUFFALO_DATASET = "atharvadarpude/indian-buffalo-dataset"
+# Kaggle dataset slug
+DATASET = "algsoch/breed-cattle-buffalo"
 
 DATA_RAW = f"{PROJECT_DIR}/data/raw"
 
@@ -172,30 +171,10 @@ if KAGGLE_USERNAME and KAGGLE_KEY:
     os.environ["KAGGLE_KEY"] = KAGGLE_KEY
     !pip install -q kaggle
 
-    # Download cattle dataset
-    !mkdir -p /content/kaggle_data
-    !kaggle datasets download -d {CATTLE_DATASET} -p /content/kaggle_data --unzip
-    print("✅ Cattle dataset downloaded")
-
-    # Download buffalo dataset
-    !kaggle datasets download -d {BUFFALO_DATASET} -p /content/kaggle_data --unzip
-    print("✅ Buffalo dataset downloaded")
-
-    # Organize into expected structure: data/raw/cattle/<breed>/ & data/raw/buffalo/<breed>/
-    !mkdir -p {DATA_RAW}/cattle {DATA_RAW}/buffalo
-
-    # Move files — adjust paths based on actual dataset structure
-    import shutil, glob
-    for species in ["cattle", "buffalo"]:
-        src_dirs = glob.glob(f"/content/kaggle_data/**/{species}/**", recursive=True)
-        for src_dir in src_dirs:
-            if os.path.isdir(src_dir):
-                breed = os.path.basename(src_dir)
-                dst = f"{DATA_RAW}/{species}/{breed}"
-                if not os.path.exists(dst) and breed not in (species, ""):
-                    shutil.copytree(src_dir, dst, dirs_exist_ok=True)
-
-    print(f"✅ Dataset organized at {DATA_RAW}")
+    # Download and extract dataset directly into data/raw
+    !mkdir -p {DATA_RAW}
+    !kaggle datasets download -d {DATASET} -p {DATA_RAW} --unzip
+    print(f"✅ Dataset downloaded and extracted to {DATA_RAW}")
 else:
     print("⚠️  Kaggle credentials not set — skip this cell or fill in above")
     print("   Alternatively, use Option B (upload) or Option C (Drive)")

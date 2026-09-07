@@ -512,7 +512,7 @@ python webapp/server.py       # → http://localhost:8000
 
 ### Dataset Options (in Colab)
 
-1. **Kaggle API**: auto-downloads cattle + buffalo datasets
+1. **Kaggle API / Direct Download**: auto-downloads unified `algsoch/breed-cattle-buffalo` dataset containing both cattle and buffalo breeds
 2. **Upload `archive.zip`**: created by `python scripts/create_colab_archive.py`
 3. **Google Drive**: copy `archive.zip` from Drive
 
@@ -575,6 +575,16 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 - Implemented **Dynamic VRAM Auto-Scaling** in `train.py`. The script now detects physical GPU VRAM and automatically adjusts `batch_size` and `grad_accum` to support hardware ranging from 4GB local cards (e.g., RTX 3050) up to 24GB+ instances, while maintaining an effective batch size of 128.
 - Switched `CattleBuffaloDataset` caching strategy from storing `PIL.Image` objects (which caused massive memory leaks and OOMs on Colab) to caching raw JPEG `bytes`. This completely skips slow disk I/O after the first epoch without exhausting system RAM.
 - Moved `CutMix` and `MixUp` augmentations from the CPU-bound `mixed_collate` function to the GPU inside `run_epoch`. This offloads heavy tensor slicing to the CUDA device, significantly increasing training throughput and un-starving the GPU.
+
+### 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update
+
+**Dataset Pipeline & Colab Notebook:**
+- Updated dataset download source to unified Kaggle dataset `algsoch/breed-cattle-buffalo` containing pre-structured `cattle/` (57 breeds) and `buffalo/` (18 breeds) subdirectories.
+- Simplified Kaggle download logic in `colab/cattle_buffalo_trainer.py` to extract directly into `data/raw/`, eliminating redundant file moving operations and outdated inline comments.
+- Regenerated `colab/cattle_buffalo_trainer.ipynb` from updated python script.
+- Updated project documentation across `README.md`, `docs/`, and knowledge base.
+
+---
 
 ### 2026-09-06 — Hotfix: CUDA `total_mem` AttributeError
 
