@@ -588,6 +588,7 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 **Automation & Config:**
 - Added `local_train.py` for fully automated local execution (handles python prerequisites, venv creation, kaggle dataset download, unzipping, training, and multi-format export).
 - Added `--half-data` flag to `src/train.py` to randomly sample 50% of images per breed for faster local training while maintaining the full model architecture.
+- Added comprehensive exception handling to `local_train.py` to prevent crashes during dataset download, prompt logic, and environment setup.
 - Scaled back VRAM auto-scaling rules for 4GB local cards (RTX 3050).
 
 ---

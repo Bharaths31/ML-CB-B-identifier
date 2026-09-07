@@ -475,6 +475,7 @@ For complete architecture specifications, dataset schema, training flow, Google 
 - Interactive Kaggle API credential input (prompts user for username + key, saves to `~/.kaggle/kaggle.json`).
 - Added `--half-data` flag to `src/train.py` — trains on 50% of images per breed for faster local training.
 - Added `prepare_half_splits()` to `src/data_pipeline.py` — deterministic 50% sampling with identical model architecture.
+- Added comprehensive exception handling to `local_train.py` to prevent crashes during dataset download and environment setup.
 - Updated documentation across README, docs/, and CONTEXT.md knowledge base.
 
 **2026-09-07 – Fix: `torch.compile` OOM on GPU**
