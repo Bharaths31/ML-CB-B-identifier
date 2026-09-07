@@ -112,7 +112,7 @@ def _file_size_mb(path):
 #  §0 — Prerequisites Check
 # ============================================================
 
-def stage_prerequisites():
+def stage_prerequisites(args):
     _banner(0, "Prerequisites Check")
 
     # Python version
@@ -130,11 +130,14 @@ def stage_prerequisites():
         raise RuntimeError("git is required but not found in PATH")
 
     # pip
-    try:
-        r = _run([sys.executable, "-m", "pip", "--version"], capture=True)
-        print(f"  ✅ pip available")
-    except RuntimeError:
-        raise RuntimeError("pip is required. Install with: python -m ensurepip")
+    if not args.skip_setup:
+        try:
+            r = _run([*_pip(), "--version"], capture=True)
+            print(f"  ✅ pip available")
+        except RuntimeError:
+            raise RuntimeError("pip is required. Install with: python -m ensurepip")
+    else:
+        print("  ⏭️  Skipping pip check (--skip-setup)")
 
     # Check project structure
     if not os.path.exists(os.path.join(PROJECT_ROOT, "src", "config.py")):
@@ -207,43 +210,7 @@ def stage_setup_env():
 def stage_download_dataset():
     _banner(2, "Kaggle Dataset Download")
 
-    # Setup Kaggle credentials — check existing, or prompt user
-    kaggle_dir = os.path.expanduser("~/.kaggle")
-    kaggle_json = os.path.join(kaggle_dir, "kaggle.json")
-
-    os.makedirs(kaggle_dir, exist_ok=True)
-
-    # Check if credentials already exist and are valid
-    creds_ok = False
-    if os.path.exists(kaggle_json):
-        try:
-            with open(kaggle_json) as f:
-                existing = json.load(f)
-            if existing.get("username") and existing.get("key"):
-                print(f"  ✅ Kaggle credentials found ({existing['username']})")
-                creds_ok = True
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    if not creds_ok:
-        print("  ┌─────────────────────────────────────────────┐")
-        print("  │  Kaggle API credentials required             │")
-        print("  │  Get your key at: kaggle.com/settings → API │")
-        print("  └─────────────────────────────────────────────┘")
-        print()
-        username = input("  Enter your Kaggle username: ").strip()
-        api_key = input("  Enter your Kaggle API key:  ").strip()
-        if not username or not api_key:
-            raise RuntimeError(
-                "Kaggle credentials are required to download the dataset. "
-                "Get your API key at https://www.kaggle.com/settings → API")
-        creds = {"username": username, "key": api_key}
-        with open(kaggle_json, "w") as f:
-            json.dump(creds, f)
-        os.chmod(kaggle_json, 0o600)
-        print(f"  ✅ Kaggle credentials saved to {kaggle_json}")
-
-    # Check if dataset is already downloaded
+    # 1. Check if dataset is already downloaded
     cattle_dir = os.path.join(DATA_RAW_DIR, "cattle")
     buffalo_dir = os.path.join(DATA_RAW_DIR, "buffalo")
     if os.path.isdir(cattle_dir) and os.path.isdir(buffalo_dir):
@@ -255,6 +222,53 @@ def stage_download_dataset():
             print(f"  ✅ Dataset already present: {n_cattle} cattle breeds, "
                   f"{n_buffalo} buffalo breeds")
             return
+
+    # 2. Setup Kaggle credentials — check existing, or prompt user
+    kaggle_dir = os.path.expanduser("~/.kaggle")
+    kaggle_json = os.path.join(kaggle_dir, "kaggle.json")
+
+    try:
+        os.makedirs(kaggle_dir, exist_ok=True)
+    except OSError as e:
+        raise RuntimeError(f"Failed to create {kaggle_dir}: {e}")
+
+    # Check if credentials already exist and are valid
+    creds_ok = False
+    if os.path.exists(kaggle_json):
+        try:
+            with open(kaggle_json) as f:
+                existing = json.load(f)
+            if existing.get("username") and existing.get("key"):
+                print(f"  ✅ Kaggle credentials found ({existing['username']})")
+                creds_ok = True
+        except (json.JSONDecodeError, KeyError, OSError):
+            pass
+
+    if not creds_ok:
+        print("  ┌─────────────────────────────────────────────┐")
+        print("  │  Kaggle API credentials required             │")
+        print("  │  Get your key at: kaggle.com/settings → API │")
+        print("  └─────────────────────────────────────────────┘")
+        print()
+        try:
+            username = input("  Enter your Kaggle username: ").strip()
+            api_key = input("  Enter your Kaggle API key:  ").strip()
+        except EOFError:
+            raise RuntimeError("Input stream closed. Cannot prompt for credentials.")
+            
+        if not username or not api_key:
+            raise RuntimeError(
+                "Kaggle credentials are required to download the dataset. "
+                "Get your API key at https://www.kaggle.com/settings → API")
+        
+        creds = {"username": username, "key": api_key}
+        try:
+            with open(kaggle_json, "w") as f:
+                json.dump(creds, f)
+            os.chmod(kaggle_json, 0o600)
+            print(f"  ✅ Kaggle credentials saved to {kaggle_json}")
+        except OSError as e:
+            raise RuntimeError(f"Failed to save credentials to {kaggle_json}: {e}")
 
     # Download from Kaggle
     print(f"  Downloading dataset: {KAGGLE_DATASET}...")
@@ -643,7 +657,7 @@ Examples:
 
     try:
         # §0 — Prerequisites
-        stage_prerequisites()
+        stage_prerequisites(args)
 
         # §1 — Environment
         if not args.skip_setup:
