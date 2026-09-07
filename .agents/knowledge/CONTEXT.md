@@ -489,6 +489,8 @@ python webapp/server.py       # → http://localhost:8000
 
 8. **Smoke test uses ALL breed classes**: Even though only 5 images per breed are used, the class maps include ALL breeds from the full dataset. This ensures the model architecture is identical between smoke and full training.
 
+9. **`torch.compile` OOM on T4 GPU**: `mode="reduce-overhead"` uses CUDA Graphs which pre-allocates significant VRAM during backwards pass, leading to `OutOfMemoryError` on 15GB T4 GPUs. Using `torch.compile(model)` (default mode without `reduce-overhead`) prevents GPU OOM.
+
 ---
 
 ## 14. Colab Training
@@ -575,6 +577,12 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 - Implemented **Dynamic VRAM Auto-Scaling** in `train.py`. The script now detects physical GPU VRAM and automatically adjusts `batch_size` and `grad_accum` to support hardware ranging from 4GB local cards (e.g., RTX 3050) up to 24GB+ instances, while maintaining an effective batch size of 128.
 - Switched `CattleBuffaloDataset` caching strategy from storing `PIL.Image` objects (which caused massive memory leaks and OOMs on Colab) to caching raw JPEG `bytes`. This completely skips slow disk I/O after the first epoch without exhausting system RAM.
 - Moved `CutMix` and `MixUp` augmentations from the CPU-bound `mixed_collate` function to the GPU inside `run_epoch`. This offloads heavy tensor slicing to the CUDA device, significantly increasing training throughput and un-starving the GPU.
+
+### 2026-09-07 — Fix: `torch.compile` OutOfMemoryError on GPU
+
+**Bug Fix & Stability:**
+- Removed `mode="reduce-overhead"` from `torch.compile(model)` in `src/train.py`, `colab/cattle_buffalo_trainer.py`, and `colab/cattle_buffalo_trainer.ipynb`.
+- Root cause: `mode="reduce-overhead"` uses CUDA Graphs which pre-allocates substantial VRAM during backward pass, causing `OutOfMemoryError` on 15GB Tesla T4 GPUs during Phase 2 multi-task fine-tuning.
 
 ### 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update
 

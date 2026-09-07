@@ -561,7 +561,7 @@ print(f"[train] LR schedule: {warmup_ep}ep warmup → cosine decay")
 compiled_model = model
 if hasattr(torch, "compile"):
     print("[train] compiling model for phase 2 (this may take a minute)...")
-    compiled_model = torch.compile(model, mode="reduce-overhead")
+    compiled_model = torch.compile(model)
 
 train_phase(
     compiled_model, train_loader, val_loader, device,
