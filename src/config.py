@@ -66,6 +66,7 @@ PORTABLE_EXPORT_DIR = os.path.join(OUTPUT_DIR, "export", "portable")
 METRICS_DIR = os.path.join(OUTPUT_DIR, "metrics")
 
 SMOKE_SAMPLES_PER_BREED = 5
+HALF_DATA_RATIO = 0.5  # Fraction of images per breed for --half-data mode
 
 # --- Training speed optimizations ---
 EVAL_EVERY_PHASE1 = 1   # Evaluate every epoch (short phase, keep all checks)

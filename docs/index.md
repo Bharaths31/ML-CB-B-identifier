@@ -7,6 +7,7 @@
 - [Directory Structure](architecture.md#3-directory-map)
 - [Model Architecture](model-architecture.md)
 - [Data Preparation](data-pipeline.md)
+- [Local Training (Automated)](local-training.md)
 - [Google Colab Training Setup](colab-training.md)
 - [Training Pipeline](training-pipeline.md)
 - [Exporting the Model & Android Deployment](export-deployment.md)

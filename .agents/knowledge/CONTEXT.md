@@ -124,12 +124,12 @@ Mini Project/
 │   └── memory/                 # Mem0 ChromaDB storage
 ├── scripts/                    # Colab archive creators, app asset prep
 ├── create_training_zip.py      # Creates lightweight standalone training package (excludes webapp)
+├── local_train.py              # Fully automated local training pipeline (setup → train → export)
 ├── setup.sh                    # Shell script helper for environment setup
 ├── setup_venv.py               # Automated virtual environment setup script
 ├── .gitignore                  # Git ignore rules (includes outputs, venv, cache; tracks memory/)
 ├── efficientnet_lite{2,4}.pth  # Pretrained ImageNet backbone weights
 ├── requirements.txt            # Python dependencies
-└── setup.sh / setup_venv.py    # Environment setup
 ```
 
 ---
@@ -393,6 +393,7 @@ outputs/export/portable/<backbone>_phase2_best/
 --phase{1,2,3}-epochs N      Override epoch count
 --skip-qat                   Skip phase 3 (QAT)
 --smoke-test                 Use mini-dataset (5 imgs/breed, 1 epoch)
+--half-data                  Use 50% of images per breed (faster training)
 --seed N                     Random seed (default: 42)
 --export-dir PATH            Portable export destination
 --no-export                  Skip auto-export after training
@@ -443,9 +444,20 @@ python -m src.data_pipeline   # Scan raw/ → generate splits/*.csv
 python -m src.train --backbone lite2
 ```
 
+### Train (Half Data)
+```bash
+python -m src.train --half-data --skip-qat
+```
+
 ### Train (Smoke Test)
 ```bash
 python -m src.train --smoke-test --skip-qat
+```
+
+### Fully Automated Local Pipeline
+```bash
+# Handles venv, Kaggle download, unzip, verify, train, and multi-format export
+python local_train.py --half-data
 ```
 
 ### Evaluate
@@ -570,6 +582,15 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-07 — Local Training Automation & Half-Data Mode
+
+**Automation & Config:**
+- Added `local_train.py` for fully automated local execution (handles python prerequisites, venv creation, kaggle dataset download, unzipping, training, and multi-format export).
+- Added `--half-data` flag to `src/train.py` to randomly sample 50% of images per breed for faster local training while maintaining the full model architecture.
+- Scaled back VRAM auto-scaling rules for 4GB local cards (RTX 3050).
+
+---
 
 ### 2026-09-06 — Hotfix: Colab CPU Bottleneck & OOM Prevention
 

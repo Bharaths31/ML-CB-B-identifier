@@ -8,11 +8,13 @@
 - [Prerequisites](#prerequisites)
 - [Setup & Virtual Environment](#setup--virtual-environment)
 - [Data Preparation](#data-preparation)
+- [Local Training (Automated)](#local-training-automated)
 - [Google Colab Training Setup](#google-colab-training-setup)
 - [SOTA Hyperparameter & Pipeline Suite](#sota-hyperparameter--pipeline-suite)
 - [Quick Sanity Check (verify)](#quick-sanity-check-verify)
 - [Training](#training)
   - [Full training](#full-training)
+  - [Half‑data training](#half-data-training)
   - [Smoke‑test training](#smoke-test-training)
 - [Evaluation](#evaluation)
 - [Exporting the Model & Android Deployment](#exporting-the-model--android-deployment)
@@ -80,6 +82,7 @@ ML-CB-B-identifier/
 │   ├── metrics/
 │   └── memory/
 ├── scripts/               # Utility scripts (e.g., colab archive creator)
+├── local_train.py         # 🚀 Fully automated local pipeline (setup → download → train → export)
 ├── create_training_zip.py  # Generates a lightweight zip (excludes webapp & memory)
 ├── setup.sh               # Helper shell script for quick env setup
 ├── setup_venv.py          # Automated Python virtual‑env creation & dep install
@@ -89,10 +92,11 @@ ML-CB-B-identifier/
 ---
 
 ## Prerequisites
-- **Python ≥ 3.11**
+- **Python ≥ 3.9** (3.11+ recommended)
 - **Git** (to clone the repo)
-- **CUDA‑capable GPU** (optional – the code falls back to CPU automatically)
-- **Internet connection** (to download the pretrained EfficientNet‑Lite weights)
+- **CUDA‑capable GPU** (optional – the code falls back to CPU; RTX 3050 4GB+ recommended for local training)
+- **Kaggle account** (free — for dataset download; get API key at [kaggle.com/settings](https://www.kaggle.com/settings) → API)
+- **Internet connection** (to download the pretrained EfficientNet‑Lite weights and dataset)
 
 ---
 
@@ -168,12 +172,74 @@ python -m src.data_pipeline   # scans data/raw/ and writes CSVs to data/splits/
 
 ---
 
+## Local Training (Automated)
+
+The **`local_train.py`** script provides a **fully automated pipeline** that handles everything from environment setup to model export in a single command. It is designed for local machines with GPUs like the RTX 3050 (4GB VRAM).
+
+### Quick Start (One Command)
+
+```bash
+# Clone the repo and run the automation script
+git clone https://github.com/Bharaths31/ML-CB-B-identifier
+cd ML-CB-B-identifier
+
+# Run fully automated pipeline (half-data for faster training)
+python local_train.py --half-data
+```
+
+The script will:
+1. ✅ Check prerequisites (Python, git, pip)
+2. ✅ Create a virtual environment and install training dependencies
+3. ✅ Prompt for your **Kaggle API credentials** (username + key) if not already configured
+4. ✅ Download the `algsoch/breed-cattle-buffalo` dataset from Kaggle
+5. ✅ Extract and organize images into `data/raw/cattle/` and `data/raw/buffalo/`
+6. ✅ Verify model architecture (backbone loading + forward pass)
+7. ✅ Train the model (3-phase pipeline with VRAM auto-scaling)
+8. ✅ Export the model in 4 formats: portable, ONNX, INT8, float16
+
+### Kaggle API Setup
+
+When you run the script for the first time without existing credentials, it will prompt you:
+
+```
+  ┌─────────────────────────────────────────────┐
+  │  Kaggle API credentials required             │
+  │  Get your key at: kaggle.com/settings → API │
+  └─────────────────────────────────────────────┘
+
+  Enter your Kaggle username: your_username
+  Enter your Kaggle API key:  your_api_key_here
+```
+
+Credentials are saved to `~/.kaggle/kaggle.json` and reused on subsequent runs.
+
+### All `local_train.py` Flags
+
+| Flag | Description |
+|------|-------------|
+| `--half-data` | Use **50% of images** per breed for faster training |
+| `--smoke-test` | Tiny dataset (5 imgs/breed), 1 epoch per phase — quick sanity check |
+| `--full-data` | Use all images (default behavior) |
+| `--backbone {lite2,lite4}` | Backbone architecture (default: `lite2`, ~6M params) |
+| `--attention {cbam,se}` | Attention module (default: `cbam`) |
+| `--include-qat` | Enable QAT Phase 3 for Android INT8 deployment (default: skipped) |
+| `--phase1-epochs N` | Override Phase 1 epoch count |
+| `--phase2-epochs N` | Override Phase 2 epoch count |
+| `--phase3-epochs N` | Override Phase 3 epoch count |
+| `--num-workers N` | DataLoader worker count |
+| `--skip-download` | Skip Kaggle download (dataset already present in `data/raw/`) |
+| `--skip-setup` | Skip venv creation (environment already configured) |
+| `--skip-verify` | Skip architecture verification step |
+| `--skip-export` | Skip multi-format export after training |
+
+---
+
 ## Google Colab Training Setup
 
 For GPU-accelerated training using **Google Colab Free T4 GPU** (15 GB VRAM, 2 CPU cores), use the dedicated notebook located in `colab/`:
 
-- **Jupyter Notebook**: [`colab/cattle_buffalo_trainer.ipynb`](file:///home/ragnarok/Documents/College/ML-CB-B-identifier/colab/cattle_buffalo_trainer.ipynb)
-- **Percent Script**: [`colab/cattle_buffalo_trainer.py`](file:///home/ragnarok/Documents/College/ML-CB-B-identifier/colab/cattle_buffalo_trainer.py)
+- **Jupyter Notebook**: `colab/cattle_buffalo_trainer.ipynb`
+- **Percent Script**: `colab/cattle_buffalo_trainer.py`
 
 ### Colab Workflow Overview
 1. **Environment Setup (Flexible Setup Options)**:
@@ -225,11 +291,53 @@ A successful run prints the feature dimension (1280) and confirms the heads are 
 ---
 
 ## Training
+
+### Training Arguments Reference
+
+```
+python -m src.train [OPTIONS]
+
+--backbone {lite2,lite4}     Backbone architecture (default: lite2)
+--weights PATH               Pretrained weights path
+--attention {cbam,se}        Attention module (default: cbam)
+--data PATH                  Raw data root
+--split-dir PATH             Split CSV output directory
+--batch-size N               Batch size (auto-scaled by VRAM)
+--num-workers N              DataLoader workers (default: 4)
+--device DEVICE              Force device (auto-detects cuda/cpu)
+--no-mix                     Disable CutMix/MixUp batch mixing
+--phase1-epochs N            Override phase 1 epoch count (default: 5)
+--phase2-epochs N            Override phase 2 epoch count (default: 40)
+--phase3-epochs N            Override phase 3 epoch count (default: 10)
+--skip-qat                   Skip phase 3 (QAT)
+--smoke-test                 Use mini-dataset (5 imgs/breed, 1 epoch)
+--half-data                  Use 50% of images per breed (faster training)
+--seed N                     Random seed (default: 42)
+--export-dir PATH            Portable export destination
+--no-export                  Skip auto-export after training
+--weight-decay FLOAT         AdamW weight decay (default: 0.01)
+--label-smoothing FLOAT      Label smoothing factor (default: 0.1)
+--warmup-epochs N            Linear warmup epochs for phase 2 (default: 3)
+--grad-accum N               Gradient accumulation steps (default: 2)
+--no-compile                 Disable torch.compile
+```
+
 ### Full training
 ```bash
-python -m src.train --backbone lite2   # default hyper‑params (5/30/10 epochs per phase)
+python -m src.train --backbone lite2   # default hyper‑params (5/40/10 epochs per phase)
 ```
-You can override any argument (e.g., `--batch-size 64`, `--device cuda`). All three phases run sequentially; after phase 2 the model is **auto‑exported** to a portable bundle.
+You can override any argument (e.g., `--batch-size 64`, `--device cuda`). All three phases run sequentially; after phase 2 the model is **auto‑exported** to a portable bundle.
+
+### Half‑data training
+Trains on **50% of images per breed** — useful for faster iteration on local machines with limited VRAM (e.g., RTX 3050 4GB):
+```bash
+python -m src.train --half-data --skip-qat
+```
+The `--half-data` flag:
+- Deterministically samples 50% of images per breed (seed=42 for reproducibility)
+- Applies the same 85/10/5 stratified split on the sampled subset
+- Class maps still include ALL breeds — model architecture is identical to full training
+- Mutually exclusive with `--smoke-test`
 
 ### Smoke‑test training
 A fast sanity‑check that trains on 5 images per breed for a single epoch per phase:
@@ -291,6 +399,7 @@ The optional memory service (`memory/service.py`) provides a **ChromaDB‑backed
 ## Common Scripts & Commands
 | Script / Notebook | Purpose |
 |-------------------|---------|
+| **`local_train.py`** | 🚀 **Fully automated pipeline**: venv → Kaggle download → unzip → train → export |
 | `setup_venv.py` | Creates `.venv` + installs `requirements.txt` |
 | `setup.sh` | Convenience wrapper that calls `setup_venv.py` and prints usage |
 | `scripts/create_colab_project_zip.py` | Generates lightweight `colab_project.zip` containing `src/`, `requirements.txt`, and pretrained weights |
@@ -303,14 +412,43 @@ The optional memory service (`memory/service.py`) provides a **ChromaDB‑backed
 | `src/export.py` | Export to ONNX / INT8 / FP16 / portable bundle |
 | `webapp/server.py` | FastAPI backend with endpoints for prediction, training, evaluation, export, and memory |
 
-Typical workflow:
-1. **Setup** → `python setup_venv.py && source .venv/bin/activate`
-2. **Prepare data** → `python -m src.data_pipeline`
-3. **Verify** → `python -m src.verify`
-4. **Train** → `python -m src.train` (or smoke‑test)
-5. **Evaluate** → `python -m src.evaluate`
-6. **Export** → `python -m src.export --mode portable`
-7. **Serve** → `python webapp/server.py`
+### Workflow A: Automated (Recommended)
+```bash
+git clone https://github.com/Bharaths31/ML-CB-B-identifier
+cd ML-CB-B-identifier
+python local_train.py --half-data    # One command does everything
+```
+
+### Workflow B: Manual Step-by-Step
+```bash
+# 1. Setup
+python setup_venv.py && source .venv/bin/activate
+
+# 2. Prepare data (download + extract + split)
+mkdir -p data/raw
+# Download from Kaggle (requires ~/.kaggle/kaggle.json)
+python -m kaggle datasets download -d algsoch/breed-cattle-buffalo -p data/
+unzip -q data/breed-cattle-buffalo.zip -d data/raw/
+python -m src.data_pipeline
+
+# 3. Verify architecture
+python -m src.verify
+
+# 4. Train (choose one)
+python -m src.train --backbone lite2               # Full data
+python -m src.train --half-data --skip-qat          # Half data (faster)
+python -m src.train --smoke-test --skip-qat         # Smoke test (sanity)
+
+# 5. Evaluate
+python -m src.evaluate --backbone lite2
+
+# 6. Export
+python -m src.export --mode portable --backbone lite2
+python -m src.export --mode onnx --backbone lite2
+
+# 7. Serve webapp
+python webapp/server.py   # → http://localhost:8000
+```
 
 ---
 
@@ -331,28 +469,32 @@ For complete architecture specifications, dataset schema, training flow, Google 
 ---
 
 ## Changelog
+
+**2026‑09‑07 – Local Training Automation & Half‑Data Mode**
+- Added `local_train.py` — fully automated pipeline: prerequisites → venv → Kaggle download → unzip → verify → train → multi-format export.
+- Interactive Kaggle API credential input (prompts user for username + key, saves to `~/.kaggle/kaggle.json`).
+- Added `--half-data` flag to `src/train.py` — trains on 50% of images per breed for faster local training.
+- Added `prepare_half_splits()` to `src/data_pipeline.py` — deterministic 50% sampling with identical model architecture.
+- Updated documentation across README, docs/, and CONTEXT.md knowledge base.
+
+**2026-09-07 – Fix: `torch.compile` OOM on GPU**
+- Removed `mode="reduce-overhead"` from `torch.compile()` to prevent CUDA Graph OOM on T4.
+
+**2026-09-07 – Unified Kaggle Dataset & Colab Update**
+- Switched to unified `algsoch/breed-cattle-buffalo` Kaggle dataset.
+- Simplified Colab download logic.
+
 **2026-09-06 – Hotfix: Colab `total_memory` & Clone Fix**
-- Fixed an `AttributeError` caused by using `total_mem` instead of PyTorch's `total_memory` in `setup_device()`.
-- Enhanced Colab notebook's GitHub clone cell with robust `rm -rf` and error checking to ensure fresh code is pulled properly.
-- Updated `CONTEXT.md` knowledge base with a Colab Gotchas table.
+- Fixed `AttributeError` for `total_mem` → `total_memory`.
+- Enhanced Colab GitHub clone cell with `rm -rf` for fresh code.
 
 **2026‑09‑06 – Google Colab & SOTA Mobile Training Suite**
-- Added full Google Colab T4 GPU trainer (`colab/cattle_buffalo_trainer.ipynb` and `colab/cattle_buffalo_trainer.py`).
-- Added 3 project setup methods (GitHub public clone `https://github.com/Bharaths31/ML-CB-B-identifier`, zip upload, Google Drive).
-- Updated dataset split ratio to `85% Train / 10% Val / 5% Test` for improved fine-grained breed accuracy.
-- Integrated SOTA hyperparameters: `AdamW`, `weight_decay=1e-2`, `label_smoothing=0.1`, `warmup_epochs=3`, `CosineAnnealingLR`, `gradient_accumulation_steps=2`, `RandAugment`, `RandomResizedCrop`.
-- Enabled QAT (Quantization-Aware Training) for mid-range Android smartphone INT8 ONNX/PyTorch deployment.
-- Updated project requirements and comprehensive Knowledge Base (`.agents/knowledge/CONTEXT.md`).
+- Added full Google Colab T4 GPU trainer.
+- SOTA hyperparameters: AdamW, label smoothing, warmup + cosine LR, gradient accumulation, RandAugment.
+- QAT (Quantization-Aware Training) for Android INT8 deployment.
 
 **2026‑09‑05 – Major Update**
-- Added CUDA optimizations (`cudnn.benchmark`, TF32, AMP, gradient clipping).
-- Implemented real mini‑dataset for smoke‑test (5 images per breed).
-- Auto‑portable export after training.
-- Improved progress‑bar UI and model cache invalidation.
-- Introduced `create_training_zip.py` for clean training packages.
-- Updated `.gitignore` to ignore `.venv/`, `outputs/`, and data splits.
-- Fixed argument naming bug in the webapp (`--phase1-epochs`).
-- Added several UI/UX enhancements (pulse animation, auto‑refresh).
+- CUDA optimizations, real smoke-test dataset, auto-export, webapp fixes.
 
 ---
 

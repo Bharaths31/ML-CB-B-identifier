@@ -45,6 +45,30 @@ Creates a mini-dataset of 5 images per breed using `prepare_smoke_splits()`:
 - 1 epoch per phase
 - Auto-exports portable model after training
 
+### Half-Data Mode (`--half-data`)
+
+Creates a reduced dataset using 50% of images per breed via `prepare_half_splits()`:
+- Deterministic sampling (seed=42) for reproducibility
+- Same 85/10/5 stratified split on the sampled subset
+- Class maps include ALL breeds — model architecture stays identical to full training
+- Ideal for faster iteration on local machines with limited VRAM
+- Mutually exclusive with `--smoke-test`
+
+```bash
+# Half-data training (skipping QAT for speed)
+python -m src.train --half-data --skip-qat
+```
+
+### Automated Local Pipeline (`local_train.py`)
+
+For a fully automated experience that handles everything from setup to export:
+
+```bash
+python local_train.py --half-data    # One command does everything
+```
+
+See [Local Training (Automated)](local-training.md) for the complete flag reference and details.
+
 ### Auto-Export
 
 After training completes, automatically creates a portable export in `outputs/export/portable/` containing:
