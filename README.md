@@ -83,6 +83,7 @@ ML-CB-B-identifier/
 │   └── memory/
 ├── scripts/               # Utility scripts (e.g., colab archive creator)
 ├── local_train.py         # 🚀 Fully automated local pipeline (setup → download → train → export)
+├── test_model.py          # 🔬 Standalone GUI for testing exported models on individual images
 ├── create_training_zip.py  # Generates a lightweight zip (excludes webapp & memory)
 ├── setup.sh               # Helper shell script for quick env setup
 ├── setup_venv.py          # Automated Python virtual‑env creation & dep install
@@ -413,6 +414,7 @@ The optional memory service (`memory/service.py`) provides a **ChromaDB‑backed
 | Script / Notebook | Purpose |
 |-------------------|---------|
 | **`local_train.py`** | 🚀 **Fully automated pipeline**: venv → Kaggle download → unzip → train → export |
+| **`test_model.py`** | 🔬 **Standalone GUI** for testing exported models on individual images |
 | `setup_venv.py` | Creates `.venv` + installs `requirements.txt` |
 | `setup.sh` | Convenience wrapper that calls `setup_venv.py` and prints usage |
 | `scripts/create_colab_project_zip.py` | Generates lightweight `colab_project.zip` containing `src/`, `requirements.txt`, and pretrained weights |
@@ -483,11 +485,15 @@ For complete architecture specifications, dataset schema, training flow, Google 
 
 ## Changelog
 
-**2026‑09‑08 – Quarter-Data Mode, Windows Build Tools Check, Requirement Testing**
-- Added `--quarter-data` flag to `local_train.py`, `src/train.py`, and `src/data_pipeline.py` — trains on 25% of images/breed (fastest local mode, deterministic seed=42).
-- Added `QUARTER_DATA_RATIO = 0.25` to `src/config.py` and `prepare_quarter_splits()` to `src/data_pipeline.py`.
-- Added Windows Visual C++ Build Tools prerequisite check to `local_train.py` — detects missing MSVC `cl.exe` and VS Build Tools via `vswhere`, prints actionable download link.
-- All data modes (`--smoke-test`, `--half-data`, `--quarter-data`, `--full-data`) are now a proper mutually-exclusive argparse group.
+**2026‑09‑08 – Model Tester GUI & Quarter-Data Mode**
+- Added `test_model.py` — standalone GUI for testing exported models on individual images.
+  - Upload PNG/JPG/JPEG/BMP/WebP images via drag-and-drop or file browser.
+  - Select from all available model checkpoints (Phase 1/2/3, quantized, portable).
+  - Returns species (Cattle/Buffalo) with confidence %, top-5 breed predictions with animated confidence bars.
+  - Self-contained: runs at `http://localhost:8501`, auto-opens browser.
+- Added `--quarter-data` flag — trains on 25% of images/breed for fastest local training.
+- Added Windows Visual C++ Build Tools prerequisite check to `local_train.py`.
+- All data modes are now a proper mutually-exclusive argparse group.
 
 
 - Added `local_train.py` — fully automated pipeline: prerequisites → venv → Kaggle download → unzip → verify → train → multi-format export.

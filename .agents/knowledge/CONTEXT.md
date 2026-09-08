@@ -587,6 +587,7 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 
 **Automation & Config:**
 - Added `local_train.py` for fully automated local execution (handles python prerequisites, venv creation, kaggle dataset download, unzipping, training, and multi-format export).
+- Added `test_model.py` — standalone GUI for testing exported models on individual images. Serves at `http://localhost:8501` with drag-and-drop image upload, model checkpoint selector, and animated top-5 breed predictions.
 - Added `--half-data` flag to `src/train.py` to randomly sample 50% of images per breed for faster local training while maintaining the full model architecture.
 - Added `--quarter-data` flag to `local_train.py` and `src/train.py` — uses 25% of images/breed via `prepare_quarter_splits()` in `src/data_pipeline.py`.
 - Added `QUARTER_DATA_RATIO = 0.25` constant to `src/config.py`.

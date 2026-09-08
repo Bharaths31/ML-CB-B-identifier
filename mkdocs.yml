@@ -48,6 +48,7 @@ nav:
     - Model Architecture: model-architecture.md
     - Training Pipeline: training-pipeline.md
     - Google Colab Training: colab-training.md
+    - Model Tester GUI: model-tester.md
   - Data & Processing: data-pipeline.md
   - Deployment & Export:
     - Export Formats: export-deployment.md
