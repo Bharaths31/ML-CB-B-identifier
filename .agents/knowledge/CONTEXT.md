@@ -503,6 +503,8 @@ python webapp/server.py       # → http://localhost:8000
 
 9. **`torch.compile` OOM on T4 GPU**: `mode="reduce-overhead"` uses CUDA Graphs which pre-allocates significant VRAM during backwards pass, leading to `OutOfMemoryError` on 15GB T4 GPUs. Using `torch.compile(model)` (default mode without `reduce-overhead`) prevents GPU OOM.
 
+10. **`torch.compile` crashes on Windows**: Windows lacks native support for Triton, causing PyTorch to throw `BackendCompilerFailed: Cannot find a working triton installation`. The script automatically detects Windows (`os.name == 'nt'`) and falls back to eager execution to prevent crashes.
+
 ---
 
 ## 14. Colab Training
@@ -597,6 +599,11 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 - Scaled back VRAM auto-scaling rules for 4GB local cards (RTX 3050).
 
 ---
+### 2026-09-08 — Fix: `torch.compile` on Windows
+
+**Bug Fix:**
+- Fixed `BackendCompilerFailed: Cannot find a working triton installation` error that crashed phase 2 training on Windows.
+- Added OS detection in `src/train.py` to automatically disable `torch.compile` (fallback to eager mode) when running on Windows.
 
 ### 2026-09-06 — Hotfix: Colab CPU Bottleneck & OOM Prevention
 

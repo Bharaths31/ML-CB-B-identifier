@@ -487,8 +487,11 @@ def main():
     
     compiled_model = model
     if not args.no_compile and hasattr(torch, "compile") and not args.smoke_test:
-        print("[train] compiling model for phase 2 (this may take a minute)...")
-        compiled_model = torch.compile(model)
+        if os.name == 'nt':
+            print("[train] Windows detected: disabling torch.compile (falling back to eager)")
+        else:
+            print("[train] compiling model for phase 2 (this may take a minute)...")
+            compiled_model = torch.compile(model)
 
     warmup_ep = min(args.warmup_epochs, phase2 - 1) if not args.smoke_test else 0
     print(f"\n[train] phase 2: multi-task fine-tune, lr={PHASE2_LR:.0e} "

@@ -1,5 +1,12 @@
 # 16. Changelog
 
+### 2026-09-08 — Fix: `torch.compile` on Windows
+
+**Bug Fix:**
+- Fixed `BackendCompilerFailed: Cannot find a working triton installation` error that crashed phase 2 training on Windows.
+- Added OS detection in `src/train.py` to automatically disable `torch.compile` (fallback to eager mode) when running on Windows.
+
+---
 ### 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update
 
 **Dataset Pipeline & Colab Notebook:**

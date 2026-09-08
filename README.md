@@ -493,6 +493,7 @@ For complete architecture specifications, dataset schema, training flow, Google 
   - Self-contained: runs at `http://localhost:8501`, auto-opens browser.
 - Added `--quarter-data` flag — trains on 25% of images/breed for fastest local training.
 - Added Windows Visual C++ Build Tools prerequisite check to `local_train.py`.
+- **Fix**: Added OS detection in `src/train.py` to automatically disable `torch.compile` (fallback to eager mode) on Windows to prevent `BackendCompilerFailed: Cannot find a working triton installation` errors.
 - All data modes are now a proper mutually-exclusive argparse group.
 
 
