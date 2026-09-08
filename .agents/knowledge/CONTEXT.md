@@ -27,7 +27,7 @@
 |---|---|
 | **Goal** | Classify images of Indian cattle (57 breeds) and buffalo (18 breeds) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) |
-| **Stack** | Python 3.11+, PyTorch >= 2.1.0, FastAPI, Vanilla JS frontend |
+| **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
 | **Training** | 3-phase: binary warmup → multi-task fine-tune → optional QAT |
 | **Deployment** | ONNX, INT8, float16, or portable self-contained folder |
 | **Dataset** | `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
@@ -102,15 +102,6 @@ Mini Project/
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
 │   ├── convert_to_notebook.py  # .py → .ipynb converter
 │   └── README.md               # Colab setup instructions
-├── webapp/
-│   ├── server.py               # FastAPI backend (predict, train, evaluate, memory)
-│   └── static/
-│       ├── index.html          # Single-page app (tabs: predict/train/eval/memory/debug)
-│       ├── app.js              # Frontend logic, polling, progress bars
-│       └── style.css           # Dark theme, progress bars, pulse animations
-├── memory/
-│   ├── __init__.py             # Exports Mem0Layer
-│   └── service.py              # Mem0-based context memory (store/recall/chat)
 ├── data/
 │   ├── raw/                    # Source images: raw/{cattle,buffalo}/<breed>/*.jpg
 │   └── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
@@ -118,14 +109,14 @@ Mini Project/
 │   ├── checkpoints/            # Training checkpoints (*.pt)
 │   ├── export/                 # ONNX/INT8/float16 exports
 │   │   └── portable/           # Self-contained model bundles
-│   ├── metrics/                # Evaluation JSON + confusion matrix PNGs
-│   └── memory/                 # Mem0 ChromaDB storage
+│   └── metrics/                # Evaluation JSON + confusion matrix PNGs
 ├── scripts/                    # Colab archive creators, app asset prep
-├── create_training_zip.py      # Creates lightweight standalone training package (excludes webapp)
+├── create_training_zip.py      # Creates lightweight standalone training package
 ├── local_train.py              # Fully automated local training pipeline (setup → train → export)
+├── test_model.py               # Standalone PyTorch model testing GUI server (http://localhost:8501)
 ├── setup.sh                    # Shell script helper for environment setup
 ├── setup_venv.py               # Automated virtual environment setup script
-├── .gitignore                  # Git ignore rules (includes outputs, venv, cache; tracks memory/)
+├── .gitignore                  # Git ignore rules (includes outputs, venv, cache)
 ├── efficientnet_lite{2,4}.pth  # Pretrained ImageNet backbone weights
 ├── requirements.txt            # Python dependencies
 ```
@@ -614,25 +605,27 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 
 ## 16. Changelog
 
-### 2026-09-07 — Local Training Automation & Half-Data Mode
+### 2026-09-08 — Webapp & Memory Layer Removal & Architecture Streamlining
 
-**Automation & Config:**
-- Added `local_train.py` for fully automated local execution (handles python prerequisites, venv creation, kaggle dataset download, unzipping, training, and multi-format export).
-- Added `test_model.py` — standalone GUI for testing exported models on individual images. Serves at `http://localhost:8501` with drag-and-drop image upload, model checkpoint selector, and animated top-5 breed predictions.
-- Added `--half-data` flag to `src/train.py` to randomly sample 50% of images per breed for faster local training while maintaining the full model architecture.
-- Added `--quarter-data` flag to `local_train.py` and `src/train.py` — uses 25% of images/breed via `prepare_quarter_splits()` in `src/data_pipeline.py`.
-- Added `QUARTER_DATA_RATIO = 0.25` constant to `src/config.py`.
-- Added Windows Visual C++ Build Tools prerequisite detection to `local_train.py` (`_check_windows_build_tools()`) — checks for `cl.exe` and `vswhere`, prints actionable fix instructions.
-- All data modes are now a proper argparse mutually-exclusive group: `--smoke-test`, `--half-data`, `--quarter-data`, `--full-data`.
-- Added comprehensive exception handling to `local_train.py` to prevent crashes during dataset download, prompt logic, and environment setup.
-- Scaled back VRAM auto-scaling rules for 4GB local cards (RTX 3050).
+**Refactoring & Cleanup:**
+- Completely removed the `webapp/` (FastAPI backend and HTML/JS frontend) and `memory/` (Mem0 AI vector context layer) directories.
+- Removed unused dependencies (`fastapi`, `uvicorn`, `mem0ai`, etc.) from `requirements.txt`.
+- Removed `docs/webapp.md` and `docs/memory-layer.md` documentation pages and updated `mkdocs.yml`.
+- Standardized interactive inference testing exclusively around `test_model.py` (custom standalone PyTorch inference browser application).
+- Cleaned up obsolete webapp skipping flags and references from `local_train.py` and `create_training_zip.py`.
+- Completely updated knowledge base (`.agents/AGENTS.md`, `.agents/knowledge/CONTEXT.md`, `MODULE_REFERENCE.md`, `TRAINING_INTERNALS.md`), `README.md`, and `docs/` pages to unify instructions and eliminate all conflicting or deprecated references.
 
 ---
+
 ### 2026-09-08 — Fix: `torch.compile` on Windows
 
 **Bug Fix:**
 - Fixed `BackendCompilerFailed: Cannot find a working triton installation` error that crashed phase 2 training on Windows.
 - Added OS detection in `src/train.py` to automatically disable `torch.compile` (fallback to eager mode) when running on Windows.
+
+---
+
+### 2026-09-07 — Local Training Automation & Half-Data Mode
 
 ### 2026-09-06 — Hotfix: Colab CPU Bottleneck & OOM Prevention
 

@@ -24,8 +24,6 @@ evaluate.py ← (uses model, data_pipeline, metrics)
 export.py ← (uses model, data_pipeline)
     ↓
 verify.py ← (uses model, efficientnet_lite)
-
-webapp/server.py ← (uses model, config; runs src.* as subprocesses)
 ```
 
 ## Function Index
@@ -57,15 +55,17 @@ webapp/server.py ← (uses model, config; runs src.* as subprocesses)
   - `.backbone_eval()` / `.backbone_train()`
 
 ### `src/data_pipeline.py`
-- `prepare_splits(data_root, split_dir)` → dict|None — 80/10/10 stratified splits
+- `prepare_splits(data_root, split_dir)` → dict|None — 85/10/5 stratified splits
 - `prepare_smoke_splits(data_root, split_dir, samples_per_breed)` → dict|None — mini-dataset
+- `prepare_half_splits(data_root, split_dir)` → dict|None — 50% dataset subset
+- `prepare_quarter_splits(data_root, split_dir)` → dict|None — 25% dataset subset
 - `get_dataloaders(split_dir, batch_size, num_workers, pin_memory)` → tuple|None
 - `CattleBuffaloDataset(manifest, cattle_classes, buffalo_classes, transform)` — PyTorch Dataset
 - `cutmix(images, labels, alpha)` / `mixup(images, labels, alpha)` — batch augmentation
 - `mixed_collate(batch)` — collate_fn with random CutMix/MixUp
 
 ### `src/train.py`
-- `setup_device(requested)` → (device, use_amp) — CUDA setup with optimizations
+- `setup_device(requested)` → (device, use_amp) — CUDA setup with optimizations & auto VRAM scaling
 - `soft_ce(pred, target)` — soft cross-entropy for mixed labels
 - `masked_loss(out, labels, w_binary, w_cattle, w_buffalo)` → (total, ce_b, ce_c, ce_buf)
 - `run_epoch(model, loader, optimizer, device, loss_weights, scaler, ...)` → loss tuple
@@ -90,14 +90,8 @@ webapp/server.py ← (uses model, config; runs src.* as subprocesses)
 - `check_full_model(name)` → bool — forward pass shape check
 - `main()` — CLI entry point
 
-### `webapp/server.py`
-- `ModelBox` — thread-safe model loading with mtime cache
-  - `.invalidate()` / `.ensure_loaded(backbone)` / `.predict(image_bytes, backbone)`
-- `JobRunner` — subprocess manager
-  - `.start(args, kind, phases)` / `.stop()` / `.snapshot(tail)`
-  - `._parse(line)` — extracts progress from tqdm/train output
-- `LabelMap` — loads breed class JSON files
-- API endpoints: see CONTEXT.md §11
+### `test_model.py`
+- Standalone PyTorch testing GUI server (HTTP server at `http://localhost:8501`). Loads portable exports/checkpoints and renders interactive breed predictions with top-5 confidence bars.
 
 ---
 
@@ -115,7 +109,4 @@ webapp/server.py ← (uses model, config; runs src.* as subprocesses)
 | evaluate.py | 156 | Full evaluation |
 | export.py | ~195 | Export modes |
 | verify.py | 69 | Sanity check |
-| server.py | ~540 | Webapp backend |
-| app.js | ~640 | Webapp frontend |
-| style.css | ~280 | Dark theme CSS |
-| index.html | ~238 | HTML structure |
+| test_model.py | ~250 | Standalone Model Testing GUI |

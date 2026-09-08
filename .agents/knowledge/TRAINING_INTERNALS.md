@@ -149,19 +149,18 @@ Result: ~375 images total (75 breeds × 5), but model has full 57+18 class heads
 
 ---
 
-## 8. Webapp Job Monitoring
+## 8. CLI Progress & Monitoring
 
 ```
-server.py starts subprocess: python -u -m src.train ...
-  ↓ stdout (unbuffered, PYTHONUNBUFFERED=1)
-  ↓ _fold_cr() handles \r for tqdm overwrite
-  ↓ _parse() extracts:
-      - "[train] phase X epoch Y/Z: loss=... | val ..." → metrics
-      - "phaseX eY/Z: XX%|...|  N/M [mm:ss<mm:ss]" → batch progress
-      - "TRAINING COMPLETE" → 100% progress
-  ↓ _update_progress() computes overall % from phase/epoch/batch
-  ↓ /api/job returns {status: {...}, log: [...last 600 lines]}
-  ↓ Frontend polls every 1.2s, renders progress bar + console
-  ↓ On completion: auto-refresh status, metrics, exports
-  ↓ ModelBox.invalidate() called → next prediction uses new weights
+python -m src.train / local_train.py
+  ↓ stdout (unbuffered tqdm progress bars)
+  ↓ Phase 1/2/3 Epoch Loops:
+      - Epoch progress: tqdm batch progress bar with iteration speed
+      - Metrics reporting: [train] phase X epoch Y/Z: loss=... | val binary_acc=...
+  ↓ Model Checkpointing:
+      - Saves best model checkpoints dynamically to outputs/checkpoints/
+  ↓ Auto Portable Export:
+      - Converts best model into outputs/export/portable/<backbone>_phase2_best/
+  ↓ Completion:
+      - Summary table printed to console
 ```

@@ -7,7 +7,7 @@ Before making any changes to this project, read `.agents/knowledge/CONTEXT.md` f
 ## Code Conventions
 
 - All ML source code lives in `src/` and is run as `python -m src.<module>` (relative imports).
-- The webapp is in `webapp/` and uses FastAPI + vanilla JS (no framework).
+- Model testing GUI is provided via `test_model.py` (custom PyTorch inference browser application).
 - Configuration constants are centralized in `src/config.py` — never hardcode paths or hyperparameters elsewhere.
 - Training output goes to `outputs/` (checkpoints, exports, metrics).
 - Data lives in `data/raw/` (source images) and `data/splits/` (generated CSVs).
@@ -19,14 +19,8 @@ Before making any changes to this project, read `.agents/knowledge/CONTEXT.md` f
 - Smoke tests (`--smoke-test`) must use a real mini-dataset, not batch limits.
 - Training auto-exports a portable model bundle after completion.
 
-## Webapp
+## Model Testing & Verification
 
-- The `JobRunner` parses stdout from subprocesses to extract progress.
-- Any new training output format must be parseable by `_parse()` in `server.py`.
-- `ModelBox` auto-invalidates on checkpoint mtime change — don't break this.
-- Frontend polls at 1.2s intervals and auto-stops when job completes.
-
-## Testing
-
+- Interactive testing is run using `python test_model.py`.
 - `python -m src.verify` checks backbone loading and forward pass shapes.
 - `python -m src.train --smoke-test --skip-qat` is the fast integration test.
