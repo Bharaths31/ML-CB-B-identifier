@@ -123,55 +123,51 @@ def _check_windows_build_tools():
     vswhere utility, and print a clear actionable message if they are absent.
     """
     import shutil
-    issues = []
-
-    # 1. Check cl.exe (MSVC compiler) is accessible
+    
+    # 1. Check cl.exe (MSVC compiler) is directly accessible in PATH
     cl_path = shutil.which("cl")
     if cl_path:
         print(f"  ✅ MSVC compiler found: {cl_path}")
-    else:
-        issues.append("cl.exe")
+        return
 
     # 2. Check vswhere (ships with VS 2017+ and Build Tools)
     vswhere = shutil.which("vswhere") or os.path.expandvars(
         r"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe")
+    
     if os.path.exists(vswhere):
         try:
+            # We must use '-products *' because Build Tools is considered a different 
+            # product family than Visual Studio (Community/Pro/Enterprise)
             result = subprocess.run(
-                [vswhere, "-latest", "-requires",
-                 "Microsoft.VisualCpp.Tools.HostX64.TargetX64",
+                [vswhere, "-latest", "-products", "*", "-requires",
+                 "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
                  "-property", "displayName"],
                 capture_output=True, text=True, timeout=10)
-            vs_name = result.stdout.strip()
+            
+            vs_name = result.stdout.strip().split('\n')[0]  # Take first line if multiple
             if vs_name:
-                print(f"  ✅ Visual Studio / Build Tools: {vs_name}")
-            else:
-                issues.append("Visual C++ Build Tools (no matching installation found)")
+                print(f"  ✅ Visual Studio / Build Tools found: {vs_name}")
+                print("  ℹ️  Note: If a pip install fails, try running from the 'x64 Native Tools Command Prompt'")
+                return
         except Exception:
-            issues.append("Visual C++ Build Tools (vswhere query failed)")
-    else:
-        issues.append("Visual Studio / Build Tools installer (vswhere not found)")
+            pass
 
-    # 3. Report
-    if issues:
-        print()
-        print("  ⚠️  WARNING: Missing Windows build dependencies:")
-        for issue in issues:
-            print(f"      - {issue}")
-        print()
-        print("  Some Python packages require C++ compilation and will FAIL to install.")
-        print("  Fix: Install 'Microsoft C++ Build Tools' (free):")
-        print("    https://visualstudio.microsoft.com/visual-cpp-build-tools/")
-        print("  Select workload: 'Desktop development with C++'")
-        print()
-        print("  PyTorch itself installs fine without MSVC (uses pre-built wheels).")
-        print("  Only continue if you do NOT need packages that compile C extensions.")
-        print()
-        # Don't raise — PyTorch training works without MSVC on Windows.
-        # The user is warned and can proceed if they only need torch+torchvision.
-    else:
-        print("  ✅ Windows build tools OK")
-
+    # 3. Report missing
+    print()
+    print("  ⚠️  WARNING: Missing Windows build dependencies:")
+    print("      - cl.exe not in PATH")
+    print("      - Visual Studio / Build Tools not found via vswhere")
+    print()
+    print("  Some Python packages require C++ compilation and will FAIL to install.")
+    print("  Fix: Install 'Microsoft C++ Build Tools' (free):")
+    print("    https://visualstudio.microsoft.com/visual-cpp-build-tools/")
+    print("  Select workload: 'Desktop development with C++'")
+    print()
+    print("  PyTorch itself installs fine without MSVC (uses pre-built wheels).")
+    print("  Only continue if you do NOT need packages that compile C extensions.")
+    print()
+    # Don't raise — PyTorch training works without MSVC on Windows.
+    # The user is warned and can proceed if they only need torch+torchvision.
 
 # ============================================================
 #  §0 — Prerequisites Check
