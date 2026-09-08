@@ -217,6 +217,22 @@ Creates a mini-dataset of 5 images per breed using `prepare_smoke_splits()`:
 - 1 epoch per phase
 - Auto-exports portable model after training
 
+### Half-Data Mode (`--half-data`)
+
+Creates a reduced dataset using 50% of images per breed via `prepare_half_splits()`:
+- Deterministic sampling (seed=42) for reproducibility
+- Same 85/10/5 stratified split on the sampled subset
+- Class maps include ALL breeds — model architecture stays identical to full training
+- Ideal for faster iteration on local machines with limited VRAM
+
+### Quarter-Data Mode (`--quarter-data`)
+
+Creates a reduced dataset using 25% of images per breed via `prepare_quarter_splits()`:
+- Deterministic sampling (seed=42) for reproducibility
+- Same 85/10/5 stratified split on the sampled subset
+- Class maps include ALL breeds — model architecture stays identical to full training
+- Fastest local training mode (~4x speedup)
+
 ### Auto-Export
 
 After training completes, automatically creates a portable export in `outputs/export/portable/` containing:
@@ -394,6 +410,8 @@ outputs/export/portable/<backbone>_phase2_best/
 --skip-qat                   Skip phase 3 (QAT)
 --smoke-test                 Use mini-dataset (5 imgs/breed, 1 epoch)
 --half-data                  Use 50% of images per breed (faster training)
+--quarter-data               Use 25% of images per breed (fastest local training)
+--full-data                  Use all images (default)
 --seed N                     Random seed (default: 42)
 --export-dir PATH            Portable export destination
 --no-export                  Skip auto-export after training
@@ -423,7 +441,21 @@ outputs/export/portable/<backbone>_phase2_best/
 
 ## 12. Common Operations
 
-### Setup
+### Fully Automated Local Pipeline (Recommended)
+```bash
+# Handles venv, Kaggle download, unzip, verify, train, and multi-format export
+python local_train.py                  # Full data
+python local_train.py --half-data      # 50% data
+python local_train.py --quarter-data   # 25% data
+python local_train.py --smoke-test     # Smoke test
+```
+
+### Interactive Model Testing GUI
+```bash
+python test_model.py                   # Launch GUI at http://localhost:8501
+```
+
+### Manual Setup
 ```bash
 python setup_venv.py          # Create venv + install deps
 source .venv/bin/activate
@@ -439,25 +471,12 @@ python -m src.verify          # Check backbone loading + forward pass shapes
 python -m src.data_pipeline   # Scan raw/ → generate splits/*.csv
 ```
 
-### Train (Full)
+### Train (Manual)
 ```bash
 python -m src.train --backbone lite2
-```
-
-### Train (Half Data)
-```bash
 python -m src.train --half-data --skip-qat
-```
-
-### Train (Smoke Test)
-```bash
+python -m src.train --quarter-data --skip-qat
 python -m src.train --smoke-test --skip-qat
-```
-
-### Fully Automated Local Pipeline
-```bash
-# Handles venv, Kaggle download, unzip, verify, train, and multi-format export
-python local_train.py --half-data
 ```
 
 ### Evaluate

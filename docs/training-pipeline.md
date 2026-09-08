@@ -52,11 +52,25 @@ Creates a reduced dataset using 50% of images per breed via `prepare_half_splits
 - Same 85/10/5 stratified split on the sampled subset
 - Class maps include ALL breeds — model architecture stays identical to full training
 - Ideal for faster iteration on local machines with limited VRAM
-- Mutually exclusive with `--smoke-test`
+- Mutually exclusive with `--smoke-test`, `--quarter-data`, and `--full-data`
 
 ```bash
 # Half-data training (skipping QAT for speed)
 python -m src.train --half-data --skip-qat
+```
+
+### Quarter-Data Mode (`--quarter-data`)
+
+Creates a reduced dataset using 25% of images per breed via `prepare_quarter_splits()`:
+- Deterministic sampling (seed=42) for reproducibility
+- Same 85/10/5 stratified split on the sampled subset
+- Class maps include ALL breeds — model architecture stays identical to full training
+- Fastest local training mode (~4x speedup)
+- Mutually exclusive with `--smoke-test`, `--half-data`, and `--full-data`
+
+```bash
+# Quarter-data training (skipping QAT for speed)
+python -m src.train --quarter-data --skip-qat
 ```
 
 ### Automated Local Pipeline (`local_train.py`)
