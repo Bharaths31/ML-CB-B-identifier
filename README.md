@@ -90,7 +90,7 @@ ML-CB-B-identifier/
 ├── scripts/                    # Utility scripts
 ├── local_train.py              # 🚀 Fully automated pipeline (setup → download → train → export)
 ├── test_model.py               # 🔬 Standalone web GUI for testing exported models
-├── create_training_zip.py      # Lightweight training-only zip (no webapp, no memory)
+├── create_training_zip.py      # Lightweight training-only zip
 ├── setup_venv.py               # Automated venv creation & dependency install
 ├── setup.sh                    # Shell helper for quick env setup (Linux/macOS)
 ├── efficientnet_lite2.pth      # Pre-trained ImageNet backbone weights (included in repo)
@@ -235,7 +235,7 @@ The **`local_train.py`** script is the recommended entry point. It runs a fully 
 | Stage | Name | What it does |
 |---|---|---|
 | §0 | **Prerequisites** | Checks Python ≥ 3.9, git, pip; Windows: checks MSVC build tools |
-| §1 | **Environment Setup** | Creates `.venv`, installs training dependencies (skips webapp deps) |
+| §1 | **Environment Setup** | Creates `.venv`, installs training dependencies |
 | §2 | **Kaggle Download** | Prompts for API credentials if needed, downloads dataset |
 | §3 | **Unzip & Organize** | Extracts images into `data/raw/cattle/` and `data/raw/buffalo/` |
 | §4 | **Verify Architecture** | Runs `src.verify` to confirm backbone loading + forward pass |
@@ -567,7 +567,6 @@ Or install everything at once:
 pip install -r requirements.txt
 ```
 
-> **Note:** `requirements.txt` includes webapp deps (`fastapi`, `uvicorn`, etc.) which are not needed for training-only use. Install selectively if preferred.
 
 **Step 3 — Download dataset:**
 ```bash

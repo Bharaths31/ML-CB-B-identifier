@@ -76,17 +76,9 @@
 **Export & Standalone Packaging:**
 - Added `portable` mode: self-contained folder with model + labels + metadata
 - Improved progress bars on INT8 calibration
-- Created `create_training_zip.py` script to generate a clean, webapp-free training zip package
+- Created `create_training_zip.py` script to generate a clean, standalone training zip package
 - Added `.gitignore` configured to track `memory/` while ignoring `.venv/`, `outputs/`, `data/splits/`, `*.zip`, cache files
 
-**Webapp:**
-- Fixed argument formatting bug (`--phase1_epochs` → `--phase1-epochs`)
-- Fixed `jobStatusHTML` crash when metrics object has missing keys
-- Added model cache auto-invalidation after training (mtime-based)
-- Progress bars now show completion/error states
-- Running job indicator with pulse animation in header
-- Auto-refresh status, metrics, and exports after job completion
-- Added portable export option in UI dropdown
 
 **Config:**
 - Added `PORTABLE_EXPORT_DIR`, `SMOKE_SAMPLES_PER_BREED` constants

@@ -169,7 +169,7 @@ python -m src.export --mode float16 --backbone lite2
 ## 4. Creating Distribution Packages
 
 ```bash
-# Lightweight training-only zip (excludes webapp, memory layer)
+# Lightweight training-only zip
 python create_training_zip.py
 
 # Colab-ready project zip

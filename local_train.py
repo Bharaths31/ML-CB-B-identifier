@@ -42,10 +42,6 @@ DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
 REQUIREMENTS = os.path.join(PROJECT_ROOT, "requirements.txt")
 
-# Webapp-only deps to skip for training-only installs
-WEBAPP_DEPS = {"fastapi", "uvicorn", "python-multipart", "mem0ai",
-               "chromadb", "sentence-transformers", "litellm"}
-
 # Export formats to produce after training
 EXPORT_FORMATS = ["portable", "onnx", "int8", "float16"]
 
@@ -339,10 +335,9 @@ def stage_setup_env():
     # We must detect NVIDIA GPUs and install from the PyTorch CUDA index.
     gpu_detected = _detect_nvidia_gpu()
 
-    # Install training-only dependencies (skip webapp deps)
+    # Install training dependencies
     print("  Installing training dependencies...")
     if os.path.exists(REQUIREMENTS):
-        # Read requirements and filter out webapp-only deps
         with open(REQUIREMENTS) as f:
             lines = f.readlines()
         training_deps = []
@@ -352,8 +347,6 @@ def stage_setup_env():
             if not line or line.startswith("#"):
                 continue
             pkg_name = line.split(">=")[0].split("==")[0].split("[")[0].strip()
-            if pkg_name.lower() in WEBAPP_DEPS:
-                continue
             if pkg_name.lower() in ("torch", "torchvision"):
                 torch_deps.append(line)
             else:
@@ -770,8 +763,8 @@ def stage_summary(args, total_start):
 
     print(f"\n  Quick test:")
     print(f"    python -m src.evaluate --backbone {args.backbone}")
-    print(f"\n  Run webapp:")
-    print(f"    python webapp/server.py  →  http://localhost:8000")
+    print(f"\n  Test visually:")
+    print(f"    python test_model.py")
 
 
 # ============================================================

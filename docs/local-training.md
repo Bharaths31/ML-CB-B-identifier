@@ -37,7 +37,7 @@ The pipeline runs 8 stages sequentially:
 | Stage | Name | Description |
 |---|---|---|
 | §0 | **Prerequisites** | Checks Python ≥ 3.9, git, pip availability; Windows: checks MSVC build tools |
-| §1 | **Environment Setup** | Creates `.venv`, installs training dependencies (skips webapp deps) |
+| §1 | **Environment Setup** | Creates `.venv`, installs training dependencies |
 | §2 | **Kaggle Download** | Prompts for API credentials if needed, downloads `algsoch/breed-cattle-buffalo` |
 | §3 | **Unzip & Organize** | Extracts images into `data/raw/cattle/` and `data/raw/buffalo/` |
 | §4 | **Verify Architecture** | Runs `src.verify` — confirms backbone loading + forward pass shapes |

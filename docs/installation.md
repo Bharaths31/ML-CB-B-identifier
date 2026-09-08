@@ -94,7 +94,7 @@ python -m venv .venv
 :: Upgrade pip
 python -m pip install --upgrade pip
 
-:: Install training dependencies (excludes webapp deps)
+:: Install training dependencies
 pip install torch>=2.1.0 torchvision>=0.16.0
 pip install numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
 ```
@@ -200,7 +200,7 @@ source .venv/bin/activate
 # Upgrade pip
 pip install --upgrade pip
 
-# Install training dependencies (excludes webapp deps)
+# Install training dependencies
 pip install torch>=2.1.0 torchvision>=0.16.0
 pip install numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
 ```
@@ -244,7 +244,7 @@ requests>=2.31
 onnx>=1.16
 ```
 
-`local_train.py` installs these automatically (skips webapp-only deps).
+`local_train.py` installs these automatically.
 
 ### Model Tester (`test_model.py`)
 
