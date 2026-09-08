@@ -13,13 +13,11 @@
 5. [Training Pipeline](#5-training-pipeline)
 6. [Data Pipeline](#6-data-pipeline)
 7. [Export & Deployment](#7-export--deployment)
-8. [Webapp (FastAPI + Vanilla JS)](#8-webapp)
-9. [Memory Layer (Mem0)](#9-memory-layer)
-10. [Configuration Reference](#10-configuration-reference)
-11. [API Reference](#11-api-reference)
-12. [Common Operations](#12-common-operations)
-13. [Known Constraints & Gotchas](#13-known-constraints--gotchas)
-14. [Changelog](#14-changelog)
+8. [Configuration Reference](#8-configuration-reference)
+9. [API Reference](#9-api-reference)
+10. [Common Operations](#10-common-operations)
+11. [Known Constraints & Gotchas](#11-known-constraints--gotchas)
+12. [Changelog](#12-changelog)
 
 ---
 
@@ -305,51 +303,7 @@ outputs/export/portable/<backbone>_phase2_best/
 
 ---
 
-## 8. Webapp
-
-### Backend (`webapp/server.py`)
-
-- **Framework**: FastAPI on uvicorn (port 8000)
-- **ModelBox**: Thread-safe model loading with mtime-based cache invalidation
-- **JobRunner**: Subprocess manager for training/eval/export with real-time log parsing
-- **Auto-invalidation**: ModelBox cache cleared when training job completes
-
-### Frontend (`webapp/static/`)
-
-- Single-page app with 5 tabs: Predict, Train, Evaluate, Memory, Debug
-- **Polling**: 1.2s interval, auto-starts when job detected, auto-stops on completion
-- **Progress bars**: Parse tqdm output + `[train]` log lines for phase/epoch/batch progress
-- **State chips**: GPU/CPU indicator, model status, running job indicator with pulse animation
-
-### Key API Endpoints
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/status` | System info, checkpoints, exports |
-| POST | `/api/predict` | Image classification (multipart upload) |
-| POST | `/api/train` | Start training subprocess |
-| GET | `/api/job` | Poll job status + log tail |
-| POST | `/api/job/stop` | Terminate running job |
-| POST | `/api/evaluate` | Start evaluation subprocess |
-| POST | `/api/export` | Start export subprocess |
-| GET | `/api/metrics` | Saved evaluation metrics |
-| GET | `/api/dataset` | Dataset breed counts |
-
----
-
-## 9. Memory Layer
-
-### Mem0Layer (`memory/service.py`)
-
-- ChromaDB-backed vector store for context memories
-- Optional LLM integration (via litellm) for extraction/deduplication
-- Scoped by `user_id`, `agent_id`, `run_id`
-- Token-efficient recall: ranks memories, prunes to fit budget
-- Memory-aware chat: injects recalled context into LLM prompt
-
----
-
-## 10. Configuration Reference
+## 8. Configuration Reference
 
 ### `src/config.py` — All Constants
 
@@ -392,88 +346,145 @@ outputs/export/portable/<backbone>_phase2_best/
 
 ---
 
-## 11. API Reference
+## 9. API Reference
 
-### Training Arguments (`python -m src.train`)
+### `python local_train.py` — Automated Pipeline
 
-```
---backbone {lite2,lite4}     Backbone architecture (default: lite2)
---weights PATH               Pretrained weights path
---attention {cbam,se}        Attention module (default: cbam)
---data PATH                  Raw data root
---split-dir PATH             Split CSV output directory
---batch-size N               Batch size (default: 32)
---num-workers N              DataLoader workers (default: 4)
---device DEVICE              Force device (auto-detects cuda/cpu)
---no-mix                     Disable CutMix/MixUp
---phase{1,2,3}-epochs N      Override epoch count
---skip-qat                   Skip phase 3 (QAT)
---smoke-test                 Use mini-dataset (5 imgs/breed, 1 epoch)
---half-data                  Use 50% of images per breed (faster training)
---quarter-data               Use 25% of images per breed (fastest local training)
---full-data                  Use all images (default)
---seed N                     Random seed (default: 42)
---export-dir PATH            Portable export destination
---no-export                  Skip auto-export after training
-```
+#### Data Mode (mutually exclusive)
+| Flag | Description |
+|---|---|
+| `--half-data` | 50% of images per breed (seed=42) |
+| `--quarter-data` | 25% of images per breed (seed=42) |
+| `--smoke-test` | 5 imgs/breed, 1 epoch per phase |
+| `--full-data` | All images (explicit default) |
 
-### Webapp API Payload Formats
+#### Model Config
+| Flag | Default | Description |
+|---|---|---|
+| `--backbone {lite2,lite4}` | `lite2` | Backbone architecture |
+| `--attention {cbam,se}` | `cbam` | Attention module |
 
-**POST /api/train**:
-```json
-{
-  "backbone": "lite2",
-  "smoke_test": true,
-  "skip_qat": false,
-  "phase1_epochs": 5,
-  "phase2_epochs": 30,
-  "phase3_epochs": 10,
-  "num_workers": 4
-}
-```
+#### Training Overrides
+| Flag | Default | Description |
+|---|---|---|
+| `--include-qat` | off | Enable Phase 3 QAT |
+| `--phase1-epochs N` | 5 | Phase 1 epoch count |
+| `--phase2-epochs N` | 40 | Phase 2 epoch count |
+| `--phase3-epochs N` | 10 | Phase 3 epoch count |
+| `--num-workers N` | 4 | DataLoader workers |
 
-**POST /api/export**:
-```json
-{"backbone": "lite2", "mode": "portable"}
-```
+#### Skip Stages
+| Flag | Description |
+|---|---|
+| `--skip-download` | Skip Kaggle download |
+| `--skip-setup` | Skip venv creation |
+| `--skip-verify` | Skip architecture verification |
+| `--skip-export` | Skip multi-format export |
 
 ---
 
-## 12. Common Operations
+### `python -m src.train` — Core Training Engine
 
-### Fully Automated Local Pipeline (Recommended)
+| Flag | Default | Description |
+|---|---|---|
+| `--backbone {lite2,lite4}` | `lite2` | Backbone architecture |
+| `--weights PATH` | project root `.pth` | Custom pretrained weights |
+| `--attention {cbam,se}` | `cbam` | Attention module |
+| `--data PATH` | `data/raw/` | Raw image root |
+| `--split-dir PATH` | `data/splits/` | CSV split directory |
+| `--batch-size N` | `64` | Per-GPU batch size |
+| `--num-workers N` | `4` | DataLoader workers |
+| `--device DEVICE` | auto | Force `cuda` or `cpu` |
+| `--no-mix` | off | Disable CutMix/MixUp |
+| `--phase1-epochs N` | `5` | Phase 1 epochs |
+| `--phase2-epochs N` | `40` | Phase 2 epochs |
+| `--phase3-epochs N` | `10` | Phase 3 epochs |
+| `--skip-qat` | off | Skip QAT phase |
+| `--smoke-test` | off* | 5 imgs/breed, 1 epoch |
+| `--half-data` | off* | 50% images/breed |
+| `--quarter-data` | off* | 25% images/breed |
+| `--no-compile` | off | Disable `torch.compile` |
+| `--seed N` | `42` | Random seed |
+| `--export-dir PATH` | `outputs/export/portable/` | Export destination |
+| `--no-export` | off | Skip auto-export |
+| `--weight-decay F` | `1e-2` | AdamW weight decay |
+| `--label-smoothing F` | `0.1` | Label smoothing |
+| `--warmup-epochs N` | `3` | LR warmup epochs |
+| `--grad-accum N` | `2` | Gradient accumulation steps |
+
+*mutually exclusive group
+
+---
+
+### `python -m src.export`
+
+| Flag | Default | Description |
+|---|---|---|
+| `--backbone {lite2,lite4}` | `lite2` | Which backbone to export |
+| `--mode {onnx,int8,float16,portable}` | required | Export format |
+| `--checkpoint PATH` | auto | Specific `.pt` file |
+
+### `python -m src.evaluate`
+
+| Flag | Default | Description |
+|---|---|---|
+| `--backbone {lite2,lite4}` | `lite2` | Backbone to evaluate |
+| `--checkpoint PATH` | auto | Specific `.pt` file |
+| `--device DEVICE` | auto | Force `cuda` or `cpu` |
+
+### `python test_model.py`
+
+| Flag | Default | Description |
+|---|---|---|
+| `--port N` | `8501` | HTTP port |
+| `--no-browser` | off | Don't auto-open browser |
+
+---
+
+## 10. Common Operations
+
+### Automated Pipeline (Recommended)
 ```bash
-# Handles venv, Kaggle download, unzip, verify, train, and multi-format export
 python local_train.py                  # Full data
 python local_train.py --half-data      # 50% data
 python local_train.py --quarter-data   # 25% data
-python local_train.py --smoke-test     # Smoke test
+python local_train.py --smoke-test     # Smoke test (seconds)
 ```
 
-### Interactive Model Testing GUI
+### Model Testing GUI
 ```bash
-python test_model.py                   # Launch GUI at http://localhost:8501
+python test_model.py                   # → http://localhost:8501
+python test_model.py --port 9000       # Custom port
+python test_model.py --no-browser      # Headless
 ```
 
-### Manual Setup
+### Manual Setup (Linux/macOS)
 ```bash
-python setup_venv.py          # Create venv + install deps
+python3 -m venv .venv
 source .venv/bin/activate
+pip install torch>=2.1.0 torchvision>=0.16.0 numpy pandas scikit-learn tqdm Pillow onnx
+```
+
+### Manual Setup (Windows)
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+pip install torch>=2.1.0 torchvision>=0.16.0 numpy pandas scikit-learn tqdm Pillow onnx
 ```
 
 ### Verify Architecture
 ```bash
-python -m src.verify          # Check backbone loading + forward pass shapes
+python -m src.verify
 ```
 
 ### Prepare Data Splits
 ```bash
-python -m src.data_pipeline   # Scan raw/ → generate splits/*.csv
+python -m src.data_pipeline
 ```
 
 ### Train (Manual)
 ```bash
-python -m src.train --backbone lite2
+python -m src.train --backbone lite2 --skip-qat
 python -m src.train --half-data --skip-qat
 python -m src.train --quarter-data --skip-qat
 python -m src.train --smoke-test --skip-qat
@@ -488,41 +499,40 @@ python -m src.evaluate --backbone lite2
 ```bash
 python -m src.export --mode portable --backbone lite2
 python -m src.export --mode onnx --backbone lite2
+python -m src.export --mode int8 --backbone lite2
+python -m src.export --mode float16 --backbone lite2
 ```
 
-### Create Standalone Training Zip
+### Create Training Zip
 ```bash
-python create_training_zip.py # Creates training_package.zip (excludes webapp/ and memory/)
-```
-
-### Run Webapp
-```bash
-python webapp/server.py       # → http://localhost:8000
+python create_training_zip.py
 ```
 
 ---
 
-## 13. Known Constraints & Gotchas
+## 11. Known Constraints & Gotchas
 
-1. **QAT + CUDA AMP conflict**: Phase 3 (QAT) disables AMP scaler because quantization observers don't support mixed precision. This is intentional.
+1. **QAT + CUDA AMP conflict**: Phase 3 (QAT) disables AMP scaler because quantization observers don't support mixed precision. This is intentional — handled automatically.
 
-2. **Backbone weight files required**: `efficientnet_lite{2,4}.pth` must exist in project root for pretrained initialization. Without them, backbone trains from scratch (much worse accuracy).
+2. **Backbone weights are included in the repo**: `efficientnet_lite{2,4}.pth` are tracked in git. No separate download required. Without them, backbone trains from scratch (significantly worse accuracy).
 
-3. **Class count mismatch**: If the dataset has fewer breeds than `NUM_CATTLE_BREEDS`/`NUM_BUFFALO_BREEDS`, the model head is still sized for 57/18 classes. Unused class outputs are never trained. This is by design for consistent model architecture.
+3. **Fixed head sizes**: Model heads are always sized for 57 cattle + 18 buffalo classes regardless of data mode. Unused class outputs receive no gradient. Architecture is identical across all modes.
 
-4. **WeightedRandomSampler**: Training uses inverse-frequency sampling to balance breeds. This means rare breeds are over-sampled. For evaluation, no sampling is used.
+4. **WeightedRandomSampler (training only)**: Training oversamples rare breeds by inverse frequency. Evaluation uses no sampling — test set reflects natural distribution.
 
-5. **Soft cross-entropy**: Training uses soft labels (not hard argmax) because CutMix/MixUp produce fractional label vectors. This works with hard labels too (one-hot = special case of soft).
+5. **Soft cross-entropy**: Training uses soft labels because CutMix/MixUp produce fractional label vectors. Hard one-hot labels work identically as a special case.
 
-6. **Model cache invalidation**: The webapp's ModelBox now checks file mtime, so retraining automatically invalidates the cache on next prediction. No manual reload needed.
+6. **Portable export requires `BreedClassifier` class**: Saves `state_dict`, not TorchScript. Loading requires `from src.model import BreedClassifier`. For framework-free inference, use ONNX.
 
-7. **Portable export is checkpoint-based**: The portable export saves `state_dict` (not TorchScript), so loading requires the `BreedClassifier` class definition. For framework-free deployment, use ONNX export instead.
+7. **Smoke test uses ALL 75 classes**: Even with 5 imgs/breed, class maps include all breeds. Architecture is identical to full training.
 
-8. **Smoke test uses ALL breed classes**: Even though only 5 images per breed are used, the class maps include ALL breeds from the full dataset. This ensures the model architecture is identical between smoke and full training.
+8. **`torch.compile` OOM on T4 GPU**: `mode="reduce-overhead"` uses CUDA Graphs, causing OOM on 15 GB T4. Default `torch.compile(model)` (no mode) avoids this.
 
-9. **`torch.compile` OOM on T4 GPU**: `mode="reduce-overhead"` uses CUDA Graphs which pre-allocates significant VRAM during backwards pass, leading to `OutOfMemoryError` on 15GB T4 GPUs. Using `torch.compile(model)` (default mode without `reduce-overhead`) prevents GPU OOM.
+9. **`torch.compile` crashes on Windows**: Triton not supported on Windows → `BackendCompilerFailed`. Auto-detected via `os.name == 'nt'`, falls back to eager. Use `--no-compile` to force.
 
-10. **`torch.compile` crashes on Windows**: Windows lacks native support for Triton, causing PyTorch to throw `BackendCompilerFailed: Cannot find a working triton installation`. The script automatically detects Windows (`os.name == 'nt'`) and falls back to eager execution to prevent crashes.
+10. **`data/splits/` regenerated each run**: CSV splits are always regenerated at the start of training. Do not manually edit files in `data/splits/`.
+
+11. **Windows `curl` alias**: In PowerShell, `curl` is an alias for `Invoke-WebRequest`. Use `curl.exe` or the Python `requests` library. `local_train.py` uses `requests` internally.
 
 ---
 

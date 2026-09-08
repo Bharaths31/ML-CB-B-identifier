@@ -1,42 +1,46 @@
-# ML-CB-B-identifier
- # Cattle & Buffalo Breed Classifier
+# Cattle & Buffalo Breed Classifier
 
-## Table of Contents
-- [Project Overview](#1-project-overview)
-- [Architecture & Data Flow](architecture.md)
-- [Directory Structure](architecture.md#3-directory-map)
-- [Model Architecture](model-architecture.md)
-- [Data Preparation](data-pipeline.md)
-- [Local Training (Automated)](local-training.md)
-- [Google Colab Training Setup](colab-training.md)
-- [Training Pipeline](training-pipeline.md)
-- [Exporting the Model & Android Deployment](export-deployment.md)
-- [Running the FastAPI Webapp](webapp.md)
-- [Memory Layer (Mem0)](memory-layer.md)
-- [Configuration Reference](config-reference.md)
-- [API Reference](api-reference.md)
-- [Common Operations](common-operations.md)
-- [Known Constraints & Gotchas](constraints-gotchas.md)
-- [Changelog](changelog.md)
-
----
-
-# 1. Project Overview
+A **lightweight, mobile-deployable image classifier** for 57 Indian cattle breeds and 18 Indian buffalo breeds. Built on EfficientNet-Lite with CBAM/SE attention and a 3-head multi-task training pipeline.
 
 | Field | Value |
 |---|---|
-| **Goal** | Classify images of Indian cattle (57 breeds) and buffalo (18 breeds) using a lightweight, mobile-deployable CNN |
-| **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) |
-| **Stack** | Python 3.11+, PyTorch >= 2.1.0, FastAPI, Vanilla JS frontend |
-| **Training** | 3-phase: binary warmup → multi-task fine-tune → optional QAT |
-| **Deployment** | ONNX, INT8, float16, or portable self-contained folder |
-| **Dataset** | `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
-
-### Key Numbers
-
-- **75 total breeds**: 57 cattle + 18 buffalo
-- **Input size**: 260×260 RGB
-- **Feature dim**: 1280 (from EfficientNet head)
-- **Backbone params**: ~6M (lite2), ~13M (lite4)
+| **Breeds** | 57 cattle + 18 buffalo = 75 total |
+| **Backbone** | EfficientNet-Lite2 (~6M params) or Lite4 (~13M params) |
+| **Input** | 260 × 260 RGB |
+| **Training** | 3-phase: Binary warm-up → Multi-task fine-tune → Optional QAT |
+| **Export** | ONNX, INT8, FP16, Portable bundle |
+| **Dataset** | Kaggle: `algsoch/breed-cattle-buffalo` |
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Bharaths31/ML-CB-B-identifier
+cd ML-CB-B-identifier
+
+# Fastest local run (25% data, ~4× speedup)
+python local_train.py --quarter-data
+
+# Test the trained model visually
+python test_model.py
+```
+
+---
+
+## Documentation
+
+| Page | Description |
+|---|---|
+| [Installation](installation.md) | Step-by-step setup for Windows and Linux/macOS |
+| [Local Training (Automated)](local-training.md) | `local_train.py` — full flag reference |
+| [Training Pipeline](training-pipeline.md) | 3-phase training, data modes, CUDA optimizations |
+| [Model Tester GUI](model-tester.md) | `test_model.py` — visual testing tool |
+| [Architecture](architecture.md) | Model architecture and data flow |
+| [Data Pipeline](data-pipeline.md) | Dataset layout, augmentation, splits |
+| [Export & Deployment](export-deployment.md) | ONNX, INT8, FP16, Android deployment |
+| [Google Colab Training](colab-training.md) | T4 GPU notebook setup |
+| [API Reference](api-reference.md) | Complete flag reference for all CLI tools |
+| [Configuration](config-reference.md) | `src/config.py` constants |
+| [Constraints & Gotchas](constraints-gotchas.md) | Known issues and platform-specific notes |
+| [Changelog](changelog.md) | Version history |

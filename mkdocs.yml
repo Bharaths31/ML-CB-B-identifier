@@ -43,22 +43,20 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Architecture: architecture.md
-  - Model & Training:
-    - Model Architecture: model-architecture.md
+  - Installation & Setup: installation.md
+  - Training:
+    - Local Training (Automated): local-training.md
     - Training Pipeline: training-pipeline.md
     - Google Colab Training: colab-training.md
+  - Model & Testing:
     - Model Tester GUI: model-tester.md
+    - Architecture: architecture.md
+    - Model Architecture: model-architecture.md
   - Data & Processing: data-pipeline.md
-  - Deployment & Export:
-    - Export Formats: export-deployment.md
-    - Android Deployment: android-deployment.md
-  - Web Application: webapp.md
+  - Export & Deployment: export-deployment.md
   - Reference:
-    - Configuration: config-reference.md
     - API Reference: api-reference.md
-    - Memory Layer (Mem0): memory-layer.md
-  - Operations & Gotchas:
+    - Configuration: config-reference.md
     - Common Operations: common-operations.md
     - Constraints & Gotchas: constraints-gotchas.md
   - Changelog: changelog.md
