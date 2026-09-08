@@ -213,6 +213,110 @@ def stage_prerequisites(args):
 
 
 # ============================================================
+#  GPU detection & CUDA PyTorch installation
+# ============================================================
+
+# Map CUDA driver major.minor → PyTorch CUDA index tag
+# PyTorch publishes wheels for specific CUDA versions; pick the closest one
+# that doesn't exceed the driver's supported CUDA version.
+PYTORCH_CUDA_INDEXES = [
+    # (min_driver_cuda, index_tag)
+    (12, 4, "cu124"),   # CUDA 12.4+
+    (12, 1, "cu121"),   # CUDA 12.1–12.3
+    (11, 8, "cu118"),   # CUDA 11.8
+]
+
+PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/{tag}"
+
+
+def _detect_nvidia_gpu():
+    """Check for NVIDIA GPU via nvidia-smi. Returns (gpu_name, cuda_version) or None."""
+    import shutil
+    nvidia_smi = shutil.which("nvidia-smi")
+    if not nvidia_smi:
+        print("  ℹ️  No NVIDIA GPU detected (nvidia-smi not found) → will use CPU")
+        return None
+
+    try:
+        r = subprocess.run(
+            [nvidia_smi, "--query-gpu=name,driver_version",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            print("  ℹ️  nvidia-smi failed → will use CPU")
+            return None
+
+        # Parse first GPU line: "NVIDIA GeForce RTX 3050, 560.35.03"
+        line = r.stdout.strip().split("\n")[0]
+        parts = line.split(",")
+        gpu_name = parts[0].strip()
+
+        # Get CUDA version from nvidia-smi
+        r2 = subprocess.run(
+            [nvidia_smi], capture_output=True, text=True, timeout=10)
+        # Look for "CUDA Version: 12.6" in the output
+        cuda_ver = None
+        for out_line in r2.stdout.split("\n"):
+            if "CUDA Version" in out_line:
+                import re
+                m = re.search(r"CUDA Version:\s*(\d+)\.(\d+)", out_line)
+                if m:
+                    cuda_ver = (int(m.group(1)), int(m.group(2)))
+                break
+
+        if cuda_ver:
+            print(f"  🎮 NVIDIA GPU detected: {gpu_name}")
+            print(f"  🔧 CUDA driver version: {cuda_ver[0]}.{cuda_ver[1]}")
+            return {"gpu": gpu_name, "cuda": cuda_ver}
+        else:
+            print(f"  🎮 NVIDIA GPU detected: {gpu_name}")
+            print(f"  ⚠️  Could not determine CUDA version → will try CUDA 12.4")
+            return {"gpu": gpu_name, "cuda": (12, 4)}
+
+    except Exception as e:
+        print(f"  ℹ️  GPU detection failed: {e} → will use CPU")
+        return None
+
+
+def _install_torch(torch_deps, gpu_info):
+    """Install torch/torchvision with CUDA support if a GPU was detected."""
+    if gpu_info is None:
+        # No GPU — install CPU version from PyPI (default)
+        print("  Installing PyTorch (CPU)...")
+        _run([*_pip(), "install", "-q", *torch_deps])
+        print("  ✅ Installed PyTorch (CPU-only)")
+        return
+
+    # Find best matching CUDA index
+    cuda_major, cuda_minor = gpu_info["cuda"]
+    chosen_tag = None
+    for req_major, req_minor, tag in PYTORCH_CUDA_INDEXES:
+        if (cuda_major, cuda_minor) >= (req_major, req_minor):
+            chosen_tag = tag
+            break
+
+    if chosen_tag is None:
+        print(f"  ⚠️  CUDA {cuda_major}.{cuda_minor} is too old for GPU PyTorch")
+        print("  Falling back to CPU-only PyTorch...")
+        _run([*_pip(), "install", "-q", *torch_deps])
+        print("  ✅ Installed PyTorch (CPU-only)")
+        return
+
+    index_url = PYTORCH_INDEX_URL.format(tag=chosen_tag)
+    print(f"  Installing PyTorch with CUDA ({chosen_tag}) for {gpu_info['gpu']}...")
+    print(f"  Index: {index_url}")
+
+    # Uninstall existing CPU torch first (if any) to avoid conflicts
+    _run([*_pip(), "uninstall", "-y", "torch", "torchvision"],
+         check=False)
+
+    # Install CUDA version
+    _run([*_pip(), "install", "-q", *torch_deps,
+          "--index-url", index_url])
+    print(f"  ✅ Installed PyTorch with CUDA ({chosen_tag})")
+
+
+# ============================================================
 #  §1 — Environment Setup
 # ============================================================
 
@@ -230,6 +334,11 @@ def stage_setup_env():
     print("  Upgrading pip...")
     _run([*_pip(), "install", "--upgrade", "pip", "-q"])
 
+    # --- GPU Detection & CUDA PyTorch ---
+    # By default, `pip install torch` from PyPI installs CPU-only builds.
+    # We must detect NVIDIA GPUs and install from the PyTorch CUDA index.
+    gpu_detected = _detect_nvidia_gpu()
+
     # Install training-only dependencies (skip webapp deps)
     print("  Installing training dependencies...")
     if os.path.exists(REQUIREMENTS):
@@ -237,20 +346,32 @@ def stage_setup_env():
         with open(REQUIREMENTS) as f:
             lines = f.readlines()
         training_deps = []
+        torch_deps = []  # torch/torchvision handled separately for CUDA
         for line in lines:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             pkg_name = line.split(">=")[0].split("==")[0].split("[")[0].strip()
-            if pkg_name.lower() not in WEBAPP_DEPS:
+            if pkg_name.lower() in WEBAPP_DEPS:
+                continue
+            if pkg_name.lower() in ("torch", "torchvision"):
+                torch_deps.append(line)
+            else:
                 training_deps.append(line)
 
+        # Install torch/torchvision with CUDA if GPU detected
+        if torch_deps:
+            _install_torch(torch_deps, gpu_detected)
+
+        # Install remaining training deps
         if training_deps:
             _run([*_pip(), "install", "-q", *training_deps])
-            print(f"  ✅ Installed {len(training_deps)} training packages")
+            print(f"  ✅ Installed {len(training_deps)} other training packages")
     else:
         # Fallback: install core deps directly
-        _run([*_pip(), "install", "-q", "torch>=2.1.0", "torchvision>=0.16.0",
+        torch_deps = ["torch>=2.1.0", "torchvision>=0.16.0"]
+        _install_torch(torch_deps, gpu_detected)
+        _run([*_pip(), "install", "-q",
               "numpy>=1.24", "pandas>=1.5", "matplotlib>=3.7",
               "scikit-learn>=1.3", "tqdm>=4.66", "Pillow>=10.0", "onnx>=1.16"])
         print("  ✅ Installed core training packages")
@@ -260,11 +381,13 @@ def stage_setup_env():
     _run([*_pip(), "install", "-q", "kaggle"])
     print("  ✅ kaggle CLI ready")
 
-    # Verify torch import
-    r = _run([_python(), "-c",
-              "import torch; print(f'PyTorch {torch.__version__}, "
-              "CUDA={torch.cuda.is_available()}')"],
-             capture=True)
+    # Verify torch import + CUDA status
+    verify_script = (
+        "import torch; "
+        "gpu = f' GPU={torch.cuda.get_device_name(0)}' if torch.cuda.is_available() else ''; "
+        "print(f'PyTorch {torch.__version__}, CUDA={torch.cuda.is_available()}{gpu}')"
+    )
+    r = _run([_python(), "-c", verify_script], capture=True)
     print(f"  ✅ {r.stdout.strip()}")
 
 
