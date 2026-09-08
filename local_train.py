@@ -8,6 +8,7 @@ Fully automated pipeline: prerequisites → venv → dataset → verify → trai
 Usage:
     python local_train.py                     # Full data, skip QAT
     python local_train.py --half-data         # 50% data per breed (quick)
+    python local_train.py --quarter-data      # 25% data per breed (fastest local)
     python local_train.py --smoke-test        # Tiny dataset, 1 epoch (sanity)
     python local_train.py --full-data         # Explicitly use all images
     python local_train.py --include-qat       # Include QAT phase 3
@@ -109,6 +110,70 @@ def _file_size_mb(path):
 
 
 # ============================================================
+#  Windows prerequisite helpers
+# ============================================================
+
+def _check_windows_build_tools():
+    """Warn or raise if Visual C++ Build Tools are missing on Windows.
+
+    PyTorch wheels ship pre-compiled on PyPI so MSVC is NOT needed to *install*
+    torch.  However, some optional C-extension packages (e.g. sentencepiece,
+    triton, or any package without a wheel) will fail to build without MSVC.
+    We check for the compiler at cl.exe and for the VS Build Tools via the
+    vswhere utility, and print a clear actionable message if they are absent.
+    """
+    import shutil
+    issues = []
+
+    # 1. Check cl.exe (MSVC compiler) is accessible
+    cl_path = shutil.which("cl")
+    if cl_path:
+        print(f"  ✅ MSVC compiler found: {cl_path}")
+    else:
+        issues.append("cl.exe")
+
+    # 2. Check vswhere (ships with VS 2017+ and Build Tools)
+    vswhere = shutil.which("vswhere") or os.path.expandvars(
+        r"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe")
+    if os.path.exists(vswhere):
+        try:
+            result = subprocess.run(
+                [vswhere, "-latest", "-requires",
+                 "Microsoft.VisualCpp.Tools.HostX64.TargetX64",
+                 "-property", "displayName"],
+                capture_output=True, text=True, timeout=10)
+            vs_name = result.stdout.strip()
+            if vs_name:
+                print(f"  ✅ Visual Studio / Build Tools: {vs_name}")
+            else:
+                issues.append("Visual C++ Build Tools (no matching installation found)")
+        except Exception:
+            issues.append("Visual C++ Build Tools (vswhere query failed)")
+    else:
+        issues.append("Visual Studio / Build Tools installer (vswhere not found)")
+
+    # 3. Report
+    if issues:
+        print()
+        print("  ⚠️  WARNING: Missing Windows build dependencies:")
+        for issue in issues:
+            print(f"      - {issue}")
+        print()
+        print("  Some Python packages require C++ compilation and will FAIL to install.")
+        print("  Fix: Install 'Microsoft C++ Build Tools' (free):")
+        print("    https://visualstudio.microsoft.com/visual-cpp-build-tools/")
+        print("  Select workload: 'Desktop development with C++'")
+        print()
+        print("  PyTorch itself installs fine without MSVC (uses pre-built wheels).")
+        print("  Only continue if you do NOT need packages that compile C extensions.")
+        print()
+        # Don't raise — PyTorch training works without MSVC on Windows.
+        # The user is warned and can proceed if they only need torch+torchvision.
+    else:
+        print("  ✅ Windows build tools OK")
+
+
+# ============================================================
 #  §0 — Prerequisites Check
 # ============================================================
 
@@ -138,6 +203,10 @@ def stage_prerequisites(args):
             raise RuntimeError("pip is required. Install with: python -m ensurepip")
     else:
         print("  ⏭️  Skipping pip check (--skip-setup)")
+
+    # Windows-specific: check for Visual C++ / Build Tools
+    if platform.system() == "Windows":
+        _check_windows_build_tools()
 
     # Check project structure
     if not os.path.exists(os.path.join(PROJECT_ROOT, "src", "config.py")):
@@ -441,6 +510,11 @@ def stage_train(args):
         if not args.include_qat:
             cmd.append("--skip-qat")
         print("  Mode: HALF-DATA (50% images/breed, faster training)")
+    elif getattr(args, 'quarter_data', False):
+        cmd.append("--quarter-data")
+        if not args.include_qat:
+            cmd.append("--skip-qat")
+        print("  Mode: QUARTER-DATA (25% images/breed, fastest local training)")
     else:
         if not args.include_qat:
             cmd.append("--skip-qat")
@@ -604,6 +678,8 @@ Examples:
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument("--half-data", action="store_true",
                             help="use 50%% of images per breed (faster)")
+    data_group.add_argument("--quarter-data", action="store_true",
+                            help="use 25%% of images per breed (fastest local)")
     data_group.add_argument("--smoke-test", action="store_true",
                             help="tiny dataset, 1 epoch per phase (sanity)")
     data_group.add_argument("--full-data", action="store_true",
@@ -648,8 +724,10 @@ Examples:
 ╚══════════════════════════════════════════════════════════╝
     """)
 
-    mode = "half-data (50% images/breed)" if args.half_data else (
-        "smoke-test (tiny dataset)" if args.smoke_test else "full data")
+    mode = ("quarter-data (25% images/breed)" if getattr(args, 'quarter_data', False)
+            else "half-data (50% images/breed)" if args.half_data
+            else "smoke-test (tiny dataset)" if args.smoke_test
+            else "full data")
     print(f"  Training mode: {mode}")
     print(f"  Backbone: {args.backbone}, Attention: {args.attention}")
     print(f"  QAT: {'enabled' if args.include_qat else 'skipped'}")

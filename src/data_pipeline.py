@@ -14,9 +14,9 @@ from tqdm import tqdm
 
 from .config import (CACHE_IMAGES, CUTMIX_ALPHA, HALF_DATA_RATIO, IMAGE_SIZE,
                      MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
-                     NUM_CATTLE_BREEDS, RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS,
-                     RAW_DATA_DIR, SMOKE_SAMPLES_PER_BREED, SPLIT_DIR,
-                     TEST_RATIO, TRAIN_RATIO, VAL_RATIO)
+                     NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
+                     RANDAUGMENT_OPS, RAW_DATA_DIR, SMOKE_SAMPLES_PER_BREED,
+                     SPLIT_DIR, TEST_RATIO, TRAIN_RATIO, VAL_RATIO)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -190,6 +190,88 @@ def prepare_half_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
         "ratio": ratio,
     }
     print(f"[data] half-data: {len(half_df)} images ({ratio*100:.0f}%/breed) "
+          f"train={n_train} val={n_val} test={n_test}")
+    return summary
+
+
+def prepare_quarter_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
+                           ratio=QUARTER_DATA_RATIO):
+    """Create a dataset using 25% of images per breed for very fast training.
+
+    Identical to prepare_half_splits but uses 25% instead of 50%.  Class maps
+    still include ALL breeds so model architecture stays identical to full training.
+    """
+    rows = _collect_rows(data_root)
+    if not rows:
+        print(f"[data] no images found under {data_root}")
+        return None
+
+    df = pd.DataFrame(rows, columns=["path", "species", "breed", "binary_label"])
+    df = df[df["path"].apply(os.path.exists)].reset_index(drop=True)
+
+    rng = random.Random(42)
+    sampled_rows = []
+    breeds = sorted(df["breed"].unique())
+    for breed in tqdm(breeds, desc="sampling quarter-data", leave=False,
+                      unit="breed"):
+        group = df[df["breed"] == breed]
+        idxs = list(group.index)
+        rng.shuffle(idxs)
+        pick = max(2, int(len(idxs) * ratio))  # at least 2 images per breed
+        sampled_rows.extend(idxs[:pick])
+
+    quarter_df = df.loc[sampled_rows].reset_index(drop=True)
+
+    # Apply the same 85/10/5 stratified split
+    train_rows, val_rows, test_rows = [], [], []
+    for breed in tqdm(sorted(quarter_df["breed"].unique()), desc="splitting breeds",
+                      leave=False, unit="breed"):
+        group = quarter_df[quarter_df["breed"] == breed]
+        idxs = list(group.index)
+        rng.shuffle(idxs)
+        n = len(idxs)
+        n_train = max(1, int(round(n * TRAIN_RATIO)))
+        n_val = max(1, int(round(n * VAL_RATIO)))
+        for i, idx in enumerate(idxs):
+            if i < n_train:
+                train_rows.append(idx)
+            elif i < n_train + n_val:
+                val_rows.append(idx)
+            else:
+                test_rows.append(idx)
+    if not test_rows and val_rows:
+        test_rows = val_rows[:1]
+
+    def save(name, idxs):
+        out = os.path.join(split_dir, f"{name}.csv")
+        quarter_df.loc[idxs].to_csv(out, index=False)
+        return len(idxs)
+
+    n_train = save("train", train_rows)
+    n_val   = save("val",   val_rows)
+    n_test  = save("test",  test_rows)
+
+    # Class maps from ALL breeds (full dataset) for consistent model heads
+    cattle_breeds  = sorted(df.loc[df.species == "cattle",  "breed"].unique())
+    buffalo_breeds = sorted(df.loc[df.species == "buffalo", "breed"].unique())
+    cattle_classes  = {b: i for i, b in enumerate(cattle_breeds)}
+    buffalo_classes = {b: i for i, b in enumerate(buffalo_breeds)}
+    with open(os.path.join(split_dir, "cattle_classes.json"),  "w") as f:
+        json.dump(cattle_classes, f, indent=2)
+    with open(os.path.join(split_dir, "buffalo_classes.json"), "w") as f:
+        json.dump(buffalo_classes, f, indent=2)
+
+    summary = {
+        "images":         len(quarter_df),
+        "train":          n_train,
+        "val":            n_val,
+        "test":           n_test,
+        "cattle_breeds":  len(cattle_breeds),
+        "buffalo_breeds": len(buffalo_breeds),
+        "quarter_data":   True,
+        "ratio":          ratio,
+    }
+    print(f"[data] quarter-data: {len(quarter_df)} images ({ratio*100:.0f}%/breed) "
           f"train={n_train} val={n_val} test={n_test}")
     return summary
 

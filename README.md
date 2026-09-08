@@ -218,6 +218,7 @@ Credentials are saved to `~/.kaggle/kaggle.json` and reused on subsequent runs.
 | Flag | Description |
 |------|-------------|
 | `--half-data` | Use **50% of images** per breed for faster training |
+| `--quarter-data` | Use **25% of images** per breed for fastest local training |
 | `--smoke-test` | Tiny dataset (5 imgs/breed), 1 epoch per phase — quick sanity check |
 | `--full-data` | Use all images (default behavior) |
 | `--backbone {lite2,lite4}` | Backbone architecture (default: `lite2`, ~6M params) |
@@ -312,6 +313,7 @@ python -m src.train [OPTIONS]
 --skip-qat                   Skip phase 3 (QAT)
 --smoke-test                 Use mini-dataset (5 imgs/breed, 1 epoch)
 --half-data                  Use 50% of images per breed (faster training)
+--quarter-data               Use 25% of images per breed (fastest local training)
 --seed N                     Random seed (default: 42)
 --export-dir PATH            Portable export destination
 --no-export                  Skip auto-export after training
@@ -337,7 +339,18 @@ The `--half-data` flag:
 - Deterministically samples 50% of images per breed (seed=42 for reproducibility)
 - Applies the same 85/10/5 stratified split on the sampled subset
 - Class maps still include ALL breeds — model architecture is identical to full training
-- Mutually exclusive with `--smoke-test`
+- Mutually exclusive with `--smoke-test` and `--quarter-data`
+
+### Quarter‑data training
+Trains on **25% of images per breed** — the fastest mode for resource-constrained local machines:
+```bash
+python -m src.train --quarter-data --skip-qat
+```
+The `--quarter-data` flag:
+- Deterministically samples 25% of images per breed (seed=42)
+- Applies the same 85/10/5 stratified split on the sampled subset
+- Class maps include ALL breeds — identical model architecture to full training
+- Mutually exclusive with `--smoke-test` and `--half-data`
 
 ### Smoke‑test training
 A fast sanity‑check that trains on 5 images per breed for a single epoch per phase:
@@ -470,7 +483,13 @@ For complete architecture specifications, dataset schema, training flow, Google 
 
 ## Changelog
 
-**2026‑09‑07 – Local Training Automation & Half‑Data Mode**
+**2026‑09‑08 – Quarter-Data Mode, Windows Build Tools Check, Requirement Testing**
+- Added `--quarter-data` flag to `local_train.py`, `src/train.py`, and `src/data_pipeline.py` — trains on 25% of images/breed (fastest local mode, deterministic seed=42).
+- Added `QUARTER_DATA_RATIO = 0.25` to `src/config.py` and `prepare_quarter_splits()` to `src/data_pipeline.py`.
+- Added Windows Visual C++ Build Tools prerequisite check to `local_train.py` — detects missing MSVC `cl.exe` and VS Build Tools via `vswhere`, prints actionable download link.
+- All data modes (`--smoke-test`, `--half-data`, `--quarter-data`, `--full-data`) are now a proper mutually-exclusive argparse group.
+
+
 - Added `local_train.py` — fully automated pipeline: prerequisites → venv → Kaggle download → unzip → verify → train → multi-format export.
 - Interactive Kaggle API credential input (prompts user for username + key, saves to `~/.kaggle/kaggle.json`).
 - Added `--half-data` flag to `src/train.py` — trains on 50% of images per breed for faster local training.

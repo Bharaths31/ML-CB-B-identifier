@@ -66,7 +66,7 @@ The script automatically manages Kaggle credentials:
 
 ## Data Modes
 
-The script supports three data modes (mutually exclusive):
+The script supports four data modes (mutually exclusive):
 
 ### Full Data (Default)
 ```bash
@@ -74,7 +74,7 @@ python local_train.py
 ```
 Uses **all images** for every breed. Produces the highest accuracy but takes the longest.
 
-### Half Data (Recommended for Local)
+### Half Data
 ```bash
 python local_train.py --half-data
 ```
@@ -85,11 +85,48 @@ Uses **50% of images per breed** — a good balance of speed and accuracy for lo
 - Class maps include ALL breeds — model architecture is identical to full training
 - Typically ~2× faster than full data
 
+### Quarter Data
+```bash
+python local_train.py --quarter-data
+```
+Uses **25% of images per breed** — the fastest training mode for very resource-constrained local machines.
+
+- Deterministic sampling (seed=42) for reproducibility
+- Same 85/10/5 stratified split applied to the subset
+- Class maps include ALL breeds — identical model architecture to full training
+- Typically ~4× faster than full data (great for quick iteration)
+
 ### Smoke Test
 ```bash
 python local_train.py --smoke-test
 ```
 Uses **5 images per breed**, 1 epoch per phase. Completes in seconds. Useful for verifying the entire pipeline works before committing to a long training run.
+
+> **Note:** `--smoke-test`, `--half-data`, `--quarter-data`, and `--full-data` are mutually exclusive.
+
+---
+
+## Windows Prerequisites
+
+On Windows, the script automatically checks for **Visual C++ Build Tools** (Microsoft MSVC), which are needed by some Python packages that compile C extensions.
+
+What it checks:
+- `cl.exe` — MSVC compiler in `PATH`
+- `vswhere.exe` — Visual Studio Build Tools installer registry
+
+If they are missing, the script prints a clear warning and the download link, but **does NOT fail** — PyTorch installs fine on Windows via pre-built wheels.
+
+```
+  ⚠️  WARNING: Missing Windows build dependencies:
+      - cl.exe
+      - Visual Studio / Build Tools installer (vswhere not found)
+
+  Fix: Install 'Microsoft C++ Build Tools' (free):
+    https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  Select workload: 'Desktop development with C++'
+```
+
+> **Important:** If `cl.exe` is missing and you try to install a package without a pre-built wheel for your Python version, you will get a build error. The most common fix is to install the [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and select the **"Desktop development with C++"** workload.
 
 ---
 
@@ -117,6 +154,7 @@ python local_train.py [OPTIONS]
 | Flag | Description |
 |------|-------------|
 | `--half-data` | Use 50% of images per breed (faster training) |
+| `--quarter-data` | Use 25% of images per breed (fastest local training) |
 | `--smoke-test` | Tiny dataset (5 imgs/breed), 1 epoch per phase |
 | `--full-data` | Use all images (default) |
 

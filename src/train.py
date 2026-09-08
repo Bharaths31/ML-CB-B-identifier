@@ -21,7 +21,8 @@ from .config import (BACKBONE_WEIGHTS, BATCH_SIZE, CHECKPOINT_DIR,
                      PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR,
                      RAW_DATA_DIR, SEED, SPLIT_DIR, WARMUP_EPOCHS, WEIGHT_DECAY)
 from .data_pipeline import (get_dataloaders, prepare_half_splits,
-                            prepare_smoke_splits, prepare_splits)
+                            prepare_quarter_splits, prepare_smoke_splits,
+                            prepare_splits)
 from .metrics import evaluate_epoch
 from .model import BreedClassifier
 
@@ -324,9 +325,13 @@ def main():
     parser.add_argument("--phase2-epochs", type=int, default=None)
     parser.add_argument("--phase3-epochs", type=int, default=None)
     parser.add_argument("--skip-qat", action="store_true")
-    parser.add_argument("--smoke-test", action="store_true")
-    parser.add_argument("--half-data", action="store_true",
+    # Data mode (mutually exclusive)
+    data_mode_group = parser.add_mutually_exclusive_group()
+    data_mode_group.add_argument("--smoke-test", action="store_true")
+    data_mode_group.add_argument("--half-data", action="store_true",
                         help="use 50%% of images per breed for faster training")
+    data_mode_group.add_argument("--quarter-data", action="store_true",
+                        help="use 25%% of images per breed for very fast training")
     parser.add_argument("--no-compile", action="store_true", help="disable torch.compile")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--export-dir", default=PORTABLE_EXPORT_DIR,
@@ -347,6 +352,8 @@ def main():
 
     if args.smoke_test and args.half_data:
         parser.error("--smoke-test and --half-data are mutually exclusive")
+    if getattr(args, 'quarter_data', False) and args.smoke_test:
+        parser.error("--smoke-test and --quarter-data are mutually exclusive")
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -390,6 +397,12 @@ def main():
         print("=" * 60)
         summary = prepare_half_splits(data_root=args.data,
                                       split_dir=args.split_dir)
+    elif getattr(args, 'quarter_data', False):
+        print("=" * 60)
+        print("  QUARTER-DATA MODE — using 25% of images per breed")
+        print("=" * 60)
+        summary = prepare_quarter_splits(data_root=args.data,
+                                         split_dir=args.split_dir)
     else:
         summary = prepare_splits(data_root=args.data, split_dir=args.split_dir)
 
