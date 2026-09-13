@@ -476,7 +476,13 @@ def stage_download_dataset(args):
 # ============================================================
 
 def normalize_breed_name(name):
-    return name.strip().lower().replace(" ", "_").replace("-", "_")
+    name = name.strip().lower().replace(" ", "_").replace("-", "_")
+    for suffix in ("_cattle", "_buffalo", "_breed", "indian_"):
+        if name.endswith(suffix):
+            name = name[:-len(suffix)]
+        if name.startswith(suffix):
+            name = name[len(suffix):]
+    return name
 
 def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
     os.makedirs(target_species_dir, exist_ok=True)

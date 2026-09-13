@@ -261,7 +261,27 @@ python local_train.py --dataset-mode both
 
 ---
 
-### Data Modes
+### Dataset Mode
+
+The `--dataset-mode` flag controls which Kaggle datasets are downloaded and merged for training.
+
+| Flag Value | Datasets Used | Best For |
+|---|---|---|
+| `--dataset-mode algsoch` | Kaggle: `algsoch/breed-cattle-buffalo` | Replicating original baseline metrics |
+| `--dataset-mode atharvadarpude` | Kaggle: `atharvadarpude/indian-cattle-image-dataset` + `buffalo` | Evaluating against the secondary OOD dataset |
+| `--dataset-mode both` **(Default)** | Both of the above merged together | **Highest performance** and maximum generalization |
+
+**Data Preprocessing & Breed Mapping:**
+When `both` is selected, the pipeline automatically strips dataset-specific suffixes (e.g., `_cattle`, `_buffalo`, `_breed`) from the folder names. This ensures that the same breed from different datasets is correctly mapped to the exact same folder (e.g., `Punganur_Cattle` and `Punganur` both become `punganur`).
+
+**Handling Imbalance (Optimal Image Usage):**
+Merging multiple datasets introduces class imbalance (some breeds have 50 images, others have 500). To ensure each image is optimally used to bring out the highest performance of the final model:
+1. **WeightedRandomSampler:** The dataloader samples breeds inversely proportional to their image count. Rare breeds are oversampled per epoch, ensuring the model doesn't just memorize the majority classes.
+2. **Aggressive Augmentation:** Because rare breeds are sampled more often, they undergo heavy `RandAugment`, `CutMix`, and `MixUp` to prevent the model from overfitting on identical images.
+
+---
+
+### Data Volume Modes
 
 These flags are **mutually exclusive** — pick exactly one (or none for full data):
 
@@ -282,7 +302,13 @@ All subset modes use **deterministic sampling** (`seed=42`) and maintain the ful
 python local_train.py [OPTIONS]
 ```
 
-#### Data Mode (mutually exclusive, pick at most one)
+#### Dataset Configuration
+
+| Flag | Description |
+|---|---|
+| `--dataset-mode` | `algsoch` \| `atharvadarpude` \| `both` (Default). Which datasets to download and merge. |
+
+#### Data Volume (mutually exclusive, pick at most one)
 
 | Flag | Description |
 |---|---|
@@ -298,11 +324,11 @@ python local_train.py [OPTIONS]
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Backbone architecture (~6M vs ~13M params) |
 | `--attention` | `cbam` \| `se` | `cbam` | Attention module type |
 
-#### Training Overrides
+#### Training Overrides & QAT
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--include-qat` | flag | off | Enable Phase 3 QAT for INT8 Android deployment |
+| `--include-qat` | flag | off | **Enable Phase 3 (Quantization Aware Training).** Required if deploying an INT8 model to Android. Slows down training but drastically improves accuracy of the 6MB INT8 exported model. |
 | `--phase1-epochs` | int | `5` | Override Phase 1 (binary warmup) epoch count |
 | `--phase2-epochs` | int | `40` | Override Phase 2 (multi-task) epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
@@ -657,7 +683,7 @@ python -m src.train [OPTIONS]
 | `--phase1-epochs` | int | `5` | Phase 1 epoch count (binary warmup) |
 | `--phase2-epochs` | int | `40` | Phase 2 epoch count (multi-task fine-tune) |
 | `--phase3-epochs` | int | `10` | Phase 3 epoch count (QAT) |
-| `--skip-qat` | flag | off | Skip Phase 3 (QAT) entirely |
+| `--skip-qat` | flag | off | **Skip Phase 3 (Quantization Aware Training) entirely.** Phase 3 converts the model to INT8 representation and fine-tunes it to recover accuracy. Skipping it saves time but makes the INT8 export inaccurate. |
 
 #### Data Mode (mutually exclusive)
 
