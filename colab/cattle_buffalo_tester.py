@@ -1162,29 +1162,31 @@ except Exception:
     print(f"\n⚠️  Auto-download failed. Download manually from Files panel → {report_html_path}")
 
 # %% [markdown]
-# ## §9 — Large-Scale Kaggle Dataset Evaluation
+# ## §9 — Large-Scale Evaluation (Atharvadarpude Datasets)
 #
-# Downloads a dataset directly from Kaggle and runs automated classification on **ALL** images.
-# - Provide your Kaggle credentials (username + API key)
-# - Set the `KAGGLE_DATASET_SLUG` below (default: training dataset for full-scale validation)
-# - Auto-detects `species/breed/image` folder structure
-# - Maps discovered breeds to your model's class maps
+# Downloads **independent test data** from Atharvadarpude's Kaggle datasets:
+# - `atharvadarpude/indian-cattle-image-dataset` (cattle breeds)
+# - `atharvadarpude/indian-buffalo-dataset` (buffalo breeds)
+#
+# These are different from the algsoch training dataset, giving you a
+# true out-of-distribution evaluation of your model.
+#
+# - Auto-detects folder structure and maps breeds to your model's class maps
 # - Skips breeds not present in the model
-#
-# > **To test on a different dataset**: change `KAGGLE_DATASET_SLUG` to any
-# > Kaggle dataset with `cattle/<breed>/*.jpg` and/or `buffalo/<breed>/*.jpg` structure.
+# - Full metrics: accuracy, F1, per-breed breakdown, confusion matrices
 
 # %%
-import os, zipfile, shutil, time, json, io
+import os, shutil, time, json
 from collections import Counter, defaultdict
 from getpass import getpass
 
 # ═══════════════════════════════════════════════════════════
-#  CONFIGURATION — Change the dataset slug to test on a
-#  different Kaggle dataset. Must have breed/image structure.
+#  CONFIGURATION
 # ═══════════════════════════════════════════════════════════
-KAGGLE_DATASET_SLUG = "algsoch/breed-cattle-buffalo"   # <-- change this
+SLUG_CATTLE  = "atharvadarpude/indian-cattle-image-dataset"
+SLUG_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 DOWNLOAD_DIR = "/content/kaggle_test_data"
+DATASET_LABEL = "atharvadarpude (cattle + buffalo)"
 # ═══════════════════════════════════════════════════════════
 
 # --- Step 1: Kaggle credentials ---
@@ -1201,49 +1203,79 @@ with open(kaggle_json, "w") as f:
 os.chmod(kaggle_json, 0o600)
 print(f"✅ Kaggle credentials configured for: {kaggle_user}")
 
-# --- Step 2: Install kaggle CLI & download dataset ---
-!pip install -q kaggle
+# --- Step 2: Install kaggle CLI & download both datasets ---
+import subprocess
+subprocess.run(["pip", "install", "-q", "kaggle"])
 
 if os.path.exists(DOWNLOAD_DIR):
     shutil.rmtree(DOWNLOAD_DIR)
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-print(f"\n📥 Downloading dataset: {KAGGLE_DATASET_SLUG}...")
-ret = os.system(f"kaggle datasets download -d {KAGGLE_DATASET_SLUG} -p {DOWNLOAD_DIR} --unzip --force")
+TMP_DL = "/content/_kaggle_test_downloads"
+
+# Download cattle dataset
+print(f"\\n📥 Downloading cattle test data: {SLUG_CATTLE}...")
+cattle_tmp = f"{TMP_DL}/cattle"
+os.makedirs(cattle_tmp, exist_ok=True)
+ret = os.system(f"kaggle datasets download -d {SLUG_CATTLE} -p {cattle_tmp} --unzip --force")
 if ret != 0:
-    raise RuntimeError(f"❌ Kaggle download failed (exit code {ret}). Check credentials and dataset slug.")
+    raise RuntimeError(f"❌ Cattle download failed (exit code {ret})")
 
-print(f"✅ Dataset downloaded to {DOWNLOAD_DIR}")
+# Download buffalo dataset
+print(f"📥 Downloading buffalo test data: {SLUG_BUFFALO}...")
+buffalo_tmp = f"{TMP_DL}/buffalo"
+os.makedirs(buffalo_tmp, exist_ok=True)
+ret = os.system(f"kaggle datasets download -d {SLUG_BUFFALO} -p {buffalo_tmp} --unzip --force")
+if ret != 0:
+    raise RuntimeError(f"❌ Buffalo download failed (exit code {ret})")
 
-# --- Step 3: Auto-detect folder structure ---
-def find_species_root(base_dir):
-    """Walk down until we find cattle/ or buffalo/ directories."""
-    for root, dirs, _files in os.walk(base_dir):
-        dir_names_lower = [d.lower() for d in dirs]
-        if "cattle" in dir_names_lower or "buffalo" in dir_names_lower:
-            return root
-    return None
+print("✅ Both datasets downloaded")
 
-data_root = find_species_root(DOWNLOAD_DIR)
-if data_root is None:
-    print(f"⚠️  No cattle/buffalo directories found. Contents of {DOWNLOAD_DIR}:")
-    for item in sorted(os.listdir(DOWNLOAD_DIR))[:20]:
-        print(f"   {item}")
-    raise FileNotFoundError("❌ Could not find cattle/ or buffalo/ folder structure in downloaded dataset.")
+# --- Step 3: Auto-detect and normalize folder structure ---
+VALID_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
+def normalize_breed_name(name):
+    return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+def find_breed_folders(base_dir):
+    \"\"\"Walk to find leaf dirs with images (breed folders).\"\"\"
+    breeds = []
+    for root, dirs, files in os.walk(base_dir):
+        img_files = [f for f in files if os.path.splitext(f)[1].lower() in VALID_EXTS]
+        if img_files and not dirs:
+            breeds.append(root)
+    return breeds
+
+# Merge into DOWNLOAD_DIR/cattle/ and DOWNLOAD_DIR/buffalo/
+for species, tmp_dir in [("cattle", cattle_tmp), ("buffalo", buffalo_tmp)]:
+    target_dir = os.path.join(DOWNLOAD_DIR, species)
+    os.makedirs(target_dir, exist_ok=True)
+    breed_folders = find_breed_folders(tmp_dir)
+    for bf in breed_folders:
+        breed_name = normalize_breed_name(os.path.basename(bf))
+        dst = os.path.join(target_dir, breed_name)
+        os.makedirs(dst, exist_ok=True)
+        for f in os.listdir(bf):
+            if os.path.splitext(f)[1].lower() in VALID_EXTS:
+                src = os.path.join(bf, f)
+                dst_f = os.path.join(dst, f)
+                if os.path.exists(dst_f):
+                    base, ext = os.path.splitext(f)
+                    dst_f = os.path.join(dst, f"{base}_dup{ext}")
+                shutil.copy2(src, dst_f)
+
+# Cleanup
+if os.path.exists(TMP_DL):
+    shutil.rmtree(TMP_DL)
+
+data_root = DOWNLOAD_DIR
 print(f"📂 Data root: {data_root}")
 
 # --- Step 4: Discover all images ---
-VALID_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 kaggle_images = []
 
 for species in ("cattle", "buffalo"):
     species_dir = os.path.join(data_root, species)
-    if not os.path.isdir(species_dir):
-        for d in os.listdir(data_root):
-            if d.lower() == species:
-                species_dir = os.path.join(data_root, d)
-                break
     if not os.path.isdir(species_dir):
         print(f"⚠️  No '{species}/' directory in {data_root}")
         continue
@@ -1256,7 +1288,7 @@ for species in ("cattle", "buffalo"):
             if ext in VALID_EXTS:
                 kaggle_images.append((species, breed, os.path.join(breed_dir, fname)))
 
-print(f"\n📊 Discovered {len(kaggle_images)} images")
+print(f"\\n📊 Discovered {len(kaggle_images)} images")
 species_counts = Counter(s for s, _, _ in kaggle_images)
 for sp, cnt in species_counts.items():
     breed_cnt = len(set(b for s, b, _ in kaggle_images if s == sp))
@@ -1273,7 +1305,7 @@ matched_buffalo = dataset_buffalo & known_buffalo
 unknown_cattle = dataset_cattle - known_cattle
 unknown_buffalo = dataset_buffalo - known_buffalo
 
-print(f"\n🔗 Breed mapping:")
+print(f"\\n🔗 Breed mapping:")
 print(f"   Cattle:  {len(matched_cattle)}/{len(dataset_cattle)} breeds match model ({len(unknown_cattle)} unknown)")
 print(f"   Buffalo: {len(matched_buffalo)}/{len(dataset_buffalo)} breeds match model ({len(unknown_buffalo)} unknown)")
 if unknown_cattle:
@@ -1292,7 +1324,7 @@ for species, breed, fpath in kaggle_images:
     else:
         skipped_imgs += 1
 
-print(f"\n✅ {len(eval_images)} images ready for evaluation ({skipped_imgs} skipped — unknown breeds)")
+print(f"\\n✅ {len(eval_images)} images ready for evaluation ({skipped_imgs} skipped — unknown breeds)")
 
 # %% [markdown]
 # ### §9.1 — Run Large-Scale Inference
@@ -1379,10 +1411,10 @@ buffalo_stats = per_breed_stats(k_buffalo)
 
 print(f"""
 {'═'*70}
-  📊 LARGE-SCALE EVALUATION — {KAGGLE_DATASET_SLUG}
+  📊 LARGE-SCALE EVALUATION — {DATASET_LABEL}
 {'═'*70}
 
-  Dataset: {KAGGLE_DATASET_SLUG}
+  Dataset: {DATASET_LABEL}
   Total images evaluated: {len(kaggle_results)}
   Cattle: {len(k_cattle)} images · Buffalo: {len(k_buffalo)} images
 
@@ -1446,16 +1478,18 @@ for species_name, stats, n_imgs in [("CATTLE", cattle_stats, len(k_cattle)),
 
 # %%
 if k_cattle:
-    plot_confusion_matrix(k_cattle, cattle_classes, "Cattle (Kaggle Large-Scale)")
+    plot_confusion_matrix(k_cattle, cattle_classes, "Cattle (Atharvadarpude Large-Scale)")
 if k_buffalo:
-    plot_confusion_matrix(k_buffalo, buffalo_classes, "Buffalo (Kaggle Large-Scale)")
+    plot_confusion_matrix(k_buffalo, buffalo_classes, "Buffalo (Atharvadarpude Large-Scale)")
 
 # %% [markdown]
 # ### §9.4 — Save Large-Scale Report
 
 # %%
 kaggle_report = {
-    "dataset": KAGGLE_DATASET_SLUG,
+    "dataset": DATASET_LABEL,
+    "cattle_dataset": SLUG_CATTLE,
+    "buffalo_dataset": SLUG_BUFFALO,
     "total_images": len(kaggle_results),
     "cattle_images": len(k_cattle),
     "buffalo_images": len(k_buffalo),
@@ -1480,7 +1514,7 @@ kaggle_report = {
                            for b, s in buffalo_stats.items()},
 }
 
-report_path_k = "/content/kaggle_large_scale_report.json"
+report_path_k = "/content/atharvadarpude_large_scale_report.json"
 with open(report_path_k, "w") as f:
     json.dump(kaggle_report, f, indent=2)
 

@@ -112,6 +112,8 @@ def py_to_ipynb(py_path: str, ipynb_path: str = None):
 
 
 if __name__ == "__main__":
-    script = Path(__file__).parent / "cattle_buffalo_trainer.py"
-    output = Path(__file__).parent / "cattle_buffalo_trainer.ipynb"
-    py_to_ipynb(str(script), str(output))
+    for script_name in ["cattle_buffalo_trainer.py", "cattle_buffalo_tester.py"]:
+        script = Path(__file__).parent / script_name
+        output = Path(__file__).parent / script_name.replace(".py", ".ipynb")
+        if script.exists():
+            py_to_ipynb(str(script), str(output))

@@ -30,7 +30,7 @@
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
 | **Training** | 3-phase: binary warmup → multi-task fine-tune → optional QAT |
 | **Deployment** | ONNX, INT8, float16, or portable self-contained folder |
-| **Dataset** | `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
+| **Dataset** | Multi-source Kaggle datasets: `algsoch` & `atharvadarpude` merged into `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
 
 ### Key Numbers
 

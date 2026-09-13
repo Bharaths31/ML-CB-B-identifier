@@ -36,7 +36,10 @@ import zipfile
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = SCRIPT_DIR  # This script lives at project root
 
-KAGGLE_DATASET = "algsoch/breed-cattle-buffalo"
+KAGGLE_DATASET_ALGSOCH = "algsoch/breed-cattle-buffalo"
+KAGGLE_DATASET_CATTLE = "atharvadarpude/indian-cattle-image-dataset"
+KAGGLE_DATASET_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
+
 
 DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
@@ -388,7 +391,7 @@ def stage_setup_env():
 #  §2 — Kaggle Dataset Download
 # ============================================================
 
-def stage_download_dataset():
+def stage_download_dataset(args):
     _banner(2, "Kaggle Dataset Download")
 
     # 1. Check if dataset is already downloaded
@@ -452,12 +455,19 @@ def stage_download_dataset():
             raise RuntimeError(f"Failed to save credentials to {kaggle_json}: {e}")
 
     # Download from Kaggle
-    print(f"  Downloading dataset: {KAGGLE_DATASET}...")
-    print("  ⏳ This may take several minutes depending on your connection...")
     download_dir = os.path.join(PROJECT_ROOT, "data")
     os.makedirs(download_dir, exist_ok=True)
-    _run([_python(), "-m", "kaggle", "datasets", "download",
-          "-d", KAGGLE_DATASET, "-p", download_dir])
+    
+    datasets_to_download = []
+    if args.dataset_mode in ("algsoch", "both"):
+        datasets_to_download.append(KAGGLE_DATASET_ALGSOCH)
+    if args.dataset_mode in ("atharvadarpude", "both"):
+        datasets_to_download.extend([KAGGLE_DATASET_CATTLE, KAGGLE_DATASET_BUFFALO])
+    
+    for ds in datasets_to_download:
+        print(f"  Downloading dataset: {ds}...")
+        _run([_python(), "-m", "kaggle", "datasets", "download", "-d", ds, "-p", download_dir])
+    
     print("  ✅ Download complete")
 
 
@@ -465,7 +475,57 @@ def stage_download_dataset():
 #  §3 — Unzip & Organize
 # ============================================================
 
-def stage_unzip_organize():
+def normalize_breed_name(name):
+    return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
+    os.makedirs(target_species_dir, exist_ok=True)
+    copied = 0
+    VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+
+    species_sub = None
+    if species_hint:
+        for d in os.listdir(source_base):
+            if d.lower() == species_hint.lower():
+                species_sub = os.path.join(source_base, d)
+                break
+
+    scan_root = species_sub if species_sub else source_base
+
+    breed_dirs = []
+    for root, dirs, files in os.walk(scan_root):
+        img_files = [f for f in files if os.path.splitext(f)[1].lower() in VALID_EXTS]
+        if img_files and not dirs:
+            breed_dirs.append(root)
+
+    if not breed_dirs:
+        for subdir in os.listdir(scan_root):
+            subpath = os.path.join(scan_root, subdir)
+            if os.path.isdir(subpath):
+                for root, dirs, files in os.walk(subpath):
+                    img_files = [f for f in files if os.path.splitext(f)[1].lower() in VALID_EXTS]
+                    if img_files and not dirs:
+                        breed_dirs.append(root)
+
+    for breed_path in breed_dirs:
+        breed_name = normalize_breed_name(os.path.basename(breed_path))
+        target_breed_dir = os.path.join(target_species_dir, breed_name)
+        os.makedirs(target_breed_dir, exist_ok=True)
+
+        for fname in os.listdir(breed_path):
+            ext = os.path.splitext(fname)[1].lower()
+            if ext in VALID_EXTS:
+                src_file = os.path.join(breed_path, fname)
+                dst_file = os.path.join(target_breed_dir, fname)
+                if os.path.exists(dst_file):
+                    base, ext_ = os.path.splitext(fname)
+                    dst_file = os.path.join(target_breed_dir, f"{base}_dup{ext_}")
+                shutil.copy2(src_file, dst_file)
+                copied += 1
+
+    return copied
+
+def stage_unzip_organize(args):
     _banner(3, "Unzip & Organize Dataset")
 
     cattle_dir = os.path.join(DATA_RAW_DIR, "cattle")
@@ -482,46 +542,42 @@ def stage_unzip_organize():
                   f"{n_buffalo} buffalo breeds")
             return
 
-    # Find the zip file
+    # Find the zip files
     zip_candidates = glob.glob(os.path.join(PROJECT_ROOT, "data", "*.zip"))
-    if not zip_candidates:
-        zip_candidates = glob.glob(os.path.join(PROJECT_ROOT, "*.zip"))
-        zip_candidates = [z for z in zip_candidates
-                          if "training_package" not in z and "colab" not in z]
     if not zip_candidates:
         raise RuntimeError(
             "No dataset zip found. Run without --skip-download or place "
             "the zip in data/")
+            
+    tmp_dl = os.path.join(PROJECT_ROOT, "data", "tmp_extract")
+    os.makedirs(tmp_dl, exist_ok=True)
 
-    zip_path = zip_candidates[0]
-    print(f"  Found archive: {os.path.basename(zip_path)} "
-          f"({_file_size_mb(zip_path):.0f} MB)")
-
-    # Extract
-    os.makedirs(DATA_RAW_DIR, exist_ok=True)
-    print("  ⏳ Extracting (this may take a while for large datasets)...")
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        total = len(zf.namelist())
-        for i, member in enumerate(zf.namelist()):
-            zf.extract(member, DATA_RAW_DIR)
-            if (i + 1) % 1000 == 0 or (i + 1) == total:
-                print(f"    Extracted {i+1}/{total} files...", end="\r")
-    print(f"\n  ✅ Extracted {total} files to {DATA_RAW_DIR}")
-
-    # Handle nested directories — the zip might extract into a subfolder
-    # Look for cattle/ and buffalo/ directories anywhere under DATA_RAW_DIR
-    for species in ("cattle", "buffalo"):
-        target = os.path.join(DATA_RAW_DIR, species)
-        if os.path.isdir(target):
+    print("  ⏳ Extracting and merging datasets (this may take a while)...")
+    for zip_path in zip_candidates:
+        if "training_package" in zip_path or "colab" in zip_path:
             continue
-        # Search for it in subdirectories
-        for root, dirs, _ in os.walk(DATA_RAW_DIR):
-            if species in dirs:
-                src = os.path.join(root, species)
-                if src != target:
-                    print(f"  Moving {src} → {target}")
-                    shutil.move(src, target)
-                break
+        print(f"  Extracting archive: {os.path.basename(zip_path)}...")
+        
+        # Extract to a subfolder based on zip name
+        zip_name = os.path.splitext(os.path.basename(zip_path))[0]
+        zip_extract_dir = os.path.join(tmp_dl, zip_name)
+        os.makedirs(zip_extract_dir, exist_ok=True)
+        
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(zip_extract_dir)
+            
+        # Merge logic based on filename
+        if "breed-cattle-buffalo" in zip_path:
+            merge_into_species_dir(zip_extract_dir, cattle_dir, species_hint="cattle")
+            merge_into_species_dir(zip_extract_dir, buffalo_dir, species_hint="buffalo")
+        elif "indian-cattle" in zip_path:
+            merge_into_species_dir(zip_extract_dir, cattle_dir)
+        elif "indian-buffalo" in zip_path:
+            merge_into_species_dir(zip_extract_dir, buffalo_dir)
+        else:
+            # Fallback, try both
+            merge_into_species_dir(zip_extract_dir, cattle_dir, species_hint="cattle")
+            merge_into_species_dir(zip_extract_dir, buffalo_dir, species_hint="buffalo")
 
     # Validate
     for species, expected_dir in [("cattle", cattle_dir),
@@ -537,9 +593,12 @@ def stage_unzip_organize():
         print(f"  ✅ {species}: {len(breeds)} breeds, {n_images} images")
 
     # Clean up zip to save disk space
-    print(f"  Removing archive to save disk space...")
-    os.remove(zip_path)
-    print(f"  ✅ Removed {os.path.basename(zip_path)}")
+    print(f"  Removing archives and temp files to save disk space...")
+    shutil.rmtree(tmp_dl)
+    for zip_path in zip_candidates:
+        if "training_package" not in zip_path and "colab" not in zip_path:
+            os.remove(zip_path)
+            print(f"  ✅ Removed {os.path.basename(zip_path)}")
 
 
 # ============================================================
@@ -824,6 +883,10 @@ Examples:
                         help="skip architecture verification")
     parser.add_argument("--skip-export", action="store_true",
                         help="skip multi-format export after training")
+    
+    # Dataset mode
+    parser.add_argument("--dataset-mode", choices=["algsoch", "atharvadarpude", "both"], default="both",
+                        help="select the dataset sources to use for training (default: both)")
 
     args = parser.parse_args()
 
@@ -857,13 +920,13 @@ Examples:
 
         # §2 — Dataset Download
         if not args.skip_download:
-            stage_download_dataset()
+            stage_download_dataset(args)
         else:
             print("\n  ⏭️  Skipping dataset download (--skip-download)")
 
         # §3 — Unzip & Organize
         if not args.skip_download:
-            stage_unzip_organize()
+            stage_unzip_organize(args)
         else:
             # Still validate the data exists
             cattle = os.path.join(DATA_RAW_DIR, "cattle")

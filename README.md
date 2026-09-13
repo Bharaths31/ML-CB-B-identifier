@@ -11,7 +11,7 @@ A **lightweight, mobile-deployable image classifier** for **57 Indian cattle bre
 | **Input** | 260 × 260 RGB |
 | **Training** | 3-phase: Binary warm-up → Multi-task fine-tune → Optional QAT |
 | **Export** | ONNX, INT8, FP16, Portable bundle |
-| **Dataset** | Kaggle: `algsoch/breed-cattle-buffalo` |
+| **Dataset** | Kaggle: `algsoch` & `atharvadarpude` (Multi-dataset support) |
 
 ---
 
@@ -201,7 +201,7 @@ If you prefer manual setup, see [Manual Setup — Linux / macOS](#manual-setup--
 
 ## Kaggle API Setup
 
-The dataset (`algsoch/breed-cattle-buffalo`) is hosted on Kaggle. You need a **free** Kaggle account and API key to download it.
+The datasets are hosted on Kaggle (`algsoch/breed-cattle-buffalo`, `atharvadarpude/indian-cattle-image-dataset`, `atharvadarpude/indian-buffalo-dataset`). You need a **free** Kaggle account and API key to download them.
 
 **Getting your API key:**
 1. Log in to [kaggle.com](https://www.kaggle.com)
@@ -254,9 +254,10 @@ python local_train.py --quarter-data
 # Balanced speed/accuracy (50% data)
 python local_train.py --half-data
 
-# Full training (all data, maximum accuracy)
-python local_train.py
+# Multi-dataset training
+python local_train.py --dataset-mode both
 ```
+   *Note: `--dataset-mode` supports `algsoch`, `atharvadarpude`, or `both`.*
 
 ---
 
