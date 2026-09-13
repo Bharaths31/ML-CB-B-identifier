@@ -1594,6 +1594,200 @@ except Exception:
     print("\n⚠️  Download manually from Files panel")
 
 # %% [markdown]
+# ### §9.5 — Export Large-Scale HTML Report
+#
+# Generates a comprehensive HTML report specifically for the Large-Scale evaluation, including JSON data and confusion matrices.
+
+# %%
+import base64
+from datetime import datetime
+import json
+import os
+
+def img_to_base64_ls(path):
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:image/png;base64,{b64}"
+
+chart_files_k = {
+    "cattle_cm": "/content/cattle_atharvadarpude_large-scale_confusion_matrix.png",
+    "buffalo_cm": "/content/buffalo_atharvadarpude_large-scale_confusion_matrix.png"
+}
+chart_b64_k = {k: img_to_base64_ls(v) for k, v in chart_files_k.items()}
+
+def chart_img_tag_ls(key, alt, width="100%"):
+    b64 = chart_b64_k.get(key)
+    if b64:
+        return f'<img src="{b64}" alt="{alt}" style="width:{width};border-radius:8px;margin:8px 0">'
+    return f'<p style="color:#94a3b8">⚠️ {alt} not found. Run §9.3 first.</p>'
+
+def breed_table_html_ls(stats_dict):
+    rows_html = ""
+    for breed in sorted(stats_dict.keys()):
+        s = stats_dict[breed]
+        acc = s["correct"] / s["total"] * 100 if s["total"] else 0
+        t3 = s["top3"] / s["total"] * 100 if s["total"] else 0
+        t5 = s["top5"] / s["total"] * 100 if s["total"] else 0
+        color = "#22c55e" if acc >= 80 else ("#f59e0b" if acc >= 50 else "#ef4444")
+        display = breed.replace("_", " ").title()
+        rows_html += f"""<tr>
+            <td>{display}</td>
+            <td style="text-align:center">{s['correct']}</td>
+            <td style="text-align:center">{s['total']}</td>
+            <td style="text-align:center;color:{color};font-weight:700">{acc:.1f}%</td>
+            <td style="text-align:center">{t3:.1f}%</td>
+            <td style="text-align:center">{t5:.1f}%</td>
+        </tr>\\n"""
+    return rows_html
+
+cattle_breed_rows_k = breed_table_html_ls(cattle_stats)
+buffalo_breed_rows_k = breed_table_html_ls(buffalo_stats)
+
+timestamp_k = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+json_dump = json.dumps(kaggle_report, indent=4)
+
+html_report_k = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Large-Scale Evaluation Report — {{DATASET_LABEL}}</title>
+<style>
+  :root {{ --bg:#0a0e17; --surface:#111827; --surface2:#1e293b; --border:#2d3a4f;
+           --text:#e2e8f0; --muted:#94a3b8; --accent:#6366f1; --green:#22c55e; --amber:#f59e0b; --red:#ef4444; }}
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text);
+          line-height:1.6; padding:40px 20px; }}
+  .container {{ max-width:1000px; margin:0 auto; }}
+  h1 {{ font-size:2em; font-weight:800; text-align:center; margin-bottom:4px;
+       background:linear-gradient(135deg,#f43f5e,#f59e0b); -webkit-background-clip:text;
+       -webkit-text-fill-color:transparent; background-clip:text; }}
+  h2 {{ font-size:1.3em; font-weight:700; margin:32px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border); }}
+  h3 {{ font-size:1.05em; font-weight:600; margin:16px 0 8px; }}
+  .subtitle {{ text-align:center; color:var(--muted); font-size:0.9em; margin-bottom:32px; }}
+  .card {{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; margin:16px 0; }}
+  .metrics-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin:16px 0; }}
+  .metric-box {{ background:var(--surface2); border-radius:10px; padding:16px; text-align:center; border:1px solid var(--border); }}
+  .metric-box .value {{ font-size:1.8em; font-weight:800; }}
+  .metric-box .label {{ font-size:0.75em; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }}
+  .data-table {{ width:100%; border-collapse:collapse; font-size:0.85em; }}
+  .data-table th {{ background:var(--surface2); padding:10px 12px; text-align:left; font-weight:600;
+                    font-size:0.8em; text-transform:uppercase; letter-spacing:0.04em; color:var(--muted); border-bottom:1px solid var(--border); }}
+  .data-table td {{ padding:8px 12px; border-bottom:1px solid var(--border); }}
+  .data-table tr:hover {{ background:var(--surface2); }}
+  .chart-section {{ margin:20px 0; }}
+  .two-col {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
+  @media (max-width:768px) {{ .two-col {{ grid-template-columns:1fr; }} }}
+  .footer {{ text-align:center; color:var(--muted); font-size:0.78em; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); }}
+  pre {{ background: #000; color: #a5b4fc; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9em; }}
+  .green {{ color:var(--green); }} .accent {{ color:var(--accent); }}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🔍 Large-Scale Evaluation Report</h1>
+<p class="subtitle">OOD Dataset Testing · Generated {{timestamp_k}}</p>
+
+<!-- DATASET INFO -->
+<div class="card">
+  <h2>📋 Dataset &amp; Model Info</h2>
+  <table class="data-table">
+    <tr><td style="font-weight:600;width:200px">Dataset Source</td><td>{{DATASET_LABEL}}</td></tr>
+    <tr><td style="font-weight:600">Total Images</td><td>{{len(kaggle_results)}} (Cattle: {{len(k_cattle)}} / Buffalo: {{len(k_buffalo)}})</td></tr>
+    <tr><td style="font-weight:600">Avg Latency</td><td>{{np.mean([r['latency_ms'] for r in kaggle_results]):.1f}} ms/image</td></tr>
+  </table>
+</div>
+
+<!-- METRICS SUMMARY -->
+<div class="card">
+  <h2>📊 Evaluation Metrics</h2>
+  <div class="metrics-grid">
+    <div class="metric-box"><div class="value green">{{k_species_acc:.1f}}%</div><div class="label">Species Accuracy</div></div>
+    <div class="metric-box"><div class="value green">{{k_binary_f1:.1f}}%</div><div class="label">Binary F1</div></div>
+    <div class="metric-box"><div class="value accent">{{k_combined_acc:.1f}}%</div><div class="label">Combined Top-1</div></div>
+    <div class="metric-box"><div class="value accent">{{k_top3_acc:.1f}}%</div><div class="label">Combined Top-3</div></div>
+    <div class="metric-box"><div class="value accent">{{k_top5_acc:.1f}}%</div><div class="label">Combined Top-5</div></div>
+  </div>
+
+  <table class="data-table" style="margin-top:20px">
+    <tr><th>Metric</th><th>Value</th><th>Detail</th></tr>
+    <tr><td>Cattle Breed Accuracy</td><td style="font-weight:700">{{k_cattle_acc:.2f}}%</td><td>{{k_cattle_correct}} / {{len(k_cattle)}}</td></tr>
+    <tr><td>Buffalo Breed Accuracy</td><td style="font-weight:700">{{k_buffalo_acc:.2f}}%</td><td>{{k_buffalo_correct}} / {{len(k_buffalo)}}</td></tr>
+    <tr><td>Cattle Macro F1</td><td style="font-weight:700">{{k_cattle_f1:.2f}}%</td><td>Averaged across {{len(cattle_stats)}} breeds</td></tr>
+    <tr><td>Buffalo Macro F1</td><td style="font-weight:700">{{k_buffalo_f1:.2f}}%</td><td>Averaged across {{len(buffalo_stats)}} breeds</td></tr>
+  </table>
+</div>
+
+<!-- CONFUSION MATRICES -->
+<div class="card">
+  <h2>🔀 Confusion Matrices</h2>
+  <div class="two-col">
+    <div class="chart-section">
+      <h3>Cattle ({{len(k_cattle)}} images)</h3>
+      {{chart_img_tag_ls("cattle_cm", "Cattle Confusion Matrix")}}
+    </div>
+    <div class="chart-section">
+      <h3>Buffalo ({{len(k_buffalo)}} images)</h3>
+      {{chart_img_tag_ls("buffalo_cm", "Buffalo Confusion Matrix")}}
+    </div>
+  </div>
+</div>
+
+<!-- PER-BREED ACCURACY -->
+<div class="card">
+  <h2>📈 Per-Breed Detail</h2>
+  <h3>Cattle ({{len(k_cattle)}} images)</h3>
+  <table class="data-table">
+    <tr><th>Breed</th><th style="text-align:center">Correct</th><th style="text-align:center">Total</th><th style="text-align:center">Top-1 Acc</th><th style="text-align:center">Top-3 Acc</th><th style="text-align:center">Top-5 Acc</th></tr>
+    {{cattle_breed_rows_k}}
+  </table>
+
+  <h3 style="margin-top:24px">Buffalo ({{len(k_buffalo)}} images)</h3>
+  <table class="data-table">
+    <tr><th>Breed</th><th style="text-align:center">Correct</th><th style="text-align:center">Total</th><th style="text-align:center">Top-1 Acc</th><th style="text-align:center">Top-3 Acc</th><th style="text-align:center">Top-5 Acc</th></tr>
+    {{buffalo_breed_rows_k}}
+  </table>
+</div>
+
+<!-- RAW JSON EXPORT -->
+<div class="card">
+  <h2>📄 Raw JSON Report</h2>
+  <pre><code>{{json_dump}}</code></pre>
+</div>
+
+<div class="footer">
+  <p>Large-Scale Evaluation Report · {{DATASET_LABEL}} · Generated: {{timestamp_k}}</p>
+</div>
+
+</div>
+</body>
+</html>"""
+
+report_html_path_k = "/content/large_scale_evaluation_report.html"
+with open(report_html_path_k, "w", encoding="utf-8") as f:
+    f.write(html_report_k)
+
+print(f"\\n✅ Created Large-Scale HTML Report: {{report_html_path_k}}")
+
+from IPython.display import HTML, display
+display(HTML(f"""
+<div style="padding:15px;background-color:#1e293b;border-radius:8px;border:1px solid #3b82f6;margin:15px 0;">
+    <h3 style="margin-top:0;color:#60a5fa">📄 Large-Scale HTML Report Ready</h3>
+    <p style="color:#cbd5e1;margin-bottom:15px;">The detailed interactive report (including the embedded JSON and matrices) has been generated.</p>
+    <a href="{{report_html_path_k}}" download="large_scale_report.html" target="_blank"
+       style="background-color:#3b82f6;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;font-weight:bold;">
+       ⬇️ Download Report
+    </a>
+    <p style="color:#94a3b8;font-size:0.9em;margin-top:15px;margin-bottom:0;">
+       <em>Note: If the download button doesn't work, download <code>{{report_html_path_k.split('/')[-1]}}</code> manually from the Files tab.</em>
+    </p>
+</div>
+"""))
+
+# %% [markdown]
 # ---
 #
 # ## 📝 Notes
