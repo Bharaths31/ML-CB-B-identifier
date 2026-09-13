@@ -1,5 +1,16 @@
 # 16. Changelog
 
+### 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation
+
+**Testing & Evaluation:**
+- Added `colab/cattle_buffalo_tester.py` and `colab/cattle_buffalo_tester.ipynb` for automated evaluation of exported models on Google Colab.
+- Added comprehensive HTML report generation for single images and batch evaluations.
+- Added Large-Scale Kaggle Evaluation mode to automatically download the dataset and test all images.
+- Added `create_test_eval_zip.py` script to easily bundle test dataset splits for Colab.
+- Updated documentation and knowledge base (`CONTEXT.md`, `README.md`, `docs/`) with testing workflow details.
+
+---
+
 ### 2026-09-08 — Fix: `torch.compile` on Windows
 
 **Bug Fix:**

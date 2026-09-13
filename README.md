@@ -78,7 +78,9 @@ ML-CB-B-identifier/
 │   └── verify.py               # Architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
-│   └── cattle_buffalo_trainer.py     # Same as percent-format script
+│   ├── cattle_buffalo_trainer.py     # Same as percent-format script
+│   ├── cattle_buffalo_tester.ipynb   # Colab testing notebook for evaluation
+│   └── cattle_buffalo_tester.py      # Colab testing percent-format script
 ├── data/
 │   ├── raw/                    # Source images: raw/{cattle,buffalo}/<breed>/*.jpg
 │   └── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
@@ -91,6 +93,7 @@ ML-CB-B-identifier/
 ├── local_train.py              # 🚀 Fully automated pipeline (setup → download → train → export)
 ├── test_model.py               # 🔬 Standalone web GUI for testing exported models
 ├── create_training_zip.py      # Lightweight training-only zip
+├── create_test_eval_zip.py     # Creates zip of test split images for evaluation
 ├── setup_venv.py               # Automated venv creation & dependency install
 ├── setup.sh                    # Shell helper for quick env setup (Linux/macOS)
 ├── efficientnet_lite2.pth      # Pre-trained ImageNet backbone weights (included in repo)
@@ -429,6 +432,22 @@ Option C — Google Drive: copy `colab_project.zip` from `My Drive/ML-CB-B-ident
 |---|---|---|
 | Re-running clone cell doesn't pick up new code | Colab caches `/content/project/` | Always `rm -rf /content/project` before `git clone` |
 | Runtime restart wipes all files | Colab free tier uses ephemeral storage | Re-run all cells from §0 after any restart |
+
+---
+
+## Google Colab Testing & Evaluation
+
+For automated large-scale evaluation of exported models on Google Colab:
+
+**Notebook location:** `colab/cattle_buffalo_tester.ipynb`
+
+This notebook allows you to:
+- Test an exported ONNX model (`lite2_fp32.onnx`).
+- Run inference on single images or entire zipped batches.
+- Generate comprehensive HTML evaluation reports.
+- **Large-Scale Kaggle Evaluation**: Automatically download the Kaggle dataset directly to Colab and run inference on all images, generating metrics, per-breed accuracy tables, and confusion matrices.
+
+**Helper Script:** `create_test_eval_zip.py` — run this locally to bundle your test split images into a zip file (`test_eval_images.zip`) which can be uploaded to Colab for batch evaluation.
 
 ---
 

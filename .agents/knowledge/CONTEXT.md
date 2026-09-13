@@ -100,6 +100,8 @@ Mini Project/
 ├── colab/
 │   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
+│   ├── cattle_buffalo_tester.py    # Colab testing script for large-scale evaluation
+│   ├── cattle_buffalo_tester.ipynb # Colab testing notebook (auto-generated)
 │   ├── convert_to_notebook.py  # .py → .ipynb converter
 │   └── README.md               # Colab setup instructions
 ├── data/
@@ -112,6 +114,7 @@ Mini Project/
 │   └── metrics/                # Evaluation JSON + confusion matrix PNGs
 ├── scripts/                    # Colab archive creators, app asset prep
 ├── create_training_zip.py      # Creates lightweight standalone training package
+├── create_test_eval_zip.py     # Creates zip of test split images for evaluation
 ├── local_train.py              # Fully automated local training pipeline (setup → train → export)
 ├── test_model.py               # Standalone PyTorch model testing GUI server (http://localhost:8501)
 ├── setup.sh                    # Shell script helper for environment setup
@@ -604,6 +607,17 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation
+
+**Testing & Evaluation:**
+- Added `colab/cattle_buffalo_tester.py` and `colab/cattle_buffalo_tester.ipynb` for automated evaluation of exported models on Google Colab.
+- Added comprehensive HTML report generation for single images and batch evaluations.
+- Added Large-Scale Kaggle Evaluation mode to automatically download the dataset and test all images.
+- Added `create_test_eval_zip.py` script to easily bundle test dataset splits for Colab.
+- Updated documentation and knowledge base (`CONTEXT.md`, `README.md`, `docs/`) with testing workflow details.
+
+---
 
 ### 2026-09-08 — Webapp & Memory Layer Removal & Architecture Streamlining
 

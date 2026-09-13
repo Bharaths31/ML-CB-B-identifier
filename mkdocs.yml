@@ -50,6 +50,7 @@ nav:
     - Google Colab Training: colab-training.md
   - Model & Testing:
     - Model Tester GUI: model-tester.md
+    - Google Colab Testing: colab-testing.md
     - Architecture: architecture.md
     - Model Architecture: model-architecture.md
   - Data & Processing: data-pipeline.md
