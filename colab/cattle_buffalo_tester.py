@@ -1489,6 +1489,61 @@ for species_name, stats, n_imgs in [("CATTLE", cattle_stats, len(k_cattle)),
 # ### §9.3 — Confusion Matrices (Kaggle Dataset)
 
 # %%
+def plot_confusion_matrix(results_list, class_map, species_title):
+    """Plot a confusion matrix heatmap for a single species."""
+    # Get all breeds that appear in results OR class map
+    all_breeds = sorted(set(
+        list(class_map.keys()) +
+        [r["breed_true"] for r in results_list] +
+        [r["breed_pred"] for r in results_list]
+    ))
+
+    # Filter to only breeds that appear in results (for readability)
+    active_breeds = sorted(set(
+        [r["breed_true"] for r in results_list] +
+        [r["breed_pred"] for r in results_list]
+    ))
+
+    n = len(active_breeds)
+    if n == 0:
+        print(f"⚠️  No {species_title} results to plot")
+        return
+
+    breed_to_idx = {b: i for i, b in enumerate(active_breeds)}
+    cm = np.zeros((n, n), dtype=int)
+
+    for r in results_list:
+        true_idx = breed_to_idx.get(r["breed_true"])
+        pred_idx = breed_to_idx.get(r["breed_pred"])
+        if true_idx is not None and pred_idx is not None:
+            cm[true_idx, pred_idx] += 1
+
+    # Truncate labels for display
+    display_labels = [b.replace("_", " ").title()[:15] for b in active_breeds]
+
+    fig_size = max(8, n * 0.5)
+    fig, ax = plt.subplots(figsize=(fig_size, fig_size))
+
+    import seaborn as sns
+    sns.heatmap(cm, annot=(n <= 25), fmt="d", cmap="Blues",
+                xticklabels=display_labels, yticklabels=display_labels,
+                ax=ax, cbar_kws={"shrink": 0.8})
+
+    ax.set_xlabel("Predicted Breed", fontsize=11, fontweight="bold")
+    ax.set_ylabel("True Breed", fontsize=11, fontweight="bold")
+    ax.set_title(f"{species_title} Confusion Matrix\\n({len(results_list)} images, {n} breeds)",
+                 fontsize=13, fontweight="bold", pad=15)
+
+    plt.xticks(rotation=45, ha="right", fontsize=8)
+    plt.yticks(rotation=0, fontsize=8)
+    plt.tight_layout()
+    # Save with a safe filename
+    safe_title = species_title.lower().replace(" ", "_").replace("(", "").replace(")", "")
+    plt.savefig(f"/content/{safe_title}_confusion_matrix.png", dpi=150, bbox_inches="tight")
+    plt.show()
+    print(f"💾 Saved: /content/{safe_title}_confusion_matrix.png")
+
+
 if k_cattle:
     plot_confusion_matrix(k_cattle, cattle_classes, "Cattle (Atharvadarpude Large-Scale)")
 if k_buffalo:
