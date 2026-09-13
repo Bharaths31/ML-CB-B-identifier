@@ -1214,7 +1214,7 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 TMP_DL = "/content/_kaggle_test_downloads"
 
 # Download cattle dataset
-print(f"\\n📥 Downloading cattle test data: {SLUG_CATTLE}...")
+print(f"\n📥 Downloading cattle test data: {SLUG_CATTLE}...")
 cattle_tmp = f"{TMP_DL}/cattle"
 os.makedirs(cattle_tmp, exist_ok=True)
 ret = os.system(f"kaggle datasets download -d {SLUG_CATTLE} -p {cattle_tmp} --unzip --force")
@@ -1238,7 +1238,7 @@ def normalize_breed_name(name):
     return name.strip().lower().replace(" ", "_").replace("-", "_")
 
 def find_breed_folders(base_dir):
-    \"\"\"Walk to find leaf dirs with images (breed folders).\"\"\"
+    """Walk to find leaf dirs with images (breed folders)."""
     breeds = []
     for root, dirs, files in os.walk(base_dir):
         img_files = [f for f in files if os.path.splitext(f)[1].lower() in VALID_EXTS]
@@ -1288,7 +1288,7 @@ for species in ("cattle", "buffalo"):
             if ext in VALID_EXTS:
                 kaggle_images.append((species, breed, os.path.join(breed_dir, fname)))
 
-print(f"\\n📊 Discovered {len(kaggle_images)} images")
+print(f"\n📊 Discovered {len(kaggle_images)} images")
 species_counts = Counter(s for s, _, _ in kaggle_images)
 for sp, cnt in species_counts.items():
     breed_cnt = len(set(b for s, b, _ in kaggle_images if s == sp))
@@ -1305,7 +1305,7 @@ matched_buffalo = dataset_buffalo & known_buffalo
 unknown_cattle = dataset_cattle - known_cattle
 unknown_buffalo = dataset_buffalo - known_buffalo
 
-print(f"\\n🔗 Breed mapping:")
+print(f"\n🔗 Breed mapping:")
 print(f"   Cattle:  {len(matched_cattle)}/{len(dataset_cattle)} breeds match model ({len(unknown_cattle)} unknown)")
 print(f"   Buffalo: {len(matched_buffalo)}/{len(dataset_buffalo)} breeds match model ({len(unknown_buffalo)} unknown)")
 if unknown_cattle:
@@ -1324,7 +1324,7 @@ for species, breed, fpath in kaggle_images:
     else:
         skipped_imgs += 1
 
-print(f"\\n✅ {len(eval_images)} images ready for evaluation ({skipped_imgs} skipped — unknown breeds)")
+print(f"\n✅ {len(eval_images)} images ready for evaluation ({skipped_imgs} skipped — unknown breeds)")
 
 # %% [markdown]
 # ### §9.1 — Run Large-Scale Inference
