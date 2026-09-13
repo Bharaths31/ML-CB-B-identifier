@@ -1391,6 +1391,18 @@ k_fp = sum(1 for r in kaggle_results if r["species_true"] == "cattle" and r["spe
 k_fn = sum(1 for r in kaggle_results if r["species_true"] == "buffalo" and r["species_pred"] == "cattle")
 k_binary_f1 = (2 * k_tp / (2 * k_tp + k_fp + k_fn) * 100) if (2 * k_tp + k_fp + k_fn) > 0 else 0
 
+def compute_macro_f1(result_list, class_map):
+    """Compute macro-averaged F1 across all breeds."""
+    breed_names = set(class_map.keys())
+    f1_scores = []
+    for breed in breed_names:
+        tp_b = sum(1 for r in result_list if r["breed_true"] == breed and r["breed_pred"] == breed)
+        fp_b = sum(1 for r in result_list if r["breed_true"] != breed and r["breed_pred"] == breed)
+        fn_b = sum(1 for r in result_list if r["breed_true"] == breed and r["breed_pred"] != breed)
+        if (2 * tp_b + fp_b + fn_b) > 0:
+            f1_scores.append(2 * tp_b / (2 * tp_b + fp_b + fn_b))
+    return np.mean(f1_scores) * 100 if f1_scores else 0
+
 k_cattle_f1 = compute_macro_f1(k_cattle, cattle_classes)
 k_buffalo_f1 = compute_macro_f1(k_buffalo, buffalo_classes)
 
