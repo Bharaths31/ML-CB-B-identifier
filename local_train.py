@@ -279,10 +279,11 @@ def _detect_nvidia_gpu():
 
 def _install_torch(torch_deps, gpu_info):
     """Install torch/torchvision with CUDA support if a GPU was detected."""
+    cpu_index_url = PYTORCH_INDEX_URL.format(tag="cpu")
     if gpu_info is None:
-        # No GPU — install CPU version from PyPI (default)
+        # No GPU — install CPU version from PyTorch CPU index
         print("  Installing PyTorch (CPU)...")
-        _run([*_pip(), "install", "-q", *torch_deps])
+        _run([*_pip(), "install", "-q", *torch_deps, "--index-url", cpu_index_url])
         print("  ✅ Installed PyTorch (CPU-only)")
         return
 
@@ -297,7 +298,7 @@ def _install_torch(torch_deps, gpu_info):
     if chosen_tag is None:
         print(f"  ⚠️  CUDA {cuda_major}.{cuda_minor} is too old for GPU PyTorch")
         print("  Falling back to CPU-only PyTorch...")
-        _run([*_pip(), "install", "-q", *torch_deps])
+        _run([*_pip(), "install", "-q", *torch_deps, "--index-url", cpu_index_url])
         print("  ✅ Installed PyTorch (CPU-only)")
         return
 
