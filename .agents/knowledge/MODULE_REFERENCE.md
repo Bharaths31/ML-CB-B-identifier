@@ -99,14 +99,15 @@ verify.py ← (uses model, efficientnet_lite)
 
 | File | Lines | Purpose |
 |---|---|---|
-| config.py | 67 | Constants |
-| efficientnet_lite.py | 143 | Backbone |
-| cbam.py | 69 | Attention |
-| model.py | 80 | Classifier |
-| data_pipeline.py | ~290 | Data + augmentation |
-| train.py | ~275 | Training pipeline |
-| metrics.py | 69 | Evaluation metrics |
-| evaluate.py | 156 | Full evaluation |
-| export.py | ~195 | Export modes |
-| verify.py | 69 | Sanity check |
-| test_model.py | ~250 | Standalone Model Testing GUI |
+| config.py | 80 | Constants |
+| efficientnet_lite.py | 142 | Backbone |
+| cbam.py | 68 | Attention |
+| model.py | 79 | Classifier |
+| data_pipeline.py | 547 | Data + augmentation |
+| train.py | 553 | Training pipeline |
+| metrics.py | 73 | Evaluation metrics |
+| evaluate.py | 155 | Full evaluation |
+| export.py | 203 | Export modes |
+| verify.py | 68 | Sanity check |
+| test_model.py | 954 | Standalone Model Testing GUI |
+| local_train.py | 983 | Automated training workflow script |

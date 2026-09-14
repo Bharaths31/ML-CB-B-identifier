@@ -306,6 +306,7 @@ outputs/export/portable/<backbone>_phase2_best/
 | `IMAGE_SIZE` | 260 | Input image dimension |
 | `NUM_CATTLE_BREEDS` | 57 | Expected cattle breed count |
 | `NUM_BUFFALO_BREEDS` | 18 | Expected buffalo breed count |
+| `NUM_BREEDS_TOTAL` | 75 | Total breed count across species |
 | `CBAM_AFTER_STAGE` | 3 | Attention insertion point |
 | `FEATURE_DIM` | 1280 | Backbone output dimension |
 | `BINARY_DIM` | 256 | Binary head hidden dim |
@@ -322,6 +323,11 @@ outputs/export/portable/<backbone>_phase2_best/
 | `WARMUP_EPOCHS` | 3 | Linear warmup epochs (phase 2) |
 | `GRADIENT_ACCUMULATION_STEPS` | 2 | Grad accum steps |
 | `SMOKE_SAMPLES_PER_BREED` | 5 | Images per breed in smoke test |
+| `HALF_DATA_RATIO` | 0.5 | Fraction of images/breed for half-data mode |
+| `QUARTER_DATA_RATIO` | 0.25 | Fraction of images/breed for quarter-data mode |
+| `EVAL_EVERY_PHASE{1,2,3}` | 1 / 5 / 2 | Evaluation frequencies (epochs) |
+| `CACHE_IMAGES` | False | RAM image caching toggle |
+| `SPECIES_LABELS` | `{"cattle": 0, "buffalo": 1}` | Species integer mapping |
 | `CUTMIX_ALPHA` | 0.4 | CutMix beta distribution α |
 | `MIXUP_ALPHA` | 0.2 | MixUp beta distribution α |
 | `RANDAUGMENT_OPS` | 2 | RandAugment operations |
@@ -607,6 +613,16 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-14 — Knowledge Base Verification & Constant Alignment
+
+**Knowledge Base & Documentation:**
+- Audit and synchronization of knowledge base files (`.agents/knowledge/CONTEXT.md`, `.agents/knowledge/MODULE_REFERENCE.md`).
+- Synchronized all constants in `CONTEXT.md` Section 8 (`NUM_BREEDS_TOTAL`, `HALF_DATA_RATIO`, `QUARTER_DATA_RATIO`, `EVAL_EVERY_PHASE1`, `EVAL_EVERY_PHASE2`, `EVAL_EVERY_PHASE3`, `CACHE_IMAGES`, `SPECIES_LABELS`) with `src/config.py`.
+- Updated module line counts in `MODULE_REFERENCE.md` to reflect exact source code line lengths.
+- Verified repository health and confirmed working tree is clean.
+
+---
 
 ### 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation
 
