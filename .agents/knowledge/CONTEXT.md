@@ -614,6 +614,16 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 
 ## 16. Changelog
 
+### 2026-09-14 — GUI Batch Processing & ODT Export
+
+**GUI Modernization (`test_model.py`):**
+- Added a tabbed interface separating single image testing from batch processing.
+- Added batch analysis via drag-and-drop with real-time progress indicators and an aggregate dashboard.
+- Added functionality to export single or batch predictions into professionally formatted OpenDocument Text (`.odt`) files via `odfpy`.
+- Added ONNX Runtime support for discovering and running `.onnx` models (`onnxruntime`).
+
+---
+
 ### 2026-09-14 — Knowledge Base Verification & Constant Alignment
 
 **Knowledge Base & Documentation:**

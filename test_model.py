@@ -3,9 +3,10 @@
 🐄 Breed Classifier — Model Tester GUI
 ========================================
 
-Standalone GUI for testing exported models on individual images.
-Upload an image (PNG/JPG/JPEG), select a model checkpoint, and get
+Standalone GUI for testing exported models on individual or batch images.
+Upload image(s) (PNG/JPG/JPEG), select a model checkpoint, and get
 the predicted species + breed with confidence percentages.
+Supports exporting results to ODT format.
 
 Usage:
     python test_model.py                          # Auto-detect best checkpoint
@@ -21,6 +22,7 @@ import glob
 import io
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -187,7 +189,7 @@ class ModelManager:
 
         tensor = TRANSFORM(img).unsqueeze(0)
         info = self.models[model_name]
-        
+
         try:
             model = self._load_model(model_name)
         except Exception as e:
@@ -250,7 +252,250 @@ class ModelManager:
 
 
 # ---------------------------------------------------------------------------
-#  HTTP Server
+#  ODT Export
+# ---------------------------------------------------------------------------
+
+def generate_odt_report(results, mode="single"):
+    """Generate an ODT report from prediction results.
+
+    Args:
+        results: single result dict or list of result dicts (batch).
+        mode: "single" or "batch".
+
+    Returns:
+        bytes: ODT file content.
+    """
+    from odf.opendocument import OpenDocumentText
+    from odf.style import Style, TextProperties, ParagraphProperties, TableColumnProperties, TableCellProperties
+    from odf.text import P, H
+    from odf.table import Table, TableColumn, TableRow, TableCell
+
+    doc = OpenDocumentText()
+
+    # --- Define styles ---
+    title_style = Style(name="Title", family="paragraph")
+    title_style.addElement(TextProperties(attributes={
+        "fontsize": "20pt", "fontweight": "bold", "color": "#1a1a2e"
+    }))
+    title_style.addElement(ParagraphProperties(attributes={
+        "marginbottom": "0.3cm", "margintop": "0.3cm"
+    }))
+    doc.styles.addElement(title_style)
+
+    heading_style = Style(name="Heading", family="paragraph")
+    heading_style.addElement(TextProperties(attributes={
+        "fontsize": "14pt", "fontweight": "bold", "color": "#16213e"
+    }))
+    heading_style.addElement(ParagraphProperties(attributes={
+        "marginbottom": "0.2cm", "margintop": "0.4cm"
+    }))
+    doc.styles.addElement(heading_style)
+
+    subheading_style = Style(name="SubHeading", family="paragraph")
+    subheading_style.addElement(TextProperties(attributes={
+        "fontsize": "12pt", "fontweight": "bold", "color": "#0f3460"
+    }))
+    subheading_style.addElement(ParagraphProperties(attributes={
+        "marginbottom": "0.15cm", "margintop": "0.3cm"
+    }))
+    doc.styles.addElement(subheading_style)
+
+    body_style = Style(name="Body", family="paragraph")
+    body_style.addElement(TextProperties(attributes={
+        "fontsize": "11pt", "color": "#333333"
+    }))
+    body_style.addElement(ParagraphProperties(attributes={
+        "marginbottom": "0.1cm"
+    }))
+    doc.styles.addElement(body_style)
+
+    meta_style = Style(name="Meta", family="paragraph")
+    meta_style.addElement(TextProperties(attributes={
+        "fontsize": "9pt", "fontstyle": "italic", "color": "#666666"
+    }))
+    meta_style.addElement(ParagraphProperties(attributes={
+        "marginbottom": "0.1cm"
+    }))
+    doc.styles.addElement(meta_style)
+
+    # Table styles
+    table_style = Style(name="TableStyle", family="table")
+    doc.automaticstyles.addElement(table_style)
+
+    col_wide = Style(name="ColWide", family="table-column")
+    col_wide.addElement(TableColumnProperties(attributes={"columnwidth": "8cm"}))
+    doc.automaticstyles.addElement(col_wide)
+
+    col_narrow = Style(name="ColNarrow", family="table-column")
+    col_narrow.addElement(TableColumnProperties(attributes={"columnwidth": "4cm"}))
+    doc.automaticstyles.addElement(col_narrow)
+
+    header_cell_style = Style(name="HeaderCell", family="table-cell")
+    header_cell_style.addElement(TableCellProperties(attributes={
+        "backgroundcolor": "#1a1a2e", "padding": "0.15cm",
+        "borderbottom": "0.5pt solid #333333"
+    }))
+    doc.automaticstyles.addElement(header_cell_style)
+
+    header_text_style = Style(name="HeaderText", family="paragraph")
+    header_text_style.addElement(TextProperties(attributes={
+        "fontsize": "10pt", "fontweight": "bold", "color": "#ffffff"
+    }))
+    doc.automaticstyles.addElement(header_text_style)
+
+    cell_style = Style(name="DataCell", family="table-cell")
+    cell_style.addElement(TableCellProperties(attributes={
+        "padding": "0.1cm",
+        "borderbottom": "0.5pt solid #cccccc"
+    }))
+    doc.automaticstyles.addElement(cell_style)
+
+    cell_text_style = Style(name="CellText", family="paragraph")
+    cell_text_style.addElement(TextProperties(attributes={
+        "fontsize": "10pt", "color": "#333333"
+    }))
+    doc.automaticstyles.addElement(cell_text_style)
+
+    # --- Document content ---
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Title
+    p = P(stylename=title_style, text="🐄 Cattle & Buffalo Breed Classifier — Test Report")
+    doc.text.addElement(p)
+
+    p = P(stylename=meta_style, text=f"Generated: {timestamp}")
+    doc.text.addElement(p)
+
+    if mode == "single":
+        results_list = [results] if isinstance(results, dict) else results
+    else:
+        results_list = results if isinstance(results, list) else [results]
+
+    model_name = results_list[0].get("model_used", "unknown") if results_list else "unknown"
+    p = P(stylename=meta_style, text=f"Model: {model_name}")
+    doc.text.addElement(p)
+    p = P(stylename=meta_style, text=f"Mode: {'Single Image' if mode == 'single' else 'Batch (' + str(len(results_list)) + ' images)'}")
+    doc.text.addElement(p)
+
+    # Separator
+    p = P(stylename=body_style, text="─" * 60)
+    doc.text.addElement(p)
+
+    for i, result in enumerate(results_list):
+        if "error" in result:
+            p = P(stylename=body_style, text=f"Error: {result['error']}")
+            doc.text.addElement(p)
+            continue
+
+        filename = result.get("filename", f"Image {i+1}")
+
+        # Image heading
+        p = P(stylename=heading_style, text=f"{'Result' if mode == 'single' else f'Image {i+1}'}: {filename}")
+        doc.text.addElement(p)
+
+        # Species
+        p = P(stylename=body_style, text=f"Species: {result['species']} ({result['species_confidence']:.1f}%)")
+        doc.text.addElement(p)
+
+        # Top breed
+        p = P(stylename=body_style, text=f"Predicted Breed: {result['top_breed']} ({result['top_breed_confidence']:.1f}%)")
+        doc.text.addElement(p)
+
+        # Top-5 table
+        p = P(stylename=subheading_style, text="Top 5 Predictions")
+        doc.text.addElement(p)
+
+        table = Table(name=f"Top5_{i}", stylename=table_style)
+        table.addElement(TableColumn(stylename=col_narrow))  # Rank
+        table.addElement(TableColumn(stylename=col_wide))     # Breed
+        table.addElement(TableColumn(stylename=col_narrow))   # Confidence
+
+        # Header row
+        hrow = TableRow()
+        for htext in ["Rank", "Breed", "Confidence"]:
+            hcell = TableCell(stylename=header_cell_style)
+            hcell.addElement(P(stylename=header_text_style, text=htext))
+            hrow.addElement(hcell)
+        table.addElement(hrow)
+
+        # Data rows
+        for rank, breed_info in enumerate(result.get("top5_breeds", []), 1):
+            row = TableRow()
+            for val in [str(rank), breed_info["breed"], f"{breed_info['confidence']:.1f}%"]:
+                dcell = TableCell(stylename=cell_style)
+                dcell.addElement(P(stylename=cell_text_style, text=val))
+                row.addElement(dcell)
+            table.addElement(row)
+
+        doc.text.addElement(table)
+
+        # Separator between images in batch mode
+        if mode == "batch" and i < len(results_list) - 1:
+            p = P(stylename=body_style, text="")
+            doc.text.addElement(p)
+            p = P(stylename=body_style, text="─" * 60)
+            doc.text.addElement(p)
+
+    # Summary section for batch mode
+    if mode == "batch" and len(results_list) > 1:
+        p = P(stylename=body_style, text="")
+        doc.text.addElement(p)
+        p = P(stylename=heading_style, text="Batch Summary")
+        doc.text.addElement(p)
+
+        # Summary table
+        summary_table = Table(name="Summary", stylename=table_style)
+        summary_table.addElement(TableColumn(stylename=col_wide))
+        summary_table.addElement(TableColumn(stylename=col_narrow))
+        summary_table.addElement(TableColumn(stylename=col_wide))
+        summary_table.addElement(TableColumn(stylename=col_narrow))
+
+        # Header
+        hrow = TableRow()
+        for htext in ["Filename", "Species", "Breed", "Confidence"]:
+            hcell = TableCell(stylename=header_cell_style)
+            hcell.addElement(P(stylename=header_text_style, text=htext))
+            hrow.addElement(hcell)
+        summary_table.addElement(hrow)
+
+        for r in results_list:
+            if "error" in r:
+                continue
+            row = TableRow()
+            for val in [
+                r.get("filename", "—"),
+                r.get("species", "—"),
+                r.get("top_breed", "—"),
+                f"{r.get('top_breed_confidence', 0):.1f}%"
+            ]:
+                dcell = TableCell(stylename=cell_style)
+                dcell.addElement(P(stylename=cell_text_style, text=val))
+                row.addElement(dcell)
+            summary_table.addElement(row)
+
+        doc.text.addElement(summary_table)
+
+        # Stats
+        valid = [r for r in results_list if "error" not in r]
+        cattle_count = sum(1 for r in valid if r.get("species") == "Cattle")
+        buffalo_count = sum(1 for r in valid if r.get("species") == "Buffalo")
+        avg_conf = sum(r.get("top_breed_confidence", 0) for r in valid) / len(valid) if valid else 0
+
+        p = P(stylename=body_style, text="")
+        doc.text.addElement(p)
+        p = P(stylename=body_style, text=f"Total Images: {len(results_list)} | Cattle: {cattle_count} | Buffalo: {buffalo_count}")
+        doc.text.addElement(p)
+        p = P(stylename=body_style, text=f"Average Top Breed Confidence: {avg_conf:.1f}%")
+        doc.text.addElement(p)
+
+    # Write to bytes buffer
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+#  HTML GUI
 # ---------------------------------------------------------------------------
 
 def build_html():
@@ -309,7 +554,7 @@ def build_html():
     /* --- Header --- */
     .header {
       text-align: center;
-      padding: 48px 24px 24px;
+      padding: 48px 24px 16px;
     }
     .header h1 {
       font-size: 2.2rem;
@@ -325,6 +570,39 @@ def build_html():
       font-size: 0.95rem;
       font-weight: 300;
     }
+
+    /* --- Tabs --- */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin: 16px auto 24px;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 4px;
+      width: fit-content;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: white;
+      font-weight: 600;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* --- Layout --- */
     .container {
@@ -424,6 +702,21 @@ def build_html():
       opacity: 0.7;
     }
 
+    /* --- Filename label --- */
+    .filename-label {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      word-break: break-all;
+    }
+    .filename-label .fname { color: var(--text); font-weight: 500; }
+
     /* --- Image Preview --- */
     .preview-container {
       position: relative;
@@ -482,9 +775,7 @@ def build_html():
       opacity: 0.4;
       cursor: not-allowed;
     }
-    .predict-btn.loading {
-      pointer-events: none;
-    }
+    .predict-btn.loading { pointer-events: none; }
     .predict-btn.loading::after {
       content: '';
       position: absolute;
@@ -493,9 +784,28 @@ def build_html():
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
       animation: shimmer 1.5s infinite;
     }
-    @keyframes shimmer {
-      100% { transform: translateX(100%); }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+    /* --- Export Button --- */
+    .export-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--green);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--green);
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 12px;
     }
+    .export-btn:hover:not(:disabled) {
+      background: var(--green-bg);
+      transform: translateY(-1px);
+    }
+    .export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* --- Results --- */
     .results { display: none; }
@@ -624,6 +934,130 @@ def build_html():
     .chip.gpu { border-color: var(--green); color: var(--green); }
     .chip.cpu { border-color: var(--amber); color: var(--amber); }
 
+    /* --- Batch results --- */
+    .batch-results-wrap { max-height: 70vh; overflow-y: auto; }
+    .batch-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .batch-card:hover { border-color: var(--accent); }
+    .batch-card .bc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .batch-card .bc-filename {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-light);
+      word-break: break-all;
+    }
+    .batch-card .bc-species {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .batch-card .bc-species.cattle { background: var(--amber-bg); color: var(--amber); }
+    .batch-card .bc-species.buffalo { background: var(--green-bg); color: var(--green); }
+    .batch-card .bc-breed {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .batch-card .bc-conf {
+      font-size: 0.85rem;
+      color: var(--green);
+      font-weight: 600;
+    }
+    .batch-card .bc-top5 {
+      margin-top: 10px;
+      list-style: none;
+      font-size: 0.8rem;
+    }
+    .batch-card .bc-top5 li {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .batch-card .bc-top5 li:last-child { border-bottom: none; }
+
+    /* Batch file list */
+    .batch-file-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .batch-file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 0.82rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .batch-file-item:last-child { border-bottom: none; }
+    .batch-file-item .bf-name { color: var(--text); word-break: break-all; }
+    .batch-file-item .bf-size { color: var(--text-muted); white-space: nowrap; margin-left: 12px; }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin: 12px 0;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Batch summary */
+    .batch-summary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      margin-bottom: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      text-align: center;
+    }
+    .batch-summary .stat-val {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-light), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .batch-summary .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -631,13 +1065,23 @@ def build_html():
 
 <div class="header">
   <h1>🐄 Breed Classifier — Model Tester</h1>
-  <p>Upload an image to identify cattle and buffalo breeds with confidence scores</p>
+  <p>Upload images to identify cattle and buffalo breeds with confidence scores</p>
 </div>
 
 <div class="status-bar" id="status-bar"></div>
 
+<!-- Tab navigation -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="single" id="tab-single-btn">📸 Single Image</button>
+  <button class="tab-btn" data-tab="batch" id="tab-batch-btn">📁 Batch Images</button>
+</div>
+
+<!-- ============================================================ -->
+<!--  SINGLE IMAGE TAB                                            -->
+<!-- ============================================================ -->
+<div class="tab-content active" id="tab-single">
 <div class="container">
-  <!-- LEFT COLUMN: Upload & Model Selection -->
+  <!-- LEFT COLUMN -->
   <div>
     <div class="card">
       <h2>📸 Image Upload</h2>
@@ -647,6 +1091,10 @@ def build_html():
         <p>Drag & drop an image here<br>or click to browse</p>
         <div class="formats">Supports: PNG, JPG, JPEG, BMP, WebP</div>
         <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.webp" hidden>
+      </div>
+
+      <div class="filename-label hidden" id="filename-label">
+        📄 <span class="fname" id="filename-text"></span>
       </div>
 
       <div class="preview-container hidden" id="preview-wrap">
@@ -683,6 +1131,10 @@ def build_html():
         <ul class="top5-list" id="top5-list"></ul>
 
         <div class="info-footer" id="info-footer"></div>
+
+        <button class="export-btn" id="export-single-btn" disabled>
+          📄 Export to ODT
+        </button>
       </div>
 
       <div id="placeholder" style="text-align:center;padding:60px 20px;color:var(--text-muted)">
@@ -692,27 +1144,121 @@ def build_html():
     </div>
   </div>
 </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  BATCH IMAGE TAB                                             -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-batch">
+<div class="container">
+  <!-- LEFT COLUMN -->
+  <div>
+    <div class="card">
+      <h2>📁 Batch Upload</h2>
+
+      <div class="dropzone" id="batch-dropzone">
+        <span class="icon">📂</span>
+        <p>Drag & drop multiple images here<br>or click to browse</p>
+        <div class="formats">Supports: PNG, JPG, JPEG, BMP, WebP</div>
+        <input type="file" id="batch-file-input" accept=".png,.jpg,.jpeg,.bmp,.webp" multiple hidden>
+      </div>
+
+      <div class="batch-file-list hidden" id="batch-file-list"></div>
+
+      <div class="model-selector">
+        <label for="batch-model-select">Select Model</label>
+        <select id="batch-model-select"></select>
+        <div class="model-meta" id="batch-model-meta"></div>
+      </div>
+
+      <button class="predict-btn" id="batch-predict-btn" disabled>
+        🔍 Analyze All Images
+      </button>
+
+      <div class="progress-wrap hidden" id="batch-progress-wrap">
+        <div class="progress-bar" id="batch-progress-bar" style="width:0%"></div>
+      </div>
+      <div class="progress-text hidden" id="batch-progress-text"></div>
+
+      <button class="predict-btn hidden" id="batch-clear-btn"
+              style="background:var(--surface2);color:var(--text-muted);margin-top:10px;border:1px solid var(--border)">
+        🗑️ Clear All
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Batch Results -->
+  <div>
+    <div class="card">
+      <h2>📊 Batch Results</h2>
+
+      <div class="hidden" id="batch-results">
+        <div class="batch-summary" id="batch-summary"></div>
+        <button class="export-btn" id="export-batch-btn">
+          📄 Export All to ODT
+        </button>
+        <div class="batch-results-wrap" id="batch-results-list" style="margin-top:14px"></div>
+      </div>
+
+      <div id="batch-placeholder" style="text-align:center;padding:60px 20px;color:var(--text-muted)">
+        <span style="font-size:3rem;display:block;margin-bottom:12px">📊</span>
+        <p>Select images and click <strong>Analyze All</strong><br>to see batch results here</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
 
 <script>
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 let currentFile = null;
+let currentFileName = '';
+let singleResult = null;
+let batchResults = [];
+let batchFiles = [];
+let modelsData = [];
 
-// --- Init: load models list ---
+// ========================
+//  Tab switching
+// ========================
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    $$('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    $('#tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ========================
+//  Init: load models
+// ========================
 fetch('/api/models').then(r => r.json()).then(data => {
-  const sel = $('#model-select');
-  const meta = $('#model-meta');
-  data.models.forEach((m, i) => {
-    const opt = document.createElement('option');
-    opt.value = m.name;
-    opt.textContent = `${m.name} (${m.size_mb} MB)`;
-    if (m.name.includes('phase2')) opt.selected = true;
-    sel.appendChild(opt);
+  modelsData = data.models;
+  [('#model-select'), ('#batch-model-select')].forEach(selId => {
+    const sel = document.querySelector(selId);
+    data.models.forEach((m, i) => {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = `${m.name} (${m.size_mb} MB)`;
+      if (m.name.includes('phase2')) opt.selected = true;
+      sel.appendChild(opt);
+    });
   });
-  sel.addEventListener('change', () => {
-    const m = data.models.find(x => x.name === sel.value);
-    meta.textContent = m ? `Backbone: ${m.backbone} · ${m.size_mb} MB · ${m.path}` : '';
-  });
-  sel.dispatchEvent(new Event('change'));
+
+  // Model meta
+  function updateMeta(selId, metaId) {
+    const sel = document.querySelector(selId);
+    const meta = document.querySelector(metaId);
+    sel.addEventListener('change', () => {
+      const m = data.models.find(x => x.name === sel.value);
+      meta.textContent = m ? `Backbone: ${m.backbone} · ${m.size_mb} MB` : '';
+    });
+    sel.dispatchEvent(new Event('change'));
+  }
+  updateMeta('#model-select', '#model-meta');
+  updateMeta('#batch-model-select', '#batch-model-meta');
 
   // Status bar
   const sb = $('#status-bar');
@@ -722,12 +1268,16 @@ fetch('/api/models').then(r => r.json()).then(data => {
   sb.innerHTML = `${deviceChip} <span class="chip">${data.models.length} models available</span>`;
 });
 
-// --- Dropzone ---
+// ========================
+//  SINGLE IMAGE
+// ========================
 const dz = $('#dropzone');
 const fi = $('#file-input');
 const pw = $('#preview-wrap');
 const pi = $('#preview-img');
 const pb = $('#predict-btn');
+const fnLabel = $('#filename-label');
+const fnText = $('#filename-text');
 
 dz.addEventListener('click', () => fi.click());
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
@@ -739,18 +1289,27 @@ dz.addEventListener('drop', e => {
 });
 fi.addEventListener('change', () => { if (fi.files.length) handleFile(fi.files[0]); });
 
-$('#clear-btn').addEventListener('click', () => {
+$('#clear-btn').addEventListener('click', clearSingle);
+
+function clearSingle() {
   currentFile = null;
+  currentFileName = '';
   pw.classList.add('hidden');
+  fnLabel.classList.add('hidden');
   dz.classList.remove('hidden');
   pb.disabled = true;
   $('#results').classList.remove('visible');
   $('#placeholder').classList.remove('hidden');
-});
+  $('#export-single-btn').disabled = true;
+  singleResult = null;
+}
 
 function handleFile(file) {
   if (!file.type.startsWith('image/')) return;
   currentFile = file;
+  currentFileName = file.name;
+  fnText.textContent = file.name;
+  fnLabel.classList.remove('hidden');
   const reader = new FileReader();
   reader.onload = e => {
     pi.src = e.target.result;
@@ -761,7 +1320,7 @@ function handleFile(file) {
   reader.readAsDataURL(file);
 }
 
-// --- Predict ---
+// --- Single Predict ---
 pb.addEventListener('click', async () => {
   if (!currentFile) return;
   pb.disabled = true;
@@ -771,12 +1330,15 @@ pb.addEventListener('click', async () => {
   const form = new FormData();
   form.append('image', currentFile);
   form.append('model', $('#model-select').value);
+  form.append('filename', currentFileName);
 
   try {
     const res = await fetch('/api/predict', { method: 'POST', body: form });
     const data = await res.json();
     if (data.error) { alert(data.error); return; }
+    singleResult = data;
     showResults(data);
+    $('#export-single-btn').disabled = false;
   } catch (e) {
     alert('Prediction failed: ' + e.message);
   } finally {
@@ -791,7 +1353,6 @@ function showResults(data) {
   const r = $('#results');
   r.classList.add('visible');
 
-  // Hero
   const badge = $('#species-badge');
   badge.textContent = data.species;
   badge.className = 'species-badge ' + data.species.toLowerCase();
@@ -799,7 +1360,6 @@ function showResults(data) {
   $('#breed-name').textContent = data.top_breed;
   $('#breed-conf').textContent = data.top_breed_confidence.toFixed(1) + '%';
 
-  // Top 5
   const list = $('#top5-list');
   list.innerHTML = '';
   const maxConf = Math.max(...data.top5_breeds.map(b => b.confidence), 1);
@@ -815,7 +1375,6 @@ function showResults(data) {
       <span class="top5-pct">${b.confidence.toFixed(1)}%</span>
     `;
     list.appendChild(li);
-    // Animate bar
     requestAnimationFrame(() => {
       setTimeout(() => {
         li.querySelector('.top5-bar').style.width = barWidth + '%';
@@ -823,12 +1382,214 @@ function showResults(data) {
     });
   });
 
-  // Info footer
   $('#info-footer').innerHTML = `
     <span>🤖 Model: ${data.model_used}</span>
+    <span>📄 File: ${data.filename || 'unknown'}</span>
     <span>🐄 Species: ${data.species} (${data.species_confidence.toFixed(1)}%)</span>
   `;
 }
+
+// --- Single Export ---
+$('#export-single-btn').addEventListener('click', async () => {
+  if (!singleResult) return;
+  const btn = $('#export-single-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating ODT...';
+
+  try {
+    const res = await fetch('/api/export-odt', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ results: singleResult, mode: 'single' })
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `breed_test_result_${Date.now()}.odt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📄 Export to ODT';
+  }
+});
+
+// ========================
+//  BATCH IMAGES
+// ========================
+const bdz = $('#batch-dropzone');
+const bfi = $('#batch-file-input');
+const bpb = $('#batch-predict-btn');
+
+bdz.addEventListener('click', () => bfi.click());
+bdz.addEventListener('dragover', e => { e.preventDefault(); bdz.classList.add('drag-over'); });
+bdz.addEventListener('dragleave', () => bdz.classList.remove('drag-over'));
+bdz.addEventListener('drop', e => {
+  e.preventDefault();
+  bdz.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleBatchFiles(e.dataTransfer.files);
+});
+bfi.addEventListener('change', () => { if (bfi.files.length) handleBatchFiles(bfi.files); });
+
+function handleBatchFiles(files) {
+  batchFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!batchFiles.length) return;
+
+  const listEl = $('#batch-file-list');
+  listEl.innerHTML = '';
+  listEl.classList.remove('hidden');
+  bdz.classList.add('hidden');
+
+  batchFiles.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'batch-file-item';
+    const sizeMB = (f.size / 1024 / 1024).toFixed(2);
+    div.innerHTML = `<span class="bf-name">📄 ${f.name}</span><span class="bf-size">${sizeMB} MB</span>`;
+    listEl.appendChild(div);
+  });
+
+  bpb.disabled = false;
+  $('#batch-clear-btn').classList.remove('hidden');
+}
+
+// --- Batch Clear ---
+$('#batch-clear-btn').addEventListener('click', () => {
+  batchFiles = [];
+  batchResults = [];
+  $('#batch-file-list').classList.add('hidden');
+  $('#batch-file-list').innerHTML = '';
+  bdz.classList.remove('hidden');
+  bpb.disabled = true;
+  $('#batch-clear-btn').classList.add('hidden');
+  $('#batch-results').classList.add('hidden');
+  $('#batch-placeholder').classList.remove('hidden');
+  $('#batch-progress-wrap').classList.add('hidden');
+  $('#batch-progress-text').classList.add('hidden');
+});
+
+// --- Batch Predict ---
+bpb.addEventListener('click', async () => {
+  if (!batchFiles.length) return;
+  bpb.disabled = true;
+  bpb.classList.add('loading');
+  bpb.textContent = '⏳ Analyzing...';
+  batchResults = [];
+
+  const pw = $('#batch-progress-wrap');
+  const pbar = $('#batch-progress-bar');
+  const ptxt = $('#batch-progress-text');
+  pw.classList.remove('hidden');
+  ptxt.classList.remove('hidden');
+
+  const model = $('#batch-model-select').value;
+
+  for (let i = 0; i < batchFiles.length; i++) {
+    const pct = ((i) / batchFiles.length * 100).toFixed(0);
+    pbar.style.width = pct + '%';
+    ptxt.textContent = `Processing ${i + 1} / ${batchFiles.length}: ${batchFiles[i].name}`;
+
+    const form = new FormData();
+    form.append('image', batchFiles[i]);
+    form.append('model', model);
+    form.append('filename', batchFiles[i].name);
+
+    try {
+      const res = await fetch('/api/predict', { method: 'POST', body: form });
+      const data = await res.json();
+      data.filename = batchFiles[i].name;
+      batchResults.push(data);
+    } catch (e) {
+      batchResults.push({ error: e.message, filename: batchFiles[i].name });
+    }
+  }
+
+  pbar.style.width = '100%';
+  ptxt.textContent = `Done! ${batchResults.length} images processed.`;
+
+  showBatchResults();
+
+  bpb.disabled = false;
+  bpb.classList.remove('loading');
+  bpb.textContent = '🔍 Analyze All Images';
+});
+
+function showBatchResults() {
+  $('#batch-placeholder').classList.add('hidden');
+  const wrap = $('#batch-results');
+  wrap.classList.remove('hidden');
+
+  const valid = batchResults.filter(r => !r.error);
+  const cattle = valid.filter(r => r.species === 'Cattle').length;
+  const buffalo = valid.filter(r => r.species === 'Buffalo').length;
+  const avgConf = valid.length ? (valid.reduce((s, r) => s + r.top_breed_confidence, 0) / valid.length).toFixed(1) : '0';
+
+  $('#batch-summary').innerHTML = `
+    <div><div class="stat-val">${valid.length}</div><div class="stat-label">Images</div></div>
+    <div><div class="stat-val">${cattle} / ${buffalo}</div><div class="stat-label">Cattle / Buffalo</div></div>
+    <div><div class="stat-val">${avgConf}%</div><div class="stat-label">Avg Confidence</div></div>
+  `;
+
+  const list = $('#batch-results-list');
+  list.innerHTML = '';
+
+  batchResults.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'batch-card';
+
+    if (r.error) {
+      card.innerHTML = `
+        <div class="bc-header"><span class="bc-filename">📄 ${r.filename}</span></div>
+        <div style="color:var(--red)">❌ Error: ${r.error}</div>
+      `;
+    } else {
+      let top5html = '';
+      (r.top5_breeds || []).forEach(b => {
+        top5html += `<li><span>${b.breed}</span><span>${b.confidence.toFixed(1)}%</span></li>`;
+      });
+      card.innerHTML = `
+        <div class="bc-header">
+          <span class="bc-filename">📄 ${r.filename}</span>
+          <span class="bc-species ${r.species.toLowerCase()}">${r.species} ${r.species_confidence.toFixed(1)}%</span>
+        </div>
+        <div class="bc-breed">${r.top_breed}</div>
+        <div class="bc-conf">${r.top_breed_confidence.toFixed(1)}% confidence</div>
+        <ul class="bc-top5">${top5html}</ul>
+      `;
+    }
+    list.appendChild(card);
+  });
+}
+
+// --- Batch Export ---
+$('#export-batch-btn').addEventListener('click', async () => {
+  if (!batchResults.length) return;
+  const btn = $('#export-batch-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating ODT...';
+
+  try {
+    const res = await fetch('/api/export-odt', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ results: batchResults, mode: 'batch' })
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `breed_batch_result_${Date.now()}.odt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📄 Export All to ODT';
+  }
+});
 </script>
 </body>
 </html>"""
@@ -837,15 +1598,12 @@ function showResults(data) {
 def run_server(manager, port=8501):
     """Run a minimal HTTP server with the GUI and prediction API."""
     from http.server import HTTPServer, BaseHTTPRequestHandler
-    import email.parser
-    import re
 
     html_content = build_html()
 
     def _parse_multipart(handler):
         """Parse multipart/form-data without the deprecated cgi module."""
         content_type = handler.headers.get("Content-Type", "")
-        # Extract boundary
         m = re.search(r'boundary=([^\s;]+)', content_type)
         if not m:
             return {}, {}
@@ -856,23 +1614,19 @@ def run_server(manager, port=8501):
         parts_data = {}   # name -> bytes
         parts_text = {}   # name -> str
 
-        # Split by boundary
         chunks = body.split(b"--" + boundary)
         for chunk in chunks:
             chunk = chunk.strip()
             if not chunk or chunk == b"--":
                 continue
-            # Split headers from body
             sep = chunk.find(b"\r\n\r\n")
             if sep < 0:
                 continue
             header_bytes = chunk[:sep]
             part_body = chunk[sep+4:]
-            # Remove trailing \r\n
             if part_body.endswith(b"\r\n"):
                 part_body = part_body[:-2]
 
-            # Parse disposition
             header_str = header_bytes.decode("utf-8", errors="replace")
             name_match = re.search(r'name="([^"]+)"', header_str)
             if not name_match:
@@ -881,7 +1635,7 @@ def run_server(manager, port=8501):
 
             filename_match = re.search(r'filename="([^"]*)"', header_str)
             if filename_match:
-                parts_data[name] = part_body  # binary file
+                parts_data[name] = part_body
             else:
                 parts_text[name] = part_body.decode("utf-8", errors="replace")
 
@@ -913,6 +1667,7 @@ def run_server(manager, port=8501):
                 parts_data, parts_text = _parse_multipart(self)
                 image_bytes = parts_data.get("image")
                 model_name = parts_text.get("model", "")
+                filename = parts_text.get("filename", "unknown")
 
                 if not image_bytes:
                     self._respond(400, "application/json",
@@ -920,7 +1675,28 @@ def run_server(manager, port=8501):
                     return
 
                 result = manager.predict(image_bytes, model_name)
+                result["filename"] = filename
                 self._respond(200, "application/json", json.dumps(result).encode())
+
+            elif self.path == "/api/export-odt":
+                content_length = int(self.headers.get("Content-Length", 0))
+                raw = self.rfile.read(content_length)
+                try:
+                    payload = json.loads(raw.decode("utf-8"))
+                    results = payload.get("results", {})
+                    mode = payload.get("mode", "single")
+                    odt_bytes = generate_odt_report(results, mode=mode)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/vnd.oasis.opendocument.text")
+                    self.send_header("Content-Length", str(len(odt_bytes)))
+                    self.send_header("Content-Disposition",
+                                     f"attachment; filename=breed_report_{int(time.time())}.odt")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(odt_bytes)
+                except Exception as e:
+                    self._respond(500, "application/json",
+                                  json.dumps({"error": str(e)}).encode())
             else:
                 self._respond(404, "text/plain", b"Not Found")
 

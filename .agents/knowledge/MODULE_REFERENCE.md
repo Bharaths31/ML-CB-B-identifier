@@ -91,7 +91,7 @@ verify.py ← (uses model, efficientnet_lite)
 - `main()` — CLI entry point
 
 ### `test_model.py`
-- Standalone PyTorch testing GUI server (HTTP server at `http://localhost:8501`). Loads portable exports/checkpoints and renders interactive breed predictions with top-5 confidence bars.
+- Standalone PyTorch/ONNX testing GUI server (HTTP server at `http://localhost:8501`). Loads portable exports, PyTorch checkpoints, and `.onnx` models. Renders interactive breed predictions with top-5 confidence bars, supports batch drag-and-drop processing, and ODT report export.
 
 ---
 
@@ -109,5 +109,5 @@ verify.py ← (uses model, efficientnet_lite)
 | evaluate.py | 155 | Full evaluation |
 | export.py | 203 | Export modes |
 | verify.py | 68 | Sanity check |
-| test_model.py | 954 | Standalone Model Testing GUI |
+| test_model.py | 1766 | Standalone Model Testing GUI (Batch/ONNX/ODT) |
 | local_train.py | 983 | Automated training workflow script |
