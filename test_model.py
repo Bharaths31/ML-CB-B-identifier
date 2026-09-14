@@ -97,11 +97,12 @@ class ModelManager:
         # 1. Checkpoints directory
         if os.path.isdir(CHECKPOINT_DIR):
             for f in sorted(os.listdir(CHECKPOINT_DIR)):
-                if f.endswith(".pt"):
+                if f.endswith(".pt") or f.endswith(".onnx"):
                     path = os.path.join(CHECKPOINT_DIR, f)
-                    name = f.replace(".pt", "")
+                    name = f.replace(".pt", "").replace(".onnx", " (ONNX)")
                     backbone = "lite2" if "lite2" in f else ("lite4" if "lite4" in f else "lite2")
-                    found[name] = {"path": path, "backbone": backbone, "model": None}
+                    mtype = "onnx" if f.endswith(".onnx") else "pt"
+                    found[name] = {"path": path, "backbone": backbone, "model": None, "type": mtype}
 
         # 2. Portable exports
         if os.path.isdir(PORTABLE_EXPORT_DIR):
@@ -109,7 +110,16 @@ class ModelManager:
                 model_pt = os.path.join(PORTABLE_EXPORT_DIR, d, "model.pt")
                 if os.path.exists(model_pt):
                     backbone = "lite2" if "lite2" in d else ("lite4" if "lite4" in d else "lite2")
-                    found[f"portable/{d}"] = {"path": model_pt, "backbone": backbone, "model": None}
+                    found[f"portable/{d}"] = {"path": model_pt, "backbone": backbone, "model": None, "type": "pt"}
+
+        # 3. ONNX Exports directory
+        if os.path.isdir(EXPORT_DIR):
+            for f in sorted(os.listdir(EXPORT_DIR)):
+                if f.endswith(".onnx"):
+                    path = os.path.join(EXPORT_DIR, f)
+                    name = f"export/{f.replace('.onnx', '')} (ONNX)"
+                    backbone = "lite2" if "lite2" in f else ("lite4" if "lite4" in f else "lite2")
+                    found[name] = {"path": path, "backbone": backbone, "model": None, "type": "onnx"}
 
         self.models = found
 
@@ -131,6 +141,16 @@ class ModelManager:
         info = self.models[name]
         if info["model"] is not None:
             return info["model"]
+
+        if info.get("type") == "onnx":
+            try:
+                import onnxruntime as ort
+                providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
+                session = ort.InferenceSession(info["path"], providers=providers)
+                info["model"] = session
+                return session
+            except ImportError:
+                raise RuntimeError("onnxruntime is not installed. Please `pip install onnxruntime` to test ONNX models.")
 
         backbone = info["backbone"]
         model = BreedClassifier(backbone=backbone)
@@ -165,14 +185,30 @@ class ModelManager:
         except Exception as e:
             return {"error": f"Invalid image: {e}"}
 
-        tensor = TRANSFORM(img).unsqueeze(0).to(self.device)
-        model = self._load_model(model_name)
+        tensor = TRANSFORM(img).unsqueeze(0)
+        info = self.models[model_name]
+        
+        try:
+            model = self._load_model(model_name)
+        except Exception as e:
+            return {"error": str(e)}
 
-        # Forward pass
-        out = model(tensor)
-        binary_logits = out["binary"][0]
-        cattle_logits = out["cattle"][0]
-        buffalo_logits = out["buffalo"][0]
+        if info.get("type") == "onnx":
+            # ONNX Inference
+            input_name = model.get_inputs()[0].name
+            ort_outs = model.run(None, {input_name: tensor.numpy()})
+            out_names = [x.name for x in model.get_outputs()]
+            out_dict = dict(zip(out_names, ort_outs))
+            binary_logits = torch.tensor(out_dict.get("binary", ort_outs[0])[0])
+            cattle_logits = torch.tensor(out_dict.get("cattle", ort_outs[1])[0])
+            buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
+        else:
+            # PyTorch Inference
+            tensor = tensor.to(self.device)
+            out = model(tensor)
+            binary_logits = out["binary"][0]
+            cattle_logits = out["cattle"][0]
+            buffalo_logits = out["buffalo"][0]
 
         # Species prediction
         binary_probs = F.softmax(binary_logits, dim=0)
