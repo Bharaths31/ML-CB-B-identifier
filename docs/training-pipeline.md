@@ -8,13 +8,13 @@ The model is trained in **three sequential phases**, each with distinct objectiv
 
 | Phase | Name | Frozen Layers | Learning Rate | Epochs | Loss Weights |
 |---|---|---|---|---|---|
-| **Phase 1** | Binary head warmup | Backbone + attention + breed heads | 3e-3 | 5 | bin=1.0, cat=0.0, buf=0.0 |
-| **Phase 2** | Multi-task fine-tune | Nothing (all trainable) | 2e-4 (warmup + cosine) | 40 | bin=0.5, cat=0.25, buf=0.25 |
-| **Phase 3** | QAT (optional) | Nothing | 5e-6 | 10 | bin=0.5, cat=0.25, buf=0.25 |
+| **Phase 1** | Warmup | Backbone frozen | 3e-3 | 5 | bin=0.15, cat=0.5, buf=0.35 |
+| **Phase 2** | Multi-task fine-tune | Differential LR (Backbone 0.1x) | 2e-4 (warmup + cosine) + EMA | 40 | bin=0.15, cat=0.5, buf=0.35 |
+| **Phase 3** | QAT (optional) | Nothing | 5e-6 | 10 | bin=0.15, cat=0.5, buf=0.35 |
 
-**Phase 1** trains only the binary (cattle/buffalo) head while keeping the backbone frozen. This anchors the feature extractor before full fine-tuning.
+**Phase 1** trains all three heads (binary, cattle, buffalo) while keeping the backbone frozen. This anchors the new classification layers to the pre-trained feature extractor before full fine-tuning.
 
-**Phase 2** unfreezes everything and jointly optimizes all three heads (binary, cattle, buffalo) with a masked loss — cattle head loss is only computed on cattle images, buffalo head loss only on buffalo images.
+**Phase 2** unfreezes everything and jointly optimizes the entire network using differential learning rates (backbone 0.1x, attention 0.5x, heads 1.0x). It also employs an Exponential Moving Average (EMA) model to stabilize weights across iterations. The masked loss ensures the cattle head only trains on cattle images, and the buffalo head only on buffalo images.
 
 **Phase 3** (optional, `--include-qat` / without `--skip-qat`) performs Quantization-Aware Training for INT8 Android deployment.
 

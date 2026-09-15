@@ -16,7 +16,8 @@ from .config import (CACHE_IMAGES, CUTMIX_ALPHA, HALF_DATA_RATIO, IMAGE_SIZE,
                      MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
                      NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
                      RANDAUGMENT_OPS, RAW_DATA_DIR, SMOKE_SAMPLES_PER_BREED,
-                     SPLIT_DIR, TEST_RATIO, TRAIN_RATIO, VAL_RATIO)
+                     SPLIT_DIR, TEST_RATIO, TRAIN_RATIO, VAL_RATIO,
+                     IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -370,6 +371,7 @@ def _train_transform():
         transforms.RandAugment(num_ops=RANDAUGMENT_OPS,
                                magnitude=RANDAUGMENT_MAGNITUDE),
         transforms.ToTensor(),
+        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ])
 
 
@@ -378,6 +380,7 @@ def _eval_transform():
         transforms.Resize(IMAGE_SIZE),
         transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
+        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ])
 
 

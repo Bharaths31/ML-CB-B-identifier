@@ -75,7 +75,7 @@ verify.py ← (uses model, efficientnet_lite)
 - `main()` — CLI entry point
 
 ### `src/metrics.py`
-- `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, combined_top1, combined_top3}
+- `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, combined_top1, combined_top3, combined_top5}
 
 ### `src/evaluate.py`
 - `full_evaluation(model, loader, device, ...)` → dict with confusion matrices

@@ -8,8 +8,8 @@ class BreedClassifier(nn.Module):
     attention: CBAM | SEBlock      # inserted after stage 3 (88ch lite2 / 112ch lite4)
     avg_pool: AdaptiveAvgPool2d(1)
     binary_head: Linear(1280→256→2)
-    cattle_head: Linear(1280→512→57) + Dropout(0.3)
-    buffalo_head: Linear(1280→512→18) + Dropout(0.3)
+    cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→57)
+    buffalo_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→18)
 ```
 
 ### Forward Path

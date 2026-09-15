@@ -27,15 +27,25 @@ class BreedClassifier(nn.Module):
         )
         self.cattle_head = nn.Sequential(
             nn.Linear(feature_dim, BREED_DIM),
+            nn.BatchNorm1d(BREED_DIM),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
-            nn.Linear(BREED_DIM, num_cattle),
+            nn.Linear(BREED_DIM, BREED_DIM // 2),
+            nn.BatchNorm1d(BREED_DIM // 2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(BREED_DIM // 2, num_cattle),
         )
         self.buffalo_head = nn.Sequential(
             nn.Linear(feature_dim, BREED_DIM),
+            nn.BatchNorm1d(BREED_DIM),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
-            nn.Linear(BREED_DIM, num_buffalo),
+            nn.Linear(BREED_DIM, BREED_DIM // 2),
+            nn.BatchNorm1d(BREED_DIM // 2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(BREED_DIM // 2, num_buffalo),
         )
 
         if pretrained_path:

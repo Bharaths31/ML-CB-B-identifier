@@ -1,5 +1,24 @@
 # 16. Changelog
 
+### 2026-09-15 — Architecture Improvements, EMA, & ImageNet Normalization Fix
+
+**Architecture:**
+- Deepened `cattle_head` and `buffalo_head` with an extra hidden layer (`BREED_DIM // 2`).
+- Integrated `BatchNorm1d` into both breed classification heads for better convergence and to prevent covariate shift.
+- Adjusted dropout values for the new layers (`0.3` for first, `0.2` for second).
+
+**Training Pipeline:**
+- **Phase 1 (Warmup):** Now trains all three heads (binary, cattle, buffalo) to build robust initial representations, instead of just the binary head.
+- **Differential Learning Rates (Phase 2):** Applied fine-grained LR scaling (backbone: 0.1x, attention: 0.5x, heads: 1.0x).
+- **EMA:** Integrated Exponential Moving Average (EMA) with a decay of 0.999 for model weights during Phase 2 to drastically improve evaluation stability and generalization.
+- **Bug Fix:** Fixed critical bug where the training pipeline lacked `transforms.Normalize()` using ImageNet statistics, aligning it properly with inference logic.
+- Reconfigured default portable export to securely capture the best weights from Phase 2 instead of Phase 3, avoiding the massive accuracy drop previously caused by aggressive INT8 QAT, while maintaining a very lightweight model footprint (~27.3 MB) ready for Android deployment.
+
+**Metrics:**
+- Added vectorized **Top-5 combined accuracy** tracking to `evaluate_epoch()` alongside Top-1 and Top-3.
+
+---
+
 ### 2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata
 
 **Model Tester GUI (`test_model.py`):**

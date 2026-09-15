@@ -11,6 +11,7 @@ def evaluate_epoch(model, loader, device, max_batches=None):
     n_buffalo = correct_buffalo = 0
     n_combined = correct_combined = 0
     n_top3 = correct_top3 = 0
+    n_top5 = correct_top5 = 0
 
     total = min(len(loader), max_batches) if max_batches is not None else len(loader)
     for step, (images, labels) in enumerate(
@@ -50,15 +51,25 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         correct_combined += (cattle_hit | buffalo_hit).sum().item()
         n_combined += bs
 
-        # --- Vectorized top-3 accuracy ---
+        # --- Vectorized top-3 and top-5 accuracy ---
         cattle_top3 = out["cattle"].topk(3, dim=1).indices  # (B, 3)
         buffalo_top3 = out["buffalo"].topk(3, dim=1).indices  # (B, 3)
         cattle_in_top3 = (cattle_top3 == cattle_true.unsqueeze(1)).any(dim=1)
         buffalo_in_top3 = (buffalo_top3 == buffalo_true.unsqueeze(1)).any(dim=1)
+        
+        cattle_top5 = out["cattle"].topk(5, dim=1).indices  # (B, 5)
+        buffalo_top5 = out["buffalo"].topk(5, dim=1).indices  # (B, 5)
+        cattle_in_top5 = (cattle_top5 == cattle_true.unsqueeze(1)).any(dim=1)
+        buffalo_in_top5 = (buffalo_top5 == buffalo_true.unsqueeze(1)).any(dim=1)
+        
         is_cattle = (bin_true == 0)
         top3_hit = torch.where(is_cattle, cattle_in_top3, buffalo_in_top3)
         correct_top3 += top3_hit.sum().item()
         n_top3 += bs
+        
+        top5_hit = torch.where(is_cattle, cattle_in_top5, buffalo_in_top5)
+        correct_top5 += top5_hit.sum().item()
+        n_top5 += bs
 
     def acc(c, n):
         return c / n if n else 0.0
@@ -71,4 +82,5 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         "buffalo_acc": acc(correct_buffalo, n_buffalo),
         "combined_top1": acc(correct_combined, n_combined),
         "combined_top3": acc(correct_top3, n_top3),
+        "combined_top5": acc(correct_top5, n_top5),
     }

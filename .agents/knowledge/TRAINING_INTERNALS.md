@@ -61,8 +61,8 @@ total = w_binary * mean(soft_ce(binary_out, binary_label))
       + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label) * buffalo_mask) / sum(buffalo_mask)
 ```
 
-Phase 1 weights: `(1.0, 0.0, 0.0)` — only binary head trains
-Phase 2/3 weights: `(0.5, 0.25, 0.25)` — all heads train
+Phase 1 weights: `(0.15, 0.5, 0.35)` — all heads train (backbone frozen)
+Phase 2/3 weights: `(0.15, 0.5, 0.35)` — all heads train (differential LR + EMA in Phase 2)
 
 ---
 
@@ -97,8 +97,9 @@ for epoch in range(epochs):
 
     # -- Validation --
     model.eval()
+    eval_model = ema_model if ema_model else model
     with torch.no_grad():
-        metrics = evaluate_epoch(model, val_loader, device)
+        metrics = evaluate_epoch(eval_model, val_loader, device)
 
     # -- Checkpoint --
     if metrics[best_key] >= best:
@@ -120,6 +121,7 @@ for epoch in range(epochs):
 | `buffalo_acc` | correct among buffalo-masked samples |
 | `combined_top1` | species + breed both correct |
 | `combined_top3` | species correct AND true breed in top-3 |
+| `combined_top5` | species correct AND true breed in top-5 |
 
 ---
 

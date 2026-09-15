@@ -329,7 +329,7 @@ python local_train.py [OPTIONS]
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--include-qat` | flag | off | **Enable Phase 3 (Quantization Aware Training).** Required if deploying an INT8 model to Android. Slows down training but drastically improves accuracy of the 6MB INT8 exported model. |
-| `--phase1-epochs` | int | `5` | Override Phase 1 (binary warmup) epoch count |
+| `--phase1-epochs` | int | `5` | Override Phase 1 (all-heads warmup) epoch count |
 | `--phase2-epochs` | int | `40` | Override Phase 2 (multi-task) epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
 | `--num-workers` | int | `4` | DataLoader worker processes |
@@ -689,7 +689,7 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--phase1-epochs` | int | `5` | Phase 1 epoch count (binary warmup) |
+| `--phase1-epochs` | int | `5` | Phase 1 epoch count (all-heads warmup) |
 | `--phase2-epochs` | int | `40` | Phase 2 epoch count (multi-task fine-tune) |
 | `--phase3-epochs` | int | `10` | Phase 3 epoch count (QAT) |
 | `--skip-qat` | flag | off | **Skip Phase 3 (Quantization Aware Training) entirely.** Phase 3 converts the model to INT8 representation and fine-tunes it to recover accuracy. Skipping it saves time but makes the INT8 export inaccurate. |

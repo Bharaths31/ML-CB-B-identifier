@@ -19,7 +19,8 @@ from .config import (BACKBONE_WEIGHTS, BATCH_SIZE, CHECKPOINT_DIR,
                      LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_CATTLE,
                      NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS,
                      PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR,
-                     RAW_DATA_DIR, SEED, SPLIT_DIR, WARMUP_EPOCHS, WEIGHT_DECAY)
+                     RAW_DATA_DIR, SEED, SPLIT_DIR, WARMUP_EPOCHS, WEIGHT_DECAY,
+                     BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
 from .data_pipeline import (get_dataloaders, prepare_half_splits,
                             prepare_quarter_splits, prepare_smoke_splits,
                             prepare_splits)
@@ -101,7 +102,7 @@ def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
 
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               max_batches=None, set_train=None, desc="train",
-              grad_accum_steps=1, label_smoothing=0.0):
+              grad_accum_steps=1, label_smoothing=0.0, ema_model=None, ema_decay=0.999):
     """Run one training epoch with optional AMP, gradient accumulation,
     and label smoothing."""
     set_train = set_train or (lambda m: m.train())
@@ -120,7 +121,7 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
 
-        if desc.startswith("train") and len(images) > 1 and random.random() < 0.5:
+        if desc.startswith("train") and len(images) > 1 and random.random() < CUTMIX_MIXUP_PROB:
             from .data_pipeline import cutmix, mixup
             if random.random() < 0.5:
                 images, labels = cutmix(images, labels)
@@ -153,6 +154,11 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
 
+        if ema_model is not None:
+            with torch.no_grad():
+                for ema_param, param in zip(ema_model.parameters(), model.parameters()):
+                    ema_param.data.mul_(ema_decay).add_(param.data, alpha=1 - ema_decay)
+
         running.append((loss.item() * grad_accum_steps, ce_b.item(),
                         ce_c.item(), ce_buf.item()))
         pbar.set_postfix(loss=f"{running[-1][0]:.4f}", refresh=False)
@@ -181,11 +187,26 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 loss_weights, scheduler_factory, checkpoint_path,
                 scaler=None, max_batches=None, best_key="combined_top1",
                 set_train=None, weight_decay=0.0,
-                grad_accum_steps=1, label_smoothing=0.0, eval_every=1):
+                grad_accum_steps=1, label_smoothing=0.0, eval_every=1,
+                ema_model=None):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
-    params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = AdamW(params, lr=lr, weight_decay=weight_decay)
+    raw_model = getattr(model, '_orig_mod', model)
+    if hasattr(raw_model, 'backbone') and phase == 2:
+        param_groups = [
+            {"params": raw_model.backbone.parameters(), "lr": lr * BACKBONE_LR_MULT},
+            {"params": raw_model.attention.parameters(), "lr": lr * 0.5},
+            {"params": raw_model.binary_head.parameters(), "lr": lr},
+            {"params": raw_model.cattle_head.parameters(), "lr": lr},
+            {"params": raw_model.buffalo_head.parameters(), "lr": lr},
+        ]
+        for group in param_groups:
+            group["params"] = [p for p in group["params"] if p.requires_grad]
+        optimizer = AdamW(param_groups, lr=lr, weight_decay=weight_decay)
+    else:
+        params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = AdamW(params, lr=lr, weight_decay=weight_decay)
+        
     scheduler = scheduler_factory(optimizer) if scheduler_factory else None
     best = 0.0
 
@@ -198,12 +219,12 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             max_batches, set_train=set_train,
             desc=f"phase{phase} e{epoch}/{epochs}",
             grad_accum_steps=grad_accum_steps,
-            label_smoothing=label_smoothing)
+            label_smoothing=label_smoothing, ema_model=ema_model)
         if scheduler is not None:
             scheduler.step()
 
         if epoch % eval_every == 0 or epoch == epochs:
-            metrics = evaluate_epoch(model, val_loader, device,
+            metrics = evaluate_epoch(ema_model if ema_model else model, val_loader, device,
                                      max_batches=max_batches)
             acc = metrics[best_key]
             tag = f"phase{phase} epoch {epoch}/{epochs}"
@@ -213,7 +234,8 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                   f"top1={metrics['combined_top1']:.4f}", flush=True)
             if acc >= best:
                 best = acc
-                sd = model._orig_mod.state_dict() if hasattr(model, "_orig_mod") else model.state_dict()
+                eval_mdl = ema_model if ema_model else model
+                sd = eval_mdl._orig_mod.state_dict() if hasattr(eval_mdl, "_orig_mod") else eval_mdl.state_dict()
                 torch.save({"phase": phase, "epoch": epoch, "val_top1": acc,
                             "state_dict": sd}, checkpoint_path)
             phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{acc:.4f}",
@@ -465,16 +487,20 @@ def main():
 
     start_time = time.time()
 
-    # --- Phase 1: Binary head warmup ---
+    # --- Phase 1: All heads warmup ---
     model.freeze_all()
     for p in model.binary_head.parameters():
         p.requires_grad = True
+    for p in model.cattle_head.parameters():
+        p.requires_grad = True
+    for p in model.buffalo_head.parameters():
+        p.requires_grad = True
     model.backbone_eval()
-    print(f"[train] phase 1: backbone frozen, binary head only, "
+    print(f"[train] phase 1: backbone frozen, all heads warm up, "
           f"lr={PHASE1_LR:.0e}, {phase1} epochs")
     train_phase(model, train_loader, val_loader, device, 1, phase1, PHASE1_LR,
-                (1.0, 0.0, 0.0), None, f"{base}_phase1_best.pt", scaler,
-                max_batches, best_key="binary_acc",
+                (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO), None, f"{base}_phase1_best.pt", scaler,
+                max_batches, best_key="combined_top1",
                 set_train=lambda m: (m.train(), m.backbone_eval()),
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
@@ -498,6 +524,13 @@ def main():
           f"(warmup={warmup_ep}ep + cosine), "
           f"{phase2} epochs, weights "
           f"({LOSS_WEIGHT_BINARY}/{LOSS_WEIGHT_CATTLE}/{LOSS_WEIGHT_BUFFALO})")
+          
+    import copy
+    ema_model = copy.deepcopy(model)
+    ema_model.eval()
+    for p in ema_model.parameters():
+        p.requires_grad = False
+        
     train_phase(compiled_model, train_loader, val_loader, device, 2, phase2, PHASE2_LR,
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
                 lambda opt: _build_warmup_cosine_scheduler(
@@ -506,7 +539,8 @@ def main():
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
-                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE2)
+                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE2,
+                ema_model=ema_model)
 
     # --- Phase 3: QAT (optional) ---
     best_checkpoint = f"{base}_phase2_best.pt"
@@ -532,7 +566,7 @@ def main():
                 print(f"[train] converted to INT8, saved {base}_quantized.pt")
             except Exception as exc:
                 print(f"[train] INT8 conversion failed ({exc})")
-        best_checkpoint = f"{base}_phase3_best.pt"
+        best_checkpoint = f"{base}_phase2_best.pt"  # Export phase 2 by default to preserve accuracy
 
     elapsed = time.time() - start_time
     elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
