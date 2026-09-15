@@ -26,6 +26,11 @@ This opens a browser at `http://localhost:8501` with the GUI.
   - Species classification: **Cattle** or **Buffalo** with confidence %
   - **Top-5 breed predictions** with animated confidence bars
   - Model metadata footer (which model was used, device info)
+- **Dual Modes (`--dev` vs `--present`)**:
+  - **Developer Mode (`--dev`)**: The default mode providing full technical insights (EXIF metadata, detailed stats, data json viewer, and presenter configuration).
+  - **Presenter Mode (`--present`)**: A clean, distraction-free UI ideal for demonstrations, which hides technical clutter and removes export functionalities.
+- **Presenter Configuration**: Interactive toggles in dev mode let you control branding, visible sections, and confidence metrics. Settings are persisted seamlessly across server restarts via `outputs/logs/presenter_config.json`.
+- **Comprehensive Logging**: Every action (server start, model load, prediction trace) is logged out to `outputs/logs/` automatically.
 - **Zero Config**: Works out of the box with any trained checkpoint
 
 ---
@@ -49,6 +54,8 @@ python test_model.py --no-browser
 |------|-------------|
 | `--port N` | Port to serve on (default: `8501`) |
 | `--no-browser` | Don't auto-open the browser window |
+| `--dev` | Start in developer mode (default). Shows full technical UI and presenter settings. |
+| `--present` | Start in presenter mode. Hides detailed stats and limits confidence metrics. |
 
 ---
 
@@ -81,6 +88,10 @@ python test_model.py --no-browser
 | `GET` | `/` | Serves the HTML GUI |
 | `GET` | `/api/models` | Returns available models + device info |
 | `POST` | `/api/predict` | Accepts `image` (file) + `model` (name), returns prediction |
+| `GET` | `/api/cattle-data` | Returns cattle class mappings |
+| `GET` | `/api/buffalo-data` | Returns buffalo class mappings |
+| `GET` | `/api/presenter-config` | Returns saved presenter UI configuration |
+| `POST` | `/api/presenter-config` | Saves updated presenter UI configuration |
 
 ### Example `/api/predict` Response
 

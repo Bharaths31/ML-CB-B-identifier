@@ -383,6 +383,10 @@ python test_model.py
 Opens a browser at `http://localhost:8501` automatically. No virtual environment activation needed if you've already installed dependencies.
 
 **Features:**
+- **Developer vs Presenter Modes:** Use `--dev` (default) for detailed technical inspection (EXIF data, detailed stats) and presenter customization. Use `--present` for clean, distraction-free demonstrations.
+- **Presenter Configuration:** Customize UI elements (branding, section toggles) in `--dev` mode; settings persist automatically across sessions.
+- **Comprehensive Logging:** All session events, including model/image selections, reasoning processes, and results, are logged seamlessly to `outputs/logs/`.
+- **Advanced Image Metadata:** View detailed properties (dimensions, EXIF info, proportions) of uploaded images in Developer mode.
 - **Tabbed Interface:** Separate modes for "Single Image" and "Batch Image" analysis.
 - **Batch Processing:** Drag-and-drop multiple images simultaneously with real-time progress bars and aggregate dashboard stats.
 - **ODT Report Export:** One-click export of structured `.odt` files summarizing top-5 predictions for single or batch runs.
@@ -398,6 +402,8 @@ Opens a browser at `http://localhost:8501` automatically. No virtual environment
 |---|---|---|---|
 | `--port` | int | `8501` | HTTP port to serve on |
 | `--no-browser` | flag | off | Don't auto-open the browser window |
+| `--dev` | flag | on | Enable Developer mode (full stats, logs, presenter config) |
+| `--present` | flag | off | Enable Presenter mode (clean UI, minimal technical stats) |
 
 ```bash
 # Default (auto-opens browser on port 8501)
@@ -762,6 +768,13 @@ python -m src.train --quarter-data --device cpu --no-compile
 ---
 
 ## Changelog
+
+**2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata**
+- **Model Tester GUI (`test_model.py`)**: Added `--dev` (default) and `--present` flag modes.
+- **Developer Mode (`--dev`)**: Advanced view showing image metadata (EXIF, size, proportion), cattle/buffalo JSON data, model specifications, and options to edit the presenter's view settings.
+- **Presenter Mode (`--present`)**: Clean, minimalist test page that hides detailed technical stats, diminishes confidence metrics, and removes the export option for a cleaner presentation.
+- **Presenter Config**: UI configurations (branding, section toggles, confidence modes) are saved persistently via `outputs/logs/presenter_config.json`.
+- **Session Logging**: Captures all UI interactions, model/image selections, and prediction reasoning into a separate log file in `outputs/logs/`.
 
 **2026-09-14 — GUI Batch Processing & ODT Export**
 - **GUI Modernization (`test_model.py`)**: Added a tabbed interface separating single image testing from batch processing.

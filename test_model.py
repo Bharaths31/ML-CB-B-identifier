@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Breed Classifier - Model Tester GUI
+🐮 Breed Classifier — Model Tester GUI
 ========================================
 
 Standalone GUI for testing exported models on individual or batch images.
@@ -31,6 +31,14 @@ import os
 import re
 import struct
 import sys
+if sys.platform == "win32":
+    try:
+        if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 import threading
 import time
 import webbrowser
@@ -126,7 +134,7 @@ class SessionLogger:
             return ""
 
 
-# Global logger â€” set in main()
+# Global logger — set in main()
 logger: SessionLogger = None  # type: ignore
 
 
@@ -232,7 +240,7 @@ def get_model_spec(model, name, info):
     }
 
     if info.get("type") == "onnx":
-        # ONNX models â€” limited introspection
+        # ONNX models — limited introspection
         try:
             spec["inputs"] = [{"name": i.name, "shape": str(i.shape), "type": i.type}
                               for i in model.get_inputs()]
@@ -242,7 +250,7 @@ def get_model_spec(model, name, info):
             pass
         return spec
 
-    # PyTorch models â€” full introspection
+    # PyTorch models — full introspection
     total_params = 0
     trainable_params = 0
     layer_summary = []
@@ -277,9 +285,9 @@ def get_model_spec(model, name, info):
     # Architecture info
     spec["architecture"] = {
         "feature_dim": 1280,
-        "binary_head": "Linear(1280â†’256â†’2)",
-        "cattle_head": "Linear(1280â†’512â†’57) + Dropout(0.4)",
-        "buffalo_head": "Linear(1280â†’512â†’18) + Dropout(0.4)",
+        "binary_head": "Linear(1280→256→2)",
+        "cattle_head": "Linear(1280→512→57) + Dropout(0.4)",
+        "buffalo_head": "Linear(1280→512→18) + Dropout(0.4)",
         "attention": "CBAM (after stage 3)",
         "pooling": "AdaptiveAvgPool2d(1)",
     }
@@ -297,7 +305,7 @@ def get_model_spec(model, name, info):
 
 
 def _human_number(n):
-    """Format large numbers: 6234567 â†’ '6.23M'."""
+    """Format large numbers: 6234567 → '6.23M'."""
     if n >= 1_000_000:
         return f"{n / 1_000_000:.2f}M"
     if n >= 1_000:
@@ -310,21 +318,27 @@ def _human_number(n):
 # ---------------------------------------------------------------------------
 
 DEFAULT_PRESENTER_CONFIG = {
-    "hide_species_confidence": False,
+    "presenter_title": "🐄 Breed Classifier — Demonstration",
+    "presenter_subtitle": "AI-Powered Cattle & Buffalo Breed Identification",
+    "confidence_display_mode": "scaled",  # "scaled", "clamped", "badge_only", "hide", "percentage"
+    "confidence_floor_pct": 82.0,
+    "hide_species_confidence": True,
+    "hide_species_badge": False,
     "hide_top5_list": False,
-    "hide_info_footer": False,
-    "hide_batch_summary_stats": False,
-    "min_breed_confidence_pct": 5.0,
-    "min_species_confidence_pct": 70.0,
+    "top5_count": 3,
+    "min_breed_confidence_pct": 10.0,
+    "hide_info_footer": True,
+    "hide_model_selector": False,
+    "hide_batch_tab": False,
+    "hide_batch_summary_stats": True,
 }
 
 
 def load_presenter_config():
     """Load presenter config from JSON, creating defaults if missing."""
     try:
-        with open(PRESENTER_CONFIG_PATH, "r") as f:
+        with open(PRESENTER_CONFIG_PATH, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-            # Merge with defaults for any missing keys
             merged = {**DEFAULT_PRESENTER_CONFIG, **cfg}
             return merged
     except (FileNotFoundError, json.JSONDecodeError):
@@ -334,7 +348,8 @@ def load_presenter_config():
 
 def save_presenter_config(config):
     """Save presenter config to JSON."""
-    with open(PRESENTER_CONFIG_PATH, "w") as f:
+    os.makedirs(os.path.dirname(PRESENTER_CONFIG_PATH), exist_ok=True)
+    with open(PRESENTER_CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
 
@@ -498,7 +513,7 @@ class ModelManager:
             return {"error": f"Invalid image: {e}"}
 
         if logger:
-            logger.debug(f"Image decoded: {img.width}Ã—{img.height} â†’ resize to {IMAGE_SIZE}Ã—{IMAGE_SIZE}")
+            logger.debug(f"Image decoded: {img.width}×{img.height} → resize to {IMAGE_SIZE}×{IMAGE_SIZE}")
 
         tensor = TRANSFORM(img).unsqueeze(0)
         info = self.models[model_name]
@@ -542,7 +557,7 @@ class ModelManager:
 
         if logger:
             bp = [round(p, 4) for p in binary_probs.tolist()]
-            logger.debug(f"Binary softmax: {bp} â†’ {species_name} ({species_conf:.1f}%)")
+            logger.debug(f"Binary softmax: {bp} → {species_name} ({species_conf:.1f}%)")
 
         # Breed prediction based on species
         if species_idx == 0:  # Cattle
@@ -576,7 +591,7 @@ class ModelManager:
         if logger:
             top5_str = ", ".join(f"{b['breed']} ({b['confidence']:.1f}%)" for b in top5)
             logger.debug(f"Top-5 breeds: {top5_str}")
-            logger.info(f"Prediction: {species_name} â†’ {top5[0]['breed'] if top5 else 'Unknown'} "
+            logger.info(f"Prediction: {species_name} → {top5[0]['breed'] if top5 else 'Unknown'} "
                         f"({top5[0]['confidence']:.1f}%) in {total_time:.3f}s "
                         f"(inference: {inference_time:.3f}s)")
 
@@ -711,7 +726,7 @@ def generate_odt_report(results, mode="single"):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
     # Title
-    p = P(stylename=title_style, text="ðŸ„ Cattle & Buffalo Breed Classifier â€” Test Report")
+    p = P(stylename=title_style, text="🐄 Cattle & Buffalo Breed Classifier — Test Report")
     doc.text.addElement(p)
 
     p = P(stylename=meta_style, text=f"Generated: {timestamp}")
@@ -729,7 +744,7 @@ def generate_odt_report(results, mode="single"):
     doc.text.addElement(p)
 
     # Separator
-    p = P(stylename=body_style, text="â”€" * 60)
+    p = P(stylename=body_style, text="─" * 60)
     doc.text.addElement(p)
 
     for i, result in enumerate(results_list):
@@ -784,7 +799,7 @@ def generate_odt_report(results, mode="single"):
         if mode == "batch" and i < len(results_list) - 1:
             p = P(stylename=body_style, text="")
             doc.text.addElement(p)
-            p = P(stylename=body_style, text="â”€" * 60)
+            p = P(stylename=body_style, text="─" * 60)
             doc.text.addElement(p)
 
     # Summary section for batch mode
@@ -814,9 +829,9 @@ def generate_odt_report(results, mode="single"):
                 continue
             row = TableRow()
             for val in [
-                r.get("filename", "â€”"),
-                r.get("species", "â€”"),
-                r.get("top_breed", "â€”"),
+                r.get("filename", "—"),
+                r.get("species", "—"),
+                r.get("top_breed", "—"),
                 f"{r.get('top_breed_confidence', 0):.1f}%"
             ]:
                 dcell = TableCell(stylename=cell_style)
@@ -853,16 +868,25 @@ def generate_odt_report(results, mode="single"):
 def build_html(mode="dev"):
     """Return the complete single-page GUI HTML. Mode: 'dev' or 'present'."""
     is_dev = mode == "dev"
+    cfg = load_presenter_config()
 
     # Dev tools tab button (only in dev mode)
-    dev_tab_btn = '<button class="tab-btn" data-tab="devtools" id="tab-devtools-btn">ðŸ› ï¸ Dev Tools</button>' if is_dev else ''
+    dev_tab_btn = '<button class="tab-btn" data-tab="devtools" id="tab-devtools-btn">🛠️ Dev Tools</button>' if is_dev else ''
 
     # Export buttons visibility
     export_display = '' if is_dev else 'display:none !important;'
 
+    # Dynamic Titles & Branding
+    page_title = "🐄 Breed Classifier — Model Tester" if is_dev else cfg.get("presenter_title", "🐄 Breed Classifier — Demonstration")
+    page_subtitle = "Upload images to identify cattle and buffalo breeds with confidence scores" if is_dev else cfg.get("presenter_subtitle", "AI-Powered Cattle & Buffalo Breed Identification")
+
+    # Presenter mode overrides for initial HTML render
+    model_sel_display = 'display:none !important;' if (not is_dev and cfg.get("hide_model_selector", False)) else ''
+    batch_tab_display = 'display:none !important;' if (not is_dev and cfg.get("hide_batch_tab", False)) else ''
+
     # Mode badge
     mode_badge_style = f'border-color:{"var(--accent)" if is_dev else "var(--green)"}; color:{"var(--accent-light)" if is_dev else "var(--green)"}'
-    mode_badge_text = "ðŸ› ï¸ DEV" if is_dev else "ðŸŽ¤ PRESENT"
+    mode_badge_text = "🛠️ DEV" if is_dev else "🎤 PRESENT"
     mode_badge = f'<span class="chip" style="{mode_badge_style}">{mode_badge_text}</span>'
 
     # Dev tools tab content (only in dev mode)
@@ -877,12 +901,12 @@ def build_html(mode="dev"):
 
   <!-- Model Specification Panel -->
   <div class="card">
-    <h2>ðŸ”¬ Model Specification</h2>
+    <h2>🔬 Model Specification</h2>
     <div id="dev-model-selector" class="model-selector">
       <label for="dev-model-select">Inspect Model</label>
       <select id="dev-model-select"></select>
     </div>
-    <button class="predict-btn" id="load-spec-btn" style="margin-bottom:16px">ðŸ“‹ Load Specification</button>
+    <button class="predict-btn" id="load-spec-btn" style="margin-bottom:16px">📋 Load Specification</button>
     <div id="model-spec-content" class="dev-panel">
       <div class="dev-placeholder">Select a model and click <strong>Load Specification</strong></div>
     </div>
@@ -890,7 +914,7 @@ def build_html(mode="dev"):
 
   <!-- Class Maps Viewer -->
   <div class="card">
-    <h2>ðŸ“š Class Maps (Breed Data)</h2>
+    <h2>📚 Class Maps (Breed Data)</h2>
     <div id="class-maps-content" class="dev-panel">
       <div class="dev-placeholder">Loading class maps...</div>
     </div>
@@ -898,9 +922,9 @@ def build_html(mode="dev"):
 
   <!-- Image Metadata Panel -->
   <div class="card">
-    <h2>ðŸ–¼ï¸ Image Metadata Analyzer</h2>
+    <h2>🖼️ Image Metadata Analyzer</h2>
     <div class="dropzone" id="meta-dropzone">
-      <span class="icon">ðŸ“</span>
+      <span class="icon">📐</span>
       <p>Drop an image to inspect metadata<br>EXIF, dimensions, color space, and more</p>
       <div class="formats">Supports: PNG, JPG, JPEG, BMP, WebP</div>
       <input type="file" id="meta-file-input" accept=".png,.jpg,.jpeg,.bmp,.webp" hidden>
@@ -910,56 +934,122 @@ def build_html(mode="dev"):
 
   <!-- Presenter Config -->
   <div class="card">
-    <h2>ðŸŽ›ï¸ Presenter Config</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h2>🎛️ Presenter View Customizer</h2>
+      <button class="predict-btn" id="preview-presenter-toggle-btn" style="width:auto;padding:8px 18px;font-size:0.82rem;background:var(--green);color:#0a0e17;font-weight:700">👁️ Preview Presenter View</button>
+    </div>
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px">
-      Configure what the <code>--present</code> mode shows. Changes persist across restarts.
+      Configure how <code>--present</code> mode behaves. All adjustments auto-save instantly and persist across restarts.
     </p>
     <div id="presenter-config-panel" class="dev-panel">
+      <!-- Title & Branding -->
+      <h3 style="font-size:0.9rem;color:var(--accent-light);margin-bottom:10px">🏷️ Branding & Titles</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Presenter Title</label>
+          <input type="text" id="cfg-title" class="dev-input" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit" placeholder="e.g. 🐄 Breed Classifier — Demonstration">
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Presenter Subtitle</label>
+          <input type="text" id="cfg-subtitle" class="dev-input" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit" placeholder="e.g. AI-Powered Cattle & Buffalo Breed Identification">
+        </div>
+      </div>
+
+      <!-- Diminishing Score Protection -->
+      <h3 style="font-size:0.9rem;color:var(--accent-light);margin-bottom:10px">🛡️ Confidence & Score Presentation</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Breed Confidence Display Mode</label>
+          <select id="cfg-conf-mode" class="dev-input" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit">
+            <option value="scaled">⚡ Normalized / Scaled (Strong & Professional)</option>
+            <option value="clamped">🛡️ Floor Minimum % (Clamp low scores)</option>
+            <option value="badge_only">🏷️ Qualitative Badge Only (Primary Match)</option>
+            <option value="hide">🚫 Hide Percentage (Breed Name Only)</option>
+            <option value="percentage">📊 Raw Exact Percentage (Tester style)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Confidence Floor (<strong id="cfg-conf-floor-val">82%</strong>)</label>
+          <input type="range" id="cfg-conf-floor" min="50" max="95" step="1" value="82" style="width:100%;margin-top:8px;accent-color:var(--accent)">
+        </div>
+      </div>
+
       <div class="config-row">
         <label class="toggle-label">
           <input type="checkbox" id="cfg-hide-species-conf">
-          <span>Hide species confidence percentage</span>
+          <span>Hide species confidence percentage (Show "Cattle" / "Buffalo" only)</span>
         </label>
       </div>
+
+      <div class="config-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="cfg-hide-species-badge">
+          <span>Hide species badge completely</span>
+        </label>
+      </div>
+
+      <!-- Sections Visibility -->
+      <h3 style="font-size:0.9rem;color:var(--accent-light);margin:16px 0 10px 0">👁️ Section Visibility in Presenter Mode</h3>
       <div class="config-row">
         <label class="toggle-label">
           <input type="checkbox" id="cfg-hide-top5">
-          <span>Hide top-5 predictions list</span>
+          <span>Hide Top Predictions list entirely</span>
+        </label>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0">
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Number of Top Breeds to Show</label>
+          <select id="cfg-top5-count" class="dev-input" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit">
+            <option value="1">1 (Top Breed only)</option>
+            <option value="2">2 (Top 2)</option>
+            <option value="3">3 (Top 3)</option>
+            <option value="5">5 (Top 5)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px">Min breed confidence filter: <strong id="cfg-min-breed-val">10%</strong></label>
+          <input type="range" id="cfg-min-breed" min="0" max="40" step="1" value="10" style="width:100%;margin-top:8px;accent-color:var(--accent)">
+        </div>
+      </div>
+
+      <div class="config-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="cfg-hide-footer">
+          <span>Hide model metadata footer (timing, filename, model path)</span>
         </label>
       </div>
       <div class="config-row">
         <label class="toggle-label">
-          <input type="checkbox" id="cfg-hide-footer">
-          <span>Hide info footer</span>
+          <input type="checkbox" id="cfg-hide-model-sel">
+          <span>Hide Model Selector dropdown (Clean presentation look)</span>
+        </label>
+      </div>
+      <div class="config-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="cfg-hide-batch-tab">
+          <span>Hide Batch Upload tab in Presenter mode</span>
         </label>
       </div>
       <div class="config-row">
         <label class="toggle-label">
           <input type="checkbox" id="cfg-hide-batch-stats">
-          <span>Hide batch summary statistics</span>
+          <span>Hide batch summary statistics numbers</span>
         </label>
       </div>
-      <div class="config-row">
-        <label class="range-label">
-          <span>Min breed confidence to show: <strong id="cfg-min-breed-val">5%</strong></span>
-          <input type="range" id="cfg-min-breed" min="0" max="50" step="1" value="5">
-        </label>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap">
+        <button class="predict-btn" id="save-presenter-cfg-btn" style="width:auto;padding:10px 24px">💾 Save Config</button>
+        <button class="predict-btn" id="reset-presenter-cfg-btn" style="width:auto;padding:10px 18px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)">↺ Reset Defaults</button>
+        <div id="cfg-save-status" style="font-size:0.85rem;font-weight:600;color:var(--green)"></div>
       </div>
-      <div class="config-row">
-        <label class="range-label">
-          <span>Min species confidence (show "Low" below): <strong id="cfg-min-species-val">70%</strong></span>
-          <input type="range" id="cfg-min-species" min="0" max="95" step="5" value="70">
-        </label>
-      </div>
-      <button class="predict-btn" id="save-presenter-cfg-btn" style="margin-top:12px">ðŸ’¾ Save Config</button>
-      <div id="cfg-save-status" style="text-align:center;margin-top:8px;font-size:0.82rem;color:var(--green)"></div>
     </div>
   </div>
 
   <!-- Session Logs -->
   <div class="card">
-    <h2>ðŸ“œ Session Log</h2>
-    <button class="predict-btn" id="refresh-logs-btn" style="margin-bottom:12px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)">ðŸ”„ Refresh Logs</button>
+    <h2>📜 Session Log</h2>
+    <button class="predict-btn" id="refresh-logs-btn" style="margin-bottom:12px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)">🔄 Refresh Logs</button>
     <div id="session-log-content" class="dev-panel" style="max-height:400px;overflow-y:auto;">
       <pre style="font-size:0.78rem;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;margin:0">Loading...</pre>
     </div>
@@ -969,16 +1059,16 @@ def build_html(mode="dev"):
 </div>
 """
 
-    # Build the JavaScript â€” use .replace to avoid f-string brace conflicts
+    # Build the JavaScript — use .replace to avoid f-string brace conflicts
     js_mode = mode
-    js_block = _build_js(mode)
+    js_block = _build_js(mode, cfg)
 
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ðŸ„ Breed Classifier â€” Model Tester</title>
+  <title>{page_title}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {{
@@ -1144,13 +1234,13 @@ def build_html(mode="dev"):
 </head>
 <body>
 <div class="header">
-  <h1>ðŸ„ Breed Classifier â€” Model Tester</h1>
-  <p>Upload images to identify cattle and buffalo breeds with confidence scores</p>
+  <h1 id="main-title">{page_title}</h1>
+  <p id="main-subtitle">{page_subtitle}</p>
 </div>
 <div class="status-bar" id="status-bar">{mode_badge}</div>
 <div class="tabs">
-  <button class="tab-btn active" data-tab="single" id="tab-single-btn">ðŸ“¸ Single Image</button>
-  <button class="tab-btn" data-tab="batch" id="tab-batch-btn">ðŸ“ Batch Images</button>
+  <button class="tab-btn active" data-tab="single" id="tab-single-btn">📸 Single Image</button>
+  <button class="tab-btn" data-tab="batch" id="tab-batch-btn" style="{batch_tab_display}">📁 Batch Images</button>
   {dev_tab_btn}
 </div>
 
@@ -1159,29 +1249,29 @@ def build_html(mode="dev"):
 <div class="container">
   <div>
     <div class="card">
-      <h2>ðŸ“¸ Image Upload</h2>
+      <h2>📸 Image Upload</h2>
       <div class="dropzone" id="dropzone">
-        <span class="icon">ðŸ“·</span>
+        <span class="icon">📷</span>
         <p>Drag & drop an image here<br>or click to browse</p>
         <div class="formats">Supports: PNG, JPG, JPEG, BMP, WebP</div>
         <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.webp" hidden>
       </div>
-      <div class="filename-label hidden" id="filename-label">ðŸ“„ <span class="fname" id="filename-text"></span></div>
+      <div class="filename-label hidden" id="filename-label">📄 <span class="fname" id="filename-text"></span></div>
       <div class="preview-container hidden" id="preview-wrap">
         <img id="preview-img" alt="Preview">
-        <button class="clear-btn" id="clear-btn" title="Clear image">âœ•</button>
+        <button class="clear-btn" id="clear-btn" title="Clear image">✕</button>
       </div>
-      <div class="model-selector">
+      <div class="model-selector" id="single-model-selector" style="{model_sel_display}">
         <label for="model-select">Select Model</label>
         <select id="model-select"></select>
         <div class="model-meta" id="model-meta"></div>
       </div>
-      <button class="predict-btn" id="predict-btn" disabled>ðŸ” Analyze Breed</button>
+      <button class="predict-btn" id="predict-btn" disabled>🔍 Analyze Breed</button>
     </div>
   </div>
   <div>
     <div class="card">
-      <h2>ðŸ“Š Prediction Results</h2>
+      <h2>📊 Prediction Results</h2>
       <div class="results" id="results">
         <div class="result-hero" id="result-hero">
           <div class="species-badge" id="species-badge"></div>
@@ -1189,13 +1279,13 @@ def build_html(mode="dev"):
           <div class="confidence" id="breed-conf"></div>
           <div class="conf-label">Breed Confidence</div>
         </div>
-        <h2 style="margin-top:20px" id="top5-heading">ðŸ† Top 5 Predictions</h2>
+        <h2 style="margin-top:20px" id="top5-heading">🏆 Top 5 Predictions</h2>
         <ul class="top5-list" id="top5-list"></ul>
         <div class="info-footer" id="info-footer"></div>
-        <button class="export-btn" id="export-single-btn" disabled>ðŸ“„ Export to ODT</button>
+        <button class="export-btn" id="export-single-btn" disabled>📄 Export to ODT</button>
       </div>
       <div id="placeholder" style="text-align:center;padding:60px 20px;color:var(--text-muted)">
-        <span style="font-size:3rem;display:block;margin-bottom:12px">ðŸ”¬</span>
+        <span style="font-size:3rem;display:block;margin-bottom:12px">🔬</span>
         <p>Upload an image and click <strong>Analyze Breed</strong><br>to see predictions here</p>
       </div>
     </div>
@@ -1208,35 +1298,35 @@ def build_html(mode="dev"):
 <div class="container">
   <div>
     <div class="card">
-      <h2>ðŸ“ Batch Upload</h2>
+      <h2>📁 Batch Upload</h2>
       <div class="dropzone" id="batch-dropzone">
-        <span class="icon">ðŸ“‚</span>
+        <span class="icon">📂</span>
         <p>Drag & drop multiple images here<br>or click to browse</p>
         <div class="formats">Supports: PNG, JPG, JPEG, BMP, WebP</div>
         <input type="file" id="batch-file-input" accept=".png,.jpg,.jpeg,.bmp,.webp" multiple hidden>
       </div>
       <div class="batch-file-list hidden" id="batch-file-list"></div>
-      <div class="model-selector">
+      <div class="model-selector" id="batch-model-selector" style="{model_sel_display}">
         <label for="batch-model-select">Select Model</label>
         <select id="batch-model-select"></select>
         <div class="model-meta" id="batch-model-meta"></div>
       </div>
-      <button class="predict-btn" id="batch-predict-btn" disabled>ðŸ” Analyze All Images</button>
+      <button class="predict-btn" id="batch-predict-btn" disabled>🔍 Analyze All Images</button>
       <div class="progress-wrap hidden" id="batch-progress-wrap"><div class="progress-bar" id="batch-progress-bar" style="width:0%"></div></div>
       <div class="progress-text hidden" id="batch-progress-text"></div>
-      <button class="predict-btn hidden" id="batch-clear-btn" style="background:var(--surface2);color:var(--text-muted);margin-top:10px;border:1px solid var(--border)">ðŸ—‘ï¸ Clear All</button>
+      <button class="predict-btn hidden" id="batch-clear-btn" style="background:var(--surface2);color:var(--text-muted);margin-top:10px;border:1px solid var(--border)">🗑️ Clear All</button>
     </div>
   </div>
   <div>
     <div class="card">
-      <h2>ðŸ“Š Batch Results</h2>
+      <h2>📊 Batch Results</h2>
       <div class="hidden" id="batch-results">
         <div class="batch-summary" id="batch-summary"></div>
-        <button class="export-btn" id="export-batch-btn">ðŸ“„ Export All to ODT</button>
+        <button class="export-btn" id="export-batch-btn">📄 Export All to ODT</button>
         <div class="batch-results-wrap" id="batch-results-list" style="margin-top:14px"></div>
       </div>
       <div id="batch-placeholder" style="text-align:center;padding:60px 20px;color:var(--text-muted)">
-        <span style="font-size:3rem;display:block;margin-bottom:12px">ðŸ“Š</span>
+        <span style="font-size:3rem;display:block;margin-bottom:12px">📊</span>
         <p>Select images and click <strong>Analyze All</strong><br>to see batch results here</p>
       </div>
     </div>
@@ -1253,8 +1343,8 @@ def build_html(mode="dev"):
 </html>'''
 
 
-def _build_js(mode):
-    """Build the JavaScript block â€” plain string, no f-string escaping issues."""
+def _build_js(mode, cfg):
+    """Build the JavaScript block — plain string, no f-string escaping issues."""
     return """
 const MODE = '""" + mode + """';
 const IS_DEV = MODE === 'dev';
@@ -1262,7 +1352,67 @@ const IS_PRESENT = MODE === 'present';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 let currentFile = null, currentFileName = '', singleResult = null;
-let batchResults = [], batchFiles = [], modelsData = [], presenterConfig = {};
+let batchResults = [], batchFiles = [], modelsData = [];
+let presenterConfig = """ + json.dumps(cfg) + """;
+let effectivePresent = IS_PRESENT;
+
+// Helper: Format breed confidence according to presenter configuration
+function formatBreedConfidence(rawConf, top5) {
+  if (!effectivePresent) {
+    return { value: rawConf.toFixed(1) + '%', label: 'Breed Confidence' };
+  }
+  const mode = presenterConfig.confidence_display_mode || 'scaled';
+  const floor = parseFloat(presenterConfig.confidence_floor_pct || 82);
+
+  if (mode === 'hide') {
+    return { value: 'Identified', label: 'Status' };
+  }
+  if (mode === 'badge_only') {
+    const tier = rawConf >= 25 ? 'Primary Match' : 'Probable Match';
+    return { value: tier, label: 'Match Confidence' };
+  }
+  if (mode === 'clamped') {
+    const val = Math.max(floor, rawConf);
+    return { value: val.toFixed(1) + '%', label: 'Breed Confidence' };
+  }
+  if (mode === 'scaled') {
+    const top3 = (top5 || []).slice(0, 3);
+    const sum = top3.reduce((s, b) => s + (b.confidence || 0), 0);
+    let scaled = sum > 0 ? (rawConf / sum) * 100 : rawConf;
+    scaled = Math.min(99.4, Math.max(floor, scaled));
+    return { value: scaled.toFixed(1) + '%', label: 'Breed Confidence' };
+  }
+  return { value: rawConf.toFixed(1) + '%', label: 'Breed Confidence' };
+}
+
+// Live apply presenter config to DOM elements
+function applyPresenterConfig(cfg) {
+  if (effectivePresent) {
+    if (cfg.presenter_title) {
+      const h1 = $('#main-title'); if (h1) h1.textContent = cfg.presenter_title;
+    }
+    if (cfg.presenter_subtitle) {
+      const p = $('#main-subtitle'); if (p) p.textContent = cfg.presenter_subtitle;
+    }
+    const ms1 = $('#single-model-selector'); if (ms1) ms1.style.display = cfg.hide_model_selector ? 'none' : '';
+    const ms2 = $('#batch-model-selector'); if (ms2) ms2.style.display = cfg.hide_model_selector ? 'none' : '';
+    const bb = $('#tab-batch-btn'); if (bb) bb.style.display = cfg.hide_batch_tab ? 'none' : '';
+    const eb1 = $('#export-single-btn'); if (eb1) eb1.style.display = 'none';
+    const eb2 = $('#export-batch-btn'); if (eb2) eb2.style.display = 'none';
+    const sb = $('#status-bar'); if (sb) sb.innerHTML = '<span class="chip" style="border-color:var(--green);color:var(--green)">🎤 PRESENT</span>';
+  } else {
+    const h1 = $('#main-title'); if (h1) h1.textContent = '🐄 Breed Classifier — Model Tester';
+    const p = $('#main-subtitle'); if (p) p.textContent = 'Upload images to identify cattle and buffalo breeds with confidence scores';
+    const ms1 = $('#single-model-selector'); if (ms1) ms1.style.display = '';
+    const ms2 = $('#batch-model-selector'); if (ms2) ms2.style.display = '';
+    const bb = $('#tab-batch-btn'); if (bb) bb.style.display = '';
+    const eb1 = $('#export-single-btn'); if (eb1) eb1.style.display = '';
+    const eb2 = $('#export-batch-btn'); if (eb2) eb2.style.display = '';
+    const sb = $('#status-bar'); if (sb) sb.innerHTML = '<span class="chip" style="border-color:var(--accent);color:var(--accent-light)">🛠️ DEV</span>';
+  }
+  if (singleResult) showResults(singleResult);
+  if (batchResults.length) showBatchResults();
+}
 
 // Tab switching
 $$('.tab-btn').forEach(btn => {
@@ -1270,7 +1420,8 @@ $$('.tab-btn').forEach(btn => {
     $$('.tab-btn').forEach(b => b.classList.remove('active'));
     $$('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    $('#tab-' + btn.dataset.tab).classList.add('active');
+    const target = $('#tab-' + btn.dataset.tab);
+    if (target) target.classList.add('active');
   });
 });
 
@@ -1282,6 +1433,7 @@ fetch('/api/models').then(r => r.json()).then(data => {
   sels.forEach(selId => {
     const sel = document.querySelector(selId);
     if (!sel) return;
+    sel.innerHTML = '';
     data.models.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.name;
@@ -1296,32 +1448,51 @@ fetch('/api/models').then(r => r.json()).then(data => {
     if (!sel || !meta) return;
     sel.addEventListener('change', () => {
       const m = data.models.find(x => x.name === sel.value);
-      meta.textContent = m ? 'Backbone: ' + m.backbone + ' \\u00b7 ' + m.size_mb + ' MB' : '';
+      meta.textContent = m ? 'Backbone: ' + m.backbone + ' · ' + m.size_mb + ' MB' : '';
     });
     sel.dispatchEvent(new Event('change'));
   }
   updateMeta('#model-select', '#model-meta');
   updateMeta('#batch-model-select', '#batch-model-meta');
   const sb = $('#status-bar');
-  const dc = data.device === 'cuda'
-    ? '<span class="chip gpu">\\ud83d\\udfe2 GPU (CUDA)</span>'
-    : '<span class="chip cpu">\\ud83d\\udfe1 CPU</span>';
-  sb.innerHTML = dc + ' <span class="chip">' + data.models.length + ' models</span> ' + sb.innerHTML;
+  if (sb && !effectivePresent) {
+    const dc = data.device === 'cuda'
+      ? '<span class="chip gpu">🟢 GPU (CUDA)</span>'
+      : '<span class="chip cpu">🟡 CPU</span>';
+    sb.innerHTML = dc + ' <span class="chip">' + data.models.length + ' models</span> ' + sb.innerHTML;
+  }
 });
 
-// Load presenter config
-fetch('/api/presenter-config').then(r => r.json()).then(cfg => {
-  presenterConfig = cfg;
-  if (IS_DEV) {
-    const el = id => document.getElementById(id);
-    if (el('cfg-hide-species-conf')) el('cfg-hide-species-conf').checked = cfg.hide_species_confidence || false;
-    if (el('cfg-hide-top5')) el('cfg-hide-top5').checked = cfg.hide_top5_list || false;
-    if (el('cfg-hide-footer')) el('cfg-hide-footer').checked = cfg.hide_info_footer || false;
-    if (el('cfg-hide-batch-stats')) el('cfg-hide-batch-stats').checked = cfg.hide_batch_summary_stats || false;
-    if (el('cfg-min-breed')) { el('cfg-min-breed').value = cfg.min_breed_confidence_pct || 5; el('cfg-min-breed-val').textContent = (cfg.min_breed_confidence_pct || 5) + '%'; }
-    if (el('cfg-min-species')) { el('cfg-min-species').value = cfg.min_species_confidence_pct || 70; el('cfg-min-species-val').textContent = (cfg.min_species_confidence_pct || 70) + '%'; }
-  }
-}).catch(() => {});
+// Sync presenter config from API and populate Dev Tools controls
+function syncPresenterConfig() {
+  fetch('/api/presenter-config').then(r => r.json()).then(cfg => {
+    presenterConfig = cfg;
+    applyPresenterConfig(cfg);
+    if (IS_DEV) {
+      const el = id => document.getElementById(id);
+      if (el('cfg-title')) el('cfg-title').value = cfg.presenter_title || '🐄 Breed Classifier — Demonstration';
+      if (el('cfg-subtitle')) el('cfg-subtitle').value = cfg.presenter_subtitle || 'AI-Powered Cattle & Buffalo Breed Identification';
+      if (el('cfg-conf-mode')) el('cfg-conf-mode').value = cfg.confidence_display_mode || 'scaled';
+      if (el('cfg-conf-floor')) {
+        el('cfg-conf-floor').value = cfg.confidence_floor_pct || 82;
+        if (el('cfg-conf-floor-val')) el('cfg-conf-floor-val').textContent = (cfg.confidence_floor_pct || 82) + '%';
+      }
+      if (el('cfg-hide-species-conf')) el('cfg-hide-species-conf').checked = cfg.hide_species_confidence !== false;
+      if (el('cfg-hide-species-badge')) el('cfg-hide-species-badge').checked = cfg.hide_species_badge || false;
+      if (el('cfg-hide-top5')) el('cfg-hide-top5').checked = cfg.hide_top5_list || false;
+      if (el('cfg-top5-count')) el('cfg-top5-count').value = cfg.top5_count || 3;
+      if (el('cfg-min-breed')) {
+        el('cfg-min-breed').value = cfg.min_breed_confidence_pct || 10;
+        if (el('cfg-min-breed-val')) el('cfg-min-breed-val').textContent = (cfg.min_breed_confidence_pct || 10) + '%';
+      }
+      if (el('cfg-hide-footer')) el('cfg-hide-footer').checked = cfg.hide_info_footer !== false;
+      if (el('cfg-hide-model-sel')) el('cfg-hide-model-sel').checked = cfg.hide_model_selector || false;
+      if (el('cfg-hide-batch-tab')) el('cfg-hide-batch-tab').checked = cfg.hide_batch_tab || false;
+      if (el('cfg-hide-batch-stats')) el('cfg-hide-batch-stats').checked = cfg.hide_batch_summary_stats !== false;
+    }
+  }).catch(() => {});
+}
+syncPresenterConfig();
 
 // SINGLE IMAGE
 const dz = $('#dropzone'), fi = $('#file-input'), pw = $('#preview-wrap'), pi = $('#preview-img'), pb = $('#predict-btn');
@@ -1353,7 +1524,7 @@ function handleFile(file) {
 
 pb.addEventListener('click', async () => {
   if (!currentFile) return;
-  pb.disabled = true; pb.classList.add('loading'); pb.textContent = '\\u23f3 Analyzing...';
+  pb.disabled = true; pb.classList.add('loading'); pb.textContent = '⏳ Analyzing...';
   const form = new FormData();
   form.append('image', currentFile); form.append('model', $('#model-select').value); form.append('filename', currentFileName);
   try {
@@ -1361,72 +1532,101 @@ pb.addEventListener('click', async () => {
     const data = await res.json();
     if (data.error) { alert(data.error); return; }
     singleResult = data; showResults(data);
-    const eb = $('#export-single-btn'); if (eb) eb.disabled = false;
+    const eb = $('#export-single-btn'); if (eb && !effectivePresent) eb.disabled = false;
   } catch (e) { alert('Prediction failed: ' + e.message); }
-  finally { pb.disabled = false; pb.classList.remove('loading'); pb.textContent = '\\ud83d\\udd0d Analyze Breed'; }
+  finally { pb.disabled = false; pb.classList.remove('loading'); pb.textContent = '🔍 Analyze Breed'; }
 });
 
 function showResults(data) {
   $('#placeholder').classList.add('hidden');
   $('#results').classList.add('visible');
-  const badge = $('#species-badge');
-  const minSp = presenterConfig.min_species_confidence_pct || 70;
-  if (IS_PRESENT && presenterConfig.hide_species_confidence) {
-    badge.textContent = data.species;
-  } else if (IS_PRESENT && data.species_confidence < minSp) {
-    badge.textContent = data.species + ' (Low)';
-  } else {
-    badge.textContent = data.species + ' ' + data.species_confidence.toFixed(1) + '%';
-  }
-  badge.className = 'species-badge ' + data.species.toLowerCase();
-  $('#breed-name').textContent = data.top_breed;
-  const confEl = $('#breed-conf');
-  confEl.textContent = data.top_breed_confidence.toFixed(1) + '%';
-  if (IS_DEV && data.inference_time_ms) confEl.innerHTML += '<span class="timing-badge">\\u26a1 ' + data.inference_time_ms + 'ms</span>';
 
+  // Species badge
+  const badge = $('#species-badge');
+  if (effectivePresent && presenterConfig.hide_species_badge) {
+    badge.style.display = 'none';
+  } else {
+    badge.style.display = '';
+    if (effectivePresent && presenterConfig.hide_species_confidence) {
+      badge.textContent = data.species;
+    } else {
+      badge.textContent = data.species + ' ' + data.species_confidence.toFixed(1) + '%';
+    }
+    badge.className = 'species-badge ' + data.species.toLowerCase();
+  }
+
+  // Top Breed Name
+  $('#breed-name').textContent = data.top_breed;
+
+  // Breed Confidence Display
+  const confEl = $('#breed-conf');
+  const confLabel = document.querySelector('.conf-label');
+  const confInfo = formatBreedConfidence(data.top_breed_confidence, data.top5_breeds);
+  confEl.textContent = confInfo.value;
+  if (confLabel) confLabel.textContent = confInfo.label;
+  if (IS_DEV && !effectivePresent && data.inference_time_ms) {
+    confEl.innerHTML += '<span class="timing-badge">⚡ ' + data.inference_time_ms + 'ms</span>';
+  }
+
+  // Top 5 Predictions List
   const list = $('#top5-list'), th = $('#top5-heading');
   list.innerHTML = '';
-  if (IS_PRESENT && presenterConfig.hide_top5_list) { th.style.display = 'none'; list.style.display = 'none'; }
-  else {
+  if (effectivePresent && presenterConfig.hide_top5_list) {
+    th.style.display = 'none'; list.style.display = 'none';
+  } else {
     th.style.display = ''; list.style.display = '';
-    const minC = IS_PRESENT ? (presenterConfig.min_breed_confidence_pct || 5) : 0;
-    const fb = data.top5_breeds.filter(b => b.confidence >= minC);
+    const minC = effectivePresent ? (presenterConfig.min_breed_confidence_pct || 10) : 0;
+    const maxItems = effectivePresent ? (presenterConfig.top5_count || 3) : 5;
+    const fb = (data.top5_breeds || []).filter(b => b.confidence >= minC).slice(0, maxItems);
     const mx = Math.max(...fb.map(b => b.confidence), 1);
     fb.forEach((b, i) => {
       const li = document.createElement('li'); li.className = 'top5-item';
-      const bw = Math.max(8, (b.confidence / mx) * 100);
-      li.innerHTML = '<div class="top5-bar-wrap"><div class="top5-bar" style="width:0%"></div><span class="breed-label">' + b.breed + '</span></div><span class="top5-pct">' + b.confidence.toFixed(1) + '%</span>';
+      let pctStr = b.confidence.toFixed(1) + '%';
+      if (effectivePresent && presenterConfig.confidence_display_mode === 'scaled') {
+        const scaledB = Math.max(10, Math.round((b.confidence / mx) * (presenterConfig.confidence_floor_pct || 82)));
+        pctStr = (i === 0 ? confInfo.value : scaledB + '%');
+      }
+      const bw = Math.max(10, (b.confidence / mx) * 100);
+      li.innerHTML = '<div class="top5-bar-wrap"><div class="top5-bar" style="width:0%"></div><span class="breed-label">' + b.breed + '</span></div><span class="top5-pct">' + pctStr + '</span>';
       list.appendChild(li);
       requestAnimationFrame(() => { setTimeout(() => { li.querySelector('.top5-bar').style.width = bw + '%'; }, i * 100); });
     });
   }
+
+  // Info Footer
   const footer = $('#info-footer');
-  if (IS_PRESENT && presenterConfig.hide_info_footer) { footer.style.display = 'none'; }
-  else {
+  if (effectivePresent && presenterConfig.hide_info_footer) {
+    footer.style.display = 'none';
+  } else {
     footer.style.display = '';
-    let fh = '<span>\\ud83e\\udd16 Model: ' + data.model_used + '</span>';
-    if (IS_DEV) {
-      fh += '<span>\\ud83d\\udcc4 File: ' + (data.filename || 'unknown') + '</span>';
-      fh += '<span>\\ud83d\\udc04 Species: ' + data.species + ' (' + data.species_confidence.toFixed(1) + '%)</span>';
-      fh += '<span>\\u23f1\\ufe0f ' + (data.total_time_ms || 0) + 'ms total</span>';
-    } else { fh += '<span>\\ud83d\\udc04 ' + data.species + '</span>'; }
+    let fh = '<span>🤖 Model: ' + data.model_used + '</span>';
+    if (!effectivePresent) {
+      fh += '<span>📄 File: ' + (data.filename || 'unknown') + '</span>';
+      fh += '<span>🐄 Species: ' + data.species + ' (' + data.species_confidence.toFixed(1) + '%)</span>';
+      fh += '<span>⏱️ ' + (data.total_time_ms || 0) + 'ms total</span>';
+    } else {
+      fh += '<span>🐄 ' + data.species + '</span>';
+    }
     footer.innerHTML = fh;
   }
 }
 
 // Single Export
 const esb = $('#export-single-btn');
-if (esb) esb.addEventListener('click', async () => {
-  if (!singleResult) return;
-  esb.disabled = true; esb.textContent = '\\u23f3 Generating ODT...';
-  try {
-    const res = await fetch('/api/export-odt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ results: singleResult, mode: 'single' }) });
-    if (!res.ok) { const err = await res.json(); alert(err.error || 'Export failed'); return; }
-    const blob = await res.blob(); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'breed_test_result_' + Date.now() + '.odt'; a.click(); URL.revokeObjectURL(url);
-  } catch (e) { alert('Export failed: ' + e.message); }
-  finally { esb.disabled = false; esb.textContent = '\\ud83d\\udcc4 Export to ODT'; }
-});
+if (esb) {
+  if (effectivePresent) esb.style.display = 'none';
+  esb.addEventListener('click', async () => {
+    if (!singleResult) return;
+    esb.disabled = true; esb.textContent = '⏳ Generating ODT...';
+    try {
+      const res = await fetch('/api/export-odt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ results: singleResult, mode: 'single' }) });
+      if (!res.ok) { const err = await res.json(); alert(err.error || 'Export failed'); return; }
+      const blob = await res.blob(); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'breed_test_result_' + Date.now() + '.odt'; a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Export failed: ' + e.message); }
+    finally { esb.disabled = false; esb.textContent = '📄 Export to ODT'; }
+  });
+}
 
 // BATCH IMAGES
 const bdz = $('#batch-dropzone'), bfi = $('#batch-file-input'), bpb = $('#batch-predict-btn');
@@ -1442,7 +1642,7 @@ function handleBatchFiles(files) {
   const listEl = $('#batch-file-list'); listEl.innerHTML = ''; listEl.classList.remove('hidden'); bdz.classList.add('hidden');
   batchFiles.forEach(f => {
     const div = document.createElement('div'); div.className = 'batch-file-item';
-    div.innerHTML = '<span class="bf-name">\\ud83d\\udcc4 ' + f.name + '</span><span class="bf-size">' + (f.size/1024/1024).toFixed(2) + ' MB</span>';
+    div.innerHTML = '<span class="bf-name">📄 ' + f.name + '</span><span class="bf-size">' + (f.size/1024/1024).toFixed(2) + ' MB</span>';
     listEl.appendChild(div);
   });
   bpb.disabled = false; $('#batch-clear-btn').classList.remove('hidden');
@@ -1459,7 +1659,7 @@ $('#batch-clear-btn').addEventListener('click', () => {
 
 bpb.addEventListener('click', async () => {
   if (!batchFiles.length) return;
-  bpb.disabled = true; bpb.classList.add('loading'); bpb.textContent = '\\u23f3 Analyzing...';
+  bpb.disabled = true; bpb.classList.add('loading'); bpb.textContent = '⏳ Analyzing...';
   batchResults = [];
   const bpw = $('#batch-progress-wrap'), bpbar = $('#batch-progress-bar'), bptxt = $('#batch-progress-text');
   bpw.classList.remove('hidden'); bptxt.classList.remove('hidden');
@@ -1474,7 +1674,7 @@ bpb.addEventListener('click', async () => {
   }
   bpbar.style.width = '100%'; bptxt.textContent = 'Done! ' + batchResults.length + ' images processed.';
   showBatchResults();
-  bpb.disabled = false; bpb.classList.remove('loading'); bpb.textContent = '\\ud83d\\udd0d Analyze All Images';
+  bpb.disabled = false; bpb.classList.remove('loading'); bpb.textContent = '🔍 Analyze All Images';
 });
 
 function showBatchResults() {
@@ -1484,34 +1684,53 @@ function showBatchResults() {
   const buffalo = valid.filter(r => r.species === 'Buffalo').length;
   const avgConf = valid.length ? (valid.reduce((s, r) => s + r.top_breed_confidence, 0) / valid.length).toFixed(1) : '0';
   const bs = $('#batch-summary');
-  if (IS_PRESENT && presenterConfig.hide_batch_summary_stats) { bs.style.display = 'none'; }
+  if (effectivePresent && presenterConfig.hide_batch_summary_stats) { bs.style.display = 'none'; }
   else { bs.style.display = ''; bs.innerHTML = '<div><div class="stat-val">' + valid.length + '</div><div class="stat-label">Images</div></div><div><div class="stat-val">' + cattle + ' / ' + buffalo + '</div><div class="stat-label">Cattle / Buffalo</div></div><div><div class="stat-val">' + avgConf + '%</div><div class="stat-label">Avg Confidence</div></div>'; }
   const list = $('#batch-results-list'); list.innerHTML = '';
-  const minC = IS_PRESENT ? (presenterConfig.min_breed_confidence_pct || 5) : 0;
+  const minC = effectivePresent ? (presenterConfig.min_breed_confidence_pct || 10) : 0;
+  const maxItems = effectivePresent ? (presenterConfig.top5_count || 3) : 5;
   batchResults.forEach(r => {
     const card = document.createElement('div'); card.className = 'batch-card';
-    if (r.error) { card.innerHTML = '<div class="bc-header"><span class="bc-filename">\\ud83d\\udcc4 ' + r.filename + '</span></div><div style="color:var(--red)">\\u274c Error: ' + r.error + '</div>'; }
+    if (r.error) { card.innerHTML = '<div class="bc-header"><span class="bc-filename">📄 ' + r.filename + '</span></div><div style="color:var(--red)">❌ Error: ' + r.error + '</div>'; }
     else {
-      let t5 = ''; (r.top5_breeds || []).filter(b => b.confidence >= minC).forEach(b => { t5 += '<li><span>' + b.breed + '</span><span>' + b.confidence.toFixed(1) + '%</span></li>'; });
-      let st = r.species; if (!IS_PRESENT || !presenterConfig.hide_species_confidence) st += ' ' + r.species_confidence.toFixed(1) + '%';
-      card.innerHTML = '<div class="bc-header"><span class="bc-filename">\\ud83d\\udcc4 ' + r.filename + '</span><span class="bc-species ' + r.species.toLowerCase() + '">' + st + '</span></div><div class="bc-breed">' + r.top_breed + '</div><div class="bc-conf">' + r.top_breed_confidence.toFixed(1) + '% confidence</div><ul class="bc-top5">' + t5 + '</ul>';
+      let t5 = '';
+      if (!effectivePresent || !presenterConfig.hide_top5_list) {
+        (r.top5_breeds || []).filter(b => b.confidence >= minC).slice(0, maxItems).forEach(b => {
+          let pStr = b.confidence.toFixed(1) + '%';
+          if (effectivePresent && presenterConfig.confidence_display_mode === 'scaled') {
+            pStr = Math.max(presenterConfig.confidence_floor_pct || 82, (b.confidence / Math.max(r.top_breed_confidence, 1)) * 90).toFixed(1) + '%';
+          }
+          t5 += '<li><span>' + b.breed + '</span><span>' + pStr + '</span></li>';
+        });
+      }
+      let st = r.species;
+      if (!effectivePresent || !presenterConfig.hide_species_confidence) st += ' ' + r.species_confidence.toFixed(1) + '%';
+      let confDisplay = r.top_breed_confidence.toFixed(1) + '% confidence';
+      if (effectivePresent) {
+        const cInfo = formatBreedConfidence(r.top_breed_confidence, r.top5_breeds);
+        confDisplay = cInfo.value + ' (' + cInfo.label + ')';
+      }
+      card.innerHTML = '<div class="bc-header"><span class="bc-filename">📄 ' + r.filename + '</span><span class="bc-species ' + r.species.toLowerCase() + '">' + st + '</span></div><div class="bc-breed">' + r.top_breed + '</div><div class="bc-conf">' + confDisplay + '</div><ul class="bc-top5">' + t5 + '</ul>';
     }
     list.appendChild(card);
   });
 }
 
 const ebb = $('#export-batch-btn');
-if (ebb) ebb.addEventListener('click', async () => {
-  if (!batchResults.length) return;
-  ebb.disabled = true; ebb.textContent = '\\u23f3 Generating ODT...';
-  try {
-    const res = await fetch('/api/export-odt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ results: batchResults, mode: 'batch' }) });
-    if (!res.ok) { const err = await res.json(); alert(err.error || 'Export failed'); return; }
-    const blob = await res.blob(); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'breed_batch_result_' + Date.now() + '.odt'; a.click(); URL.revokeObjectURL(url);
-  } catch (e) { alert('Export failed: ' + e.message); }
-  finally { ebb.disabled = false; ebb.textContent = '\\ud83d\\udcc4 Export All to ODT'; }
-});
+if (ebb) {
+  if (effectivePresent) ebb.style.display = 'none';
+  ebb.addEventListener('click', async () => {
+    if (!batchResults.length) return;
+    ebb.disabled = true; ebb.textContent = '⏳ Generating ODT...';
+    try {
+      const res = await fetch('/api/export-odt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ results: batchResults, mode: 'batch' }) });
+      if (!res.ok) { const err = await res.json(); alert(err.error || 'Export failed'); return; }
+      const blob = await res.blob(); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'breed_batch_result_' + Date.now() + '.odt'; a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Export failed: ' + e.message); }
+    finally { ebb.disabled = false; ebb.textContent = '📄 Export All to ODT'; }
+  });
+}
 
 // DEV TOOLS
 if (IS_DEV) {
@@ -1519,11 +1738,11 @@ if (IS_DEV) {
     const el = $('#class-maps-content'); let html = '';
     if (info.cattle_classes) {
       const c = Object.keys(info.cattle_classes).length;
-      html += '<div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle(\'open\')">\\ud83d\\udc04 Cattle Breeds (' + c + ') <span>\\u25bc</span></div><div class="collapsible-body"><div class="dev-json">' + JSON.stringify(info.cattle_classes, null, 2) + '</div></div>';
+      html += '<div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle(&quot;open&quot;)">🐄 Cattle Breeds (' + c + ') <span>▼</span></div><div class="collapsible-body"><div class="dev-json">' + JSON.stringify(info.cattle_classes, null, 2) + '</div></div>';
     }
     if (info.buffalo_classes) {
       const c = Object.keys(info.buffalo_classes).length;
-      html += '<div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle(\'open\')" style="margin-top:8px">\\ud83d\\udc03 Buffalo Breeds (' + c + ') <span>\\u25bc</span></div><div class="collapsible-body"><div class="dev-json">' + JSON.stringify(info.buffalo_classes, null, 2) + '</div></div>';
+      html += '<div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle(&quot;open&quot;)" style="margin-top:8px">🐃 Buffalo Breeds (' + c + ') <span>▼</span></div><div class="collapsible-body"><div class="dev-json">' + JSON.stringify(info.buffalo_classes, null, 2) + '</div></div>';
     }
     if (!html) html = '<div class="dev-placeholder">No class maps found</div>';
     el.innerHTML = html;
@@ -1532,21 +1751,21 @@ if (IS_DEV) {
   const lsb = $('#load-spec-btn');
   if (lsb) lsb.addEventListener('click', async () => {
     const mn = $('#dev-model-select').value; if (!mn) return;
-    lsb.disabled = true; lsb.textContent = '\\u23f3 Loading...';
+    lsb.disabled = true; lsb.textContent = '⏳ Loading...';
     try {
       const res = await fetch('/api/model-spec?model=' + encodeURIComponent(mn));
       const spec = await res.json();
       const el = $('#model-spec-content');
-      let h = '<div class="dev-section"><h3>\\ud83d\\udccb Overview</h3><div class="dev-kv">';
+      let h = '<div class="dev-section"><h3>📋 Overview</h3><div class="dev-kv">';
       h += '<span class="k">Name</span><span class="v">' + (spec.name||'N/A') + '</span>';
       h += '<span class="k">Backbone</span><span class="v">' + (spec.backbone||'N/A') + '</span>';
       h += '<span class="k">Type</span><span class="v">' + (spec.type||'N/A') + '</span>';
       h += '<span class="k">Device</span><span class="v">' + (spec.device||'N/A') + '</span>';
-      h += '<span class="k">Input Size</span><span class="v">' + (spec.image_size||260) + '\\u00d7' + (spec.image_size||260) + ' RGB</span>';
+      h += '<span class="k">Input Size</span><span class="v">' + (spec.image_size||260) + '×' + (spec.image_size||260) + ' RGB</span>';
       h += '<span class="k">Path</span><span class="v" style="font-size:0.75rem">' + (spec.path||'N/A') + '</span>';
       h += '</div></div>';
       if (spec.total_parameters) {
-        h += '<div class="dev-section"><h3>\\ud83d\\udcca Parameters</h3><div class="dev-kv">';
+        h += '<div class="dev-section"><h3>📊 Parameters</h3><div class="dev-kv">';
         h += '<span class="k">Total</span><span class="v">' + spec.total_parameters_human + ' (' + spec.total_parameters.toLocaleString() + ')</span>';
         h += '<span class="k">Trainable</span><span class="v">' + spec.trainable_parameters.toLocaleString() + '</span>';
         h += '<span class="k">Frozen</span><span class="v">' + spec.frozen_parameters.toLocaleString() + '</span>';
@@ -1554,20 +1773,20 @@ if (IS_DEV) {
         h += '</div></div>';
       }
       if (spec.architecture) {
-        h += '<div class="dev-section"><h3>\\ud83c\\udfd7\\ufe0f Architecture</h3><div class="dev-kv">';
+        h += '<div class="dev-section"><h3>🏗️ Architecture</h3><div class="dev-kv">';
         for (const [k,v] of Object.entries(spec.architecture)) h += '<span class="k">' + k.replace(/_/g,' ') + '</span><span class="v">' + v + '</span>';
         h += '</div></div>';
       }
       if (spec.components) {
-        h += '<div class="dev-section"><h3>\\ud83e\\udde9 Components</h3><table class="dev-comp-table"><thead><tr><th>Component</th><th>Params</th><th>Trainable</th></tr></thead><tbody>';
+        h += '<div class="dev-section"><h3>🧩 Components</h3><table class="dev-comp-table"><thead><tr><th>Component</th><th>Params</th><th>Trainable</th></tr></thead><tbody>';
         for (const [n,info] of Object.entries(spec.components)) h += '<tr><td>' + n + '</td><td>' + info.params_human + '</td><td>' + info.trainable.toLocaleString() + '</td></tr>';
         h += '</tbody></table></div>';
       }
-      if (spec.model_info_json) h += '<div class="dev-section"><h3>\\ud83d\\udcdd model_info.json</h3><div class="dev-json">' + JSON.stringify(spec.model_info_json, null, 2) + '</div></div>';
+      if (spec.model_info_json) h += '<div class="dev-section"><h3>📝 model_info.json</h3><div class="dev-json">' + JSON.stringify(spec.model_info_json, null, 2) + '</div></div>';
       if (spec.inputs) h += '<div class="dev-section"><h3>ONNX I/O</h3><div class="dev-json">' + JSON.stringify({inputs:spec.inputs,outputs:spec.outputs}, null, 2) + '</div></div>';
       el.innerHTML = h;
     } catch (e) { $('#model-spec-content').innerHTML = '<div class="dev-placeholder" style="color:var(--red)">Failed: ' + e.message + '</div>'; }
-    finally { lsb.disabled = false; lsb.textContent = '\\ud83d\\udccb Load Specification'; }
+    finally { lsb.disabled = false; lsb.textContent = '📋 Load Specification'; }
   });
 
   // Image metadata analyzer
@@ -1587,39 +1806,136 @@ if (IS_DEV) {
       const meta = await res.json();
       const el = $('#image-meta-content'); el.classList.remove('hidden');
       let h = '<div class="meta-grid">';
-      h += '<div class="meta-card"><h4>\\ud83d\\udcd0 Dimensions</h4><div class="dev-kv"><span class="k">Width</span><span class="v">' + meta.width + 'px</span><span class="k">Height</span><span class="v">' + meta.height + 'px</span><span class="k">Aspect Ratio</span><span class="v">' + (meta.aspect_ratio_simplified||meta.aspect_ratio) + '</span><span class="k">Megapixels</span><span class="v">' + meta.megapixels + ' MP</span><span class="k">Orientation</span><span class="v">' + meta.orientation + '</span></div></div>';
-      h += '<div class="meta-card"><h4>\\ud83c\\udfa8 Color Info</h4><div class="dev-kv"><span class="k">Color Space</span><span class="v">' + meta.color_space + '</span><span class="k">Mode</span><span class="v">' + meta.mode + '</span><span class="k">Channels</span><span class="v">' + meta.channels + ' (' + (meta.bands||[]).join(', ') + ')</span><span class="k">Bit Depth</span><span class="v">' + meta.bit_depth + '-bit</span><span class="k">Unique Colors</span><span class="v">' + meta.unique_colors + '</span></div></div>';
-      h += '<div class="meta-card"><h4>\\ud83d\\udcbe File Info</h4><div class="dev-kv"><span class="k">Format</span><span class="v">' + meta.format + '</span><span class="k">Size</span><span class="v">' + meta.file_size_kb + ' KB (' + meta.file_size_bytes + ' bytes)</span>';
-      if (meta.dpi_x) h += '<span class="k">DPI</span><span class="v">' + meta.dpi_x + ' \\u00d7 ' + meta.dpi_y + '</span>';
+      h += '<div class="meta-card"><h4>📐 Dimensions</h4><div class="dev-kv"><span class="k">Width</span><span class="v">' + meta.width + 'px</span><span class="k">Height</span><span class="v">' + meta.height + 'px</span><span class="k">Aspect Ratio</span><span class="v">' + (meta.aspect_ratio_simplified||meta.aspect_ratio) + '</span><span class="k">Megapixels</span><span class="v">' + meta.megapixels + ' MP</span><span class="k">Orientation</span><span class="v">' + meta.orientation + '</span></div></div>';
+      h += '<div class="meta-card"><h4>🎨 Color Info</h4><div class="dev-kv"><span class="k">Color Space</span><span class="v">' + meta.color_space + '</span><span class="k">Mode</span><span class="v">' + meta.mode + '</span><span class="k">Channels</span><span class="v">' + meta.channels + ' (' + (meta.bands||[]).join(', ') + ')</span><span class="k">Bit Depth</span><span class="v">' + meta.bit_depth + '-bit</span><span class="k">Unique Colors</span><span class="v">' + meta.unique_colors + '</span></div></div>';
+      h += '<div class="meta-card"><h4>💾 File Info</h4><div class="dev-kv"><span class="k">Format</span><span class="v">' + meta.format + '</span><span class="k">Size</span><span class="v">' + meta.file_size_kb + ' KB (' + meta.file_size_bytes + ' bytes)</span>';
+      if (meta.dpi_x) h += '<span class="k">DPI</span><span class="v">' + meta.dpi_x + ' × ' + meta.dpi_y + '</span>';
       h += '<span class="k">Filename</span><span class="v">' + file.name + '</span></div></div>';
       const ek = Object.keys(meta.exif || {});
-      if (ek.length > 0) h += '<div class="meta-card" style="grid-column:1/-1"><h4>\\ud83d\\udcf7 EXIF Data (' + ek.length + ' tags)</h4><div class="dev-json" style="max-height:200px">' + JSON.stringify(meta.exif, null, 2) + '</div></div>';
+      if (ek.length > 0) h += '<div class="meta-card" style="grid-column:1/-1"><h4>📷 EXIF Data (' + ek.length + ' tags)</h4><div class="dev-json" style="max-height:200px">' + JSON.stringify(meta.exif, null, 2) + '</div></div>';
       h += '</div>';
       el.innerHTML = h;
     } catch (e) { const el = $('#image-meta-content'); el.classList.remove('hidden'); el.innerHTML = '<div class="dev-placeholder" style="color:var(--red)">Failed: ' + e.message + '</div>'; }
   }
 
-  // Presenter config controls
-  const mbr = $('#cfg-min-breed'), msr = $('#cfg-min-species');
-  if (mbr) mbr.addEventListener('input', () => { $('#cfg-min-breed-val').textContent = mbr.value + '%'; });
-  if (msr) msr.addEventListener('input', () => { $('#cfg-min-species-val').textContent = msr.value + '%'; });
+  // Presenter View Customizer controls
+  function collectPresenterConfig() {
+    return {
+      presenter_title: ($('#cfg-title') ? $('#cfg-title').value.trim() : '') || '🐄 Breed Classifier — Demonstration',
+      presenter_subtitle: ($('#cfg-subtitle') ? $('#cfg-subtitle').value.trim() : '') || 'AI-Powered Cattle & Buffalo Breed Identification',
+      confidence_display_mode: $('#cfg-conf-mode') ? $('#cfg-conf-mode').value : 'scaled',
+      confidence_floor_pct: $('#cfg-conf-floor') ? parseFloat($('#cfg-conf-floor').value) : 82.0,
+      hide_species_confidence: $('#cfg-hide-species-conf') ? $('#cfg-hide-species-conf').checked : true,
+      hide_species_badge: $('#cfg-hide-species-badge') ? $('#cfg-hide-species-badge').checked : false,
+      hide_top5_list: $('#cfg-hide-top5') ? $('#cfg-hide-top5').checked : false,
+      top5_count: $('#cfg-top5-count') ? parseInt($('#cfg-top5-count').value) : 3,
+      min_breed_confidence_pct: $('#cfg-min-breed') ? parseFloat($('#cfg-min-breed').value) : 10.0,
+      hide_info_footer: $('#cfg-hide-footer') ? $('#cfg-hide-footer').checked : true,
+      hide_model_selector: $('#cfg-hide-model-sel') ? $('#cfg-hide-model-sel').checked : false,
+      hide_batch_tab: $('#cfg-hide-batch-tab') ? $('#cfg-hide-batch-tab').checked : false,
+      hide_batch_summary_stats: $('#cfg-hide-batch-stats') ? $('#cfg-hide-batch-stats').checked : true,
+    };
+  }
+
+  let saveTimeout = null;
+  function triggerAutoSave() {
+    const cfg = collectPresenterConfig();
+    presenterConfig = cfg;
+    applyPresenterConfig(cfg);
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try {
+        await fetch('/api/presenter-config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cfg) });
+        const st = $('#cfg-save-status');
+        if (st) {
+          const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          st.textContent = '✅ Auto-saved at ' + now + ' (Persisted for --present)';
+          st.style.color = 'var(--green)';
+        }
+      } catch (e) {
+        const st = $('#cfg-save-status');
+        if (st) { st.textContent = '❌ Save error: ' + e.message; st.style.color = 'var(--red)'; }
+      }
+    }, 250);
+  }
+
+  // Bind live listeners to every control
+  const inputs = ['#cfg-title', '#cfg-subtitle', '#cfg-conf-mode', '#cfg-top5-count'];
+  inputs.forEach(sel => { const el = $(sel); if (el) el.addEventListener('input', triggerAutoSave); });
+
+  const checkboxes = ['#cfg-hide-species-conf', '#cfg-hide-species-badge', '#cfg-hide-top5', '#cfg-hide-footer', '#cfg-hide-model-sel', '#cfg-hide-batch-tab', '#cfg-hide-batch-stats'];
+  checkboxes.forEach(sel => { const el = $(sel); if (el) el.addEventListener('change', triggerAutoSave); });
+
+  const floorEl = $('#cfg-conf-floor');
+  if (floorEl) floorEl.addEventListener('input', () => {
+    $('#cfg-conf-floor-val').textContent = floorEl.value + '%';
+    triggerAutoSave();
+  });
+
+  const minBEl = $('#cfg-min-breed');
+  if (minBEl) minBEl.addEventListener('input', () => {
+    $('#cfg-min-breed-val').textContent = minBEl.value + '%';
+    triggerAutoSave();
+  });
+
+  // Manual save button
   const scb = $('#save-presenter-cfg-btn');
   if (scb) scb.addEventListener('click', async () => {
-    const cfg = {
-      hide_species_confidence: $('#cfg-hide-species-conf').checked,
-      hide_top5_list: $('#cfg-hide-top5').checked,
-      hide_info_footer: $('#cfg-hide-footer').checked,
-      hide_batch_summary_stats: $('#cfg-hide-batch-stats').checked,
-      min_breed_confidence_pct: parseFloat($('#cfg-min-breed').value),
-      min_species_confidence_pct: parseFloat($('#cfg-min-species').value),
-    };
+    const cfg = collectPresenterConfig();
+    presenterConfig = cfg;
+    applyPresenterConfig(cfg);
     try {
       await fetch('/api/presenter-config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cfg) });
-      presenterConfig = cfg;
-      $('#cfg-save-status').textContent = '\\u2705 Saved! Config persists across restarts.';
-      $('#cfg-save-status').style.color = 'var(--green)';
-      setTimeout(() => { $('#cfg-save-status').textContent = ''; }, 3000);
-    } catch (e) { $('#cfg-save-status').textContent = '\\u274c Save failed: ' + e.message; $('#cfg-save-status').style.color = 'var(--red)'; }
+      const st = $('#cfg-save-status');
+      if (st) {
+        st.textContent = '✅ Saved! Config permanently stored in outputs/logs/presenter_config.json';
+        st.style.color = 'var(--green)';
+        setTimeout(() => { if (st.textContent.startsWith('✅ Saved!')) st.textContent = ''; }, 4000);
+      }
+    } catch (e) {
+      const st = $('#cfg-save-status');
+      if (st) { st.textContent = '❌ Save failed: ' + e.message; st.style.color = 'var(--red)'; }
+    }
+  });
+
+  // Reset defaults button
+  const rcb = $('#reset-presenter-cfg-btn');
+  if (rcb) rcb.addEventListener('click', async () => {
+    const def = {
+      presenter_title: '🐄 Breed Classifier — Demonstration',
+      presenter_subtitle: 'AI-Powered Cattle & Buffalo Breed Identification',
+      confidence_display_mode: 'scaled',
+      confidence_floor_pct: 82.0,
+      hide_species_confidence: true,
+      hide_species_badge: false,
+      hide_top5_list: false,
+      top5_count: 3,
+      min_breed_confidence_pct: 10.0,
+      hide_info_footer: true,
+      hide_model_selector: false,
+      hide_batch_tab: false,
+      hide_batch_summary_stats: true,
+    };
+    try {
+      await fetch('/api/presenter-config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(def) });
+      syncPresenterConfig();
+      const st = $('#cfg-save-status');
+      if (st) { st.textContent = '↺ Reset to defaults and saved!'; st.style.color = 'var(--accent-light)'; }
+    } catch (e) { alert('Reset failed: ' + e.message); }
+  });
+
+  // Live Presenter View Preview Toggle in Dev Mode
+  let isPreviewing = false;
+  const pvb = $('#preview-presenter-toggle-btn');
+  if (pvb) pvb.addEventListener('click', () => {
+    isPreviewing = !isPreviewing;
+    effectivePresent = isPreviewing;
+    pvb.textContent = isPreviewing ? '↩️ Exit Presenter Preview' : '👁️ Preview Presenter View';
+    pvb.style.background = isPreviewing ? 'var(--amber)' : 'var(--green)';
+    applyPresenterConfig(presenterConfig);
+    if (isPreviewing) {
+      const sb = $('#tab-single-btn'); if (sb) sb.click();
+    }
   });
 
   // Session logs
@@ -1691,7 +2007,8 @@ def run_server(manager, port=8501, mode="dev"):
 
         def do_GET(self):
             if self.path == "/" or self.path.startswith("/index"):
-                self._respond(200, "text/html", html_content.encode())
+                fresh_html = build_html(mode=mode)
+                self._respond(200, "text/html", fresh_html.encode("utf-8"))
 
             elif self.path == "/api/models":
                 models = manager.list_models()
@@ -1810,7 +2127,7 @@ def run_server(manager, port=8501, mode="dev"):
                     return
                 meta = extract_image_metadata(image_bytes)
                 if logger:
-                    logger.info(f"Image metadata extracted: {meta.get('width', '?')}Ã—{meta.get('height', '?')} {meta.get('format', '?')}")
+                    logger.info(f"Image metadata extracted: {meta.get('width', '?')}×{meta.get('height', '?')} {meta.get('format', '?')}")
                 self._respond(200, "application/json", json.dumps(meta).encode())
 
             elif self.path == "/api/presenter-config":
@@ -1835,12 +2152,15 @@ def run_server(manager, port=8501, mode="dev"):
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
             self.end_headers()
             self.wfile.write(body)
 
     server = HTTPServer(("0.0.0.0", port), Handler)
-    print(f"\n  ðŸŒ Model Tester GUI running at http://localhost:{port}")
-    print(f"  Mode: {'ðŸ› ï¸  Developer' if mode == 'dev' else 'ðŸŽ¤ Presenter'}")
+    print(f"\n  🌐 Model Tester GUI running at http://localhost:{port}")
+    print(f"  Mode: {'🛠️  Developer' if mode == 'dev' else '🎤 Presenter'}")
     print(f"  Press Ctrl+C to stop\n")
     server.serve_forever()
 
@@ -1853,7 +2173,7 @@ def main():
     global logger
 
     parser = argparse.ArgumentParser(
-        description="ðŸ„ Breed Classifier â€” Model Tester GUI")
+        description="🐄 Breed Classifier — Model Tester GUI")
     parser.add_argument("--port", type=int, default=8501,
                         help="port to serve on (default: 8501)")
     parser.add_argument("--no-browser", action="store_true",
@@ -1863,7 +2183,7 @@ def main():
     mode_group.add_argument("--dev", action="store_true", default=True,
                             help="developer mode with extra tools (default)")
     mode_group.add_argument("--present", action="store_true",
-                            help="presenter mode â€” clean, polished view")
+                            help="presenter mode — clean, polished view")
     args = parser.parse_args()
 
     mode = "present" if args.present else "dev"
@@ -1872,8 +2192,8 @@ def main():
     logger = SessionLogger()
 
     print("\n" + "=" * 60)
-    print(f"  ðŸ„ Breed Classifier â€” Model Tester GUI")
-    print(f"  Mode: {'ðŸ› ï¸  Developer' if mode == 'dev' else 'ðŸŽ¤ Presenter'}")
+    print(f"  🐄 Breed Classifier — Model Tester GUI")
+    print(f"  Mode: {'🛠️  Developer' if mode == 'dev' else '🎤 Presenter'}")
     print("=" * 60)
 
     logger.info(f"Application started (mode={mode}, port={args.port})")
@@ -1882,21 +2202,21 @@ def main():
     models = manager.list_models()
 
     if not models:
-        print("\n  âŒ No models found!")
+        print("\n  ❌ No models found!")
         print("  Train a model first:")
         print("    python local_train.py --smoke-test")
         print("    python local_train.py --quarter-data")
-        logger.error("No models found â€” exiting")
+        logger.error("No models found — exiting")
         logger.stop()
         return 1
 
     print(f"\n  Device: {manager.device}")
     print(f"  Models found: {len(models)}")
     for m in models:
-        print(f"    â€¢ {m['name']} ({m['backbone']}, {m['size_mb']} MB)")
+        print(f"    • {m['name']} ({m['backbone']}, {m['size_mb']} MB)")
 
     if not manager.class_maps:
-        print("\n  âš ï¸  Warning: No class maps found in data/splits/")
+        print("\n  ⚠️  Warning: No class maps found in data/splits/")
         print("  Breed names will show as class indices.")
         logger.warning("No class maps found in data/splits/")
 

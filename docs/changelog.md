@@ -1,5 +1,16 @@
 # 16. Changelog
 
+### 2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata
+
+**Model Tester GUI (`test_model.py`):**
+- Added `--dev` (default) and `--present` flag modes.
+- Developer Mode (`--dev`): Advanced view showing image metadata (EXIF, size, proportion), cattle/buffalo JSON data, model specifications, and options to edit the presenter's view settings.
+- Presenter Mode (`--present`): Clean, minimalist test page that hides detailed technical stats, diminishes confidence metrics, and removes the export option for a cleaner presentation.
+- Presenter configurations (like branding, section toggles, and confidence modes) are saved and loaded persistently via `outputs/logs/presenter_config.json`.
+- Comprehensive session logging captures all actions (start/stop, model/image selection, prediction results, reasoning) into a separate log file in `outputs/logs/`.
+
+---
+
 ### 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation
 
 **Testing & Evaluation:**
