@@ -1465,7 +1465,7 @@ fetch('/api/models').then(r => r.json()).then(data => {
 
 // Sync presenter config from API and populate Dev Tools controls
 function syncPresenterConfig() {
-  fetch('/api/presenter-config').then(r => r.json()).then(cfg => {
+  fetch('/api/presenter-config?t=' + Date.now()).then(r => r.json()).then(cfg => {
     presenterConfig = cfg;
     applyPresenterConfig(cfg);
     if (IS_DEV) {
