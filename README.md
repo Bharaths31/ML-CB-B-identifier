@@ -383,11 +383,14 @@ python test_model.py
 Opens a browser at `http://localhost:8501` automatically. No virtual environment activation needed if you've already installed dependencies.
 
 **Features:**
-- Drag-and-drop or click-to-upload: PNG, JPG, JPEG, BMP, WebP
-- **Auto-discovers** all trained checkpoints (Phase 1/2/3, INT8 quantized, portable bundles)
+- **Tabbed Interface:** Separate modes for "Single Image" and "Batch Image" analysis.
+- **Batch Processing:** Drag-and-drop multiple images simultaneously with real-time progress bars and aggregate dashboard stats.
+- **ODT Report Export:** One-click export of structured `.odt` files summarizing top-5 predictions for single or batch runs.
+- **Auto-discovers** all trained checkpoints (Phase 1/2/3, INT8 quantized, portable bundles, and **ONNX** formats).
+- **ONNX Runtime Support:** Automatically maps `CUDAExecutionProvider` or `CPUExecutionProvider` for `.onnx` models.
 - Species classification: **Cattle** or **Buffalo** with confidence %
 - **Top-5 breed predictions** with animated confidence bars
-- Model metadata footer (which checkpoint, device info)
+- Model metadata footer (which checkpoint, device info, filename display)
 
 **Flags:**
 
@@ -759,6 +762,12 @@ python -m src.train --quarter-data --device cpu --no-compile
 ---
 
 ## Changelog
+
+**2026-09-14 — GUI Batch Processing & ODT Export**
+- **GUI Modernization (`test_model.py`)**: Added a tabbed interface separating single image testing from batch processing.
+- **Batch Analysis**: Drag-and-drop multiple images at once with real-time progress indicators and an aggregate dashboard.
+- **ODT Export (`odfpy`)**: Added functionality to export single or batch predictions into professionally formatted OpenDocument Text (`.odt`) files.
+- **ONNX Support**: `test_model.py` now discovers and runs `.onnx` models using `onnxruntime`.
 
 **2026-09-08 — Model Tester GUI & Quarter-Data Mode**
 - Added `test_model.py` — standalone web GUI for visual model testing (port 8501).
