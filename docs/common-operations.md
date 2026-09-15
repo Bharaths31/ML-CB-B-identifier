@@ -1,144 +1,177 @@
-# 12. Training & Execution Operations
+# Common Operations
 
-This section provides **highly detailed, copyable code snippets** for every phase of the execution pipeline, from environment setup to deployment. These commands are intended to be run from the root of the project (`ML-CB-B-identifier/`).
+Concise, copyable command reference for every workflow. All commands run from the **project root** (`ML-CB-B-identifier/`) with your virtual environment active.
 
 ---
 
-## 1. Environment & Setup
+## 1. Automated Pipeline (Recommended)
 
-Before executing any ML code, you must prepare the virtual environment and ensure all dependencies are installed.
+The fastest path from zero to a trained model. Handles everything automatically.
 
 ```bash
-# Clone the repository
-git clone https://github.com/Bharaths31/ML-CB-B-identifier
-cd ML-CB-B-identifier
+# Full pipeline — quarter data (fastest local run)
+python local_train.py --quarter-data
 
-# Use the automated setup script to create .venv and install dependencies
-python setup_venv.py
+# Full pipeline — half data (good balance)
+python local_train.py --half-data
 
-# Activate the virtual environment (Linux/macOS)
-source .venv/bin/activate
-# Or on Windows:
-# .venv\Scripts\activate
+# Full pipeline — all data (maximum accuracy)
+python local_train.py
+
+# Verify the entire pipeline works end-to-end in seconds
+python local_train.py --smoke-test
+
+# Re-run training only (venv ready, data already downloaded)
+python local_train.py --half-data --skip-setup --skip-download
+
+# Full training + QAT for Android INT8 deployment
+python local_train.py --include-qat
+```
+
+See [Local Training (Automated)](local-training.md) for the complete flag reference.
+
+---
+
+## 2. Model Testing GUI
+
+Launch the visual model tester after training:
+
+```bash
+python test_model.py
+```
+
+Opens at `http://localhost:8501`. Drag-and-drop any cattle/buffalo image to see species + top-5 breed predictions.
+
+```bash
+# Custom port
+python test_model.py --port 9000
+
+# Headless (SSH / server)
+python test_model.py --no-browser
 ```
 
 ---
 
-## 2. Data Preparation Pipeline
+## 3. Manual Step-by-Step Operations
 
-The raw images must be processed into stratified CSV splits (Train: 85%, Val: 10%, Test: 5%) before training can begin. Ensure your data is extracted to `data/raw/`.
+For granular control, debugging, or custom experiments.
 
+### 3.1 Virtual Environment
+
+**Linux / macOS:**
 ```bash
-# Ensure directories exist
-mkdir -p data/raw data/splits
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install torch>=2.1.0 torchvision>=0.16.0 numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
+```
 
-# (Optional) Download Kaggle dataset directly via curl
-curl -L -o breed-cattle-buffalo.zip https://www.kaggle.com/api/v1/datasets/download/algsoch/breed-cattle-buffalo
+**Windows (Command Prompt):**
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+pip install --upgrade pip
+pip install torch>=2.1.0 torchvision>=0.16.0 numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
+```
+
+Alternatively, use the helper script:
+```bash
+python setup_venv.py
+```
+
+### 3.2 Dataset Download
+
+**Linux / macOS:**
+```bash
+mkdir -p data/raw
+curl -L -o breed-cattle-buffalo.zip \
+  https://www.kaggle.com/api/v1/datasets/download/algsoch/breed-cattle-buffalo
 unzip -q breed-cattle-buffalo.zip -d data/raw/
+```
 
-# Run the data pipeline to generate train.csv, val.csv, and test.csv
+**Windows (Command Prompt):**
+```cmd
+mkdir data\raw
+curl -L -o breed-cattle-buffalo.zip https://www.kaggle.com/api/v1/datasets/download/algsoch/breed-cattle-buffalo
+tar -xf breed-cattle-buffalo.zip -C data\raw\
+```
+
+### 3.3 Data Pipeline (Generate Splits)
+```bash
 python -m src.data_pipeline
 ```
-*Expected Output: Logs detailing the exact number of images processed and class imbalances handled, ending with CSVs generated in `data/splits/`.*
+Scans `data/raw/` → generates `data/splits/train.csv`, `val.csv`, `test.csv`, `cattle_classes.json`, `buffalo_classes.json`.
 
----
-
-## 3. Architecture Verification
-
-Always run a sanity check to ensure your system can load the EfficientNet-Lite backbone, establish the three classification heads (Binary, Cattle, Buffalo), and push data through the network without shape mismatches.
-
+### 3.4 Architecture Verification
 ```bash
-# Run the verification script
 python -m src.verify
 ```
-*Expected Output: Confirms feature dimension (1280 for lite2/lite4) and successful forward pass shapes `(batch_size, num_classes)`.*
+Confirms backbone weight loading and forward pass tensor shapes. Run this before training to catch config issues early.
 
----
+### 3.5 Training
 
-## 4. Training the Model
-
-The training system uses a sophisticated 3-phase pipeline (Binary Warmup -> Multi-task Finetune -> QAT). You can customize the run using heavily parameterized command-line arguments.
-
-### Quick Sanity Check (Smoke Test)
-Use this to ensure the entire pipeline (data loading, loss calculation, gradients, saving) works in seconds without waiting hours. It builds a mini-dataset of exactly 5 images per breed.
 ```bash
+# Smoke test — 5 images/breed, 1 epoch per phase
 python -m src.train --smoke-test --skip-qat
-```
 
-### Standard Full Training (Default)
-Trains `lite2` using SOTA hyperparameters, Mixed Precision (AMP) on CUDA, and auto-exports a portable bundle at the end.
-```bash
+# Quarter-data training
+python -m src.train --quarter-data --skip-qat
+
+# Half-data training
+python -m src.train --half-data --skip-qat
+
+# Full training (all phases including QAT)
 python -m src.train --backbone lite2
-```
 
-### Advanced Custom Training
-A highly parameterized example explicitly setting learning rates, epochs, and regularization.
-```bash
+# Full training, skip QAT
+python -m src.train --backbone lite2 --skip-qat
+
+# Custom hyperparameters
 python -m src.train \
   --backbone lite4 \
-  --batch-size 64 \
+  --batch-size 32 \
   --phase1-epochs 5 \
-  --phase2-epochs 40 \
-  --phase3-epochs 10 \
-  --phase1-lr 3e-3 \
-  --phase2-lr 2e-4 \
+  --phase2-epochs 30 \
   --weight-decay 0.01 \
-  --label-smoothing 0.1 \
   --device cuda
 ```
 
----
+See [API Reference](api-reference.md#python--m-srctrain--core-training-engine) for all `src.train` flags.
 
-## 5. Model Evaluation
-
-Once trained, evaluate the model on the `test.csv` holdout set. This calculates F1 scores, accuracy, and generates confusion matrices.
-
+### 3.6 Evaluation
 ```bash
-# Evaluate the latest checkpoint
+# Evaluate latest lite2 checkpoint on test.csv
 python -m src.evaluate --backbone lite2
+
+# Evaluate with specific checkpoint
+python -m src.evaluate --backbone lite2 \
+  --checkpoint outputs/checkpoints/lite2_phase2_best.pt
 ```
-*Expected Output: Per-class accuracy printed to the console, and confusion matrix PNGs generated in `outputs/metrics/`.*
+Outputs per-class metrics to console and confusion matrix PNGs to `outputs/metrics/`.
 
----
-
-## 6. Exporting for Deployment
-
-Export your trained PyTorch `.pt` checkpoints into mobile or edge-friendly formats. The script auto-detects the latest checkpoint in `outputs/checkpoints/`.
-
+### 3.7 Model Export
 ```bash
-# 1. Export to ONNX (Cross-platform, widely supported)
+# Self-contained portable bundle
+python -m src.export --mode portable --backbone lite2
+
+# ONNX (cross-platform, framework-free inference)
 python -m src.export --mode onnx --backbone lite2
 
-# 2. Export to TorchScript INT8 (Quantized for Android/Edge CPUs)
+# INT8 quantized TorchScript (smallest, fastest mobile CPU)
 python -m src.export --mode int8 --backbone lite2
 
-# 3. Export to TorchScript FP16 (Optimized for Mobile GPUs)
+# FP16 TorchScript (mobile GPU)
 python -m src.export --mode float16 --backbone lite2
-
-# 4. Create a Portable Bundle (Includes class maps & metadata for Python inference)
-python -m src.export --mode portable --backbone lite2
 ```
 
 ---
 
-## 7. Running the Web Application
-
-Deploy the local dashboard to interact with the model visually, view logs, and trigger new runs.
+## 4. Creating Distribution Packages
 
 ```bash
-# Start the FastAPI server on port 8000
-python webapp/server.py
-```
-*Next Steps: Open `http://localhost:8000` in your browser.*
+# Lightweight training-only zip
+python create_training_zip.py
 
----
-
-## 8. Creating a Colab/Remote Package
-
-If you need to train on Google Colab or another remote GPU, use the packaging script. It strips out the webapp, memory layer, and Git history, leaving a lightweight zip containing only what is strictly necessary to train.
-
-```bash
-# Create training_package.zip
+# Colab-ready project zip
 python scripts/create_colab_project_zip.py
 ```
-*Next Steps: Upload `colab_project.zip` to Colab and unzip it.*

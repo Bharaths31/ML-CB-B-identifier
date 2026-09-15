@@ -1,5 +1,23 @@
 # 16. Changelog
 
+### 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation
+
+**Testing & Evaluation:**
+- Added `colab/cattle_buffalo_tester.py` and `colab/cattle_buffalo_tester.ipynb` for automated evaluation of exported models on Google Colab.
+- Added comprehensive HTML report generation for single images and batch evaluations.
+- Added Large-Scale Kaggle Evaluation mode to automatically download the dataset and test all images.
+- Added `create_test_eval_zip.py` script to easily bundle test dataset splits for Colab.
+- Updated documentation and knowledge base (`CONTEXT.md`, `README.md`, `docs/`) with testing workflow details.
+
+---
+
+### 2026-09-08 — Fix: `torch.compile` on Windows
+
+**Bug Fix:**
+- Fixed `BackendCompilerFailed: Cannot find a working triton installation` error that crashed phase 2 training on Windows.
+- Added OS detection in `src/train.py` to automatically disable `torch.compile` (fallback to eager mode) when running on Windows.
+
+---
 ### 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update
 
 **Dataset Pipeline & Colab Notebook:**
@@ -69,17 +87,9 @@
 **Export & Standalone Packaging:**
 - Added `portable` mode: self-contained folder with model + labels + metadata
 - Improved progress bars on INT8 calibration
-- Created `create_training_zip.py` script to generate a clean, webapp-free training zip package
+- Created `create_training_zip.py` script to generate a clean, standalone training zip package
 - Added `.gitignore` configured to track `memory/` while ignoring `.venv/`, `outputs/`, `data/splits/`, `*.zip`, cache files
 
-**Webapp:**
-- Fixed argument formatting bug (`--phase1_epochs` → `--phase1-epochs`)
-- Fixed `jobStatusHTML` crash when metrics object has missing keys
-- Added model cache auto-invalidation after training (mtime-based)
-- Progress bars now show completion/error states
-- Running job indicator with pulse animation in header
-- Auto-refresh status, metrics, and exports after job completion
-- Added portable export option in UI dropdown
 
 **Config:**
 - Added `PORTABLE_EXPORT_DIR`, `SMOKE_SAMPLES_PER_BREED` constants

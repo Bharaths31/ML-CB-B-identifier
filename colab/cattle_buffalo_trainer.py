@@ -148,93 +148,172 @@ except ImportError as e:
 # ---
 # ## §2 — Dataset Acquisition
 #
-# Choose **ONE** of three options:
-# - **Option A**: Download from Kaggle API
-# - **Option B**: Upload `archive.zip` manually
-# - **Option C**: Copy from Google Drive
+# Choose **ONE** of three dataset modes:
+# - **`algsoch`**: Original unified dataset (`algsoch/breed-cattle-buffalo`)
+# - **`atharvadarpude`**: Two separate datasets (`atharvadarpude/indian-cattle-image-dataset` + `atharvadarpude/indian-buffalo-dataset`)
+# - **`both`**: Download ALL three datasets and merge — maximum data for full training
+#
+# Then choose a download method: Kaggle API, manual upload, or Google Drive.
 
 # %%
 # ============================================================
-#  OPTION A: KAGGLE API DOWNLOAD (Recommended)
+#  CONFIGURATION — Pick your dataset mode
 # ============================================================
-# Set your Kaggle credentials below:
-KAGGLE_USERNAME = ""  # ← Fill in your Kaggle username
-KAGGLE_KEY = ""       # ← Fill in your Kaggle API key
+DATASET_MODE = "both"  # ← "algsoch", "atharvadarpude", or "both"
 
-# Kaggle dataset slug
-DATASET = "algsoch/breed-cattle-buffalo"
+# Kaggle credentials (required for API download)
+KAGGLE_USERNAME = ""   # ← Fill in your Kaggle username
+KAGGLE_KEY = ""        # ← Fill in your Kaggle API key
+
+# Dataset slugs (do not change)
+SLUG_ALGSOCH       = "algsoch/breed-cattle-buffalo"
+SLUG_ATHARVA_CATTLE = "atharvadarpude/indian-cattle-image-dataset"
+SLUG_ATHARVA_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 
 DATA_RAW = f"{PROJECT_DIR}/data/raw"
+
+# ============================================================
+#  OPTION A: KAGGLE API DOWNLOAD (Recommended)
+# ============================================================
+import shutil, glob
+
+def download_kaggle_dataset(slug, dest_dir):
+    """Download and unzip a Kaggle dataset into dest_dir."""
+    os.makedirs(dest_dir, exist_ok=True)
+    ret = os.system(f"kaggle datasets download -d {slug} -p {dest_dir} --unzip --force")
+    if ret != 0:
+        raise RuntimeError(f"❌ Failed to download {slug} (exit code {ret})")
+    print(f"   ✅ Downloaded: {slug} → {dest_dir}")
+    return dest_dir
+
+def find_breed_dirs(base_dir):
+    """Find all leaf directories containing images (breed folders)."""
+    breed_dirs = []
+    VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+    for root, dirs, files in os.walk(base_dir):
+        img_files = [f for f in files if os.path.splitext(f)[1].lower() in VALID_EXTS]
+        if img_files and not dirs:  # leaf dir with images
+            breed_dirs.append(root)
+    return breed_dirs
+
+def normalize_breed_name(name):
+    """Normalize breed folder names: lowercase, underscores, strip whitespace."""
+    return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
+    """
+    Auto-detect breed folders inside source_base and copy/merge them into
+    target_species_dir (e.g., data/raw/cattle/ or data/raw/buffalo/).
+    """
+    os.makedirs(target_species_dir, exist_ok=True)
+    copied = 0
+    VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+
+    # Check if source has a species subdirectory (cattle/ or buffalo/)
+    species_sub = None
+    if species_hint:
+        for d in os.listdir(source_base):
+            if d.lower() == species_hint.lower():
+                species_sub = os.path.join(source_base, d)
+                break
+
+    scan_root = species_sub if species_sub else source_base
+
+    # Find breed directories
+    breed_dirs = find_breed_dirs(scan_root)
+
+    if not breed_dirs:
+        # Try one level deeper (e.g., dataset_name/<wrapper>/<breed>/*)
+        for subdir in os.listdir(scan_root):
+            subpath = os.path.join(scan_root, subdir)
+            if os.path.isdir(subpath):
+                breed_dirs.extend(find_breed_dirs(subpath))
+
+    for breed_path in breed_dirs:
+        breed_name = normalize_breed_name(os.path.basename(breed_path))
+        target_breed_dir = os.path.join(target_species_dir, breed_name)
+        os.makedirs(target_breed_dir, exist_ok=True)
+
+        for fname in os.listdir(breed_path):
+            ext = os.path.splitext(fname)[1].lower()
+            if ext in VALID_EXTS:
+                src_file = os.path.join(breed_path, fname)
+                dst_file = os.path.join(target_breed_dir, fname)
+                # Avoid overwriting — prefix with source tag if collision
+                if os.path.exists(dst_file):
+                    base, ext_ = os.path.splitext(fname)
+                    dst_file = os.path.join(target_breed_dir, f"{base}_dup{ext_}")
+                shutil.copy2(src_file, dst_file)
+                copied += 1
+
+    return copied
 
 if KAGGLE_USERNAME and KAGGLE_KEY:
     os.environ["KAGGLE_USERNAME"] = KAGGLE_USERNAME
     os.environ["KAGGLE_KEY"] = KAGGLE_KEY
-    !pip install -q kaggle
+    import subprocess
+    subprocess.run(["pip", "install", "-q", "kaggle"])
 
-    # Download and extract dataset directly into data/raw
-    !mkdir -p {DATA_RAW}
-    !kaggle datasets download -d {DATASET} -p {DATA_RAW} --unzip
-    print(f"✅ Dataset downloaded and extracted to {DATA_RAW}")
+    # Clean slate
+    if os.path.exists(DATA_RAW):
+        shutil.rmtree(DATA_RAW)
+    os.makedirs(DATA_RAW, exist_ok=True)
+
+    cattle_dir = os.path.join(DATA_RAW, "cattle")
+    buffalo_dir = os.path.join(DATA_RAW, "buffalo")
+
+    TMP_DL = "/content/_kaggle_downloads"
+
+    if DATASET_MODE in ("algsoch", "both"):
+        print(f"
+📥 Downloading algsoch dataset...")
+        dl_path = download_kaggle_dataset(SLUG_ALGSOCH, f"{TMP_DL}/algsoch")
+        n = merge_into_species_dir(dl_path, cattle_dir, species_hint="cattle")
+        print(f"      Cattle: {n} images merged")
+        n = merge_into_species_dir(dl_path, buffalo_dir, species_hint="buffalo")
+        print(f"      Buffalo: {n} images merged")
+
+    if DATASET_MODE in ("atharvadarpude", "both"):
+        print(f"
+📥 Downloading atharvadarpude cattle dataset...")
+        dl_path = download_kaggle_dataset(SLUG_ATHARVA_CATTLE, f"{TMP_DL}/atharva_cattle")
+        n = merge_into_species_dir(dl_path, cattle_dir)
+        print(f"      Cattle: {n} images merged")
+
+        print(f"
+📥 Downloading atharvadarpude buffalo dataset...")
+        dl_path = download_kaggle_dataset(SLUG_ATHARVA_BUFFALO, f"{TMP_DL}/atharva_buffalo")
+        n = merge_into_species_dir(dl_path, buffalo_dir)
+        print(f"      Buffalo: {n} images merged")
+
+    # Cleanup temp downloads
+    if os.path.exists(TMP_DL):
+        shutil.rmtree(TMP_DL)
+
+    print(f"
+✅ All datasets downloaded and merged into {DATA_RAW}")
+    print(f"   Mode: {DATASET_MODE}")
 else:
     print("⚠️  Kaggle credentials not set — skip this cell or fill in above")
     print("   Alternatively, use Option B (upload) or Option C (Drive)")
 
 # %%
 # ============================================================
-#  OPTION B: UPLOAD archive.zip MANUALLY
-#  (Skip if you used Option A or C)
-# ============================================================
-# Create archive.zip locally: python scripts/create_colab_archive.py
-# Then upload it here.
-
-# Uncomment to use:
-# from google.colab import files
-# DATA_RAW = f"{PROJECT_DIR}/data/raw"
-# print("📤 Upload archive.zip (containing cattle/ and buffalo/ folders)...")
-# uploaded = files.upload()
-# !mkdir -p {DATA_RAW}
-# !unzip -qo /content/archive.zip -d {DATA_RAW}
-# print(f"✅ Dataset extracted to {DATA_RAW}")
-
-# %%
-# ============================================================
-#  OPTION C: COPY FROM GOOGLE DRIVE
-#  (Skip if you used Option A or B)
-# ============================================================
-# Uncomment to use:
-# from google.colab import drive
-# drive.mount("/content/drive")
-# DATA_RAW = f"{PROJECT_DIR}/data/raw"
-# DRIVE_ARCHIVE = "/content/drive/MyDrive/ML-CB-B-identifier/archive.zip"
-# !mkdir -p {DATA_RAW}
-# !unzip -qo {DRIVE_ARCHIVE} -d {DATA_RAW}
-# print(f"✅ Dataset extracted from Drive to {DATA_RAW}")
-
-# %%
-# ============================================================
 #  VERIFY DATASET
 # ============================================================
 DATA_RAW = f"{PROJECT_DIR}/data/raw"
-cattle_dir = None
-buffalo_dir = None
+cattle_dir = os.path.join(DATA_RAW, "cattle")
+buffalo_dir = os.path.join(DATA_RAW, "buffalo")
 
-for root, dirs, _ in os.walk(DATA_RAW):
-    if "cattle" in dirs and cattle_dir is None:
-        cattle_dir = os.path.join(root, "cattle")
-    if "buffalo" in dirs and buffalo_dir is None:
-        buffalo_dir = os.path.join(root, "buffalo")
+cattle_breeds = sorted([b for b in os.listdir(cattle_dir)
+                        if os.path.isdir(f"{cattle_dir}/{b}")]) if os.path.isdir(cattle_dir) else []
+buffalo_breeds = sorted([b for b in os.listdir(buffalo_dir)
+                         if os.path.isdir(f"{buffalo_dir}/{b}")]) if os.path.isdir(buffalo_dir) else []
 
-cattle_breeds = sorted(os.listdir(cattle_dir)) if cattle_dir and os.path.exists(cattle_dir) else []
-buffalo_breeds = sorted(os.listdir(buffalo_dir)) if buffalo_dir and os.path.exists(buffalo_dir) else []
-
-cattle_breeds = [b for b in cattle_breeds if os.path.isdir(f"{cattle_dir}/{b}")]
-buffalo_breeds = [b for b in buffalo_breeds if os.path.isdir(f"{buffalo_dir}/{b}")]
-
-print(f"📊 Dataset Summary:")
+print(f"📊 Dataset Summary (mode: {DATASET_MODE}):")
 print(f"   Cattle breeds:  {len(cattle_breeds)}")
 print(f"   Buffalo breeds: {len(buffalo_breeds)}")
 
-# Count images
 total_imgs = 0
 for b in cattle_breeds:
     total_imgs += len([f for f in os.listdir(f"{cattle_dir}/{b}")
@@ -244,9 +323,16 @@ for b in buffalo_breeds:
                        if f.lower().endswith(('.jpg','.jpeg','.png','.bmp','.webp'))])
 print(f"   Total images:   {total_imgs}")
 
+if cattle_breeds:
+    print(f"
+   🐄 Cattle breeds: {cattle_breeds[:10]}{'...' if len(cattle_breeds) > 10 else ''}")
+if buffalo_breeds:
+    print(f"   🐃 Buffalo breeds: {buffalo_breeds[:10]}{'...' if len(buffalo_breeds) > 10 else ''}")
+
 assert len(cattle_breeds) > 0 or len(buffalo_breeds) > 0, \
     "❌ No breed folders found! Check dataset extraction."
-print("✅ Dataset ready!")
+print("
+✅ Dataset ready!")
 
 # %% [markdown]
 # ---

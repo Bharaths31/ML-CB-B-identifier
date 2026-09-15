@@ -22,8 +22,7 @@ INCLUDES = [
 
 # Patterns to strictly exclude
 EXCLUDES = {
-    "webapp",
-    "memory",
+    "flutter_app",
     "flutter_app",
     ".venv",
     "venv",

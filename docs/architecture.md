@@ -59,15 +59,7 @@ Mini Project/
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
 │   ├── convert_to_notebook.py  # .py → .ipynb converter
 │   └── README.md               # Colab setup instructions
-├── webapp/
-│   ├── server.py               # FastAPI backend (predict, train, evaluate, memory)
-│   └── static/
-│       ├── index.html          # Single-page app (tabs: predict/train/eval/memory/debug)
-│       ├── app.js              # Frontend logic, polling, progress bars
-│       └── style.css           # Dark theme, progress bars, pulse animations
-├── memory/
-│   ├── __init__.py             # Exports Mem0Layer
-│   └── service.py              # Mem0-based context memory (store/recall/chat)
+
 ├── data/
 │   ├── raw/                    # Source images: raw/{cattle,buffalo}/<breed>/*.jpg
 │   └── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
@@ -78,7 +70,7 @@ Mini Project/
 │   ├── metrics/                # Evaluation JSON + confusion matrix PNGs
 │   └── memory/                 # Mem0 ChromaDB storage
 ├── scripts/                    # Colab archive creators, app asset prep
-├── create_training_zip.py      # Creates lightweight standalone training package (excludes webapp)
+├── create_training_zip.py      # Creates lightweight standalone training package
 ├── setup.sh                    # Shell script helper for environment setup
 ├── setup_venv.py               # Automated virtual environment setup script
 ├── .gitignore                  # Git ignore rules (includes outputs, venv, cache; tracks memory/)
