@@ -438,6 +438,8 @@ outputs/export/portable/<backbone>_phase2_best/
 |---|---|---|
 | `--port N` | `8501` | HTTP port |
 | `--no-browser` | off | Don't auto-open browser |
+| `--dev` | on | Developer mode: view full metadata, system logs, edit presenter settings |
+| `--present` | off | Presenter mode: clean UI, hides technical details and export options |
 
 ---
 
@@ -613,6 +615,16 @@ Phase 3 (QAT) produces an INT8-ready model for mobile inference:
 ---
 
 ## 16. Changelog
+
+### 2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata
+
+**Model Tester GUI (`test_model.py`):**
+- Added `--dev` (default) and `--present` flag modes.
+- Developer Mode (`--dev`): Advanced view showing image metadata (EXIF, size, proportion), cattle/buffalo JSON data, model specifications, and options to edit the presenter's view settings.
+- Presenter Mode (`--present`): Clean, minimalist test page that hides detailed technical stats, diminishes confidence metrics, and removes the export option for a cleaner presentation.
+- Presenter configurations (like branding, section toggles, and confidence modes) are saved and loaded persistently via `outputs/logs/presenter_config.json`.
+- Comprehensive session logging captures all actions (start/stop, model/image selection, prediction results, reasoning) into a separate log file in `outputs/logs/`.
+
 
 ### 2026-09-14 — GUI Batch Processing & ODT Export
 

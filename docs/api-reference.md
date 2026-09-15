@@ -268,6 +268,8 @@ python test_model.py [OPTIONS]
 |---|---|---|---|
 | `--port` | int | `8501` | HTTP port to serve the GUI on |
 | `--no-browser` | flag | off | Don't automatically open the browser |
+| `--dev` | flag | on | Developer mode: view full metadata, system logs, edit presenter settings |
+| `--present` | flag | off | Presenter mode: clean UI, hides technical details and export options |
 
 ### Examples
 

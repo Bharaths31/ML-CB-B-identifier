@@ -64,6 +64,7 @@ CHECKPOINT_DIR = os.path.join(OUTPUT_DIR, "checkpoints")
 EXPORT_DIR = os.path.join(OUTPUT_DIR, "export")
 PORTABLE_EXPORT_DIR = os.path.join(OUTPUT_DIR, "export", "portable")
 METRICS_DIR = os.path.join(OUTPUT_DIR, "metrics")
+LOGS_DIR = os.path.join(OUTPUT_DIR, "logs")
 
 SMOKE_SAMPLES_PER_BREED = 5
 HALF_DATA_RATIO = 0.5    # Fraction of images per breed for --half-data mode
@@ -77,5 +78,5 @@ CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 
 SPECIES_LABELS = {"cattle": 0, "buffalo": 1}
 
-for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR):
+for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR, LOGS_DIR):
     os.makedirs(_d, exist_ok=True)
