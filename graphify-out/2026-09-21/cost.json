@@ -1,0 +1,13 @@
+{
+  "runs": [
+    {
+      "date": "2026-09-21T16:01:21.619273+00:00",
+      "input_tokens": 68244,
+      "output_tokens": 53695,
+      "files": 88,
+      "note": "token estimate: doc words*1.33 + 1500/image (subagent usage not reported)"
+    }
+  ],
+  "total_input_tokens": 68244,
+  "total_output_tokens": 53695
+}

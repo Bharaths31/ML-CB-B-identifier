@@ -1,7 +1,9 @@
 # Graph Report - ML-CB-B-identifier  (2026-09-21)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 64 files · ~256,216 words
+- Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 23 file(s) not represented in the graph (top: (none) 8, .pt 6, .ipynb 3)
 
 ## Summary
 - 712 nodes · 1366 edges · 39 communities (36 shown, 3 thin omitted)
@@ -63,7 +65,7 @@
 7. `ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition` - 14 edges
 8. `Training Pipeline` - 14 edges
 9. `masked_loss()` - 13 edges
-10. `Android Deployment` - 13 edges
+10. `Common Operations` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Binary-head species balancing` --semantically_similar_to--> `masked_loss()`  [INFERRED] [semantically similar]
@@ -245,7 +247,7 @@ Cohesion: 0.53
 Nodes (6): Automatic Mixed Precision (AMP), Colab README, Colab Testing & Evaluation, Colab Training, Kaggle algsoch/breed-cattle-buffalo dataset, Colab T4 GPU
 
 ## Knowledge Gaps
-- **100 isolated node(s):** `_binaryLabels`, `_buffaloLabels`, `_cattleLabels`, `dispose`, `_execute` (+95 more)
+- **100 isolated node(s):** `_ScoredBreed`, `_inputSize`, `_preprocessor`, `_interpreter`, `_binaryLabels` (+95 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 280 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -262,7 +264,7 @@ _Questions this graph is uniquely positioned to answer:_
   _`BreedClassifier` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `CONTEXT.md — Context Database` (e.g. with `README.md` and `mkdocs.yml — Material docs site config`) actually correct?**
   _`CONTEXT.md — Context Database` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `_binaryLabels`, `_buffaloLabels`, `_cattleLabels` to the rest of the system?**
+- **What connects `_ScoredBreed`, `_inputSize`, `_preprocessor` to the rest of the system?**
   _100 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `data_pipeline.py` be split into smaller, more focused modules?**
   _Cohesion score 0.06775510204081632 - nodes in this community are weakly interconnected._

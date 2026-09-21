@@ -69,31 +69,37 @@ class TfliteEngine implements IModelService {
       List<double> buffalo,
       int latencyMs) {
     final binaryProbs = _softmax(binary);
-    final speciesIndex = _argmax(binary);
-    final isCattle = speciesIndex == 0;
-    final logits = isCattle ? cattle : buffalo;
-    final labels = isCattle ? _cattleLabels : _buffaloLabels;
-    final probs = _softmax(logits);
+    final cattleProbs = _softmax(cattle);
+    final buffaloProbs = _softmax(buffalo);
 
-    final order = List<int>.generate(probs.length, (i) => i)
-      ..sort((a, b) => probs[b].compareTo(probs[a]));
-    final top3 = order
+    // Soft species routing: score every breed as p(species) * softmax(head).
+    // A hard binary argmax would discard the other head entirely and
+    // propagate ~5% routing errors; the mixture lets a confident breed head
+    // win even when the binary head is ambiguous.
+    final scored = <_ScoredBreed>[];
+    for (var i = 0; i < cattleProbs.length; i++) {
+      scored.add(_ScoredBreed(binaryProbs[0] * cattleProbs[i], 0, i,
+          i < _cattleLabels.length ? _cattleLabels[i] : 'class_$i'));
+    }
+    for (var i = 0; i < buffaloProbs.length; i++) {
+      scored.add(_ScoredBreed(binaryProbs[1] * buffaloProbs[i], 1, i,
+          i < _buffaloLabels.length ? _buffaloLabels[i] : 'class_$i'));
+    }
+    scored.sort((a, b) => b.score.compareTo(a.score));
+
+    final top3 = scored
         .take(3)
-        .map((i) => BreedScore(
-              i,
-              i < labels.length ? labels[i] : 'class_$i',
-              probs[i],
-            ))
+        .map((s) => BreedScore(s.index, s.label, s.score))
         .toList();
-    final top = top3.first;
+    final top = scored.first;
 
     return PredictionResult(
-      species: isCattle ? 'cattle' : 'buffalo',
-      speciesIndex: speciesIndex,
-      speciesConfidence: binaryProbs[speciesIndex],
+      species: top.speciesIndex == 0 ? 'cattle' : 'buffalo',
+      speciesIndex: top.speciesIndex,
+      speciesConfidence: binaryProbs[top.speciesIndex],
       breed: top.label,
       breedIndex: top.index,
-      breedConfidence: top.confidence,
+      breedConfidence: top.score,
       top3: top3,
       latencyMs: latencyMs,
     );
@@ -117,17 +123,18 @@ class TfliteEngine implements IModelService {
     return result;
   }
 
-  int _argmax(List<double> values) {
-    var best = 0;
-    for (var i = 1; i < values.length; i++) {
-      if (values[i] > values[best]) best = i;
-    }
-    return best;
-  }
-
   @override
   Future<void> dispose() async {
     await _interpreter?.close();
     _interpreter = null;
   }
+}
+
+class _ScoredBreed {
+  final double score;
+  final int speciesIndex;
+  final int index;
+  final String label;
+
+  const _ScoredBreed(this.score, this.speciesIndex, this.index, this.label);
 }

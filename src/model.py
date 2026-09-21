@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .config import (BINARY_DIM, BREED_DIM, CBAM_AFTER_STAGE, DROPOUT,
-                     NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS)
+                     NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, PROJECTION_DIM)
 from .efficientnet_lite import EfficientNetLite, load_backbone_weights
 from .cbam import build_attention
 
@@ -48,6 +49,17 @@ class BreedClassifier(nn.Module):
             nn.Linear(BREED_DIM // 2, num_buffalo),
         )
 
+        # Auxiliary projection head used only by the supervised-contrastive
+        # loss (never exported). The 1280-d pooled features were previously
+        # returned but unused; this gives the model an explicit objective to
+        # cluster embeddings by breed, which is what separates near-identical
+        # indigenous breeds.
+        self.projection_head = nn.Sequential(
+            nn.Linear(feature_dim, feature_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(feature_dim, PROJECTION_DIM),
+        )
+
         if pretrained_path:
             n = load_backbone_weights(self.backbone, pretrained_path)
             print(f"[model] loaded {n} tensors from {pretrained_path}")
@@ -65,7 +77,21 @@ class BreedClassifier(nn.Module):
             "cattle": self.cattle_head(pooled),
             "buffalo": self.buffalo_head(pooled),
             "features": pooled,
+            "embedding": self.projection_head(pooled),
         }
+
+    @torch.no_grad()
+    def predict(self, x):
+        """Soft species routing: never let a hard binary argmax discard the
+        other head. Returns the combined 75-class breed distribution, built as
+        p(species) * softmax(breed head for that species).
+        """
+        out = self.forward(x)
+        p_species = F.softmax(out["binary"], dim=1)
+        p_cattle = F.softmax(out["cattle"], dim=1)
+        p_buffalo = F.softmax(out["buffalo"], dim=1)
+        return torch.cat([p_species[:, 0:1] * p_cattle,
+                          p_species[:, 1:2] * p_buffalo], dim=1)
 
     def freeze_backbone(self):
         for p in self.backbone.parameters():

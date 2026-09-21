@@ -99,7 +99,7 @@ The script supports four data modes (mutually exclusive — pick at most one):
 
 **Key properties of all subset modes:**
 - Deterministic sampling (`seed=42`) — same images selected every run
-- Same **85/10/5 stratified split** applied to the sampled subset
+- Same **70/15/15 stratified split** (with long-tail minimums) applied to the sampled subset
 - Class maps include **ALL 75 breeds** — model architecture is identical to full training
 - `--smoke-test` uses 60/20/20 split (tiny but real training signal)
 

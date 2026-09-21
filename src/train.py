@@ -13,17 +13,21 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from tqdm import tqdm
 
-from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BATCH_SIZE,
-                     CHECKPOINT_DIR, EMA_DECAY, EVAL_EVERY_PHASE1,
-                     EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3, KD_ALPHA,
-                     KD_TEMPERATURE, GRADIENT_ACCUMULATION_STEPS,
-                     LABEL_SMOOTHING, LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO,
-                     LOSS_WEIGHT_CATTLE, NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR,
-                     PHASE2_EPOCHS, PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR,
-                     PORTABLE_EXPORT_DIR, RAW_DATA_DIR, SEED, SPLIT_DIR,
-                     WARMUP_EPOCHS, WEIGHT_DECAY, BACKBONE_LR_MULT,
-                     CUTMIX_MIXUP_PROB)
-from .data_pipeline import (get_dataloaders, prepare_half_splits,
+from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
+                     BINARY_SATURATION_ACC, BATCH_SIZE, CHECKPOINT_DIR,
+                     CONTRASTIVE_TEMPERATURE, CONTRASTIVE_WEIGHT, EMA_DECAY,
+                     EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
+                     KD_ALPHA, KD_TEMPERATURE, LOGIT_ADJUST, LOGIT_ADJUST_TAU,
+                     GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
+                     LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BINARY_FINAL,
+                     LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_BUFFALO_FINAL,
+                     LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_CATTLE_FINAL, NUM_WORKERS,
+                     PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS, PHASE2_LR,
+                     PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR, RAW_DATA_DIR,
+                     RARE_CLASS_THRESHOLD, SEED, SPLIT_DIR, WARMUP_EPOCHS,
+                     WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
+from .data_pipeline import (compute_class_priors, compute_rare_classes,
+                            get_dataloaders, prepare_half_splits,
                             prepare_quarter_splits, prepare_smoke_splits,
                             prepare_splits)
 from .metrics import evaluate_epoch
@@ -69,29 +73,85 @@ def setup_device(requested):
 # Loss functions
 # ---------------------------------------------------------------------------
 
-def soft_ce(pred, target, label_smoothing=0.0):
-    """Soft cross-entropy with optional label smoothing.
+def soft_ce(pred, target, label_smoothing=0.0, logit_prior=None, tau=0.0):
+    """Soft cross-entropy with optional label smoothing and logit adjustment.
 
     When label_smoothing > 0, target distribution is smoothed:
         target_smooth = (1 - ε) * target + ε / num_classes
     This prevents overconfident predictions and improves generalization.
+
+    When logit_prior (log class prior) is given, ``tau * log_prior`` is added
+    to the logits (Menon et al., ICLR 2021). Frequent classes must then be much
+    more confident to win, which compensates for the long tail without forcing
+    a near-uniform sampler; the shift is absorbed into the learned biases so
+    inference stays raw.
     """
+    if logit_prior is not None and tau:
+        pred = pred + tau * logit_prior.to(pred.device).unsqueeze(0)
     if label_smoothing > 0.0:
         n_classes = pred.size(1)
         target = (1.0 - label_smoothing) * target + label_smoothing / n_classes
     return -(target * F.log_softmax(pred, dim=1)).sum(dim=1)
 
 
+def supervised_contrastive_loss(embedding, class_ids, temperature=0.1):
+    """SupCon (Khosla et al., 2020) over the auxiliary projection embedding.
+
+    Pulls same-breed embeddings together and pushes others apart. Anchors with
+    no positive in the batch are ignored.
+    """
+    if embedding.size(0) < 2:
+        return embedding.new_zeros(())
+    z = F.normalize(embedding, dim=1)
+    sim = (z @ z.t()) / temperature
+    sim = sim - sim.max(dim=1, keepdim=True)[0].detach()
+
+    self_mask = torch.eye(z.size(0), dtype=torch.bool, device=z.device)
+    pos_mask = (class_ids.unsqueeze(0) == class_ids.unsqueeze(1)) & ~self_mask
+    logits_mask = ~self_mask
+    exp_sim = torch.exp(sim) * logits_mask
+    log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True) + 1e-8)
+
+    pos_count = pos_mask.sum(dim=1)
+    valid = pos_count > 0
+    if not valid.any():
+        return z.new_zeros(())
+    mean_log_prob_pos = (pos_mask * log_prob).sum(dim=1) / pos_count.clamp(min=1)
+    return -mean_log_prob_pos[valid].mean()
+
+
+def _combined_class_ids(labels):
+    """Global class id: cattle 0..C-1, buffalo C..C+B-1."""
+    cattle_idx = labels["cattle"].argmax(1)
+    buffalo_idx = labels["buffalo"].argmax(1)
+    offset = labels["cattle"].size(1)
+    is_cattle = labels["cattle_mask"] > 0.5
+    return torch.where(is_cattle, cattle_idx, offset + buffalo_idx)
+
+
+def _contrastive_term(out, labels, weight, temperature, mixed):
+    if weight <= 0.0 or mixed or "embedding" not in out:
+        return out["binary"].new_zeros(())
+    return weight * supervised_contrastive_loss(
+        out["embedding"], _combined_class_ids(labels), temperature)
+
+
 def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
-                label_smoothing=0.0):
-    """Multi-task loss with species-masked breed CE.
+                label_smoothing=0.0, logit_priors=None, adjust_tau=0.0,
+                contrastive_weight=0.0, contrastive_temp=CONTRASTIVE_TEMPERATURE,
+                mixed=False):
+    """Multi-task loss with species-masked breed CE and logit adjustment.
 
     The binary term is optionally re-weighted per batch so cattle and
     buffalo contribute equally regardless of how the weighted sampler mixed
     the batch (the per-breed sampler leaves a ~57:18 species prior).
     """
-    ce_binary = soft_ce(out["binary"], labels["binary"],
-                        label_smoothing)
+    cattle_prior = buffalo_prior = None
+    if logit_priors is not None:
+        cattle_prior = logit_priors.get("cattle")
+        buffalo_prior = logit_priors.get("buffalo")
+
+    ce_binary = soft_ce(out["binary"], labels["binary"], label_smoothing)
     if BALANCE_BINARY_HEAD:
         p_buffalo = labels["binary"][:, 1].clamp(0.0, 1.0)
         mean_buf = p_buffalo.mean().clamp(min=1e-4)
@@ -103,25 +163,30 @@ def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
         ce_binary = (ce_binary * sample_w).sum() / sample_w.sum()
     else:
         ce_binary = ce_binary.mean()
-    ce_cattle = (soft_ce(out["cattle"], labels["cattle"],
-                         label_smoothing) * labels["cattle_mask"])
-    ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"],
-                          label_smoothing) * labels["buffalo_mask"])
+    ce_cattle = (soft_ce(out["cattle"], labels["cattle"], label_smoothing,
+                         cattle_prior, adjust_tau) * labels["cattle_mask"])
+    ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"], label_smoothing,
+                          buffalo_prior, adjust_tau) * labels["buffalo_mask"])
     denom_c = labels["cattle_mask"].sum().clamp(min=1.0)
     denom_b = labels["buffalo_mask"].sum().clamp(min=1.0)
     ce_cattle = ce_cattle.sum() / denom_c
     ce_buffalo = ce_buffalo.sum() / denom_b
     total = (w_binary * ce_binary + w_cattle * ce_cattle + w_buffalo * ce_buffalo)
+    total = total + _contrastive_term(out, labels, contrastive_weight,
+                                      contrastive_temp, mixed)
     return total, ce_binary, ce_cattle, ce_buffalo
 
 
 def masked_kd_loss(out, teacher_out, labels, w_binary, w_cattle, w_buffalo,
                    kd_alpha=KD_ALPHA, kd_temp=KD_TEMPERATURE,
-                   label_smoothing=0.0):
+                   label_smoothing=0.0, logit_priors=None, adjust_tau=0.0,
+                   contrastive_weight=0.0,
+                   contrastive_temp=CONTRASTIVE_TEMPERATURE, mixed=False):
     """Multi-task loss blended with teacher distillation (Hinton et al.).
 
     total = (1 - kd_alpha) * masked hard-label CE
           + kd_alpha * T^2 * masked KL(teacher || student)
+          + contrastive_weight * SupCon(student embeddings)
 
     The teacher runs frozen on the same augmented batch, so the student
     inherits the teacher's fine-grained discrimination without any extra
@@ -130,7 +195,9 @@ def masked_kd_loss(out, teacher_out, labels, w_binary, w_cattle, w_buffalo,
     """
     hard_total, ce_b, ce_c, ce_buf = masked_loss(
         out, labels, w_binary, w_cattle, w_buffalo,
-        label_smoothing=label_smoothing)
+        label_smoothing=label_smoothing, logit_priors=logit_priors,
+        adjust_tau=adjust_tau, contrastive_weight=0.0,
+        contrastive_temp=contrastive_temp, mixed=mixed)
     t = kd_temp
 
     def _kl(student_logits, teacher_logits):
@@ -151,35 +218,62 @@ def masked_kd_loss(out, teacher_out, labels, w_binary, w_cattle, w_buffalo,
     kd = kd * (t * t)
 
     total = (1.0 - kd_alpha) * hard_total + kd_alpha * kd
+    total = total + _contrastive_term(out, labels, contrastive_weight,
+                                      contrastive_temp, mixed)
     return total, ce_b, ce_c, ce_buf
 
 
 def _compute_loss(model, images, labels, loss_weights, label_smoothing,
                   teacher_model=None, kd_alpha=KD_ALPHA,
-                  kd_temp=KD_TEMPERATURE):
+                  kd_temp=KD_TEMPERATURE, logit_priors=None, adjust_tau=0.0,
+                  contrastive_weight=0.0,
+                  contrastive_temp=CONTRASTIVE_TEMPERATURE, mixed=False):
     """Forward pass + loss, with optional knowledge distillation."""
     out = model(images)
     if teacher_model is not None:
         teacher_out = teacher_model(images)
         return masked_kd_loss(out, teacher_out, labels, *loss_weights,
                               kd_alpha=kd_alpha, kd_temp=kd_temp,
-                              label_smoothing=label_smoothing)
+                              label_smoothing=label_smoothing,
+                              logit_priors=logit_priors, adjust_tau=adjust_tau,
+                              contrastive_weight=contrastive_weight,
+                              contrastive_temp=contrastive_temp, mixed=mixed)
     return masked_loss(out, labels, *loss_weights,
-                       label_smoothing=label_smoothing)
+                       label_smoothing=label_smoothing,
+                       logit_priors=logit_priors, adjust_tau=adjust_tau,
+                       contrastive_weight=contrastive_weight,
+                       contrastive_temp=contrastive_temp, mixed=mixed)
 
 
 # ---------------------------------------------------------------------------
 # Training core
 # ---------------------------------------------------------------------------
 
+def _rare_keep_mask(labels, rare_masks):
+    """Per-sample bool: True = this sample's breed is rare (do not mix)."""
+    if rare_masks is None:
+        return None
+    cattle_rare = rare_masks.get("cattle")
+    buffalo_rare = rare_masks.get("buffalo")
+    if cattle_rare is None or buffalo_rare is None:
+        return None
+    cattle_idx = labels["cattle"].argmax(1)
+    buffalo_idx = labels["buffalo"].argmax(1)
+    is_cattle = labels["cattle_mask"] > 0.5
+    return torch.where(is_cattle, cattle_rare[cattle_idx], buffalo_rare[buffalo_idx])
+
+
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               max_batches=None, set_train=None, desc="train",
               grad_accum_steps=1, label_smoothing=0.0, ema_model=None,
               ema_decay=EMA_DECAY, teacher_model=None, kd_alpha=KD_ALPHA,
-              kd_temp=KD_TEMPERATURE):
+              kd_temp=KD_TEMPERATURE, mix_prob=CUTMIX_MIXUP_PROB,
+              rare_masks=None, logit_priors=None, adjust_tau=0.0,
+              contrastive_weight=0.0,
+              contrastive_temp=CONTRASTIVE_TEMPERATURE):
     """Run one training epoch with optional AMP, gradient accumulation,
-    label smoothing, EMA (parameters *and* BatchNorm buffers), and teacher
-    distillation."""
+    label smoothing, logit adjustment, contrastive features, EMA (parameters
+    *and* BatchNorm buffers), and teacher distillation."""
     set_train = set_train or (lambda m: m.train())
     set_train(model)
     running = []
@@ -196,19 +290,25 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
 
-        if desc.startswith("train") and len(images) > 1 and random.random() < CUTMIX_MIXUP_PROB:
+        mixed = False
+        if desc.startswith("train") and mix_prob > 0 and len(images) > 1 \
+                and random.random() < mix_prob:
             from .data_pipeline import cutmix, mixup
+            keep = _rare_keep_mask(labels, rare_masks)
             if random.random() < 0.5:
-                images, labels = cutmix(images, labels)
+                images, labels = cutmix(images, labels, keep=keep)
             else:
-                images, labels = mixup(images, labels)
+                images, labels = mixup(images, labels, keep=keep)
+            mixed = True
 
         if use_amp:
             with torch.amp.autocast("cuda"):
                 loss, ce_b, ce_c, ce_buf = _compute_loss(
                     model, images, labels, loss_weights, label_smoothing,
                     teacher_model=teacher_model, kd_alpha=kd_alpha,
-                    kd_temp=kd_temp)
+                    kd_temp=kd_temp, logit_priors=logit_priors,
+                    adjust_tau=adjust_tau, contrastive_weight=contrastive_weight,
+                    contrastive_temp=contrastive_temp, mixed=mixed)
                 loss = loss / grad_accum_steps
             scaler.scale(loss).backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -221,7 +321,9 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
             loss, ce_b, ce_c, ce_buf = _compute_loss(
                 model, images, labels, loss_weights, label_smoothing,
                 teacher_model=teacher_model, kd_alpha=kd_alpha,
-                kd_temp=kd_temp)
+                kd_temp=kd_temp, logit_priors=logit_priors,
+                adjust_tau=adjust_tau, contrastive_weight=contrastive_weight,
+                contrastive_temp=contrastive_temp, mixed=mixed)
             loss_scaled = loss / grad_accum_steps
             loss_scaled.backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -274,11 +376,15 @@ def _build_warmup_cosine_scheduler(optimizer, warmup_epochs, total_epochs):
 
 def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 loss_weights, scheduler_factory, checkpoint_path,
-                scaler=None, max_batches=None, best_key="combined_top1",
+                scaler=None, max_batches=None, best_key=BEST_METRIC,
                 set_train=None, weight_decay=0.0,
                 grad_accum_steps=1, label_smoothing=0.0, eval_every=1,
                 ema_model=None, teacher_model=None, kd_alpha=KD_ALPHA,
-                kd_temp=KD_TEMPERATURE):
+                kd_temp=KD_TEMPERATURE, loss_weights_final=None,
+                binary_sat_acc=None, mix_prob=CUTMIX_MIXUP_PROB,
+                rare_masks=None, logit_priors=None, adjust_tau=0.0,
+                contrastive_weight=0.0,
+                contrastive_temp=CONTRASTIVE_TEMPERATURE):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
     raw_model = getattr(model, '_orig_mod', model)
@@ -290,45 +396,65 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             {"params": raw_model.cattle_head.parameters(), "lr": lr},
             {"params": raw_model.buffalo_head.parameters(), "lr": lr},
         ]
+        if hasattr(raw_model, "projection_head"):
+            param_groups.append(
+                {"params": raw_model.projection_head.parameters(), "lr": lr})
         for group in param_groups:
             group["params"] = [p for p in group["params"] if p.requires_grad]
         optimizer = AdamW(param_groups, lr=lr, weight_decay=weight_decay)
     else:
         params = [p for p in model.parameters() if p.requires_grad]
         optimizer = AdamW(params, lr=lr, weight_decay=weight_decay)
-        
+
     scheduler = scheduler_factory(optimizer) if scheduler_factory else None
-    best = 0.0
+    best = -1.0
+    current_weights = tuple(loss_weights)
 
     phase_pbar = tqdm(range(1, epochs + 1), desc=f"Phase {phase}",
                       unit="epoch", leave=True,
                       bar_format="{l_bar}{bar:20}{r_bar}")
     for epoch in phase_pbar:
         loss, ce_b, ce_c, ce_buf = run_epoch(
-            model, loader, optimizer, device, loss_weights, scaler,
+            model, loader, optimizer, device, current_weights, scaler,
             max_batches, set_train=set_train,
             desc=f"phase{phase} e{epoch}/{epochs}",
             grad_accum_steps=grad_accum_steps,
             label_smoothing=label_smoothing, ema_model=ema_model,
-            teacher_model=teacher_model, kd_alpha=kd_alpha, kd_temp=kd_temp)
+            teacher_model=teacher_model, kd_alpha=kd_alpha, kd_temp=kd_temp,
+            mix_prob=mix_prob, rare_masks=rare_masks,
+            logit_priors=logit_priors, adjust_tau=adjust_tau,
+            contrastive_weight=contrastive_weight,
+            contrastive_temp=contrastive_temp)
         if scheduler is not None:
             scheduler.step()
 
         if epoch % eval_every == 0 or epoch == epochs:
             metrics = evaluate_epoch(ema_model if ema_model else model, val_loader, device,
                                      max_batches=max_batches)
-            acc = metrics[best_key]
+            acc = metrics.get(best_key, 0.0)
             tag = f"phase{phase} epoch {epoch}/{epochs}"
             print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} ce_c={ce_c:.4f} "
                   f"ce_buf={ce_buf:.4f} | val binary={metrics['binary_acc']:.4f} "
                   f"cattle={metrics['cattle_acc']:.4f} buffalo={metrics['buffalo_acc']:.4f} "
-                  f"top1={metrics['combined_top1']:.4f}", flush=True)
+                  f"top1={metrics['combined_top1']:.4f} "
+                  f"top1_soft={metrics['combined_top1_soft']:.4f} "
+                  f"macroF1(c/b)={metrics['cattle_macro_f1']:.3f}/{metrics['buffalo_macro_f1']:.3f} "
+                  f"{best_key}={acc:.4f}", flush=True)
             if acc >= best:
                 best = acc
                 eval_mdl = ema_model if ema_model else model
                 sd = eval_mdl._orig_mod.state_dict() if hasattr(eval_mdl, "_orig_mod") else eval_mdl.state_dict()
                 torch.save({"phase": phase, "epoch": epoch, "val_top1": acc,
-                            "state_dict": sd}, checkpoint_path)
+                            "metrics": metrics, "state_dict": sd}, checkpoint_path)
+            # Once the binary head saturates, stop spending loss budget on it
+            # and reallocate to the breed heads from the next epoch onward.
+            if (loss_weights_final is not None and binary_sat_acc is not None
+                    and metrics["binary_acc"] >= binary_sat_acc
+                    and tuple(current_weights) != tuple(loss_weights_final)):
+                current_weights = tuple(loss_weights_final)
+                print(f"[train] binary head saturated "
+                      f"({metrics['binary_acc']:.4f} >= {binary_sat_acc}); "
+                      f"loss weights -> {current_weights}", flush=True)
             phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{acc:.4f}",
                                    refresh=False)
         else:
@@ -337,7 +463,7 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             phase_pbar.set_postfix(loss=f"{loss:.4f}", refresh=False)
 
     phase_pbar.close()
-    print(f"[train] phase{phase} best val top1: {best:.4f} -> {checkpoint_path}")
+    print(f"[train] phase{phase} best val {best_key}: {best:.4f} -> {checkpoint_path}")
     return best
 
 
@@ -479,6 +605,15 @@ def main():
                         help="label smoothing factor (default: 0.1)")
     parser.add_argument("--warmup-epochs", type=int, default=WARMUP_EPOCHS,
                         help="linear warmup epochs for phase 2 (default: 3)")
+    parser.add_argument("--contrastive-weight", type=float,
+                        default=CONTRASTIVE_WEIGHT,
+                        help="auxiliary SupCon loss weight on pooled features "
+                             "(0 disables; default: 0.2)")
+    parser.add_argument("--no-logit-adjust", action="store_true",
+                        help="disable logit adjustment for class imbalance")
+    parser.add_argument("--rare-threshold", type=int, default=RARE_CLASS_THRESHOLD,
+                        help="breeds below this many train images are excluded "
+                             "from CutMix/MixUp (default: 30)")
     parser.add_argument("--grad-accum", type=int,
                         default=GRADIENT_ACCUMULATION_STEPS,
                         help="gradient accumulation steps (default: 2)")
@@ -550,11 +685,25 @@ def main():
     if loaders is None:
         print("[train] failed to build dataloaders")
         return 1
-    if args.no_mix:
-        loaders[0].collate_fn = lambda batch: (
-            torch.stack([b[0] for b in batch]),
-            {k: torch.stack([b[1][k] for b in batch]) for k in batch[0][1]})
     train_loader, val_loader, _ = loaders
+
+    # --- Imbalance handling: logit adjustment + rare-class mixing guard ---
+    logit_priors = None
+    adjust_tau = 0.0
+    if LOGIT_ADJUST and not args.no_logit_adjust:
+        logit_priors = compute_class_priors(args.split_dir)
+        if logit_priors is not None:
+            adjust_tau = LOGIT_ADJUST_TAU
+            logit_priors = {k: v.to(device) for k, v in logit_priors.items()}
+            print(f"[train] logit adjustment enabled (tau={adjust_tau})")
+    rare_masks = compute_rare_classes(args.split_dir, args.rare_threshold)
+    if rare_masks is not None:
+        rare_masks = {k: v.to(device) for k, v in rare_masks.items()}
+        n_rare = sum(int(v.sum()) for v in rare_masks.values())
+        print(f"[train] rare breeds (<{args.rare_threshold} train imgs): {n_rare} "
+              f"(excluded from CutMix/MixUp)")
+    mix_prob = 0.0 if args.no_mix else CUTMIX_MIXUP_PROB
+    contrastive_weight = args.contrastive_weight
 
     # --- Model ---
     weights = args.weights or BACKBONE_WEIGHTS[args.backbone]
@@ -639,12 +788,15 @@ def main():
           f"lr={PHASE1_LR:.0e}, {phase1} epochs")
     train_phase(model, train_loader, val_loader, device, 1, phase1, PHASE1_LR,
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO), None, f"{base}_phase1_best.pt", scaler,
-                max_batches, best_key="combined_top1",
+                max_batches, best_key=BEST_METRIC,
                 set_train=lambda m: (m.train(), m.backbone_eval()),
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
-                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE1)
+                eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE1,
+                mix_prob=mix_prob, rare_masks=rare_masks,
+                logit_priors=logit_priors, adjust_tau=adjust_tau,
+                contrastive_weight=0.0)
 
     # --- Phase 2: Full multi-task fine-tuning ---
     model.unfreeze_all()
@@ -662,14 +814,20 @@ def main():
     print(f"\n[train] phase 2: multi-task fine-tune, lr={PHASE2_LR:.0e} "
           f"(warmup={warmup_ep}ep + cosine), "
           f"{phase2} epochs, weights "
-          f"({LOSS_WEIGHT_BINARY}/{LOSS_WEIGHT_CATTLE}/{LOSS_WEIGHT_BUFFALO})")
-          
+          f"({LOSS_WEIGHT_BINARY}/{LOSS_WEIGHT_CATTLE}/{LOSS_WEIGHT_BUFFALO}) "
+          f"-> saturated "
+          f"({LOSS_WEIGHT_BINARY_FINAL}/{LOSS_WEIGHT_CATTLE_FINAL}/"
+          f"{LOSS_WEIGHT_BUFFALO_FINAL})")
+    if contrastive_weight:
+        print(f"[train] feature learning: SupCon weight={contrastive_weight}, "
+              f"T={CONTRASTIVE_TEMPERATURE}")
+
     import copy
     ema_model = copy.deepcopy(model)
     ema_model.eval()
     for p in ema_model.parameters():
         p.requires_grad = False
-        
+
     train_phase(compiled_model, train_loader, val_loader, device, 2, phase2, PHASE2_LR,
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
                 lambda opt: _build_warmup_cosine_scheduler(
@@ -679,7 +837,15 @@ def main():
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
                 eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE2,
-                ema_model=ema_model, teacher_model=teacher_model)
+                ema_model=ema_model, teacher_model=teacher_model,
+                loss_weights_final=(LOSS_WEIGHT_BINARY_FINAL,
+                                    LOSS_WEIGHT_CATTLE_FINAL,
+                                    LOSS_WEIGHT_BUFFALO_FINAL),
+                binary_sat_acc=BINARY_SATURATION_ACC,
+                mix_prob=mix_prob, rare_masks=rare_masks,
+                logit_priors=logit_priors, adjust_tau=adjust_tau,
+                contrastive_weight=contrastive_weight,
+                contrastive_temp=CONTRASTIVE_TEMPERATURE)
 
     # --- Phase 3: QAT (opt-in; mobile INT8 is produced by converter PTQ) ---
     best_checkpoint = f"{base}_phase2_best.pt"
@@ -704,7 +870,10 @@ def main():
                     grad_accum_steps=args.grad_accum,
                     label_smoothing=args.label_smoothing,
                     eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE3,
-                    teacher_model=teacher_model)
+                    teacher_model=teacher_model,
+                    mix_prob=mix_prob, rare_masks=rare_masks,
+                    logit_priors=logit_priors, adjust_tau=adjust_tau,
+                    contrastive_weight=0.0)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat

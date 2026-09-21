@@ -65,18 +65,54 @@ def _size(path):
     return os.path.getsize(path) / (1024 * 1024)
 
 
+def _sanitize_state_dict(state):
+    """Make a checkpoint loadable into a plain float BreedClassifier.
+
+    Phase-3 QAT checkpoints (and torch.compile checkpoints) carry keys that a
+    non-quantized model does not have:
+      * `_orig_mod.` / `module.` prefixes from torch.compile / DataParallel
+      * `.weight_fake_quant.*`, `.activation_post_process.*` observers added by
+        prepare_qat
+      * fused `_bn0/_bn1/_bn2` BatchNorm keys after conv-BN fusion
+    Previously these made every ONNX/FP16/INT8 export raise a RuntimeError.
+    We strip the extra keys and drop fused BN entries so the remaining float
+    weights load; the caller uses strict=False to tolerate any leftovers.
+    """
+    if not isinstance(state, dict):
+        return state
+    cleaned = {}
+    for key, value in state.items():
+        k = key
+        for prefix in ("module.", "_orig_mod."):
+            if k.startswith(prefix):
+                k = k[len(prefix):]
+        if ".weight_fake_quant" in k or ".activation_post_process" in k:
+            continue
+        if k.endswith((".fake_quant_enabled", ".observer_enabled",
+                       ".scale", ".zero_point", ".min_val", ".max_val",
+                       ".eps")):
+            continue
+        cleaned[k] = value
+    return cleaned
+
+
 def _load_model(checkpoint_path, backbone, attention):
     model = BreedClassifier(backbone=backbone, attention=attention)
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
-    try:
-        model.load_state_dict(state)
-    except RuntimeError as exc:
+    state = _sanitize_state_dict(state)
+    missing, unexpected = model.load_state_dict(state, strict=False)
+    # The projection head is training-only; ignore it. Anything else missing is
+    # a real problem worth surfacing.
+    missing = [k for k in missing if not k.startswith("projection_head.")]
+    if missing:
         raise RuntimeError(
             f"checkpoint {checkpoint_path} does not match BreedClassifier"
-            f"({backbone}+{attention}). Quantized/QAT checkpoints carry fused "
-            f"module names and cannot be re-exported — export from the "
-            f"phase2 EMA checkpoint instead. Original error: {exc}") from exc
+            f"({backbone}+{attention}); missing keys: {missing[:5]}"
+            f"{' ...' if len(missing) > 5 else ''}")
+    if unexpected:
+        print(f"[export] ignored {len(unexpected)} unexpected keys "
+              f"(e.g. {unexpected[:3]})")
     model.eval()
     return model
 

@@ -13,13 +13,57 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from .config import (CACHE_IMAGES, CUTMIX_ALPHA, HALF_DATA_RATIO, IMAGE_SIZE,
-                     MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
-                     NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
-                     RANDAUGMENT_OPS, RAW_DATA_DIR, SAMPLER_BETA,
-                     SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO, TRAIN_RATIO,
+                     MIXUP_ALPHA, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                     QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS,
+                     RARE_CLASS_THRESHOLD, RAW_DATA_DIR, SAMPLER_BETA,
+                     SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
                      VAL_RATIO, IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+
+
+def _stratified_split(df, rng):
+    """Per-breed train/val/test index lists with hard minimums.
+
+    A plain round() split starves the long tail: a 10-image breed under an
+    85/10/5 split gets 9/1/0, so the test set never sees it. We guarantee at
+    least one val and one test image whenever a breed has >= 3 images, and at
+    least two training images, by borrowing from the training pool.
+    """
+    train_rows, val_rows, test_rows = [], [], []
+    groups = df.groupby(["species", "breed"])
+    for (_, _), group in tqdm(groups, desc="splitting breeds", leave=False,
+                              unit="breed"):
+        idxs = list(group.index)
+        rng.shuffle(idxs)
+        n = len(idxs)
+        if n <= 0:
+            continue
+        if n == 1:
+            train_rows.extend(idxs)
+            continue
+        if n == 2:
+            # One train, one test; no val (avoid any image appearing twice).
+            train_rows.extend(idxs[:1])
+            test_rows.extend(idxs[1:])
+            continue
+        n_val = max(1, int(round(n * VAL_RATIO)))
+        n_test = max(1, int(round(n * TEST_RATIO)))
+        n_train = n - n_val - n_test
+        if n_train < 2:
+            # Reserve one more image for train, trimming the test pool first.
+            deficit = 2 - n_train
+            take_test = min(deficit, n_test - 1)
+            n_test -= take_test
+            deficit -= take_test
+            n_train = n - n_val - n_test
+            if deficit > 0:
+                n_val = max(1, n_val - deficit)
+                n_train = n - n_val - n_test
+        train_rows.extend(idxs[:n_train])
+        val_rows.extend(idxs[n_train:n_train + n_val])
+        test_rows.extend(idxs[n_train + n_val:])
+    return train_rows, val_rows, test_rows
 
 
 def _collect_rows(data_root):
@@ -60,23 +104,7 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
     df = df[df["path"].apply(os.path.exists)].reset_index(drop=True)
 
     rng = random.Random(42)
-    train_rows, val_rows, test_rows = [], [], []
-    breeds = sorted(df["breed"].unique())
-    for breed in tqdm(breeds, desc="splitting breeds", leave=False,
-                      unit="breed"):
-        group = df[df["breed"] == breed]
-        idxs = list(group.index)
-        rng.shuffle(idxs)
-        n = len(idxs)
-        n_train = int(round(n * TRAIN_RATIO))
-        n_val = int(round(n * VAL_RATIO))
-        for i, idx in enumerate(idxs):
-            if i < n_train:
-                train_rows.append(idx)
-            elif i < n_train + n_val:
-                val_rows.append(idx)
-            else:
-                test_rows.append(idx)
+    train_rows, val_rows, test_rows = _stratified_split(df, rng)
 
     def save(name, idxs):
         out = os.path.join(split_dir, f"{name}.csv")
@@ -143,25 +171,8 @@ def prepare_half_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
 
     half_df = df.loc[sampled_rows].reset_index(drop=True)
 
-    # Apply the same 85/10/5 stratified split
-    train_rows, val_rows, test_rows = [], [], []
-    for breed in tqdm(sorted(half_df["breed"].unique()), desc="splitting breeds",
-                      leave=False, unit="breed"):
-        group = half_df[half_df["breed"] == breed]
-        idxs = list(group.index)
-        rng.shuffle(idxs)
-        n = len(idxs)
-        n_train = max(1, int(round(n * TRAIN_RATIO)))
-        n_val = max(1, int(round(n * VAL_RATIO)))
-        for i, idx in enumerate(idxs):
-            if i < n_train:
-                train_rows.append(idx)
-            elif i < n_train + n_val:
-                val_rows.append(idx)
-            else:
-                test_rows.append(idx)
-    if not test_rows and val_rows:
-        test_rows = val_rows[:1]
+    # Apply the same stratified split with long-tail minimums
+    train_rows, val_rows, test_rows = _stratified_split(half_df, rng)
 
     def save(name, idxs):
         out = os.path.join(split_dir, f"{name}.csv")
@@ -226,25 +237,8 @@ def prepare_quarter_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
 
     quarter_df = df.loc[sampled_rows].reset_index(drop=True)
 
-    # Apply the same 85/10/5 stratified split
-    train_rows, val_rows, test_rows = [], [], []
-    for breed in tqdm(sorted(quarter_df["breed"].unique()), desc="splitting breeds",
-                      leave=False, unit="breed"):
-        group = quarter_df[quarter_df["breed"] == breed]
-        idxs = list(group.index)
-        rng.shuffle(idxs)
-        n = len(idxs)
-        n_train = max(1, int(round(n * TRAIN_RATIO)))
-        n_val = max(1, int(round(n * VAL_RATIO)))
-        for i, idx in enumerate(idxs):
-            if i < n_train:
-                train_rows.append(idx)
-            elif i < n_train + n_val:
-                val_rows.append(idx)
-            else:
-                test_rows.append(idx)
-    if not test_rows and val_rows:
-        test_rows = val_rows[:1]
+    # Apply the same stratified split with long-tail minimums
+    train_rows, val_rows, test_rows = _stratified_split(quarter_df, rng)
 
     def save(name, idxs):
         out = os.path.join(split_dir, f"{name}.csv")
@@ -462,7 +456,21 @@ def _rand_bbox(size, lam):
     return bbx1, bby1, bbx2, bby2
 
 
-def cutmix(images, labels, alpha=CUTMIX_ALPHA):
+def _restore_unmixed(mixed, original, keep):
+    """Return `mixed` where keep is False and `original` where keep is True.
+
+    `keep` is a (B,) bool mask of samples that must NOT be mixed (rare
+    breeds); broadcasts over any trailing label/feature dims.
+    """
+    if keep is None:
+        return mixed
+    view = keep.view(-1, *([1] * (mixed.dim() - 1)))
+    return torch.where(view, original, mixed)
+
+
+def cutmix(images, labels, alpha=CUTMIX_ALPHA, keep=None):
+    original_images = images.clone()
+    original_labels = {k: v.clone() for k, v in labels.items()}
     batch = images.size(0)
     lam = np.random.beta(alpha, alpha)
     perm = torch.randperm(batch, device=images.device)
@@ -471,14 +479,22 @@ def cutmix(images, labels, alpha=CUTMIX_ALPHA):
     area = (x2 - x1) * (y2 - y1) / (images.size(2) * images.size(3))
     lam = 1.0 - area
     labels = {k: lam * labels[k] + (1.0 - lam) * labels[k][perm] for k in labels}
+    images = _restore_unmixed(images, original_images, keep)
+    labels = {k: _restore_unmixed(v, original_labels[k], keep)
+              for k, v in labels.items()}
     return images, labels
 
 
-def mixup(images, labels, alpha=MIXUP_ALPHA):
+def mixup(images, labels, alpha=MIXUP_ALPHA, keep=None):
+    original_images = images.clone()
+    original_labels = {k: v.clone() for k, v in labels.items()}
     lam = np.random.beta(alpha, alpha)
     perm = torch.randperm(images.size(0), device=images.device)
     images = lam * images + (1.0 - lam) * images[perm]
     labels = {k: lam * labels[k] + (1.0 - lam) * labels[k][perm] for k in labels}
+    images = _restore_unmixed(images, original_images, keep)
+    labels = {k: _restore_unmixed(v, original_labels[k], keep)
+              for k, v in labels.items()}
     return images, labels
 
 
@@ -497,11 +513,15 @@ def _make_weighted_sampler(df, beta=SAMPLER_BETA):
     over-oversamples tiny classes into memorization noise. The effective
     number formulation saturates for large n (at 1/(1-beta)), softening the
     boost for common breeds while rare breeds keep approximately 1/n.
+
+    Counts are keyed on (species, breed) because a handful of breed names
+    (e.g. "bargur") exist under both cattle and buffalo.
     """
-    counts = df.groupby("breed")["path"].count()
-    eff_num = (1.0 - beta ** counts) / (1.0 - beta)
-    weights = df["breed"].map(lambda b: 1.0 / eff_num[b]).to_numpy(
-        dtype="float64").copy()
+    counts = (df.groupby(["species", "breed"])["path"].count()
+              .rename("n").reset_index())
+    merged = df.merge(counts, on=["species", "breed"], how="left")
+    eff_num = (1.0 - beta ** merged["n"]) / (1.0 - beta)
+    weights = (1.0 / eff_num).to_numpy(dtype="float64").copy()
     return WeightedRandomSampler(
         torch.from_numpy(weights), num_samples=len(weights), replacement=True)
 
@@ -511,6 +531,65 @@ def _read_csv(split_dir, name):
     if not os.path.exists(path):
         return None
     return pd.read_csv(path)
+
+
+def _load_class_maps(split_dir):
+    with open(os.path.join(split_dir, "cattle_classes.json")) as f:
+        cattle_classes = json.load(f)
+    with open(os.path.join(split_dir, "buffalo_classes.json")) as f:
+        buffalo_classes = json.load(f)
+    return cattle_classes, buffalo_classes
+
+
+def _count_per_class(df, class_map, num_classes, species=None):
+    counts = np.zeros(num_classes, dtype=np.float64)
+    if species is not None:
+        df = df[df["species"] == species]
+    by_breed = df.groupby("breed")["path"].count()
+    for breed, idx in class_map.items():
+        if breed in by_breed.index:
+            counts[idx] = float(by_breed[breed])
+    return counts
+
+
+def compute_class_priors(split_dir=SPLIT_DIR):
+    """Smoothed log class priors from the training split.
+
+    Used by logit adjustment: during training we add `tau * log(prior)` to the
+    breed logits so frequent breeds must be much more confident to win, which
+    compensates for the long tail without forcing a near-uniform sampler.
+    Returns {"cattle": Tensor[C], "buffalo": Tensor[B]} of log priors.
+    """
+    train_df = _read_csv(split_dir, "train")
+    if train_df is None:
+        return None
+    cattle_classes, buffalo_classes = _load_class_maps(split_dir)
+    priors = {}
+    for species, class_map, num_classes in (
+            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
+            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+        counts = _count_per_class(train_df, class_map, num_classes,
+                                  species=species)
+        smoothed = counts + 1.0
+        prior = smoothed / smoothed.sum()
+        priors[species] = torch.log(torch.as_tensor(prior, dtype=torch.float32))
+    return priors
+
+
+def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
+    """Boolean per-class masks marking breeds below `threshold` train images."""
+    train_df = _read_csv(split_dir, "train")
+    if train_df is None:
+        return None
+    cattle_classes, buffalo_classes = _load_class_maps(split_dir)
+    rare = {}
+    for species, class_map, num_classes in (
+            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
+            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+        counts = _count_per_class(train_df, class_map, num_classes,
+                                  species=species)
+        rare[species] = torch.as_tensor(counts < threshold, dtype=torch.bool)
+    return rare
 
 
 def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,

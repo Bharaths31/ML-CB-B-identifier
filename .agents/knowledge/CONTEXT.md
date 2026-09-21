@@ -26,10 +26,10 @@
 | Field | Value |
 |---|---|
 | **Goal** | Classify images of Indian cattle (57 breeds) and buffalo (18 breeds) using a lightweight, mobile-deployable CNN |
-| **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) |
+| **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
-| **Training** | 3-phase: binary warmup → multi-task fine-tune → optional QAT |
-| **Deployment** | ONNX, INT8, float16, or portable self-contained folder |
+| **Training** | 2-phase default: all-heads warmup → multi-task fine-tune (+ optional QAT phase 3) |
+| **Deployment** | ONNX, INT8 (converter-side PTQ), float16, or portable self-contained folder |
 | **Dataset** | Multi-source Kaggle datasets: `algsoch` & `atharvadarpude` merged into `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
 
 ### Key Numbers
@@ -57,13 +57,15 @@
 │  │   stem → [stage0..3] → CBAM → [stage4..6] → head        │
 │  └──────────────────────────────────────────────┘            │
 │        ↓ AdaptiveAvgPool2d(1) → flatten(1)                   │
-│        ↓ (1280-dim feature vector)                           │
-│  ┌─────┼─────────┬──────────────┐                            │
-│  ↓     ↓         ↓              ↓                            │
-│ binary_head  cattle_head  buffalo_head  (feature passthrough)│
-│  (→2)        (→57)        (→18)                              │
+│        ↓ (1280-dim pooled feature vector)                    │
+│  ┌─────┼─────────┬──────────────┬───────────────────┐        │
+│  ↓     ↓         ↓              ↓                   ↓        │
+│ binary_head  cattle_head  buffalo_head   projection_head     │
+│  (→2)        (→57)        (→18)          (→128, train-only)  │
 │        ↓                                                     │
 │  masked_loss: w_bin*CE_bin + w_cat*CE_cat + w_buf*CE_buf     │
+│               (+ τ·log(prior) logit adjustment on breed CE)  │
+│               (+ λ·SupCon(projection embedding))             │
 │        ↓                                                     │
 │  outputs/checkpoints/<backbone>_phase{1,2,3}_best.pt         │
 │        ↓                                                     │
@@ -75,9 +77,14 @@
 
 ```
 Image → Resize(260) → CenterCrop(260) → ToTensor()
-     → model.forward() → {binary, cattle, buffalo, features}
-     → argmax(binary) → select cattle/buffalo head → argmax → breed
+     → model.forward() → {binary, cattle, buffalo, features, embedding}
+     → soft routing: p(species)·softmax(head) over all 75 breeds → top-k
 ```
+
+`model.predict(x)` returns the soft-routed 75-class distribution. `test_model.py`
+and both Flutter engines use the same `p(species)·softmax(head)` mixture instead
+of a hard binary argmax, so a confident breed head can still win when the binary
+head is ambiguous (removes two-stage routing error propagation).
 
 ---
 

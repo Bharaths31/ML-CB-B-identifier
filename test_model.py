@@ -549,42 +549,44 @@ class ModelManager:
 
         inference_time = time.time() - inference_start
 
-        # Species prediction
+        # --- Soft species routing -------------------------------------------
+        # Instead of a hard binary argmax (which forces every sample down one
+        # breed head and propagates ~5% routing errors), score all breeds as
+        # p(species) * softmax(head). A confident breed head can still win
+        # when the binary head is ambiguous.
         binary_probs = F.softmax(binary_logits, dim=0)
-        species_idx = binary_probs.argmax().item()
-        species_name = SPECIES_LABELS[species_idx]
-        species_conf = binary_probs[species_idx].item() * 100
+        cattle_probs = F.softmax(cattle_logits, dim=0)
+        buffalo_probs = F.softmax(buffalo_logits, dim=0)
+        cattle_map = self.class_maps.get("cattle", {})
+        buffalo_map = self.class_maps.get("buffalo", {})
+        cattle_inv = {v: k for k, v in cattle_map.items()}
+        buffalo_inv = {v: k for k, v in buffalo_map.items()}
+        n_cattle = cattle_logits.numel()
+        combined = torch.cat([binary_probs[0] * cattle_probs,
+                              binary_probs[1] * buffalo_probs])
 
         if logger:
             bp = [round(p, 4) for p in binary_probs.tolist()]
-            logger.debug(f"Binary softmax: {bp} → {species_name} ({species_conf:.1f}%)")
+            logger.debug(f"Binary softmax: {bp} (soft routing over "
+                         f"{n_cattle} cattle + {buffalo_logits.numel()} buffalo)")
 
-        # Breed prediction based on species
-        if species_idx == 0:  # Cattle
-            breed_probs = F.softmax(cattle_logits, dim=0)
-            class_map = self.class_maps.get("cattle", {})
-            if logger:
-                logger.debug("Selected cattle head for breed prediction")
-        else:  # Buffalo
-            breed_probs = F.softmax(buffalo_logits, dim=0)
-            class_map = self.class_maps.get("buffalo", {})
-            if logger:
-                logger.debug("Selected buffalo head for breed prediction")
-
-        # Invert class map: idx -> breed_name
-        idx_to_breed = {v: k for k, v in class_map.items()}
-
-        # Top-5 breed predictions
-        top5_probs, top5_idxs = breed_probs.topk(min(5, len(breed_probs)))
+        k = min(5, combined.numel())
+        top5_probs, top5_idxs = combined.topk(k)
         top5 = []
         for prob, idx in zip(top5_probs.tolist(), top5_idxs.tolist()):
-            breed = idx_to_breed.get(idx, f"class_{idx}")
-            # Clean up breed name for display
+            if idx < n_cattle:
+                breed = cattle_inv.get(idx, f"cattle_{idx}")
+            else:
+                breed = buffalo_inv.get(idx - n_cattle, f"buffalo_{idx - n_cattle}")
             display_name = breed.replace("_", " ").title()
             top5.append({
                 "breed": display_name,
                 "confidence": round(prob * 100, 2),
             })
+
+        species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
+        species_name = SPECIES_LABELS[species_idx]
+        species_conf = binary_probs[species_idx].item() * 100
 
         total_time = time.time() - predict_start
 
@@ -604,14 +606,24 @@ class ModelManager:
             "model_used": model_name,
             "inference_time_ms": round(inference_time * 1000, 1),
             "total_time_ms": round(total_time * 1000, 1),
+            "routing": "soft",
         }
 
         # Add raw logits for dev mode (API consumer decides whether to use them)
         result["_raw_binary_probs"] = [round(p, 6) for p in binary_probs.tolist()]
+        k10 = min(10, combined.numel())
+        raw_probs, raw_idxs = combined.topk(k10)
         result["_raw_breed_probs_top10"] = [
-            {"idx": int(idx), "breed": idx_to_breed.get(int(idx), f"class_{int(idx)}"),
-             "prob": round(float(p), 6)}
-            for p, idx in zip(*breed_probs.topk(min(10, len(breed_probs))))
+            {
+                "idx": int(idx),
+                "species": "cattle" if int(idx) < n_cattle else "buffalo",
+                "breed": (cattle_inv.get(int(idx), f"cattle_{int(idx)}")
+                          if int(idx) < n_cattle
+                          else buffalo_inv.get(int(idx) - n_cattle,
+                                               f"buffalo_{int(idx) - n_cattle}")),
+                "prob": round(float(p), 6),
+            }
+            for p, idx in zip(raw_probs.tolist(), raw_idxs.tolist())
         ]
 
         return result

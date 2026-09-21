@@ -140,8 +140,8 @@ Blend and temperature are configured in `src/config.py` (`KD_ALPHA=0.7`, `KD_TEM
 | Flag | Description |
 |---|---|
 | `--smoke-test` | 5 images/breed, 1 epoch per phase (real data, not random batches) |
-| `--half-data` | 50% of images per breed, same stratified 85/10/5 split |
-| `--quarter-data` | 25% of images per breed, same stratified 85/10/5 split |
+| `--half-data` | 50% of images per breed, same 70/15/15 stratified split |
+| `--quarter-data` | 25% of images per breed, same 70/15/15 stratified split |
 | *(none)* | Full dataset (default) |
 
 ### Augmentation & Compilation

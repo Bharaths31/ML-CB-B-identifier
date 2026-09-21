@@ -30,7 +30,7 @@
    Model heads are always sized for **57 cattle + 18 buffalo = 75 classes**, even during smoke test or subset training. Unused class outputs simply receive no gradient from those images. This is by design — the model architecture is identical across all data modes.
 
 6. **`WeightedRandomSampler` during training only**
-   Training oversamples rare breeds using **effective-number-of-samples** weighting (`SAMPLER_BETA=0.999`) — a softened inverse-frequency scheme that avoids over-oversampling breeds with only a handful of images. Evaluation (`src.evaluate`) uses no sampling — the test set reflects the natural distribution of the dataset. The binary head is additionally species-balanced per batch (`BALANCE_BINARY_HEAD=True`).
+   Training oversamples rare breeds using **effective-number-of-samples** weighting (`SAMPLER_BETA=0.99`) plus **logit adjustment** (`τ·log(prior)` on the breed logits during training) — a softened inverse-frequency scheme that avoids over-oversampling breeds with only a handful of images. Breeds below `RARE_CLASS_THRESHOLD` train images are excluded from CutMix/MixUp. Evaluation (`src.evaluate`) uses no sampling — the test set reflects the natural distribution of the dataset. The binary head is additionally species-balanced per batch (`BALANCE_BINARY_HEAD=True`).
 
 7. **Soft cross-entropy (not hard labels)**
    Training uses soft label vectors because CutMix/MixUp produce fractional labels (e.g., 60% breed A / 40% breed B). Hard one-hot labels are a special case of soft labels and work identically with `soft_ce`.

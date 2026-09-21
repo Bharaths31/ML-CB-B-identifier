@@ -499,14 +499,17 @@ This notebook allows you to:
 | **Augmentation** | RandAugment(ops=2, mag=5) + ColorJitter + CutMix(α=1.0)/MixUp(α=0.3) on 50% of steps | Diverse training signal, reduces overfitting |
 | **Knowledge Distillation** | `--teacher` (α=0.7, T=4.0) | Train a lite4 teacher, distill into lite2 — teacher accuracy at zero on-device cost |
 | **Weight EMA** | decay=0.999, parameters **and** BN buffers | Stable validation + trustworthy checkpoints |
-| **Effective-Number Sampler** | β=0.999 | Balances rare breeds without over-oversampling 5-image breeds |
+| **Effective-Number Sampler** | β=0.99 | Balances rare breeds without over-oversampling 5-image breeds |
+| **Logit Adjustment** | τ·log(prior) on breed logits | Menon et al. — compensates the long tail without distorting the sampler |
+| **SupCon Features** | λ=0.2 on pooled features | Separates visually near-identical indigenous breeds |
+| **Soft Species Routing** | p(species)·softmax(head) | Removes hard two-stage routing error propagation |
 | **Binary Species Balancing** | per-batch re-weighting | Neutralizes the 57:18 breed-count species prior |
 | **Gradient Accumulation** | 2 steps → effective batch=128 | Stable gradients on small VRAM GPUs |
 | **Mixed Precision (AMP)** | Phases 1–2 | ~2× faster training, lower VRAM usage |
 | **Dynamic VRAM Scaling** | Auto batch_size + grad_accum | Adapts to 4 GB → 24 GB GPUs automatically |
 | **Byte Caching** | Raw JPEG bytes in RAM | Prevents RAM OOM, eliminates repeated disk I/O |
 | **GPU-side CutMix/MixUp** | Operations on CUDA device | Prevents CPU DataLoader bottleneck |
-| **Split Ratio** | 85/10/5 stratified | Maximizes training data for rare breeds |
+| **Split Ratio** | 70/15/15 stratified (≥1 val/test per breed) | Maximizes rare-breed evaluation |
 
 ---
 
@@ -827,7 +830,7 @@ python -m src.train --quarter-data --device cpu --no-compile
 - **QAT opt-in**: default training is 2 phases; `--include-qat` uses per-tensor observers (fixes the `Unsupported qscheme: per_channel_affine` conversion failure) and starts from the best phase-2 EMA checkpoint.
 - **Mobile INT8 exports**: new `--mode tflite` (full-integer PTQ via onnx2tf, labels emitted, auto-copied into `flutter_app/assets/models/`) and `--mode onnx-int8` (QDQ for ONNX Runtime Mobile). ImageNet normalization is baked into mobile graphs — the app's `pixel/255` preprocessing is now exactly correct.
 - **Removed the broken x86 `--mode int8` path**.
-- **Long-tail fixes**: effective-number-of-samples sampler (β=0.999), binary-head species balancing, CutMix/MixUp probability 0.25 → 0.5.
+- **Long-tail fixes**: effective-number-of-samples sampler (β=0.99), logit adjustment, soft species routing, SupCon features, 70/15/15 splits.
 - **New parity gate (`src/parity_check.py`)**: fp32 vs TFLite/ONNX INT8 accuracy comparison (accept: within 1 pt) or `--synthetic N` artifact-only mode. Measured: ONNX INT8 25.65 → 7.10 MB, fp32 exact parity.
 
 **2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata**

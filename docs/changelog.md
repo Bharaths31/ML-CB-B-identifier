@@ -1,5 +1,56 @@
 # 16. Changelog
 
+### 2026-09-21 — Long-Tail Accuracy Overhaul: Logit Adjustment, Feature Metric Learning, Soft Routing, 70/15/15 Splits
+
+Motivated by a graph-assisted gap analysis: phase-2 best val top-1 was 0.578
+(binary 0.95, cattle 0.59, buffalo 0.61), with 21+ indigenous cattle breeds
+carrying ≤14 images against `gir`=768, and the old 85/10/5 split leaving many
+rare breeds with **zero** test images.
+
+**Config (`src/config.py`):**
+- `SAMPLER_BETA` 0.999 → **0.99** (softer effective-number oversampling).
+- Split ratios **70/15/15** (was 85/10/5); `PHASE2_EPOCHS` 60 → **80**.
+- New: `LOGIT_ADJUST`/`LOGIT_ADJUST_TAU`, `CONTRASTIVE_WEIGHT`/`CONTRASTIVE_TEMPERATURE`,
+  `RARE_CLASS_THRESHOLD`, `PROJECTION_DIM`, `BEST_METRIC="balanced_score"`,
+  and saturated-binary loss weights (`*_FINAL`, `BINARY_SATURATION_ACC`).
+
+**Imbalance (`src/data_pipeline.py`, `src/train.py`):**
+- **Logit adjustment** (Menon et al., ICLR 2021): `tau·log(prior)` added to breed
+  logits during training only, from smoothed train priors (`compute_class_priors`).
+- **Long-tail split minimums**: every `(species, breed)` with ≥3 images now gets
+  ≥1 val and ≥1 test image; fixed grouping to key on `(species, breed)` because
+  `bargur` exists under both species.
+- **Rare-class mixing guard**: breeds below `RARE_CLASS_THRESHOLD` (30 train
+  images) are excluded from CutMix/MixUp (`compute_rare_classes` + `keep` mask).
+- **Adaptive loss weights**: once `binary_acc ≥ 0.95`, weights switch from
+  `0.15/0.50/0.35` to `0.05/0.55/0.40` to reallocate budget to the breed heads.
+- `--no-mix` now actually disables mixing (previously it only swapped the collate fn).
+
+**Feature learning (`src/model.py`, `src/train.py`):**
+- New auxiliary **projection head** + **supervised contrastive (SupCon)** loss on
+  the previously-unused pooled features (`CONTRASTIVE_WEIGHT=0.2`); skipped on
+  mixed batches where labels are soft. Adds a dedicated optimizer param group.
+
+**Metrics & selection (`src/metrics.py`):**
+- `evaluate_epoch` now reports per-head **macro-F1**, **balanced accuracy**, and
+  **soft-routed combined top-1** (`p(species)·softmax(head)`).
+- Checkpoints are selected on `balanced_score = ½(cattle_macro_f1 + buffalo_macro_f1)`
+  instead of combined top-1, which was dominated by ~10 large breeds.
+
+**Soft routing:** `BreedClassifier.predict()`, `test_model.py`, and both Flutter
+engines (`android_tflite_engine.dart`, `web_tfjs_engine.dart`) now mix
+`p(species)·softmax(head)` across all 75 breeds instead of hard binary argmax,
+removing two-stage routing error propagation.
+
+**Export (`src/export.py`, `local_train.py`):**
+- `_sanitize_state_dict` strips `_orig_mod.`/`module.` prefixes and QAT
+  `fake_quant`/`activation_post_process`/fused-BN keys, so phase-3/QAT and
+  compiled checkpoints no longer crash ONNX/FP16/INT8 export.
+- `local_train.py` prefers the phase-2 (EMA) checkpoint and exports INT8 via the
+  converter-side PTQ path (`--mode onnx-int8`), not the removed `--mode int8`.
+
+---
+
 ### 2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports
 
 **Training (`src/train.py`):**

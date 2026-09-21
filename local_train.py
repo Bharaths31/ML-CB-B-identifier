@@ -733,8 +733,9 @@ def stage_export(args):
     checkpoint_dir = os.path.join(PROJECT_ROOT, "outputs", "checkpoints")
     best_ckpt = None
 
-    # Find the best checkpoint (prefer phase3 if QAT was done, else phase2)
-    for phase in ("phase3", "phase2", "phase1"):
+    # Find the best checkpoint. Phase 2 (EMA) is preferred: phase-3 QAT
+    # measurably degrades accuracy and is opt-in only.
+    for phase in ("phase2", "phase3", "phase1"):
         candidate = os.path.join(checkpoint_dir,
                                  f"{args.backbone}_{phase}_best.pt")
         if os.path.exists(candidate):
@@ -765,10 +766,10 @@ def stage_export(args):
           "--mode", "onnx", "--backbone", args.backbone,
           "--checkpoint", best_ckpt], check=False)
 
-    # Export INT8
-    print("\n  Exporting INT8 (quantized)...")
+    # Export INT8 via converter-side PTQ (no QAT)
+    print("\n  Exporting INT8 (ONNX Runtime Mobile, PTQ)...")
     _run([_python(), "-m", "src.export",
-          "--mode", "int8", "--backbone", args.backbone,
+          "--mode", "onnx-int8", "--backbone", args.backbone,
           "--checkpoint", best_ckpt], check=False)
 
     # Export float16

@@ -16,7 +16,7 @@ data/raw/
 
 ### Split Strategy
 
-- **Full training**: 85/10/5 stratified per breed (optimized for maximum training data)
+- **Full training**: 70/15/15 stratified per `(species, breed)` with long-tail minimums (≥1 val and ≥1 test image for every breed with ≥3 images)
 - **Smoke test**: 5 images/breed → 60/20/20 split (tiny but real)
 
 ### Augmentation
