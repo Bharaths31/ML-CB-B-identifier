@@ -3,7 +3,19 @@
 ---
 
 1. **QAT + CUDA AMP conflict**
-   Phase 3 (QAT) disables the AMP (`GradScaler`) because quantization observers are not compatible with mixed precision. This is intentional and handled automatically — AMP is active for Phases 1–2, disabled for Phase 3.
+   Phase 3 (QAT, opt-in via `--include-qat`) disables the AMP (`GradScaler`) because quantization observers are not compatible with mixed precision. This is intentional and handled automatically — AMP is active for Phases 1–2, disabled for Phase 3.
+
+1b. **EMA must include BatchNorm buffers** (`src/train.py`)
+   The phase-2 EMA updates parameters **and** BN running stats (`num_batches_tracked` is hard-copied). Removing the buffer sync corrupts every phase-2 checkpoint with stale BN statistics while validation still looks plausible — keep the sync.
+
+1c. **Mobile artifacts are static batch-1 with [0,1] input**
+   TFLite/ONNX-INT8 exports bake ImageNet normalization into the graph and expect RGB float32 in [0,1] (the Flutter app's `pixel/255`). Keep output names/order stable (`binary`, `cattle`, `buffalo`) when editing `_MobileOutputs` in `src/export.py`.
+
+1d. **Quantized/QAT checkpoints cannot be re-exported**
+   `_quantized.pt` / phase-3 checkpoints carry fused module names; `src.export` raises a clear error. Always export from the phase-2 EMA checkpoint.
+
+1e. **TFLite toolchain is optional and Python-version sensitive**
+   `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt). `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — run TFLite conversion from a Python ≤3.13 venv (the Windows venv is 3.13) or Colab.
 
 2. **Backbone weights are included in the repository**
    `efficientnet_lite2.pth` and `efficientnet_lite4.pth` are tracked in git. No separate download is required. Without them, the backbone would train from scratch (significantly worse accuracy). `local_train.py` verifies their presence at startup.
@@ -18,7 +30,7 @@
    Model heads are always sized for **57 cattle + 18 buffalo = 75 classes**, even during smoke test or subset training. Unused class outputs simply receive no gradient from those images. This is by design — the model architecture is identical across all data modes.
 
 6. **`WeightedRandomSampler` during training only**
-   Training uses inverse-frequency sampling to oversample rare breeds. Evaluation (`src.evaluate`) uses no sampling — the test set reflects the natural distribution of the dataset.
+   Training oversamples rare breeds using **effective-number-of-samples** weighting (`SAMPLER_BETA=0.999`) — a softened inverse-frequency scheme that avoids over-oversampling breeds with only a handful of images. Evaluation (`src.evaluate`) uses no sampling — the test set reflects the natural distribution of the dataset. The binary head is additionally species-balanced per batch (`BALANCE_BINARY_HEAD=True`).
 
 7. **Soft cross-entropy (not hard labels)**
    Training uses soft label vectors because CutMix/MixUp produce fractional labels (e.g., 60% breed A / 40% breed B). Hard one-hot labels are a special case of soft labels and work identically with `soft_ce`.

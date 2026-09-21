@@ -49,10 +49,11 @@ Mini Project/
 │   ├── model.py                # BreedClassifier (backbone + attention + heads)
 │   ├── cbam.py                 # CBAM & SE attention modules
 │   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 3-phase training with AMP, auto-export
+│   ├── train.py                # 2-phase training (+opt-in QAT, distillation), AMP, auto-export
 │   ├── metrics.py              # evaluate_epoch() — per-head accuracy + F1
 │   ├── evaluate.py             # Full evaluation with confusion matrices
-│   ├── export.py               # ONNX, INT8, float16, portable export
+│   ├── export.py               # ONNX, TFLite INT8, ONNX INT8, float16, portable export
+│   ├── parity_check.py         # fp32 vs mobile-artifact parity gate
 │   └── verify.py               # Quick architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)

@@ -35,9 +35,9 @@ All subset modes maintain the full 57-cattle / 18-buffalo class map. The model a
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--include-qat` | flag | off | Enable Phase 3 (Quantization-Aware Training) for INT8 Android deployment |
-| `--phase1-epochs` | int | `5` | Override Phase 1 epoch count (binary warmup) |
-| `--phase2-epochs` | int | `40` | Override Phase 2 epoch count (multi-task fine-tune) |
+| `--include-qat` | flag | off | Enable the optional Phase 3 (QAT) — a recovery tool; mobile INT8 comes from converter PTQ ([Android Deployment](android-deployment.md)) |
+| `--phase1-epochs` | int | `8` | Override Phase 1 epoch count (all-heads warmup) |
+| `--phase2-epochs` | int | `60` | Override Phase 2 epoch count (multi-task fine-tune) |
 | `--phase3-epochs` | int | `10` | Override Phase 3 epoch count (QAT) |
 | `--num-workers` | int | `4` | DataLoader worker process count |
 
@@ -59,8 +59,8 @@ python local_train.py --quarter-data
 # Half data, include QAT for Android
 python local_train.py --half-data --include-qat
 
-# Full data, lite4 backbone, custom phase 2 epochs
-python local_train.py --backbone lite4 --phase2-epochs 30
+# Full data, lite4 backbone (teacher run for distillation)
+python local_train.py --backbone lite4
 
 # Re-run training only (skip setup + download)
 python local_train.py --half-data --skip-setup --skip-download
@@ -119,10 +119,21 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--phase1-epochs` | int | `5` | Phase 1 epochs (binary head warmup) |
-| `--phase2-epochs` | int | `40` | Phase 2 epochs (multi-task fine-tune) |
-| `--phase3-epochs` | int | `10` | Phase 3 epochs (QAT) |
-| `--skip-qat` | flag | off | Skip Phase 3 entirely |
+| `--phase1-epochs` | int | `8` | Phase 1 epochs (all-heads warmup) |
+| `--phase2-epochs` | int | `60` | Phase 2 epochs (multi-task fine-tune + EMA) |
+| `--phase3-epochs` | int | `10` | Phase 3 epochs (QAT, opt-in) |
+| `--include-qat` | flag | off | Enable Phase 3 (QAT). Mobile INT8 comes from converter PTQ instead — see [Export & Deployment](export-deployment.md) |
+| `--skip-qat` | flag | off | Kept for backwards compatibility; QAT is already off by default |
+
+### Distillation
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--teacher` | path | off | Teacher checkpoint (`.pt`) for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best.pt` |
+| `--teacher-backbone` | `lite2` \| `lite4` | `lite4` | Teacher backbone architecture |
+| `--teacher-attention` | `cbam` \| `se` | same as student | Teacher attention type |
+
+Blend and temperature are configured in `src/config.py` (`KD_ALPHA=0.7`, `KD_TEMPERATURE=4.0`).
 
 ### Data Mode *(mutually exclusive)*
 
@@ -145,28 +156,32 @@ python -m src.train [OPTIONS]
 
 ```bash
 # Sanity check — full pipeline in seconds
-python -m src.train --smoke-test --skip-qat
+python -m src.train --smoke-test
 
 # Quarter-data training (recommended for local GPU)
-python -m src.train --quarter-data --skip-qat
+python -m src.train --quarter-data
 
 # Half-data with overridden epochs
-python -m src.train --half-data --phase2-epochs 20 --skip-qat
+python -m src.train --half-data --phase2-epochs 20
 
-# Full training with lite4 backbone
+# Full training with lite4 backbone (teacher run)
 python -m src.train --backbone lite4
 
-# Full training with all QAT phases
-python -m src.train --backbone lite2
+# Full training, distilled from the lite4 teacher
+python -m src.train --backbone lite2 \
+  --teacher outputs/checkpoints/lite4_phase2_best.pt
+
+# Opt-in QAT phase (recovery path; mobile INT8 uses converter PTQ)
+python -m src.train --backbone lite2 --include-qat
 
 # Override hyperparameters explicitly
 python -m src.train \
   --backbone lite4 \
   --batch-size 32 \
-  --phase1-epochs 5 \
-  --phase2-epochs 40 \
+  --phase1-epochs 8 \
+  --phase2-epochs 60 \
   --weight-decay 0.01 \
-  --label-smoothing 0.1 \
+  --label-smoothing 0.05 \
   --device cuda
 
 # CPU-only run (no torch.compile)
@@ -177,7 +192,7 @@ python -m src.train --quarter-data --device cpu --no-compile
 
 ## `python -m src.export` — Model Export
 
-Exports a trained checkpoint to one of four formats.
+Exports a trained checkpoint to desktop or mobile formats.
 
 ```
 python -m src.export [OPTIONS]
@@ -188,30 +203,86 @@ python -m src.export [OPTIONS]
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Which backbone's checkpoint to load |
-| `--mode` | `onnx` \| `int8` \| `float16` \| `portable` | **required** | Export format |
-| `--checkpoint` | path | auto (latest in `outputs/checkpoints/`) | Specific `.pt` file to export |
+| `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | **required** | Export format |
+| `--checkpoint` | path | auto (`<backbone>_phase2_best.pt`) | Specific `.pt` file to export |
+| `--calibration-images` | int | `500` | Train images used for INT8 calibration (tflite / onnx-int8) |
+| `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into `flutter_app/assets/models/` |
+| `--onnx-static-batch` | flag | off | Fix batch size 1 in the fp32 ONNX export |
 
 ### Export Modes
 
 | Mode | Output File | Description |
 |---|---|---|
 | `portable` | `outputs/export/portable/<backbone>_<tag>/` | Self-contained folder: `model.pt` + class JSONs + metadata. Requires `BreedClassifier` class to load. |
-| `onnx` | `outputs/export/<backbone>_fp32.onnx` | ONNX opset 13, framework-free inference |
-| `int8` | `outputs/export/<backbone>_int8.pt` | PTQ INT8 TorchScript, 32-batch calibration |
+| `onnx` | `outputs/export/<backbone>_fp32.onnx` | ONNX opset 13; caller-normalized input (test_model.py compatible) |
+| `tflite` | `<backbone>_fp32.tflite` + `<backbone>_int8.tflite` + `labels_*.txt` | Full-integer INT8 PTQ via onnx2tf; input [0,1], normalization baked in; auto-copies into `flutter_app/assets/models/` |
+| `onnx-int8` | `outputs/export/<backbone>_mobile_int8.onnx` | QDQ static INT8 for ONNX Runtime Mobile; per-channel weights, calibrated on real train images |
 | `float16` | `outputs/export/<backbone>_float16.pt` | FP16 TorchScript |
+
+> `--mode int8` (x86 PTQ) was removed — it failed conversion and its artifacts were unusable on Android. Running it prints guidance to use `tflite` / `onnx-int8`.
 
 ### Examples
 
 ```bash
-# Export all 4 formats for lite2 (what local_train.py does automatically)
+# Mobile: TFLite INT8 + labels → flutter_app/assets/models/
+python -m src.export --mode tflite --backbone lite2
+
+# Mobile: ONNX Runtime Mobile INT8
+python -m src.export --mode onnx-int8 --backbone lite2
+
+# Desktop testing formats
 python -m src.export --mode portable --backbone lite2
 python -m src.export --mode onnx --backbone lite2
-python -m src.export --mode int8 --backbone lite2
 python -m src.export --mode float16 --backbone lite2
 
 # Export specific checkpoint file
-python -m src.export --mode portable --backbone lite2 \
+python -m src.export --mode tflite --backbone lite2 \
   --checkpoint outputs/checkpoints/lite2_phase2_best.pt
+```
+
+---
+
+## `python -m src.parity_check` — Export Parity Gate
+
+Compares the fp32 PyTorch reference against the mobile artifacts on the same data — the accuracy gate every export must pass.
+
+```
+python -m src.parity_check [OPTIONS]
+```
+
+### Flags
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--checkpoint` | path | auto (`<backbone>_phase2_best.pt`) | fp32 reference checkpoint |
+| `--backbone` | `lite2` \| `lite4` | `lite2` | Reference backbone |
+| `--tflite` | path | — | TFLite artifact (fp32 or INT8) |
+| `--onnx-int8` | path | — | Quantized ONNX (mobile convention: input [0,1]) |
+| `--onnx` | path | — | fp32 ONNX (caller-normalized convention) |
+| `--split` | `val` \| `test` | `val` | Split to evaluate |
+| `--limit` | int | `0` (all) | Max images per runtime |
+| `--synthetic` | int | `0` | Skip the dataset; compare N random inputs (max \|Δlogit\|) |
+| `--tolerance` | float | `0.01` | Allowed combined_top1 drop vs fp32 |
+| `--out` | path | `outputs/metrics/<backbone>_parity*.json` | JSON report path |
+
+### Output
+
+- Accuracy table: `binary_acc`, `cattle_acc`, `buffalo_acc`, `combined_top1`, `combined_top3` per runtime
+- Deltas vs `pytorch_fp32` and a **PASS / FAIL** verdict against the tolerance
+- Synthetic mode: per-head max \|Δlogit\| (guidance < 0.05)
+
+### Examples
+
+```bash
+# Full accuracy parity on the validation split
+python -m src.parity_check --backbone lite2 \
+  --tflite outputs/export/lite2_int8.tflite \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx \
+  --split val
+
+# Quick artifact-only check without any dataset
+python -m src.parity_check --backbone lite2 --synthetic 16 \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx
 ```
 
 ---

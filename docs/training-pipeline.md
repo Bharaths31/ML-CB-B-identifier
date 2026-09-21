@@ -1,22 +1,54 @@
 # Training Pipeline
 
-The model is trained in **three sequential phases**, each with distinct objectives, frozen layers, and hyperparameters. The entire pipeline is orchestrated by `src/train.py` and invoked automatically by `local_train.py`.
+The model is trained in **two sequential phases by default** (QAT is opt-in), each with distinct objectives, frozen layers, and hyperparameters. The entire pipeline is orchestrated by `src/train.py` and invoked automatically by `local_train.py`.
 
 ---
 
-## Three-Phase Training
+## Two-Phase Training (QAT opt-in)
 
 | Phase | Name | Frozen Layers | Learning Rate | Epochs | Loss Weights |
 |---|---|---|---|---|---|
-| **Phase 1** | Warmup | Backbone frozen | 3e-3 | 5 | bin=0.15, cat=0.5, buf=0.35 |
-| **Phase 2** | Multi-task fine-tune | Differential LR (Backbone 0.1x) | 2e-4 (warmup + cosine) + EMA | 40 | bin=0.15, cat=0.5, buf=0.35 |
-| **Phase 3** | QAT (optional) | Nothing | 5e-6 | 10 | bin=0.15, cat=0.5, buf=0.35 |
+| **Phase 1** | All-heads warmup | Backbone + attention | 3e-3 | 8 | bin=0.15, cat=0.5, buf=0.35 |
+| **Phase 2** | Multi-task fine-tune | Differential LR (Backbone 0.1x) | 2e-4 (warmup + cosine) + EMA | 60 | bin=0.15, cat=0.5, buf=0.35 |
+| **Phase 3** | QAT (opt-in, `--include-qat`) | Nothing | 5e-6 | 10 | bin=0.15, cat=0.5, buf=0.35 |
 
 **Phase 1** trains all three heads (binary, cattle, buffalo) while keeping the backbone frozen. This anchors the new classification layers to the pre-trained feature extractor before full fine-tuning.
 
 **Phase 2** unfreezes everything and jointly optimizes the entire network using differential learning rates (backbone 0.1x, attention 0.5x, heads 1.0x). It also employs an Exponential Moving Average (EMA) model to stabilize weights across iterations. The masked loss ensures the cattle head only trains on cattle images, and the buffalo head only on buffalo images.
 
-**Phase 3** (optional, `--include-qat` / without `--skip-qat`) performs Quantization-Aware Training for INT8 Android deployment.
+**Phase 3** is **opt-in** (`--include-qat`). Android INT8 now comes from **converter-side PTQ** (`src/export --mode tflite / onnx-int8`), so QAT is only a recovery tool when converter PTQ drops more than ~2 pts. It uses per-tensor quantization observers (converts cleanly), starts from the **best phase-2 EMA checkpoint**, and saves `<backbone>_quantized.pt`.
+
+---
+
+## Knowledge Distillation (--teacher)
+
+Train a bigger teacher once, then distill into the student at **zero extra on-device cost** — the student keeps the lite2 architecture, size, and latency:
+
+```bash
+# Step 1 — train the teacher (lite4 + CBAM)
+python -m src.train --backbone lite4
+
+# Step 2 — distill into the lite2 student
+python -m src.train --backbone lite2 \
+  --teacher outputs/checkpoints/lite4_phase2_best.pt \
+  --teacher-backbone lite4
+```
+
+The distillation loss blends hard-label supervision with teacher soft targets on **all three heads** (binary, cattle, buffalo):
+
+```
+L = (1 − α) · masked_hard_CE  +  α · T² · masked_KL(teacher ‖ student)
+```
+
+Defaults: `KD_ALPHA = 0.7`, `KD_TEMPERATURE = 4.0` (see `src/config.py`). The teacher runs frozen (eval mode) on the same augmented batch, so CutMix/MixUp images are distilled too. With an identical teacher the KL term is exactly zero; with `--teacher` omitted the run is a plain supervised run.
+
+---
+
+## EMA (Exponential Moving Average)
+
+Phase 2 maintains an EMA of the weights with `EMA_DECAY = 0.999`. Validation, checkpoint selection, and the exported model all use the EMA weights.
+
+> **Important:** the EMA tracks **parameters and BatchNorm buffers** (running mean/var are EMA'd, `num_batches_tracked` is hard-copied). Removing the buffer sync produces checkpoints with stale BN statistics that silently degrade both validation accuracy and every model exported from them.
 
 ---
 
@@ -26,9 +58,14 @@ The model is trained in **three sequential phases**, each with distinct objectiv
 |---|---|---|
 | **Optimizer** | AdamW, weight_decay=1e-2 | Decoupled weight decay, better generalization |
 | **LR schedule** | Linear warmup (3 epochs) → Cosine annealing | Stable Phase 2 convergence |
-| **Label smoothing** | ε=0.1 | Prevents overconfident predictions |
+| **Label smoothing** | ε=0.05 | Prevents overconfident predictions |
 | **Gradient accumulation** | 2 steps | Effective batch=128 even on small GPUs |
 | **Gradient clipping** | max_norm=1.0 | Prevents gradient explosions |
+| **EMA** | decay=0.999 (params + BN buffers) | Stabilizes validation & checkpoint selection |
+| **Effective-number sampler** | `SAMPLER_BETA=0.999` | Balances rare breeds without over-oversampling 5-image breeds |
+| **Binary species balancing** | `BALANCE_BINARY_HEAD=True` | Neutralizes the 57:18 breed-count species prior |
+| **Batch mixing** | CutMix(α=1.0) / MixUp(α=0.3), 50% of steps | Strong regularization on GPU |
+| **Distillation** | α=0.7, T=4.0 (optional `--teacher`) | Teacher accuracy in the student at zero device cost |
 
 ---
 
@@ -67,6 +104,10 @@ where target_smooth = (1 - ε) × target + ε / num_classes
 L = w_bin × CE(binary) + w_cat × CE(cattle) × cattle_mask + w_buf × CE(buffalo) × buffalo_mask
 ```
 The cattle/buffalo head losses are only computed on images of the corresponding species. This prevents the buffalo head from receiving gradient signal on cattle images and vice versa.
+
+The binary term is additionally **species-balanced per batch** (`BALANCE_BINARY_HEAD=True`): because the per-breed sampler leaves a ~57:18 species prior, each species' binary-CE mass is renormalized to 0.5 with adaptive sample weights (this is an identity on perfectly balanced batches).
+
+**`masked_kd_loss`**: the distillation blend described above — `(1−α)·masked_loss + α·T²·masked_KL`, temperature-scaled on all three heads with the same species masking.
 
 ---
 
@@ -108,7 +149,7 @@ python local_train.py --quarter-data
 # Half data — balanced
 python local_train.py --half-data
 
-# Full training + QAT
+# Opt-in QAT phase (recovery tool; mobile INT8 uses converter PTQ)
 python local_train.py --include-qat
 ```
 

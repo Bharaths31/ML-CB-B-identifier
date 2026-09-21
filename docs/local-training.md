@@ -192,9 +192,9 @@ python local_train.py [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--include-qat` | flag | off | Enable Phase 3 QAT for INT8 Android deployment |
-| `--phase1-epochs` | int | `5` | Override Phase 1 epoch count |
-| `--phase2-epochs` | int | `40` | Override Phase 2 epoch count |
+| `--include-qat` | flag | off | Enable the optional Phase 3 QAT (recovery path). Mobile INT8 now comes from converter PTQ — see [Android Deployment](android-deployment.md) |
+| `--phase1-epochs` | int | `8` | Override Phase 1 epoch count |
+| `--phase2-epochs` | int | `60` | Override Phase 2 epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 epoch count |
 | `--num-workers` | int | `4` | DataLoader worker count |
 
@@ -262,8 +262,12 @@ lite2_quantized.pt      # INT8 converted model (if --include-qat)
 
 ### Exports (`outputs/export/`)
 ```
-lite2_fp32.onnx                       # ONNX (cross-platform)
-lite2_int8.pt                         # INT8 quantized TorchScript
+lite2_fp32.onnx                       # ONNX fp32 (caller-normalized input)
+lite2_mobile_fp32.onnx                # mobile ONNX, normalization baked in (--mode onnx-int8)
+lite2_mobile_int8.onnx                # ONNX Runtime Mobile INT8 (~7.1 MB)
+lite2_fp32.tflite                     # TFLite fp32 fallback (--mode tflite)
+lite2_int8.tflite                     # TFLite full-integer INT8 (--mode tflite)
+labels_binary.txt / labels_cattle.txt / labels_buffalo.txt
 lite2_float16.pt                      # FP16 TorchScript
 portable/
 └── lite2_phase2_best/
@@ -271,6 +275,14 @@ portable/
     ├── cattle_classes.json           # {"amritmahal": 0, "ayrshire": 1, ...}
     ├── buffalo_classes.json          # {"alambadi": 0, "banni": 1, ...}
     └── model_info.json               # backbone, image_size, usage, exported_at
+```
+
+TFLite/ONNX-INT8 artifacts expect input RGB in **[0,1]** (normalization baked in) — the Flutter app's `pixel/255` preprocessing is already correct. Always run the parity gate after exporting:
+
+```bash
+python -m src.parity_check --backbone lite2 \
+  --tflite outputs/export/lite2_int8.tflite \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx
 ```
 
 ---

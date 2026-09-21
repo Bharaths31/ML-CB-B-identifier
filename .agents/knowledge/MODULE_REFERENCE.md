@@ -23,6 +23,8 @@ evaluate.py ← (uses model, data_pipeline, metrics)
     ↓
 export.py ← (uses model, data_pipeline)
     ↓
+parity_check.py ← (uses model, data_pipeline, export)
+    ↓
 verify.py ← (uses model, efficientnet_lite)
 ```
 
@@ -67,12 +69,14 @@ verify.py ← (uses model, efficientnet_lite)
 ### `src/train.py`
 - `setup_device(requested)` → (device, use_amp) — CUDA setup with optimizations & auto VRAM scaling
 - `soft_ce(pred, target)` — soft cross-entropy for mixed labels
-- `masked_loss(out, labels, w_binary, w_cattle, w_buffalo)` → (total, ce_b, ce_c, ce_buf)
-- `run_epoch(model, loader, optimizer, device, loss_weights, scaler, ...)` → loss tuple
+- `masked_loss(out, labels, w_binary, w_cattle, w_buffalo)` → (total, ce_b, ce_c, ce_buf) — species-balanced binary CE
+- `masked_kd_loss(out, teacher_out, labels, ..., kd_alpha, kd_temp)` → distillation-blended multi-task loss
+- `_compute_loss(model, images, labels, ..., teacher_model)` → loss via hard CE or KD
+- `run_epoch(model, loader, optimizer, device, loss_weights, scaler, ...)` → loss tuple; EMA of parameters AND BN buffers; optional teacher forward
 - `train_phase(model, loader, val_loader, device, phase, epochs, lr, ...)` → best_acc
 - `create_portable_export(checkpoint_path, backbone, split_dir, export_dir)` → out_dir
-- `setup_qat(model, device)` → bool — prepare QAT with module fusion
-- `main()` — CLI entry point
+- `setup_qat(model, device)` → bool — fuse conv-bn + per-tensor QAT observers
+- `main()` — CLI entry point (--teacher, --include-qat)
 
 ### `src/metrics.py`
 - `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, combined_top1, combined_top3, combined_top5}
@@ -82,8 +86,20 @@ verify.py ← (uses model, efficientnet_lite)
 - `main()` — CLI entry point
 
 ### `src/export.py`
+- `_RawOutputs(model)` — export wrapper, caller-normalized input (test_model.py convention)
+- `_MobileOutputs(model)` — export wrapper, input [0,1] with ImageNet normalization baked in
+- `_write_label_files(split_dir, out_dir)` — labels_binary/cattle/buffalo.txt
+- `_calibration_images(split_dir, limit)` — [0,1] float32 calibration batches from train.csv
+- `export_onnx_int8(model, onnx_fp32, out_path, split_dir)` — QDQ static quantization (ORT Mobile)
+- `export_tflite(model, backbone, out_dir, split_dir)` — ONNX → onnx2tf → TFLite FP32 + INT8 PTQ
 - `create_portable_export(checkpoint_path, backbone, split_dir, export_dir)` → out_dir
-- `main()` — CLI entry point (onnx/int8/float16/portable modes)
+- `main()` — CLI entry point (onnx/onnx-int8/tflite/float16/portable)
+
+### `src/parity_check.py`
+- `make_torch_runner(model, device)` / `make_onnx_runner(path, mobile)` / `make_tflite_runner(path)` — unified [0,1]-input runners
+- `accumulate(metrics, logits, labels)` / `finalize(metrics)` — training-equivalent metrics
+- `synthetic_parity(runnings, n)` — max |Δlogit| vs fp32 on random inputs
+- `main()` — CLI: accuracy mode (val/test) or `--synthetic N`
 
 ### `src/verify.py`
 - `check_backbone(name)` — load weights + print stats
@@ -108,6 +124,7 @@ verify.py ← (uses model, efficientnet_lite)
 | metrics.py | 73 | Evaluation metrics |
 | evaluate.py | 155 | Full evaluation |
 | export.py | 203 | Export modes |
+| parity_check.py | ~330 | fp32 vs mobile artifact parity gate |
 | verify.py | 68 | Sanity check |
 | test_model.py | 1766 | Standalone Model Testing GUI (Batch/ONNX/ODT) |
 | local_train.py | 983 | Automated training workflow script |

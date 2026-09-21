@@ -13,14 +13,16 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from tqdm import tqdm
 
-from .config import (BACKBONE_WEIGHTS, BATCH_SIZE, CHECKPOINT_DIR,
-                     EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
-                     GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
-                     LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_CATTLE,
-                     NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS,
-                     PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR,
-                     RAW_DATA_DIR, SEED, SPLIT_DIR, WARMUP_EPOCHS, WEIGHT_DECAY,
-                     BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
+from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BATCH_SIZE,
+                     CHECKPOINT_DIR, EMA_DECAY, EVAL_EVERY_PHASE1,
+                     EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3, KD_ALPHA,
+                     KD_TEMPERATURE, GRADIENT_ACCUMULATION_STEPS,
+                     LABEL_SMOOTHING, LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BUFFALO,
+                     LOSS_WEIGHT_CATTLE, NUM_WORKERS, PHASE1_EPOCHS, PHASE1_LR,
+                     PHASE2_EPOCHS, PHASE2_LR, PHASE3_EPOCHS, PHASE3_LR,
+                     PORTABLE_EXPORT_DIR, RAW_DATA_DIR, SEED, SPLIT_DIR,
+                     WARMUP_EPOCHS, WEIGHT_DECAY, BACKBONE_LR_MULT,
+                     CUTMIX_MIXUP_PROB)
 from .data_pipeline import (get_dataloaders, prepare_half_splits,
                             prepare_quarter_splits, prepare_smoke_splits,
                             prepare_splits)
@@ -82,8 +84,25 @@ def soft_ce(pred, target, label_smoothing=0.0):
 
 def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
                 label_smoothing=0.0):
+    """Multi-task loss with species-masked breed CE.
+
+    The binary term is optionally re-weighted per batch so cattle and
+    buffalo contribute equally regardless of how the weighted sampler mixed
+    the batch (the per-breed sampler leaves a ~57:18 species prior).
+    """
     ce_binary = soft_ce(out["binary"], labels["binary"],
-                        label_smoothing).mean()
+                        label_smoothing)
+    if BALANCE_BINARY_HEAD:
+        p_buffalo = labels["binary"][:, 1].clamp(0.0, 1.0)
+        mean_buf = p_buffalo.mean().clamp(min=1e-4)
+        mean_cat = (1.0 - p_buffalo).mean().clamp(min=1e-4)
+        # Each species' CE mass is normalised to 0.5 of the batch total.
+        w_cat = 0.5 / mean_cat
+        w_buf = 0.5 / mean_buf
+        sample_w = w_cat * (1.0 - p_buffalo) + w_buf * p_buffalo
+        ce_binary = (ce_binary * sample_w).sum() / sample_w.sum()
+    else:
+        ce_binary = ce_binary.mean()
     ce_cattle = (soft_ce(out["cattle"], labels["cattle"],
                          label_smoothing) * labels["cattle_mask"])
     ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"],
@@ -96,15 +115,71 @@ def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
     return total, ce_binary, ce_cattle, ce_buffalo
 
 
+def masked_kd_loss(out, teacher_out, labels, w_binary, w_cattle, w_buffalo,
+                   kd_alpha=KD_ALPHA, kd_temp=KD_TEMPERATURE,
+                   label_smoothing=0.0):
+    """Multi-task loss blended with teacher distillation (Hinton et al.).
+
+    total = (1 - kd_alpha) * masked hard-label CE
+          + kd_alpha * T^2 * masked KL(teacher || student)
+
+    The teacher runs frozen on the same augmented batch, so the student
+    inherits the teacher's fine-grained discrimination without any extra
+    on-device cost. Works with CutMix/MixUp batches (the hard-label part
+    handles the soft targets; the teacher sees the same mixed images).
+    """
+    hard_total, ce_b, ce_c, ce_buf = masked_loss(
+        out, labels, w_binary, w_cattle, w_buffalo,
+        label_smoothing=label_smoothing)
+    t = kd_temp
+
+    def _kl(student_logits, teacher_logits):
+        return F.kl_div(
+            F.log_softmax(student_logits / t, dim=1),
+            F.log_softmax(teacher_logits / t, dim=1),
+            reduction="none", log_target=True).sum(dim=1)
+
+    kl_binary = _kl(out["binary"], teacher_out["binary"])
+    kl_cattle = _kl(out["cattle"], teacher_out["cattle"])
+    kl_buffalo = _kl(out["buffalo"], teacher_out["buffalo"])
+
+    denom_c = labels["cattle_mask"].sum().clamp(min=1.0)
+    denom_b = labels["buffalo_mask"].sum().clamp(min=1.0)
+    kd = w_binary * kl_binary.mean() \
+        + w_cattle * (kl_cattle * labels["cattle_mask"]).sum() / denom_c \
+        + w_buffalo * (kl_buffalo * labels["buffalo_mask"]).sum() / denom_b
+    kd = kd * (t * t)
+
+    total = (1.0 - kd_alpha) * hard_total + kd_alpha * kd
+    return total, ce_b, ce_c, ce_buf
+
+
+def _compute_loss(model, images, labels, loss_weights, label_smoothing,
+                  teacher_model=None, kd_alpha=KD_ALPHA,
+                  kd_temp=KD_TEMPERATURE):
+    """Forward pass + loss, with optional knowledge distillation."""
+    out = model(images)
+    if teacher_model is not None:
+        teacher_out = teacher_model(images)
+        return masked_kd_loss(out, teacher_out, labels, *loss_weights,
+                              kd_alpha=kd_alpha, kd_temp=kd_temp,
+                              label_smoothing=label_smoothing)
+    return masked_loss(out, labels, *loss_weights,
+                       label_smoothing=label_smoothing)
+
+
 # ---------------------------------------------------------------------------
 # Training core
 # ---------------------------------------------------------------------------
 
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               max_batches=None, set_train=None, desc="train",
-              grad_accum_steps=1, label_smoothing=0.0, ema_model=None, ema_decay=0.999):
+              grad_accum_steps=1, label_smoothing=0.0, ema_model=None,
+              ema_decay=EMA_DECAY, teacher_model=None, kd_alpha=KD_ALPHA,
+              kd_temp=KD_TEMPERATURE):
     """Run one training epoch with optional AMP, gradient accumulation,
-    and label smoothing."""
+    label smoothing, EMA (parameters *and* BatchNorm buffers), and teacher
+    distillation."""
     set_train = set_train or (lambda m: m.train())
     set_train(model)
     running = []
@@ -130,10 +205,10 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
 
         if use_amp:
             with torch.amp.autocast("cuda"):
-                out = model(images)
-                loss, ce_b, ce_c, ce_buf = masked_loss(
-                    out, labels, *loss_weights,
-                    label_smoothing=label_smoothing)
+                loss, ce_b, ce_c, ce_buf = _compute_loss(
+                    model, images, labels, loss_weights, label_smoothing,
+                    teacher_model=teacher_model, kd_alpha=kd_alpha,
+                    kd_temp=kd_temp)
                 loss = loss / grad_accum_steps
             scaler.scale(loss).backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -143,10 +218,10 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
         else:
-            out = model(images)
-            loss, ce_b, ce_c, ce_buf = masked_loss(
-                out, labels, *loss_weights,
-                label_smoothing=label_smoothing)
+            loss, ce_b, ce_c, ce_buf = _compute_loss(
+                model, images, labels, loss_weights, label_smoothing,
+                teacher_model=teacher_model, kd_alpha=kd_alpha,
+                kd_temp=kd_temp)
             loss_scaled = loss / grad_accum_steps
             loss_scaled.backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -156,8 +231,22 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
 
         if ema_model is not None:
             with torch.no_grad():
-                for ema_param, param in zip(ema_model.parameters(), model.parameters()):
-                    ema_param.data.mul_(ema_decay).add_(param.data, alpha=1 - ema_decay)
+                # torch.compile wraps the module in OptimizedModule; EMA the
+                # original module's tensors (same iteration order either way).
+                src = getattr(model, "_orig_mod", model)
+                for ema_param, param in zip(ema_model.parameters(),
+                                            src.parameters()):
+                    ema_param.data.mul_(ema_decay).add_(param.data,
+                                                        alpha=1 - ema_decay)
+                # BatchNorm running stats live in buffers and must track the
+                # EMA too — a stale-BN EMA silently corrupts both validation
+                # metrics and every checkpoint exported from it.
+                for ema_buf, buf in zip(ema_model.buffers(), src.buffers()):
+                    if buf.dtype.is_floating_point:
+                        ema_buf.data.mul_(ema_decay).add_(buf.data,
+                                                          alpha=1 - ema_decay)
+                    else:
+                        ema_buf.data.copy_(buf.data)
 
         running.append((loss.item() * grad_accum_steps, ce_b.item(),
                         ce_c.item(), ce_buf.item()))
@@ -188,7 +277,8 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 scaler=None, max_batches=None, best_key="combined_top1",
                 set_train=None, weight_decay=0.0,
                 grad_accum_steps=1, label_smoothing=0.0, eval_every=1,
-                ema_model=None):
+                ema_model=None, teacher_model=None, kd_alpha=KD_ALPHA,
+                kd_temp=KD_TEMPERATURE):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
     raw_model = getattr(model, '_orig_mod', model)
@@ -219,7 +309,8 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             max_batches, set_train=set_train,
             desc=f"phase{phase} e{epoch}/{epochs}",
             grad_accum_steps=grad_accum_steps,
-            label_smoothing=label_smoothing, ema_model=ema_model)
+            label_smoothing=label_smoothing, ema_model=ema_model,
+            teacher_model=teacher_model, kd_alpha=kd_alpha, kd_temp=kd_temp)
         if scheduler is not None:
             scheduler.step()
 
@@ -316,9 +407,15 @@ def setup_qat(model, device):
         print(f"[train] QAT: module fusion skipped ({exc})")
     try:
         import torch.ao.quantization as qat
-        model.qconfig = qat.get_default_qat_qconfig("x86")
+        # Per-tensor observers (MinMax) convert cleanly everywhere; the x86
+        # default per-channel-affine scheme broke torch.ao conversion on this
+        # architecture ("Unsupported qscheme: per_channel_affine").
+        model.qconfig = qat.QConfig(
+            activation=qat.default_observer,
+            weight=qat.default_weight_observer,
+        )
         qat.prepare_qat(model, inplace=True)
-        print("[train] QAT: prepare_qat applied")
+        print("[train] QAT: prepare_qat applied (per-tensor observers)")
         return True
     except Exception as exc:
         print(f"[train] QAT: prepare_qat failed, fine-tuning fp32 ({exc})")
@@ -346,7 +443,22 @@ def main():
     parser.add_argument("--phase1-epochs", type=int, default=None)
     parser.add_argument("--phase2-epochs", type=int, default=None)
     parser.add_argument("--phase3-epochs", type=int, default=None)
-    parser.add_argument("--skip-qat", action="store_true")
+    parser.add_argument("--include-qat", action="store_true",
+                        help="enable the optional QAT phase 3 (OFF by default: "
+                             "mobile INT8 now comes from converter-side PTQ, "
+                             "see src/export.py --mode tflite / onnx-int8)")
+    parser.add_argument("--skip-qat", action="store_true",
+                        help="kept for backwards compatibility; QAT is "
+                             "already off by default")
+    parser.add_argument("--teacher", default=None,
+                        help="teacher checkpoint (.pt) for knowledge "
+                             "distillation, e.g. outputs/checkpoints/"
+                             "lite4_phase2_best.pt")
+    parser.add_argument("--teacher-backbone", choices=["lite2", "lite4"],
+                        default="lite4")
+    parser.add_argument("--teacher-attention", choices=["cbam", "se"],
+                        default=None,
+                        help="teacher attention (default: same as student)")
     # Data mode (mutually exclusive)
     data_mode_group = parser.add_mutually_exclusive_group()
     data_mode_group.add_argument("--smoke-test", action="store_true")
@@ -453,6 +565,27 @@ def main():
     model.to(device)
     model = model.to(memory_format=torch.channels_last)
 
+    # --- Teacher (knowledge distillation) ---
+    teacher_model = None
+    if args.teacher:
+        if not os.path.exists(args.teacher):
+            print(f"[train] teacher checkpoint not found: {args.teacher}")
+            return 1
+        teacher_attention = args.teacher_attention or args.attention
+        teacher_model = BreedClassifier(backbone=args.teacher_backbone,
+                                        attention=teacher_attention)
+        tckpt = torch.load(args.teacher, map_location="cpu", weights_only=False)
+        teacher_model.load_state_dict(
+            tckpt["state_dict"] if isinstance(tckpt, dict) and "state_dict" in tckpt
+            else tckpt)
+        teacher_model.to(device)
+        teacher_model.eval()
+        for p in teacher_model.parameters():
+            p.requires_grad = False
+        print(f"[train] KD: teacher {args.teacher_backbone}+{teacher_attention} "
+              f"loaded from {args.teacher} "
+              f"(alpha={KD_ALPHA}, T={KD_TEMPERATURE})")
+
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(f"[train] params: trainable={trainable:,} total={total:,}")
@@ -469,11 +602,12 @@ def main():
     phase2 = args.phase2_epochs or (1 if args.smoke_test else PHASE2_EPOCHS)
     phase3 = args.phase3_epochs or (1 if args.smoke_test else PHASE3_EPOCHS)
 
-    total_phases = 2 if args.skip_qat else 3
+    run_qat = args.include_qat and not args.skip_qat
+    total_phases = 3 if run_qat else 2
     print(f"\n{'=' * 60}")
     print(f"  TRAINING PLAN: {total_phases} phases, "
           f"epochs={phase1}/{phase2}" +
-          (f"/{phase3}" if not args.skip_qat else ""))
+          (f"/{phase3}" if run_qat else ""))
     print(f"  Dataset: {summary.get('train', '?')} train / "
           f"{summary.get('val', '?')} val images")
     print(f"  Batch size: {args.batch_size}, Workers: {args.num_workers}")
@@ -483,6 +617,11 @@ def main():
           f"(effective batch={args.batch_size * args.grad_accum})")
     if args.warmup_epochs > 0:
         print(f"  Warmup: {args.warmup_epochs} epochs (phase 2)")
+    if teacher_model is not None:
+        print(f"  Distillation: alpha={KD_ALPHA}, T={KD_TEMPERATURE} "
+              f"(teacher={args.teacher_backbone})")
+    if run_qat:
+        print("  QAT: enabled (phase 3)")
     print(f"{'=' * 60}\n")
 
     start_time = time.time()
@@ -540,11 +679,19 @@ def main():
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
                 eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE2,
-                ema_model=ema_model)
+                ema_model=ema_model, teacher_model=teacher_model)
 
-    # --- Phase 3: QAT (optional) ---
+    # --- Phase 3: QAT (opt-in; mobile INT8 is produced by converter PTQ) ---
     best_checkpoint = f"{base}_phase2_best.pt"
-    if not args.skip_qat:
+    if run_qat:
+        # Start from the best EMA phase-2 weights rather than the final-epoch
+        # weights — quantization noise is much easier to recover from there.
+        if os.path.exists(best_checkpoint):
+            bckpt = torch.load(best_checkpoint, map_location=device,
+                               weights_only=False)
+            model.load_state_dict(bckpt["state_dict"])
+            print(f"[train] QAT: starting from best phase-2 checkpoint "
+                  f"(val_top1={bckpt.get('val_top1', float('nan')):.4f})")
         model.unfreeze_all()
         # QAT must run on CPU or without AMP
         qat_ok = setup_qat(model, device)
@@ -556,13 +703,15 @@ def main():
                     weight_decay=args.weight_decay,
                     grad_accum_steps=args.grad_accum,
                     label_smoothing=args.label_smoothing,
-                    eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE3)
+                    eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE3,
+                    teacher_model=teacher_model)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat
                 model.eval()
                 qat.convert(model, inplace=True)
-                torch.save({"state_dict": model.state_dict()}, f"{base}_quantized.pt")
+                torch.save({"state_dict": model.state_dict(),
+                            "quantized": True}, f"{base}_quantized.pt")
                 print(f"[train] converted to INT8, saved {base}_quantized.pt")
             except Exception as exc:
                 print(f"[train] INT8 conversion failed ({exc})")

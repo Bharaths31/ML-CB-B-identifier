@@ -1,5 +1,31 @@
 # 16. Changelog
 
+### 2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports
+
+**Training (`src/train.py`):**
+- **Fixed a critical EMA bug**: the EMA now updates BatchNorm buffers (running mean/var) in addition to parameters; `num_batches_tracked` is hard-copied. Previously every phase-2 checkpoint exported stale BN stats, silently degrading validation accuracy and the deployed model.
+- **Knowledge distillation**: new `--teacher`, `--teacher-backbone`, `--teacher-attention` flags. Loss = `(1-α)·masked_hard_CE + α·T²·masked_KL(teacher‖student)` on all three heads (α=0.7, T=4.0). Train a lite4 teacher, distill into the unchanged lite2 student — teacher accuracy at zero on-device cost.
+- **QAT is now opt-in** (`--include-qat`); default training is a clean 2-phase run. QAT uses **per-tensor observers** (fixes the `Unsupported qscheme: per_channel_affine` conversion failure) and starts from the **best phase-2 EMA checkpoint** instead of final-epoch weights.
+- **Binary-head species balancing**: per-batch re-weighting (`BALANCE_BINARY_HEAD=True`) neutralizes the 57:18 breed-count species prior.
+
+**Data (`src/data_pipeline.py`):**
+- Sampler switched to **effective-number-of-samples** weighting (`SAMPLER_BETA=0.999`) — softens over-oversampling of 5-image breeds.
+- CutMix/MixUp probability raised 0.25 → 0.5 (`CUTMIX_MIXUP_PROB`).
+- All `prepare_*_splits()` create the split directory if missing.
+
+**Export (`src/export.py`):**
+- New `--mode tflite`: ONNX → onnx2tf → TFLite FP32 + **full-integer INT8 PTQ** (float32 [0,1] I/O), emits `labels_*.txt`, auto-copies into `flutter_app/assets/models/`.
+- New `--mode onnx-int8`: QDQ static quantization for ONNX Runtime Mobile (per-channel weights, calibrated on real train images).
+- **ImageNet normalization is baked into mobile graphs** — the Flutter app's `pixel/255` preprocessing is now exactly correct with zero app changes.
+- Removed the broken x86 PTQ `--mode int8` path (guidance stub remains).
+
+**Verification (`src/parity_check.py`, new):**
+- `python -m src.parity_check` compares fp32 PyTorch vs TFLite/ONNX INT8 on val/test (training-equivalent metrics) or `--synthetic N` for artifact-only parity. Gate: INT8 within 1 pt `combined_top1` of fp32.
+
+**Measured:** ONNX INT8 = 7.10 MB (from 25.65 MB FP32); fp32 ONNX exact parity; INT8 max |Δlogit| ≈ 0.05–0.07 on random inputs; end-to-end smoke training (2-phase, distillation, QAT→INT8) verified on CPU.
+
+---
+
 ### 2026-09-15 — Architecture Improvements, EMA, & ImageNet Normalization Fix
 
 **Architecture:**

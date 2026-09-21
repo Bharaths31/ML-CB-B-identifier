@@ -24,7 +24,7 @@ python local_train.py --smoke-test
 # Re-run training only (venv ready, data already downloaded)
 python local_train.py --half-data --skip-setup --skip-download
 
-# Full training + QAT for Android INT8 deployment
+# Opt-in QAT phase (recovery tool — mobile INT8 uses converter PTQ, see Export docs)
 python local_train.py --include-qat
 ```
 
@@ -112,26 +112,33 @@ Confirms backbone weight loading and forward pass tensor shapes. Run this before
 
 ```bash
 # Smoke test — 5 images/breed, 1 epoch per phase
-python -m src.train --smoke-test --skip-qat
+python -m src.train --smoke-test
 
 # Quarter-data training
-python -m src.train --quarter-data --skip-qat
+python -m src.train --quarter-data
 
 # Half-data training
-python -m src.train --half-data --skip-qat
+python -m src.train --half-data
 
-# Full training (all phases including QAT)
+# Full training (2 phases: warmup + multi-task fine-tune with EMA)
 python -m src.train --backbone lite2
 
-# Full training, skip QAT
-python -m src.train --backbone lite2 --skip-qat
+# Teacher run (bigger backbone, used for distillation)
+python -m src.train --backbone lite4
+
+# Distill the lite4 teacher into the lite2 student (same size/latency)
+python -m src.train --backbone lite2 \
+  --teacher outputs/checkpoints/lite4_phase2_best.pt
+
+# Opt-in QAT phase (recovery tool; mobile INT8 uses converter PTQ)
+python -m src.train --backbone lite2 --include-qat
 
 # Custom hyperparameters
 python -m src.train \
   --backbone lite4 \
   --batch-size 32 \
-  --phase1-epochs 5 \
-  --phase2-epochs 30 \
+  --phase1-epochs 8 \
+  --phase2-epochs 60 \
   --weight-decay 0.01 \
   --device cuda
 ```
@@ -151,18 +158,36 @@ Outputs per-class metrics to console and confusion matrix PNGs to `outputs/metri
 
 ### 3.7 Model Export
 ```bash
-# Self-contained portable bundle
+# TFLite INT8 + labels → ready for the Flutter app (flutter_app/assets/models/)
+# Requires the optional toolchain: pip install tensorflow onnx2tf tf-keras onnx-graphsurgeon sng4onnx onnxsim
+python -m src.export --mode tflite --backbone lite2
+
+# ONNX Runtime Mobile INT8 (QDQ, calibrated on real train images)
+python -m src.export --mode onnx-int8 --backbone lite2
+
+# Self-contained portable bundle (desktop testing)
 python -m src.export --mode portable --backbone lite2
 
-# ONNX (cross-platform, framework-free inference)
+# ONNX fp32 (cross-platform; caller-normalized input)
 python -m src.export --mode onnx --backbone lite2
-
-# INT8 quantized TorchScript (smallest, fastest mobile CPU)
-python -m src.export --mode int8 --backbone lite2
 
 # FP16 TorchScript (mobile GPU)
 python -m src.export --mode float16 --backbone lite2
 ```
+
+### 3.8 Export Parity Gate
+```bash
+# Accuracy parity: fp32 PyTorch vs TFLite INT8 vs ONNX INT8 on the val split
+python -m src.parity_check --backbone lite2 \
+  --tflite outputs/export/lite2_int8.tflite \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx \
+  --split val
+
+# Artifact-only check (no dataset needed): random-input logit comparison
+python -m src.parity_check --backbone lite2 --synthetic 16 \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx
+```
+INT8 artifacts must stay within 1 pt `combined_top1` of fp32 — otherwise fall back to the FP32 TFLite file. Reports land in `outputs/metrics/`.
 
 ---
 

@@ -9,8 +9,8 @@ A **lightweight, mobile-deployable image classifier** for **57 Indian cattle bre
 | **Breeds** | 57 cattle + 18 buffalo = 75 total |
 | **Backbone** | EfficientNet-Lite2 (~6M params) or Lite4 (~13M params) |
 | **Input** | 260 × 260 RGB |
-| **Training** | 3-phase: Binary warm-up → Multi-task fine-tune → Optional QAT |
-| **Export** | ONNX, INT8, FP16, Portable bundle |
+| **Training** | 2-phase: head warm-up → multi-task fine-tune (EMA + optional teacher distillation; QAT opt-in) |
+| **Export** | TFLite INT8, ONNX Runtime INT8, ONNX, FP16, Portable bundle |
 | **Dataset** | Kaggle: `algsoch` & `atharvadarpude` (Multi-dataset support) |
 
 ---
@@ -71,10 +71,11 @@ ML-CB-B-identifier/
 │   ├── model.py                # BreedClassifier (backbone + attention + heads)
 │   ├── cbam.py                 # CBAM & SE attention modules
 │   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 3-phase training with AMP, auto-export
+│   ├── train.py                # 2-phase training (+opt-in QAT, distillation), AMP, auto-export
 │   ├── metrics.py              # Per-head accuracy + F1
 │   ├── evaluate.py             # Full evaluation + confusion matrices
-│   ├── export.py               # ONNX, INT8, float16, portable export
+│   ├── export.py               # TFLite INT8, ONNX INT8, ONNX, float16, portable export
+│   ├── parity_check.py         # fp32 vs mobile-artifact parity gate
 │   └── verify.py               # Architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
@@ -98,6 +99,7 @@ ML-CB-B-identifier/
 ├── setup.sh                    # Shell helper for quick env setup (Linux/macOS)
 ├── efficientnet_lite2.pth      # Pre-trained ImageNet backbone weights (included in repo)
 ├── efficientnet_lite4.pth      # Pre-trained ImageNet backbone weights (included in repo)
+├── flutter_app/                # Flutter client (loads assets/models/model.tflite)
 └── requirements.txt            # Python dependencies
 ```
 
@@ -328,9 +330,9 @@ python local_train.py [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--include-qat` | flag | off | **Enable Phase 3 (Quantization Aware Training).** Required if deploying an INT8 model to Android. Slows down training but drastically improves accuracy of the 6MB INT8 exported model. |
-| `--phase1-epochs` | int | `5` | Override Phase 1 (all-heads warmup) epoch count |
-| `--phase2-epochs` | int | `40` | Override Phase 2 (multi-task) epoch count |
+| `--include-qat` | flag | off | **Optional:** enables Phase 3 (Quantization-Aware Training) as an accuracy-recovery tool. Mobile INT8 now comes from converter-side PTQ (`src.export --mode tflite / onnx-int8`), so this is **not** required for Android deployment. |
+| `--phase1-epochs` | int | `8` | Override Phase 1 (all-heads warmup) epoch count |
+| `--phase2-epochs` | int | `60` | Override Phase 2 (multi-task) epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
 | `--num-workers` | int | `4` | DataLoader worker processes |
 
@@ -493,8 +495,12 @@ This notebook allows you to:
 |---|---|---|
 | **Optimizer** | AdamW, weight_decay=1e-2 | Decoupled weight decay, better generalization |
 | **LR Schedule** | Linear warmup (3 epochs) → Cosine annealing | Stable convergence, avoids early overfitting |
-| **Label Smoothing** | ε=0.1 | Prevents overconfident predictions |
-| **Augmentation** | RandAugment(ops=2, mag=9) + ColorJitter + CutMix + MixUp | Diverse training signal, reduces overfitting |
+| **Label Smoothing** | ε=0.05 | Prevents overconfident predictions |
+| **Augmentation** | RandAugment(ops=2, mag=5) + ColorJitter + CutMix(α=1.0)/MixUp(α=0.3) on 50% of steps | Diverse training signal, reduces overfitting |
+| **Knowledge Distillation** | `--teacher` (α=0.7, T=4.0) | Train a lite4 teacher, distill into lite2 — teacher accuracy at zero on-device cost |
+| **Weight EMA** | decay=0.999, parameters **and** BN buffers | Stable validation + trustworthy checkpoints |
+| **Effective-Number Sampler** | β=0.999 | Balances rare breeds without over-oversampling 5-image breeds |
+| **Binary Species Balancing** | per-batch re-weighting | Neutralizes the 57:18 breed-count species prior |
 | **Gradient Accumulation** | 2 steps → effective batch=128 | Stable gradients on small VRAM GPUs |
 | **Mixed Precision (AMP)** | Phases 1–2 | ~2× faster training, lower VRAM usage |
 | **Dynamic VRAM Scaling** | Auto batch_size + grad_accum | Adapts to 4 GB → 24 GB GPUs automatically |
@@ -506,19 +512,19 @@ This notebook allows you to:
 
 ## Export & Android Deployment
 
-`local_train.py` automatically exports 4 formats after training. To trigger exports manually:
+`local_train.py` exports the portable bundle automatically after training. For mobile deployment, export from the phase-2 checkpoint manually:
 
 ```bash
-# Self-contained portable bundle (Python inference, includes labels + metadata)
+# TFLite INT8 + labels — ready for the Flutter app (auto-copied into flutter_app/assets/models/)
+# Toolchain: pip install tensorflow onnx2tf tf-keras onnx-graphsurgeon sng4onnx onnxsim
+python -m src.export --mode tflite --backbone lite2
+
+# ONNX Runtime Mobile INT8 (QDQ, calibrated on real train images)
+python -m src.export --mode onnx-int8 --backbone lite2
+
+# Desktop testing formats
 python -m src.export --mode portable --backbone lite2
-
-# ONNX (cross-platform, ONNX Runtime Mobile, TFLite converter)
 python -m src.export --mode onnx --backbone lite2
-
-# INT8 quantized TorchScript (smallest size, fastest mobile CPU inference)
-python -m src.export --mode int8 --backbone lite2
-
-# FP16 TorchScript (mobile GPU inference)
 python -m src.export --mode float16 --backbone lite2
 ```
 
@@ -527,15 +533,27 @@ python -m src.export --mode float16 --backbone lite2
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Which backbone's checkpoint to export |
-| `--mode` | `onnx` \| `int8` \| `float16` \| `portable` | required | Export format |
-| `--checkpoint` | path | auto (latest) | Specific `.pt` file to export from |
+| `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | required | Export format |
+| `--checkpoint` | path | `<backbone>_phase2_best.pt` | Specific `.pt` file to export from |
+| `--calibration-images` | int | `500` | Train images for INT8 calibration |
+| `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into the Flutter app |
+
+> The old `--mode int8` (x86 PTQ TorchScript) was **removed** — it failed conversion (`Unsupported qscheme: per_channel_affine`) and was unusable on Android.
+
+**Input conventions:** mobile artifacts (`tflite`, `onnx-int8`) take RGB float32 in **[0, 1]** with ImageNet normalization **baked into the graph** — the Flutter app's existing `pixel / 255.0` preprocessing is exactly correct with zero app changes. The fp32 `onnx` export keeps the legacy convention (caller normalizes) for `test_model.py` compatibility.
 
 **Output locations:**
 
 ```
 outputs/export/
-├── lite2_fp32.onnx              # ONNX (cross-platform)
-├── lite2_int8.pt                # INT8 TorchScript (mobile CPU)
+├── lite2_fp32.onnx              # ONNX fp32 (caller-normalized, test_model.py)
+├── lite2_mobile_fp32.onnx       # mobile ONNX (normalization baked in)
+├── lite2_mobile_int8.onnx       # ONNX Runtime Mobile INT8 (~7.1 MB)
+├── lite2_fp32.tflite            # TFLite fp32 fallback
+├── lite2_int8.tflite            # TFLite full-integer INT8
+├── labels_binary.txt            # 2 lines: cattle / buffalo
+├── labels_cattle.txt            # 57 lines, line i = class i
+├── labels_buffalo.txt           # 18 lines, line i = class i
 ├── lite2_float16.pt             # FP16 TorchScript (mobile GPU)
 └── portable/
     └── lite2_phase2_best/
@@ -545,16 +563,29 @@ outputs/export/
         └── model_info.json      # backbone, image_size, usage, exported_at
 ```
 
-**Model sizes:**
+**Model sizes (measured, lite2):**
 
-| Backbone | FP32 (ONNX) | INT8 (post-QAT) |
-|---|---|---|
-| lite2 | ~24 MB | ~6 MB |
-| lite4 | ~50 MB | ~13 MB |
+| Artifact | Size |
+|---|---|
+| ONNX FP32 | ~25.7 MB |
+| ONNX INT8 (QDQ) | ~7.1 MB |
+| TFLite INT8 | ~6–7 MB |
+
+**Parity gate (always run after exporting):**
+
+```bash
+python -m src.parity_check --backbone lite2 \
+  --tflite outputs/export/lite2_int8.tflite \
+  --onnx-int8 outputs/export/lite2_mobile_int8.onnx \
+  --split val
+```
+INT8 must stay within 1 pt `combined_top1` of the fp32 PyTorch reference. No dataset at hand? Use `--synthetic 16` for an artifact-only logit check.
 
 **Android workflow:**
-1. Train with QAT: `python local_train.py --include-qat`
-2. Use `lite2_quantized.pt` with **PyTorch Mobile Android SDK**, or `lite2_fp32.onnx` with **ONNX Runtime Mobile**
+1. Train (optionally distilled): `python -m src.train --backbone lite2 --teacher outputs/checkpoints/lite4_phase2_best.pt`
+2. Export both runtimes: `--mode tflite` and `--mode onnx-int8`
+3. Run the parity gate
+4. The Flutter app loads `assets/models/model.tflite` + `labels_*.txt` (outputs read by index: 0=binary, 1=cattle, 2=buffalo)
 
 ---
 
@@ -597,7 +628,7 @@ python -m src.verify
 
 **Step 6 — Train:**
 ```cmd
-python -m src.train --backbone lite2 --quarter-data --skip-qat
+python -m src.train --backbone lite2 --quarter-data
 ```
 
 ---
@@ -643,7 +674,7 @@ python -m src.verify
 
 **Step 6 — Train:**
 ```bash
-python -m src.train --backbone lite2 --quarter-data --skip-qat
+python -m src.train --backbone lite2 --quarter-data
 ```
 
 ---
@@ -681,7 +712,7 @@ python -m src.train [OPTIONS]
 | `--device` | str | auto | Force device: `cuda` or `cpu` |
 | `--seed` | int | `42` | Global random seed |
 | `--weight-decay` | float | `1e-2` | AdamW weight decay |
-| `--label-smoothing` | float | `0.1` | Label smoothing factor |
+| `--label-smoothing` | float | `0.05` | Label smoothing factor |
 | `--warmup-epochs` | int | `3` | Linear LR warmup epochs (Phase 2) |
 | `--grad-accum` | int | `2` | Gradient accumulation steps |
 
@@ -689,10 +720,19 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--phase1-epochs` | int | `5` | Phase 1 epoch count (all-heads warmup) |
-| `--phase2-epochs` | int | `40` | Phase 2 epoch count (multi-task fine-tune) |
+| `--phase1-epochs` | int | `8` | Phase 1 epoch count (all-heads warmup) |
+| `--phase2-epochs` | int | `60` | Phase 2 epoch count (multi-task fine-tune + EMA) |
 | `--phase3-epochs` | int | `10` | Phase 3 epoch count (QAT) |
-| `--skip-qat` | flag | off | **Skip Phase 3 (Quantization Aware Training) entirely.** Phase 3 converts the model to INT8 representation and fine-tunes it to recover accuracy. Skipping it saves time but makes the INT8 export inaccurate. |
+| `--include-qat` | flag | off | **Opt-in** QAT phase (per-tensor observers; recovery tool — mobile INT8 comes from converter PTQ) |
+| `--skip-qat` | flag | off | Kept for backwards compatibility; QAT is already off by default |
+
+#### Distillation
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--teacher` | path | off | Teacher checkpoint for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best.pt` |
+| `--teacher-backbone` | `lite2` \| `lite4` | `lite4` | Teacher backbone architecture |
+| `--teacher-attention` | `cbam` \| `se` | same as student | Teacher attention type |
 
 #### Data Mode (mutually exclusive)
 
@@ -715,28 +755,32 @@ python -m src.train [OPTIONS]
 
 ```bash
 # Quick sanity check — full pipeline in seconds
-python -m src.train --smoke-test --skip-qat
+python -m src.train --smoke-test
 
 # Quarter-data training (recommended for local GPU)
-python -m src.train --quarter-data --skip-qat
+python -m src.train --quarter-data
 
 # Half-data with custom epochs
-python -m src.train --half-data --phase2-epochs 20 --skip-qat
+python -m src.train --half-data --phase2-epochs 20
 
-# Full training with lite4 backbone
+# Teacher run: full training with the lite4 backbone
 python -m src.train --backbone lite4
 
-# Full training with QAT for Android deployment
-python -m src.train --backbone lite2
+# Distill the lite4 teacher into the lite2 student (same size/latency)
+python -m src.train --backbone lite2 \
+  --teacher outputs/checkpoints/lite4_phase2_best.pt
+
+# Opt-in QAT phase (recovery path; mobile INT8 uses converter PTQ)
+python -m src.train --backbone lite2 --include-qat
 
 # Override hyperparameters explicitly
 python -m src.train \
   --backbone lite4 \
   --batch-size 32 \
-  --phase1-epochs 5 \
-  --phase2-epochs 40 \
+  --phase1-epochs 8 \
+  --phase2-epochs 60 \
   --weight-decay 0.01 \
-  --label-smoothing 0.1 \
+  --label-smoothing 0.05 \
   --device cuda
 
 # Force CPU (debugging)
@@ -747,7 +791,7 @@ python -m src.train --quarter-data --device cpu --no-compile
 
 ## Known Constraints & Gotchas
 
-1. **QAT + CUDA AMP conflict**: Phase 3 (QAT) disables AMP because quantization observers don't support mixed precision. This is intentional and handled automatically.
+1. **QAT + CUDA AMP conflict**: Phase 3 (QAT, opt-in) disables AMP because quantization observers don't support mixed precision. This is intentional and handled automatically.
 
 2. **Backbone weights included**: `efficientnet_lite{2,4}.pth` are tracked in the repository — no separate download needed.
 
@@ -757,17 +801,34 @@ python -m src.train --quarter-data --device cpu --no-compile
 
 5. **Fixed head sizes**: Model heads remain sized for 57 cattle + 18 buffalo classes even on subset training. Unused outputs are never trained — architecture is identical across all modes.
 
-6. **WeightedRandomSampler**: Training uses inverse-frequency sampling (rare breeds oversampled). Evaluation uses no sampling — test set reflects natural distribution.
+6. **WeightedRandomSampler**: Training oversamples rare breeds with **effective-number-of-samples** weighting (β=0.999). Evaluation uses no sampling — test set reflects natural distribution. The binary head is species-balanced per batch on top.
 
-7. **Portable export requires class definition**: The portable bundle saves `state_dict`, not TorchScript. Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment, use ONNX instead.
+7. **EMA tracks BatchNorm buffers**: the phase-2 EMA updates parameters **and** BN running stats (`num_batches_tracked` hard-copied). Do not remove the buffer sync — stale BN stats silently corrupt every exported checkpoint.
 
-8. **Smoke test uses ALL 75 classes**: Even with only 5 images per breed, class maps include all breeds. Architecture is identical to full training.
+8. **Mobile artifacts are static batch-1, input [0,1]**: TFLite/ONNX-INT8 exports bake ImageNet normalization into the graph; the Flutter app's `pixel/255` preprocessing is exactly correct. Keep output order stable (`binary`, `cattle`, `buffalo`).
 
-9. **Windows build tools (optional)**: PyTorch installs via pre-built wheels and does not need MSVC. C++ Build Tools are only required if a package (e.g., an older `onnx` build) tries to compile C extensions.
+9. **Quantized/QAT checkpoints cannot be re-exported**: `_quantized.pt` / phase-3 checkpoints carry fused module names. Always export from the phase-2 EMA checkpoint.
+
+10. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — use a ≤3.13 venv (the Windows venv is 3.13) or Colab.
+
+11. **Portable export requires class definition**: The portable bundle saves `state_dict`, not TorchScript. Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment, use ONNX / TFLite instead.
+
+12. **Smoke test uses ALL 75 classes**: Even with only 5 images per breed, class maps include all breeds. Architecture is identical to full training.
+
+13. **Windows build tools (optional)**: PyTorch installs via pre-built wheels and does not need MSVC. C++ Build Tools are only required if a package (e.g., an older `onnx` build) tries to compile C extensions.
 
 ---
 
 ## Changelog
+
+**2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports**
+- **EMA bug fix (`src/train.py`)**: the phase-2 EMA now updates BatchNorm buffers in addition to parameters; previously every exported phase-2 checkpoint carried stale BN stats.
+- **Knowledge distillation**: new `--teacher`, `--teacher-backbone`, `--teacher-attention` flags — distill a lite4 teacher into the unchanged lite2 student (`(1-α)·hard CE + α·T²·KL`, α=0.7, T=4.0).
+- **QAT opt-in**: default training is 2 phases; `--include-qat` uses per-tensor observers (fixes the `Unsupported qscheme: per_channel_affine` conversion failure) and starts from the best phase-2 EMA checkpoint.
+- **Mobile INT8 exports**: new `--mode tflite` (full-integer PTQ via onnx2tf, labels emitted, auto-copied into `flutter_app/assets/models/`) and `--mode onnx-int8` (QDQ for ONNX Runtime Mobile). ImageNet normalization is baked into mobile graphs — the app's `pixel/255` preprocessing is now exactly correct.
+- **Removed the broken x86 `--mode int8` path**.
+- **Long-tail fixes**: effective-number-of-samples sampler (β=0.999), binary-head species balancing, CutMix/MixUp probability 0.25 → 0.5.
+- **New parity gate (`src/parity_check.py`)**: fp32 vs TFLite/ONNX INT8 accuracy comparison (accept: within 1 pt) or `--synthetic N` artifact-only mode. Measured: ONNX INT8 25.65 → 7.10 MB, fp32 exact parity.
 
 **2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata**
 - **Model Tester GUI (`test_model.py`)**: Added `--dev` (default) and `--present` flag modes.

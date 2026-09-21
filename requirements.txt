@@ -14,6 +14,10 @@ requests>=2.31
 # Model Export & Quantization
 onnx>=1.16
 onnxruntime>=1.16
+# Optional — only needed for `python -m src.export --mode tflite`:
+#   pip install tensorflow onnx2tf tf-keras onnx-graphsurgeon sng4onnx onnxsim
+# (ONNX Runtime Mobile INT8 needs nothing extra; onnxruntime already ships
+#  the quantization tools.)
 
 # Utilities
 odfpy>=1.4.1

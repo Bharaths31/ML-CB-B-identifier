@@ -56,13 +56,31 @@ After CutMix/MixUp, labels become fractional (e.g., `binary = [0.7, 0.3]`).
 soft_ce(pred, target) = -(target * log_softmax(pred)).sum(dim=1)
 
 # masked_loss: species-conditional breed loss
-total = w_binary * mean(soft_ce(binary_out, binary_label))
+total = w_binary * balanced_mean(soft_ce(binary_out, binary_label))
       + w_cattle * sum(soft_ce(cattle_out, cattle_label) * cattle_mask) / sum(cattle_mask)
       + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label) * buffalo_mask) / sum(buffalo_mask)
 ```
 
 Phase 1 weights: `(0.15, 0.5, 0.35)` — all heads train (backbone frozen)
 Phase 2/3 weights: `(0.15, 0.5, 0.35)` — all heads train (differential LR + EMA in Phase 2)
+
+**Binary species balancing** (`BALANCE_BINARY_HEAD=True`): the per-breed
+weighted sampler leaves a ~57:18 species prior, so per batch each species'
+binary-CE mass is renormalized to 0.5 via sample weights
+`w_cat·(1-p_buf) + w_buf·p_buf` (adaptive; identity on balanced batches).
+
+**Distillation** (`masked_kd_loss`, active when `--teacher` is passed):
+
+```python
+total = (1 - kd_alpha) * masked_loss                # hard labels, α=0.7
+      + kd_alpha * T² * [ w_bin·KL(τ_bin‖s_bin).mean()
+                        + w_cat·masked_KL(cattle)   # T=4.0
+                        + w_buf·masked_KL(buffalo) ]
+```
+
+Teacher runs frozen (eval mode) on the same augmented batch; gradients flow
+only through the student. With `kd_alpha=0` it reduces exactly to
+`masked_loss`; with an identical teacher the KL term vanishes exactly.
 
 ---
 
@@ -79,19 +97,21 @@ for epoch in range(epochs):
 
         if use_amp:
             with torch.amp.autocast("cuda"):
-                out = model(images)
-                loss = masked_loss(out, labels, ...)
+                loss = _compute_loss(model, images, labels, ..., teacher_model)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             clip_grad_norm_(model.parameters(), max_norm=1.0)
             scaler.step(optimizer)
             scaler.update()
         else:
-            out = model(images)
-            loss = masked_loss(out, labels, ...)
+            loss = _compute_loss(model, images, labels, ..., teacher_model)
             loss.backward()
             clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
+
+        if ema_model is not None:            # phase 2 — see §3/§4 notes
+            with torch.no_grad():            # parameters AND BN buffers are
+                ...                          # EMA'd; num_batches_tracked copied
 
     scheduler.step()  # if cosine annealing (phase 2)
 
@@ -125,14 +145,16 @@ for epoch in range(epochs):
 
 ---
 
-## 6. QAT (Quantization-Aware Training)
+## 6. QAT (Quantization-Aware Training) — opt-in via `--include-qat`
 
-Phase 3 (optional):
-1. Fuse conv-bn pairs: stem, head, all MBConv depthwise/project/expand
-2. Apply `prepare_qat()` with `x86` qconfig
-3. Train with fake quantization observers
-4. After training: `convert()` → INT8 model
-5. AMP is **disabled** during QAT (observers don't support fp16)
+Default training is 2 phases; mobile INT8 comes from converter-side PTQ
+(`src/export --mode tflite / onnx-int8`). The optional QAT phase:
+1. Loads the **best phase-2 EMA checkpoint** first (not final-epoch weights)
+2. Fuses conv-bn pairs: stem, head, all MBConv depthwise/project/expand
+3. Applies `prepare_qat()` with **per-tensor** observers (`QConfig(default_observer, default_weight_observer)`) — the x86 per-channel default broke `convert()` with `Unsupported qscheme: per_channel_affine`
+4. Trains with fake quantization observers
+5. After training: `convert()` → INT8 → `<backbone>_quantized.pt` (x86 artifact, not TFLite/ORT)
+6. AMP is **disabled** during QAT (observers don't support fp16)
 
 ---
 

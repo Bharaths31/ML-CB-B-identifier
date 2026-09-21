@@ -32,7 +32,18 @@ RANDAUGMENT_OPS = 2
 RANDAUGMENT_MAGNITUDE = 5
 CUTMIX_ALPHA = 1.0
 MIXUP_ALPHA = 0.3
-CUTMIX_MIXUP_PROB = 0.25
+CUTMIX_MIXUP_PROB = 0.5
+
+# --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
+KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
+KD_TEMPERATURE = 4.0
+
+# --- Class imbalance ---
+SAMPLER_BETA = 0.999          # effective-number-of-samples sampler beta
+BALANCE_BINARY_HEAD = True    # per-batch species re-weighting of binary CE
+
+# --- Exponential moving average of weights (phase 2) ---
+EMA_DECAY = 0.999
 
 BATCH_SIZE = 64
 NUM_WORKERS = 4
@@ -59,6 +70,9 @@ WEIGHT_DECAY = 1e-2
 LABEL_SMOOTHING = 0.05
 WARMUP_EPOCHS = 3
 GRADIENT_ACCUMULATION_STEPS = 2
+
+TFLITE_APP_ASSETS_DIR = os.path.join(
+    PROJECT_ROOT, "flutter_app", "assets", "models")
 
 SEED = 42
 

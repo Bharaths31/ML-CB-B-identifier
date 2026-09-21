@@ -166,20 +166,48 @@ class BreedClassifier(nn.Module):
 
 ## 5. Training Pipeline
 
-### Three-Phase Training (`src/train.py`)
+### Two-Phase Training (`src/train.py`) — QAT is opt-in
 
 | Phase | What | Frozen | LR | Epochs | Loss Weights |
 |---|---|---|---|---|---|
-| 1 | Binary head warmup | backbone + attention + breed heads | 3e-3 | 5 | bin=1.0, cat=0.0, buf=0.0 |
-| 2 | Multi-task fine-tune | nothing | 2e-4 (warmup+cosine) | 40 | bin=0.5, cat=0.25, buf=0.25 |
-| 3 | QAT (for Android) | nothing | 5e-6 | 10 | bin=0.5, cat=0.25, buf=0.25 |
+| 1 | All-heads warmup | backbone + attention | 3e-3 | 8 | bin=0.15, cat=0.50, buf=0.35 |
+| 2 | Multi-task fine-tune + EMA (+ optional distillation) | nothing | 2e-4 (warmup+cosine) | 60 | bin=0.15, cat=0.50, buf=0.35 |
+| 3 | QAT — **opt-in** via `--include-qat` | nothing | 5e-6 | 10 | bin=0.15, cat=0.50, buf=0.35 |
+
+Default is 2 phases. Mobile INT8 comes from **converter-side PTQ**
+(`src.export --mode tflite / onnx-int8`), not from PyTorch QAT. The optional
+QAT phase uses per-tensor observers (converts cleanly), starts from the best
+phase-2 EMA checkpoint, and saves `<backbone>_quantized.pt`.
+
+### Knowledge Distillation (`--teacher <ckpt>`)
+
+Train a bigger teacher first (e.g. `--backbone lite4`), then distill into the
+student (`--teacher outputs/checkpoints/lite4_phase2_best.pt`). Loss:
+`(1-α)·masked_hard_CE + α·T²·masked_KL(teacher‖student)` with α=0.7, T=4.0
+applied to all three heads. The teacher runs frozen in eval mode on the same
+augmented batch; the student's architecture/size/latency are unchanged.
+
+### EMA (phase 2)
+
+`run_epoch` maintains an exponential moving average of the weights **and**
+BatchNorm buffers (running mean/var EMA'd, `num_batches_tracked` copied).
+Validation, checkpoint selection, and the exported phase-2 model all use the
+EMA weights — keep the buffer sync or the exported model silently degrades.
+
+### Long-tail handling
+
+- Sampler: effective-number-of-samples weighting (`SAMPLER_BETA=0.999`) —
+  softens pure inverse-frequency oversampling of 5-image breeds.
+- Binary head: per-batch species re-weighting (`BALANCE_BINARY_HEAD=True`)
+  neutralizes the ~57:18 breed-count species prior.
 
 ### SOTA Optimizations
 
 - **Optimizer**: AdamW (weight_decay=1e-2) — decoupled weight decay for better generalization
-- **Label smoothing**: 0.1 — prevents overconfident predictions
+- **Label smoothing**: 0.05 — prevents overconfident predictions
 - **LR schedule**: Linear warmup (3 epochs) → Cosine annealing (Phase 2)
 - **Gradient accumulation**: 2 steps (effective batch = 128 with batch_size=64)
+- **CutMix/MixUp**: applied 50% of steps (α=1.0 / α=0.3), on GPU inside the loop
 
 ### CUDA Optimization
 
@@ -280,10 +308,18 @@ data/raw/
 
 | Mode | Output | Notes |
 |---|---|---|
-| `onnx` | `<backbone>_fp32.onnx` | opset 13, static or dynamic batch |
-| `int8` | `<backbone>_int8.pt` + `_int8_traced.pt` | PTQ with 32-batch calibration |
+| `onnx` | `<backbone>_fp32.onnx` | opset 13, static or dynamic batch; caller-normalized input (test_model.py compatible) |
+| `tflite` | `<backbone>_fp32.tflite` + `<backbone>_int8.tflite` + `labels_*.txt` | ONNX → onnx2tf → TFLite; INT8 is full-integer PTQ with float32 [0,1] I/O, normalization baked in; auto-copies into `flutter_app/assets/models/` |
+| `onnx-int8` | `<backbone>_mobile_int8.onnx` + `labels_*.txt` | QDQ static quantization (per-channel weights) for ONNX Runtime Mobile; input [0,1], normalization baked in |
 | `float16` | `<backbone>_float16.pt` | TorchScript traced |
 | `portable` | `portable/<backbone>_<tag>/` folder | Self-contained: model + labels + info |
+
+`--mode int8` (x86 PTQ) was **removed** — it failed conversion
+(`Unsupported qscheme: per_channel_affine`) and its artifacts were unusable
+on Android. Mobile artifacts expect input RGB in [0,1] (the Flutter app's
+`pixel/255` preprocessing is now exactly correct, zero app changes).
+Always run the parity gate after exporting:
+`python -m src.parity_check --checkpoint <pt> --tflite <tflite> --onnx-int8 <onnx>`.
 
 ### Portable Export Structure
 
@@ -311,27 +347,33 @@ outputs/export/portable/<backbone>_phase2_best/
 | `FEATURE_DIM` | 1280 | Backbone output dimension |
 | `BINARY_DIM` | 256 | Binary head hidden dim |
 | `BREED_DIM` | 512 | Breed head hidden dim |
-| `DROPOUT` | 0.4 | Breed head dropout |
+| `DROPOUT` | 0.3 | Breed head dropout |
 | `BATCH_SIZE` | 64 | Default batch size |
 | `NUM_WORKERS` | 4 | DataLoader workers |
 | `TRAIN/VAL/TEST_RATIO` | 0.85/0.10/0.05 | Split ratios |
-| `PHASE{1,2,3}_EPOCHS` | 5/40/10 | Training epochs |
+| `PHASE{1,2,3}_EPOCHS` | 8/60/10 | Training epochs (phase 3 is opt-in) |
 | `PHASE{1,2,3}_LR` | 3e-3/2e-4/5e-6 | Learning rates |
-| `LOSS_WEIGHT_*` | 0.5/0.25/0.25 | Multi-task loss weights |
+| `LOSS_WEIGHT_*` | 0.15/0.50/0.35 | Multi-task loss weights |
 | `WEIGHT_DECAY` | 1e-2 | AdamW weight decay |
-| `LABEL_SMOOTHING` | 0.1 | Label smoothing factor |
+| `LABEL_SMOOTHING` | 0.05 | Label smoothing factor |
 | `WARMUP_EPOCHS` | 3 | Linear warmup epochs (phase 2) |
 | `GRADIENT_ACCUMULATION_STEPS` | 2 | Grad accum steps |
+| `KD_ALPHA` | 0.7 | Distillation blend: (1-α)·hard CE + α·T²·KL(teacher‖student) |
+| `KD_TEMPERATURE` | 4.0 | Distillation temperature |
+| `SAMPLER_BETA` | 0.999 | Effective-number-of-samples sampler β |
+| `BALANCE_BINARY_HEAD` | True | Per-batch species re-weighting of binary CE |
+| `EMA_DECAY` | 0.999 | Phase-2 weight EMA decay (parameters AND BN buffers) |
 | `SMOKE_SAMPLES_PER_BREED` | 5 | Images per breed in smoke test |
 | `HALF_DATA_RATIO` | 0.5 | Fraction of images/breed for half-data mode |
 | `QUARTER_DATA_RATIO` | 0.25 | Fraction of images/breed for quarter-data mode |
-| `EVAL_EVERY_PHASE{1,2,3}` | 1 / 5 / 2 | Evaluation frequencies (epochs) |
+| `EVAL_EVERY_PHASE{1,2,3}` | 1 / 2 / 2 | Evaluation frequencies (epochs) |
 | `CACHE_IMAGES` | False | RAM image caching toggle |
 | `SPECIES_LABELS` | `{"cattle": 0, "buffalo": 1}` | Species integer mapping |
-| `CUTMIX_ALPHA` | 0.4 | CutMix beta distribution α |
-| `MIXUP_ALPHA` | 0.2 | MixUp beta distribution α |
+| `CUTMIX_ALPHA` | 1.0 | CutMix beta distribution α |
+| `MIXUP_ALPHA` | 0.3 | MixUp beta distribution α |
+| `CUTMIX_MIXUP_PROB` | 0.5 | Per-step probability of CutMix or MixUp |
 | `RANDAUGMENT_OPS` | 2 | RandAugment operations |
-| `RANDAUGMENT_MAGNITUDE` | 9 | RandAugment intensity |
+| `RANDAUGMENT_MAGNITUDE` | 5 | RandAugment intensity |
 
 ### Path Constants
 
@@ -342,6 +384,7 @@ outputs/export/portable/<backbone>_phase2_best/
 | `CHECKPOINT_DIR` | `outputs/checkpoints/` |
 | `EXPORT_DIR` | `outputs/export/` |
 | `PORTABLE_EXPORT_DIR` | `outputs/export/portable/` |
+| `TFLITE_APP_ASSETS_DIR` | `flutter_app/assets/models/` |
 | `METRICS_DIR` | `outputs/metrics/` |
 
 ---
@@ -396,10 +439,14 @@ outputs/export/portable/<backbone>_phase2_best/
 | `--num-workers N` | `4` | DataLoader workers |
 | `--device DEVICE` | auto | Force `cuda` or `cpu` |
 | `--no-mix` | off | Disable CutMix/MixUp |
-| `--phase1-epochs N` | `5` | Phase 1 epochs |
-| `--phase2-epochs N` | `40` | Phase 2 epochs |
-| `--phase3-epochs N` | `10` | Phase 3 epochs |
-| `--skip-qat` | off | Skip QAT phase |
+| `--phase1-epochs N` | `8` | Phase 1 epochs |
+| `--phase2-epochs N` | `60` | Phase 2 epochs |
+| `--phase3-epochs N` | `10` | Phase 3 epochs (opt-in) |
+| `--include-qat` | off | Enable QAT phase 3 (OFF by default) |
+| `--skip-qat` | off | Kept for compat; QAT is already off by default |
+| `--teacher PATH` | off | Teacher checkpoint for distillation |
+| `--teacher-backbone` | `lite4` | Teacher backbone |
+| `--teacher-attention` | student's | Teacher attention type |
 | `--smoke-test` | off* | 5 imgs/breed, 1 epoch |
 | `--half-data` | off* | 50% images/breed |
 | `--quarter-data` | off* | 25% images/breed |
@@ -421,7 +468,9 @@ outputs/export/portable/<backbone>_phase2_best/
 | Flag | Default | Description |
 |---|---|---|
 | `--backbone {lite2,lite4}` | `lite2` | Which backbone to export |
-| `--mode {onnx,int8,float16,portable}` | required | Export format |
+| `--mode {onnx,onnx-int8,tflite,float16,portable,int8}` | `onnx` | Export format (`int8` prints removal guidance) |
+| `--calibration-images N` | `500` | Train-split images for INT8 calibration |
+| `--skip-app-assets` | off | Don't copy TFLite artifacts into `flutter_app/assets/models/` |
 | `--checkpoint PATH` | auto | Specific `.pt` file |
 
 ### `python -m src.evaluate`
@@ -516,6 +565,14 @@ python create_training_zip.py
 
 1. **QAT + CUDA AMP conflict**: Phase 3 (QAT) disables AMP scaler because quantization observers don't support mixed precision. This is intentional — handled automatically.
 
+12. **EMA must include BN buffers** (`src/train.py`): the phase-2 EMA updates parameters AND BatchNorm buffers; `num_batches_tracked` is hard-copied. Removing the buffer sync corrupts every phase-2 checkpoint (stale BN stats) while validation still looks plausible.
+
+13. **Mobile artifacts are batch-1 static** with input RGB in [0,1] (normalization baked in): the Flutter engine feeds `pixel/255` floats and reads outputs by index (0=binary, 1=cattle, 2=buffalo). Keep output names/order stable when editing `_MobileOutputs`.
+
+14. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TF is not installable on Python 3.14 — run TFLite conversion from the Windows venv (Python 3.13) or Colab.
+
+15. **Quantized/QAT checkpoints cannot be re-exported**: `_quantized.pt` / phase-3 checkpoints carry fused module names; `src/export._load_model` raises a clear error. Always export from the phase-2 EMA checkpoint.
+
 2. **Backbone weights are included in the repo**: `efficientnet_lite{2,4}.pth` are tracked in git. No separate download required. Without them, backbone trains from scratch (significantly worse accuracy).
 
 3. **Fixed head sizes**: Model heads are always sized for 57 cattle + 18 buffalo classes regardless of data mode. Unused class outputs receive no gradient. Architecture is identical across all modes.
@@ -589,32 +646,61 @@ python create_training_zip.py
 
 ## 15. Android Deployment
 
-### QAT Pipeline
+### Mobile INT8 pipeline (TFLite + ONNX Runtime Mobile)
 
-Phase 3 (QAT) produces an INT8-ready model for mobile inference:
-1. Conv-BN fusion: merges batch norm into convolutions
-2. QAT training: inserts fake-quantize observers, fine-tunes with quantization noise
-3. INT8 conversion: `torch.ao.quantization.convert()` produces true INT8 weights
-4. Checkpoint: `<backbone>_quantized.pt`
+The Android path is **converter-side PTQ**, not PyTorch QAT:
+1. `python -m src.export --mode tflite` — ONNX (static batch 1, normalization baked) → onnx2tf → TFLite FP32 → full-integer INT8 PTQ calibrated on ~500 real train images. Emits `model.tflite` + `labels_{binary,cattle,buffalo}.txt` into `flutter_app/assets/models/`.
+2. `python -m src.export --mode onnx-int8` — QDQ static quantization (per-channel weights) for ONNX Runtime Mobile.
+3. `python -m src.parity_check` — accuracy gate: INT8 must stay within 1 pt of fp32 (`--synthetic N` for artifact-only parity without data).
 
-### Export Formats for Android
+Input convention for both mobile runtimes: RGB float32 in **[0,1]** with
+ImageNet normalization baked into the graph — the Flutter engine's existing
+`pixel/255` preprocessing is exactly correct.
 
-| Format | File | Use Case |
-|---|---|---|
-| Portable | `portable/<backbone>_*/model.pt` | PyTorch Mobile / custom runtime |
-| ONNX | `<backbone>_fp32.onnx` | ONNX Runtime Mobile, TFLite via converter |
-| INT8 | `<backbone>_quantized.pt` | Smallest size, fastest inference |
+### QAT (optional recovery path)
 
-### Model Sizes (approximate)
+`python -m src.train --include-qat` (OFF by default). Per-tensor observers,
+starts from the best phase-2 EMA checkpoint, converts with
+`torch.ao.quantization.convert()` to `<backbone>_quantized.pt`. Only useful
+as an x86-side accuracy-recovery tool if converter PTQ drops > 2 pt — the
+artifact is NOT a TFLite/ORT model.
 
-| Backbone | FP32 | INT8 (post-QAT) |
-|---|---|---|
-| lite2 | ~24 MB | ~6 MB |
-| lite4 | ~50 MB | ~13 MB |
+### Model Sizes (measured on lite2, 2026-09-20)
+
+| Artifact | Size |
+|---|---|
+| Portable model.pt (FP32 state_dict) | ~26 MB |
+| ONNX FP32 | ~25.7 MB |
+| ONNX INT8 (QDQ, mobile) | ~7.1 MB |
+| TFLite INT8 | ~6–7 MB (expected) |
 
 ---
 
 ## 16. Changelog
+
+### 2026-09-20 — Accuracy/Efficiency overhaul: distillation, EMA fix, mobile exports
+
+**Training (`src/train.py`):**
+- Fixed a critical EMA bug: EMA now updates BatchNorm buffers (running mean/var) in addition to parameters; `num_batches_tracked` is hard-copied. Previously every phase-2 checkpoint exported stale BN stats.
+- Added knowledge distillation: `--teacher <ckpt>` (+ `--teacher-backbone`, `--teacher-attention`). Loss = `(1-α)·masked_hard_CE + α·T²·masked_KL(teacher‖student)` on all three heads (α=0.7, T=4.0).
+- QAT is now **opt-in** (`--include-qat`); default training is 2 phases. QAT uses per-tensor observers (fixes the `Unsupported qscheme: per_channel_affine` conversion failure) and starts from the best phase-2 EMA checkpoint.
+- Binary CE is species-balanced per batch (`BALANCE_BINARY_HEAD=True`) to counter the 57:18 breed-count prior.
+
+**Data (`src/data_pipeline.py`):**
+- Sampler switched to effective-number-of-samples weighting (`SAMPLER_BETA=0.999`) — softens over-oversampling of tiny breeds.
+- `CutMix/MixUp` probability raised 0.25 → 0.5 (`CUTMIX_MIXUP_PROB`).
+- All `prepare_*_splits` now create the split directory if missing.
+
+**Export (`src/export.py`):**
+- New `--mode tflite`: ONNX → onnx2tf → TFLite FP32 + full-integer INT8 PTQ (float32 [0,1] I/O), emits `labels_*.txt`, auto-copies into `flutter_app/assets/models/`.
+- New `--mode onnx-int8`: QDQ static quantization for ONNX Runtime Mobile (per-channel weights, calibrated on real train images).
+- Mobile artifacts have ImageNet normalization baked into the graph — the Flutter app's `pixel/255` preprocessing is now exactly correct.
+- Removed the broken x86 PTQ `--mode int8` path (kept as a guidance stub).
+
+**Verification (`src/parity_check.py`, new):**
+- `python -m src.parity_check` compares fp32 PyTorch vs TFLite/ONNX INT8 on val/test (same metrics as training) or `--synthetic N` for artifact-only parity. Gate: INT8 within 1 pt combined_top1 of fp32.
+
+**Measured:** ONNX INT8 = 7.10 MB (from 25.65 MB FP32); fp32 ONNX exact-parity; INT8 max|Δlogit| ≈ 0.05–0.07 on random inputs; end-to-end mini training (2-phase, KD, QAT) verified on CPU.
 
 ### 2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata
 

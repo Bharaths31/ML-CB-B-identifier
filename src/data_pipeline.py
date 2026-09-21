@@ -15,9 +15,9 @@ from tqdm import tqdm
 from .config import (CACHE_IMAGES, CUTMIX_ALPHA, HALF_DATA_RATIO, IMAGE_SIZE,
                      MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
                      NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
-                     RANDAUGMENT_OPS, RAW_DATA_DIR, SMOKE_SAMPLES_PER_BREED,
-                     SPLIT_DIR, TEST_RATIO, TRAIN_RATIO, VAL_RATIO,
-                     IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
+                     RANDAUGMENT_OPS, RAW_DATA_DIR, SAMPLER_BETA,
+                     SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO, TRAIN_RATIO,
+                     VAL_RATIO, IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -48,6 +48,7 @@ def _collect_rows(data_root):
 
 
 def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
+    os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
     if not rows:
         print(f"[data] no images found under {data_root}")
@@ -120,6 +121,7 @@ def prepare_half_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     randomly-sampled subset. Class maps include ALL breeds so the model
     architecture stays identical.
     """
+    os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
     if not rows:
         print(f"[data] no images found under {data_root}")
@@ -202,6 +204,7 @@ def prepare_quarter_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     Identical to prepare_half_splits but uses 25% instead of 50%.  Class maps
     still include ALL breeds so model architecture stays identical to full training.
     """
+    os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
     if not rows:
         print(f"[data] no images found under {data_root}")
@@ -284,6 +287,7 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     This produces real training signal (unlike 2-batch from full set) while
     being fast enough for CI / quick sanity checks.
     """
+    os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
     if not rows:
         print(f"[smoke] no images found under {data_root}")
@@ -484,9 +488,19 @@ def mixed_collate(batch):
     return images.to(memory_format=torch.channels_last), labels
 
 
-def _make_weighted_sampler(df):
+def _make_weighted_sampler(df, beta=SAMPLER_BETA):
+    """Effective-number-of-samples class balancing.
+
+    Per-class sampling weight = 1 / E_n where E_n = (1 - beta^n) / (1 - beta).
+    Pure inverse-frequency weighting gives a breed with 5 images the same
+    relative boost over a breed with 500 images as one with 50 — it
+    over-oversamples tiny classes into memorization noise. The effective
+    number formulation saturates for large n (at 1/(1-beta)), softening the
+    boost for common breeds while rare breeds keep approximately 1/n.
+    """
     counts = df.groupby("breed")["path"].count()
-    weights = df["breed"].map(lambda b: 1.0 / counts[b]).to_numpy(
+    eff_num = (1.0 - beta ** counts) / (1.0 - beta)
+    weights = df["breed"].map(lambda b: 1.0 / eff_num[b]).to_numpy(
         dtype="float64").copy()
     return WeightedRandomSampler(
         torch.from_numpy(weights), num_samples=len(weights), replacement=True)
