@@ -96,11 +96,11 @@ Mini Project/
 │   ├── __init__.py
 │   ├── config.py               # All hyperparameters & paths
 │   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads)
+│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
 │   ├── cbam.py                 # CBAM & SE attention modules
 │   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 3-phase training with AMP, auto-export
-│   ├── metrics.py              # evaluate_epoch() — per-head accuracy + F1
+│   ├── train.py                # 2-phase training (logit adj, SupCon, EMA, adaptive weights)
+│   ├── metrics.py              # evaluate_epoch() — per-head acc, F1, macro-F1, soft-routed top1
 │   ├── evaluate.py             # Full evaluation with confusion matrices
 │   ├── export.py               # ONNX, INT8, float16, portable export
 │   └── verify.py               # Quick architecture sanity check
@@ -145,12 +145,18 @@ class BreedClassifier(nn.Module):
     binary_head: Linear(1280→256→2)
     cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→57)
     buffalo_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→18)
+    projection_head: Linear(1280→1280) + ReLU + Linear(1280→128)   # training-only (SupCon)
 ```
 
 ### Forward Path
 
 1. `forward_features(x)`: backbone stages 0..3 → CBAM → stages 4..6 → head → pool → flatten
-2. `forward(x)`: features → 3 parallel heads → dict{binary, cattle, buffalo, features}
+2. `forward(x)`: features → 3 parallel heads + projection head → dict{binary, cattle, buffalo, features, embedding}
+3. `predict(x)` (`@torch.no_grad()`): returns the soft-routed combined 75-class distribution `[p(species=0)·softmax(cattle), p(species=1)·softmax(buffalo)]`
+
+The `projection_head` and `embedding` output are consumed only by the
+supervised-contrastive (SupCon) loss; they are never exported and are tolerated
+as missing keys when loading legacy checkpoints (`src/export._load_model`).
 
 ### Freeze/Unfreeze Methods
 
@@ -178,13 +184,19 @@ class BreedClassifier(nn.Module):
 | Phase | What | Frozen | LR | Epochs | Loss Weights |
 |---|---|---|---|---|---|
 | 1 | All-heads warmup | backbone + attention | 3e-3 | 8 | bin=0.15, cat=0.50, buf=0.35 |
-| 2 | Multi-task fine-tune + EMA (+ optional distillation) | nothing | 2e-4 (warmup+cosine) | 60 | bin=0.15, cat=0.50, buf=0.35 |
+| 2 | Multi-task fine-tune + EMA (+ optional distillation) | nothing | 2e-4 (warmup+cosine) | 80 | bin=0.15→0.05, cat=0.50→0.55, buf=0.35→0.40 |
 | 3 | QAT — **opt-in** via `--include-qat` | nothing | 5e-6 | 10 | bin=0.15, cat=0.50, buf=0.35 |
+
+**Adaptive loss weights**: once `binary_acc ≥ BINARY_SATURATION_ACC` (0.95) the
+weights automatically switch to `LOSS_WEIGHT_*_FINAL` (`0.05/0.55/0.40`) from the
+next epoch, reallocating the loss budget from the saturated binary head to the
+breed heads.
 
 Default is 2 phases. Mobile INT8 comes from **converter-side PTQ**
 (`src.export --mode tflite / onnx-int8`), not from PyTorch QAT. The optional
-QAT phase uses per-tensor observers (converts cleanly), starts from the best
-phase-2 EMA checkpoint, and saves `<backbone>_quantized.pt`.
+QAT phase uses per-tensor observers, starts from the best phase-2 EMA
+checkpoint, and saves `<backbone>_quantized.pt` — but it measurably degrades
+accuracy (≈ −9 pts on the recorded run), so PTQ is preferred.
 
 ### Knowledge Distillation (`--teacher <ckpt>`)
 
@@ -203,8 +215,18 @@ EMA weights — keep the buffer sync or the exported model silently degrades.
 
 ### Long-tail handling
 
-- Sampler: effective-number-of-samples weighting (`SAMPLER_BETA=0.999`) —
-  softens pure inverse-frequency oversampling of 5-image breeds.
+- Sampler: effective-number-of-samples weighting (`SAMPLER_BETA=0.99`) —
+  softens pure inverse-frequency oversampling of 5-image breeds. Counts are
+  keyed on `(species, breed)` because `bargur` exists under both species.
+- **Logit adjustment** (`LOGIT_ADJUST=True`, τ=`LOGIT_ADJUST_TAU`=1.0): adds
+  `τ·log(prior)` to the breed logits during training (smoothed priors from
+  `compute_class_priors`). The shift is absorbed into the learned biases, so
+  inference stays raw.
+- **Rare-class mixing guard** (`RARE_CLASS_THRESHOLD=30`): breeds below 30 train
+  images are excluded from CutMix/MixUp via a per-sample `keep` mask.
+- **SupCon feature learning** (`CONTRASTIVE_WEIGHT=0.2`,
+  `CONTRASTIVE_TEMPERATURE=0.1`): supervised-contrastive loss on the 128-d
+  projection embedding; skipped on mixed batches (soft labels).
 - Binary head: per-batch species re-weighting (`BALANCE_BINARY_HEAD=True`)
   neutralizes the ~57:18 breed-count species prior.
 
@@ -233,8 +255,11 @@ All CUDA optimizations gracefully skip on CPU. AMP scaler is `None`, cudnn setti
 
 ### Loss Function
 
-- `soft_ce`: soft cross-entropy supporting CutMix/MixUp label mixing
-- `masked_loss`: binary CE always active, cattle/buffalo CE only on matching species (masked by cattle_mask/buffalo_mask)
+- `soft_ce`: soft cross-entropy supporting CutMix/MixUp label mixing, plus optional logit adjustment (`pred + τ·log_prior`)
+- `masked_loss`: binary CE always active, cattle/buffalo CE only on matching species (masked by cattle_mask/buffalo_mask); adds the SupCon term
+- `supervised_contrastive_loss`: SupCon (Khosla et al. 2020) over the projection embedding; anchors without a positive are ignored
+- `masked_kd_loss`: `(1−α)·masked_loss + α·T²·masked_KL` + SupCon
+- **Checkpoint selection** uses `BEST_METRIC="balanced_score"` = mean of cattle/buffalo **macro-F1** (not combined top-1, which is dominated by the ~10 large breeds).
 
 ### Smoke Test (`--smoke-test`)
 
@@ -248,7 +273,7 @@ Creates a mini-dataset of 5 images per breed using `prepare_smoke_splits()`:
 
 Creates a reduced dataset using 50% of images per breed via `prepare_half_splits()`:
 - Deterministic sampling (seed=42) for reproducibility
-- Same 85/10/5 stratified split on the sampled subset
+- Same 70/15/15 stratified split (with long-tail minimums) on the sampled subset
 - Class maps include ALL breeds — model architecture stays identical to full training
 - Ideal for faster iteration on local machines with limited VRAM
 
@@ -256,7 +281,7 @@ Creates a reduced dataset using 50% of images per breed via `prepare_half_splits
 
 Creates a reduced dataset using 25% of images per breed via `prepare_quarter_splits()`:
 - Deterministic sampling (seed=42) for reproducibility
-- Same 85/10/5 stratified split on the sampled subset
+- Same 70/15/15 stratified split (with long-tail minimums) on the sampled subset
 - Class maps include ALL breeds — model architecture stays identical to full training
 - Fastest local training mode (~4x speedup)
 
