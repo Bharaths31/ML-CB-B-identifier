@@ -312,14 +312,14 @@ data/raw/
 
 ### Split Strategy
 
-- **Full training**: 85/10/5 stratified per breed (optimized for maximum training data)
+- **Full training**: 70/15/15 stratified per `(species, breed)` with long-tail minimums — every breed with ≥3 images gets ≥1 val and ≥1 test image (grouping is by species+breed because `bargur` exists under both)
 - **Smoke test**: 5 images/breed → 60/20/20 split (tiny but real)
 
 ### Augmentation
 
-- **Train**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=9) → ToTensor()
+- **Train**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=5) → ToTensor()
 - **Eval**: Resize(260) → CenterCrop(260) → ToTensor()
-- **Batch mixing**: 50% chance of CutMix(α=0.4) or MixUp(α=0.2) applied directly on the GPU during the training loop.
+- **Batch mixing**: 50% chance of CutMix(α=1.0) or MixUp(α=0.3) on the GPU during the training loop; samples from breeds below `RARE_CLASS_THRESHOLD` (30 train images) are kept unmixed
 - **Caching**: `CACHE_IMAGES` stores raw JPEG bytes in RAM, preventing OOMs while bypassing disk I/O.
 
 ### Label Encoding
@@ -330,7 +330,8 @@ data/raw/
 
 ### Sampling
 
-- `WeightedRandomSampler` balances breeds by inverse frequency
+- `WeightedRandomSampler` with effective-number-of-samples weights
+  (`SAMPLER_BETA=0.99`), keyed on `(species, breed)`
 
 ---
 
@@ -382,17 +383,24 @@ outputs/export/portable/<backbone>_phase2_best/
 | `DROPOUT` | 0.3 | Breed head dropout |
 | `BATCH_SIZE` | 64 | Default batch size |
 | `NUM_WORKERS` | 4 | DataLoader workers |
-| `TRAIN/VAL/TEST_RATIO` | 0.85/0.10/0.05 | Split ratios |
-| `PHASE{1,2,3}_EPOCHS` | 8/60/10 | Training epochs (phase 3 is opt-in) |
+| `TRAIN/VAL/TEST_RATIO` | 0.70/0.15/0.15 | Split ratios (≥1 val/test per breed) |
+| `PHASE{1,2,3}_EPOCHS` | 8/80/10 | Training epochs (phase 3 is opt-in) |
 | `PHASE{1,2,3}_LR` | 3e-3/2e-4/5e-6 | Learning rates |
-| `LOSS_WEIGHT_*` | 0.15/0.50/0.35 | Multi-task loss weights |
+| `LOSS_WEIGHT_*` | 0.15/0.50/0.35 → 0.05/0.55/0.40 | Auto-switch after the binary head saturates |
 | `WEIGHT_DECAY` | 1e-2 | AdamW weight decay |
 | `LABEL_SMOOTHING` | 0.05 | Label smoothing factor |
 | `WARMUP_EPOCHS` | 3 | Linear warmup epochs (phase 2) |
 | `GRADIENT_ACCUMULATION_STEPS` | 2 | Grad accum steps |
 | `KD_ALPHA` | 0.7 | Distillation blend: (1-α)·hard CE + α·T²·KL(teacher‖student) |
 | `KD_TEMPERATURE` | 4.0 | Distillation temperature |
-| `SAMPLER_BETA` | 0.999 | Effective-number-of-samples sampler β |
+| `SAMPLER_BETA` | 0.99 | Effective-number-of-samples sampler β (softened) |
+| `LOGIT_ADJUST` / `LOGIT_ADJUST_TAU` | True / 1.0 | Add τ·log(prior) to breed logits during training |
+| `CONTRASTIVE_WEIGHT` / `CONTRASTIVE_TEMPERATURE` | 0.2 / 0.1 | SupCon loss on the projection embedding |
+| `PROJECTION_DIM` | 128 | Projection-head output dim (training-only) |
+| `RARE_CLASS_THRESHOLD` | 30 | Breeds below this many train images are excluded from CutMix/MixUp |
+| `BINARY_SATURATION_ACC` | 0.95 | Switch to `LOSS_WEIGHT_*_FINAL` when reached |
+| `LOSS_WEIGHT_BINARY_FINAL` / `LOSS_WEIGHT_CATTLE_FINAL` / `LOSS_WEIGHT_BUFFALO_FINAL` | 0.05 / 0.55 / 0.40 | Post-saturation loss weights |
+| `BEST_METRIC` | `balanced_score` | Checkpoint selection (mean cattle/buffalo macro-F1) |
 | `BALANCE_BINARY_HEAD` | True | Per-batch species re-weighting of binary CE |
 | `EMA_DECAY` | 0.999 | Phase-2 weight EMA decay (parameters AND BN buffers) |
 | `SMOKE_SAMPLES_PER_BREED` | 5 | Images per breed in smoke test |
@@ -470,12 +478,15 @@ outputs/export/portable/<backbone>_phase2_best/
 | `--batch-size N` | `64` | Per-GPU batch size |
 | `--num-workers N` | `4` | DataLoader workers |
 | `--device DEVICE` | auto | Force `cuda` or `cpu` |
-| `--no-mix` | off | Disable CutMix/MixUp |
+| `--no-mix` | off | Disable CutMix/MixUp (now truly disables mixing) |
 | `--phase1-epochs N` | `8` | Phase 1 epochs |
-| `--phase2-epochs N` | `60` | Phase 2 epochs |
+| `--phase2-epochs N` | `80` | Phase 2 epochs |
 | `--phase3-epochs N` | `10` | Phase 3 epochs (opt-in) |
 | `--include-qat` | off | Enable QAT phase 3 (OFF by default) |
 | `--skip-qat` | off | Kept for compat; QAT is already off by default |
+| `--contrastive-weight F` | `0.2` | SupCon weight on the projection embedding (0 disables) |
+| `--no-logit-adjust` | off | Disable logit adjustment for class imbalance |
+| `--rare-threshold N` | `30` | Breeds below this many train images are excluded from CutMix/MixUp |
 | `--teacher PATH` | off | Teacher checkpoint for distillation |
 | `--teacher-backbone` | `lite4` | Teacher backbone |
 | `--teacher-attention` | student's | Teacher attention type |
@@ -487,7 +498,7 @@ outputs/export/portable/<backbone>_phase2_best/
 | `--export-dir PATH` | `outputs/export/portable/` | Export destination |
 | `--no-export` | off | Skip auto-export |
 | `--weight-decay F` | `1e-2` | AdamW weight decay |
-| `--label-smoothing F` | `0.1` | Label smoothing |
+| `--label-smoothing F` | `0.05` | Label smoothing |
 | `--warmup-epochs N` | `3` | LR warmup epochs |
 | `--grad-accum N` | `2` | Gradient accumulation steps |
 
@@ -582,7 +593,7 @@ python -m src.evaluate --backbone lite2
 ```bash
 python -m src.export --mode portable --backbone lite2
 python -m src.export --mode onnx --backbone lite2
-python -m src.export --mode int8 --backbone lite2
+python -m src.export --mode onnx-int8 --backbone lite2
 python -m src.export --mode float16 --backbone lite2
 ```
 
@@ -603,7 +614,7 @@ python create_training_zip.py
 
 14. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TF is not installable on Python 3.14 — run TFLite conversion from the Windows venv (Python 3.13) or Colab.
 
-15. **Quantized/QAT checkpoints cannot be re-exported**: `_quantized.pt` / phase-3 checkpoints carry fused module names; `src/export._load_model` raises a clear error. Always export from the phase-2 EMA checkpoint.
+15. **Exportable checkpoint loading**: `src/export._sanitize_state_dict` strips `_orig_mod.`/`module.` prefixes, QAT `fake_quant`/`activation_post_process`/fused-BN keys, and loads with `strict=False` (the training-only `projection_head.*` is tolerated). Genuinely incompatible heads (missing non-projection keys) still raise. Export the phase-2 EMA checkpoint for best accuracy.
 
 2. **Backbone weights are included in the repo**: `efficientnet_lite{2,4}.pth` are tracked in git. No separate download required. Without them, backbone trains from scratch (significantly worse accuracy).
 
@@ -648,7 +659,11 @@ python create_training_zip.py
 
 ### Dataset Options (in Colab)
 
-1. **Kaggle API / Direct Download**: auto-downloads unified `algsoch/breed-cattle-buffalo` dataset containing both cattle and buffalo breeds
+1. **Kaggle API / Direct Download** (`DATASET_MODE="both"` by default): downloads
+   and merges **both** sources into `data/raw/` — the unified
+   `algsoch/breed-cattle-buffalo` set *and* the atharvadarpude indigenous sets
+   (`indian-cattle-image-dataset` + `indian-buffalo-dataset`) via
+   `merge_into_species_dir()` with breed-name normalization
 2. **Upload `archive.zip`**: created by `python scripts/create_colab_archive.py`
 3. **Google Drive**: copy `archive.zip` from Drive
 
@@ -709,6 +724,45 @@ artifact is NOT a TFLite/ORT model.
 ---
 
 ## 16. Changelog
+
+### 2026-09-21 — Long-tail accuracy overhaul: logit adjustment, SupCon features, soft routing, 70/15/15 splits
+
+Motivation: phase-2 best val top-1 was 0.578 (binary 0.95, cattle 0.59,
+buffalo 0.61) with 21+ indigenous breeds at ≤14 images versus `gir`=768, and the
+old 85/10/5 split left many rare breeds with **zero** test images.
+
+**Training (`src/train.py`, `src/config.py`):**
+- Sampler `SAMPLER_BETA` 0.999 → **0.99**; `PHASE2_EPOCHS` 60 → **80**.
+- New **logit adjustment** (`LOGIT_ADJUST`, τ=`LOGIT_ADJUST_TAU`=1.0) from smoothed
+  train priors (`compute_class_priors`) — applied to breed logits in training only.
+- New **SupCon feature loss** (`CONTRASTIVE_WEIGHT`=0.2, T=0.1) on a
+  training-only projection head (`PROJECTION_DIM`=128); skipped on mixed batches.
+- New **rare-class mixing guard** (`RARE_CLASS_THRESHOLD`=30): breeds below 30
+  train images are restored unmixed in CutMix/MixUp (`_rare_keep_mask`).
+- **Adaptive loss weights**: after `binary_acc ≥ 0.95` switch
+  `0.15/0.50/0.35 → 0.05/0.55/0.40` (`LOSS_WEIGHT_*_FINAL`).
+- `--no-mix` now genuinely disables mixing; new `--contrastive-weight`,
+  `--no-logit-adjust`, `--rare-threshold` flags.
+- Checkpoints selected on `BEST_METRIC="balanced_score"` (mean macro-F1).
+
+**Data (`src/data_pipeline.py`):**
+- Splits are **70/15/15** with long-tail minimums (≥1 val/test per breed with ≥3
+  images); grouping fixed to key on `(species, breed)` (`bargur` exists in both).
+- Sampler and priors count per `(species, breed)`.
+
+**Model & metrics (`src/model.py`, `src/metrics.py`):**
+- `BreedClassifier.predict()` returns the soft-routed 75-class distribution
+  `p(species)·softmax(head)`; `evaluate_epoch` adds macro-F1, balanced accuracy
+  and `combined_top1_soft`; `test_model.py` and both Flutter engines now use the
+  same soft-routing mixture instead of a hard binary argmax.
+
+**Export (`src/export.py`, `local_train.py`):**
+- `_sanitize_state_dict` strips `_orig_mod.`/`module.` prefixes, QAT observer
+  keys and fused-BN names, loads with `strict=False` (tolerates the
+  training-only `projection_head.*`) — QAT/compiled checkpoints no longer crash
+  ONNX/FP16/INT8 export.
+- `local_train.py` prefers the phase-2 (EMA) checkpoint and exports INT8 via
+  converter-side PTQ (`--mode onnx-int8`).
 
 ### 2026-09-20 — Accuracy/Efficiency overhaul: distillation, EMA fix, mobile exports
 

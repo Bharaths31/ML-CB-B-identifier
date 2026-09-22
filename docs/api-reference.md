@@ -37,7 +37,7 @@ All subset modes maintain the full 57-cattle / 18-buffalo class map. The model a
 |---|---|---|---|
 | `--include-qat` | flag | off | Enable the optional Phase 3 (QAT) — a recovery tool; mobile INT8 comes from converter PTQ ([Android Deployment](android-deployment.md)) |
 | `--phase1-epochs` | int | `8` | Override Phase 1 epoch count (all-heads warmup) |
-| `--phase2-epochs` | int | `60` | Override Phase 2 epoch count (multi-task fine-tune) |
+| `--phase2-epochs` | int | `80` | Override Phase 2 epoch count (multi-task fine-tune) |
 | `--phase3-epochs` | int | `10` | Override Phase 3 epoch count (QAT) |
 | `--num-workers` | int | `4` | DataLoader worker process count |
 
@@ -120,7 +120,7 @@ python -m src.train [OPTIONS]
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--phase1-epochs` | int | `8` | Phase 1 epochs (all-heads warmup) |
-| `--phase2-epochs` | int | `60` | Phase 2 epochs (multi-task fine-tune + EMA) |
+| `--phase2-epochs` | int | `80` | Phase 2 epochs (multi-task fine-tune + EMA) |
 | `--phase3-epochs` | int | `10` | Phase 3 epochs (QAT, opt-in) |
 | `--include-qat` | flag | off | Enable Phase 3 (QAT). Mobile INT8 comes from converter PTQ instead — see [Export & Deployment](export-deployment.md) |
 | `--skip-qat` | flag | off | Kept for backwards compatibility; QAT is already off by default |

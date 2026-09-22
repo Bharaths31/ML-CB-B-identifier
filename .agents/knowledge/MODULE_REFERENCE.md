@@ -52,40 +52,51 @@ verify.py ← (uses model, efficientnet_lite)
 ### `src/model.py`
 - `BreedClassifier(backbone, num_cattle, num_buffalo, cbam_stage, attention, activation, pretrained_path, dropout)` — main model
   - `.forward_features(x)` → [B, 1280] pooled features
-  - `.forward(x)` → dict{binary, cattle, buffalo, features}
+  - `.forward(x)` → dict{binary, cattle, buffalo, features, embedding}
+  - `.predict(x)` → [B, 75] soft-routed distribution `p(species)·softmax(head)`
+  - `.projection_head` — training-only Linear→ReLU→Linear (→128) for the SupCon loss; never exported
   - `.freeze_backbone()` / `.freeze_all()` / `.unfreeze_all()`
   - `.backbone_eval()` / `.backbone_train()`
 
 ### `src/data_pipeline.py`
-- `prepare_splits(data_root, split_dir)` → dict|None — 85/10/5 stratified splits
+- `_stratified_split(df, rng)` — per-`(species, breed)` train/val/test with long-tail minimums
+- `prepare_splits(data_root, split_dir)` → dict|None — 70/15/15 stratified splits
 - `prepare_smoke_splits(data_root, split_dir, samples_per_breed)` → dict|None — mini-dataset
 - `prepare_half_splits(data_root, split_dir)` → dict|None — 50% dataset subset
 - `prepare_quarter_splits(data_root, split_dir)` → dict|None — 25% dataset subset
+- `compute_class_priors(split_dir)` → {cattle, buffalo} smoothed log-prior tensors (for logit adjustment)
+- `compute_rare_classes(split_dir, threshold)` → {cattle, buffalo} bool tensors (breeds < threshold train images)
 - `get_dataloaders(split_dir, batch_size, num_workers, pin_memory)` → tuple|None
 - `CattleBuffaloDataset(manifest, cattle_classes, buffalo_classes, transform)` — PyTorch Dataset
-- `cutmix(images, labels, alpha)` / `mixup(images, labels, alpha)` — batch augmentation
+- `cutmix(images, labels, alpha, keep)` / `mixup(images, labels, alpha, keep)` — batch augmentation with rare-class `keep` mask
+- `_make_weighted_sampler(df, beta)` — effective-number sampler keyed on `(species, breed)`
 - `mixed_collate(batch)` — collate_fn with random CutMix/MixUp
 
 ### `src/train.py`
 - `setup_device(requested)` → (device, use_amp) — CUDA setup with optimizations & auto VRAM scaling
-- `soft_ce(pred, target)` — soft cross-entropy for mixed labels
-- `masked_loss(out, labels, w_binary, w_cattle, w_buffalo)` → (total, ce_b, ce_c, ce_buf) — species-balanced binary CE
-- `masked_kd_loss(out, teacher_out, labels, ..., kd_alpha, kd_temp)` → distillation-blended multi-task loss
-- `_compute_loss(model, images, labels, ..., teacher_model)` → loss via hard CE or KD
-- `run_epoch(model, loader, optimizer, device, loss_weights, scaler, ...)` → loss tuple; EMA of parameters AND BN buffers; optional teacher forward
-- `train_phase(model, loader, val_loader, device, phase, epochs, lr, ...)` → best_acc
+- `soft_ce(pred, target, label_smoothing, logit_prior, tau)` — soft CE for mixed labels + logit adjustment
+- `supervised_contrastive_loss(embedding, class_ids, temperature)` — SupCon on the projection embedding
+- `_combined_class_ids(labels)` / `_rare_keep_mask(labels, rare_masks)` — loss helpers
+- `masked_loss(out, labels, w_binary, w_cattle, w_buffalo, ..., logit_priors, adjust_tau, contrastive_weight, mixed)` → (total, ce_b, ce_c, ce_buf)
+- `masked_kd_loss(out, teacher_out, labels, ..., kd_alpha, kd_temp, logit_priors, ..., contrastive_weight)` → distillation-blended multi-task loss
+- `_compute_loss(model, images, labels, ...)` → loss via hard CE or KD (+ SupCon)
+- `run_epoch(model, loader, optimizer, device, loss_weights, ..., mix_prob, rare_masks, logit_priors, contrastive_weight)` → loss tuple; EMA parameters AND BN buffers; optional teacher forward
+- `train_phase(model, loader, val_loader, device, phase, ..., best_key=BEST_METRIC, loss_weights_final, binary_sat_acc, ...)` → best; adaptive weights after binary saturation
 - `create_portable_export(checkpoint_path, backbone, split_dir, export_dir)` → out_dir
 - `setup_qat(model, device)` → bool — fuse conv-bn + per-tensor QAT observers
-- `main()` — CLI entry point (--teacher, --include-qat)
+- `main()` — CLI entry point (--teacher, --include-qat, --contrastive-weight, --no-logit-adjust, --rare-threshold)
 
 ### `src/metrics.py`
-- `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, combined_top1, combined_top3, combined_top5}
+- `_macro_scores(cm)` — macro-F1 + macro-recall from a confusion matrix (zero-support classes excluded)
+- `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, cattle/buffalo_macro_f1, cattle/buffalo_balanced_acc, combined_top1, combined_top3, combined_top5, combined_top1_soft, balanced_score}
 
 ### `src/evaluate.py`
 - `full_evaluation(model, loader, device, ...)` → dict with confusion matrices
 - `main()` — CLI entry point
 
 ### `src/export.py`
+- `_sanitize_state_dict(state)` — strip `_orig_mod./module.` prefixes + QAT/fused keys so QAT/compiled checkpoints load into float `BreedClassifier`
+- `_load_model(checkpoint_path, backbone, attention)` — sanitized load, `strict=False`, tolerates `projection_head.*`
 - `_RawOutputs(model)` — export wrapper, caller-normalized input (test_model.py convention)
 - `_MobileOutputs(model)` — export wrapper, input [0,1] with ImageNet normalization baked in
 - `_write_label_files(split_dir, out_dir)` — labels_binary/cattle/buffalo.txt

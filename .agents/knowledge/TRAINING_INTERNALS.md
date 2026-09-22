@@ -52,17 +52,19 @@ After CutMix/MixUp, labels become fractional (e.g., `binary = [0.7, 0.3]`).
 ## 3. Loss Computation
 
 ```python
-# soft_ce: supports fractional labels from CutMix/MixUp
-soft_ce(pred, target) = -(target * log_softmax(pred)).sum(dim=1)
+# soft_ce: supports fractional labels from CutMix/MixUp + logit adjustment
+soft_ce(pred, target, logit_prior, tau) = -(target * log_softmax(pred + tau*log_prior)).sum(dim=1)
 
-# masked_loss: species-conditional breed loss
+# masked_loss: species-conditional breed loss + SupCon
 total = w_binary * balanced_mean(soft_ce(binary_out, binary_label))
-      + w_cattle * sum(soft_ce(cattle_out, cattle_label) * cattle_mask) / sum(cattle_mask)
-      + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label) * buffalo_mask) / sum(buffalo_mask)
+      + w_cattle * sum(soft_ce(cattle_out, cattle_label, log_prior_cattle, 1.0) * cattle_mask) / sum(cattle_mask)
+      + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label, log_prior_buffalo, 1.0) * buffalo_mask) / sum(buffalo_mask)
+      + contrastive_weight * SupCon(projection_embedding, global_class_ids)   # skipped when mixed
 ```
 
-Phase 1 weights: `(0.15, 0.5, 0.35)` — all heads train (backbone frozen)
-Phase 2/3 weights: `(0.15, 0.5, 0.35)` — all heads train (differential LR + EMA in Phase 2)
+Phase 1 weights: `(0.15, 0.5, 0.35)` — all heads train (backbone frozen, no SupCon)
+Phase 2 weights: start `(0.15, 0.5, 0.35)`, auto-switch to `(0.05, 0.55, 0.40)` once `binary_acc ≥ 0.95` — differential LR + EMA + SupCon
+Phase 3 weights: `(0.15, 0.5, 0.35)` — no SupCon
 
 **Binary species balancing** (`BALANCE_BINARY_HEAD=True`): the per-breed
 weighted sampler leaves a ~57:18 species prior, so per batch each species'

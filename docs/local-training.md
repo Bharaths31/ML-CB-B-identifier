@@ -194,7 +194,7 @@ python local_train.py [OPTIONS]
 |---|---|---|---|
 | `--include-qat` | flag | off | Enable the optional Phase 3 QAT (recovery path). Mobile INT8 now comes from converter PTQ — see [Android Deployment](android-deployment.md) |
 | `--phase1-epochs` | int | `8` | Override Phase 1 epoch count |
-| `--phase2-epochs` | int | `60` | Override Phase 2 epoch count |
+| `--phase2-epochs` | int | `80` | Override Phase 2 epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 epoch count |
 | `--num-workers` | int | `4` | DataLoader worker count |
 

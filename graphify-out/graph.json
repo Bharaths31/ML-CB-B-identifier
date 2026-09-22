@@ -9196,18 +9196,6 @@
       "weight": 1.0
     },
     {
-      "source": "colab_cattle_buffalo_trainer_exportwrapper_init",
-      "target": "colab_cattle_buffalo_trainer_exportwrapper_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "colab/cattle_buffalo_trainer.py",
-      "source_location": "L905",
-      "weight": 1.0
-    },
-    {
       "source": "colab_cattle_buffalo_trainer_merge_into_species_dir",
       "target": "colab_cattle_buffalo_trainer_find_breed_dirs",
       "relation": "calls",
@@ -10360,18 +10348,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_cbam_seblock_init",
-      "target": "src_cbam_seblock_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/cbam.py",
-      "source_location": "L49",
-      "weight": 1.0
-    },
-    {
       "source": "src_cbam_spatialattention_init",
       "target": "src_cbam_seblock_init",
       "relation": "calls",
@@ -10669,18 +10645,6 @@
       "context": "call",
       "source_file": "src/efficientnet_lite.py",
       "source_location": "L122",
-      "weight": 1.0
-    },
-    {
-      "source": "src_efficientnet_lite_efficientnetlite_init",
-      "target": "src_efficientnet_lite_efficientnetlite_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/efficientnet_lite.py",
-      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -10996,18 +10960,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_export_mobileoutputs_init",
-      "target": "src_export_mobileoutputs_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/export.py",
-      "source_location": "L50",
-      "weight": 1.0
-    },
-    {
       "source": "src_export_rawoutputs_init",
       "target": "src_export_mobileoutputs_init",
       "relation": "calls",
@@ -11041,18 +10993,6 @@
       "context": "call",
       "source_file": "src/model.py",
       "source_location": "L74",
-      "weight": 1.0
-    },
-    {
-      "source": "src_model_breedclassifier_init",
-      "target": "src_model_breedclassifier_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/model.py",
-      "source_location": "L16",
       "weight": 1.0
     },
     {

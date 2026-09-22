@@ -50,10 +50,11 @@ data/splits/{train,val,test}.csv
         ↓  CattleBuffaloDataset + DataLoader (CutMix/MixUp on GPU)
 EfficientNet-Lite backbone (stages 0..6)
   stem → [stage 0..3] → CBAM/SE attention → [stage 4..6] → head
-        ↓  AdaptiveAvgPool2d(1) → flatten → 1280-dim feature vector
-   ┌────┴────────────┬────────────┐
-binary_head (→2)  cattle_head (→57)  buffalo_head (→18)
+        ↓  AdaptiveAvgPool2d(1) → flatten → 1280-dim pooled features
+   ┌────┴────────────┬───────────────┬────────────────────────┐
+binary_head (→2)  cattle_head (→57)  buffalo_head (→18)  projection_head (→128, train-only)
         ↓  masked_loss: w_bin·CE + w_cat·CE + w_buf·CE
+           (+ τ·log(prior) logit adjustment, + λ·SupCon features)
 outputs/checkpoints/<backbone>_phase{1,2,3}_best.pt
         ↓  auto-export
 outputs/export/portable/<backbone>_phase2_best/
@@ -68,7 +69,7 @@ ML-CB-B-identifier/
 ├── src/                        # Core ML package (run as python -m src.<module>)
 │   ├── config.py               # All hyperparameters & paths (single source of truth)
 │   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads)
+│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
 │   ├── cbam.py                 # CBAM & SE attention modules
 │   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
 │   ├── train.py                # 2-phase training (+opt-in QAT, distillation), AMP, auto-export
@@ -332,7 +333,7 @@ python local_train.py [OPTIONS]
 |---|---|---|---|
 | `--include-qat` | flag | off | **Optional:** enables Phase 3 (Quantization-Aware Training) as an accuracy-recovery tool. Mobile INT8 now comes from converter-side PTQ (`src.export --mode tflite / onnx-int8`), so this is **not** required for Android deployment. |
 | `--phase1-epochs` | int | `8` | Override Phase 1 (all-heads warmup) epoch count |
-| `--phase2-epochs` | int | `60` | Override Phase 2 (multi-task) epoch count |
+| `--phase2-epochs` | int | `80` | Override Phase 2 (multi-task) epoch count |
 | `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
 | `--num-workers` | int | `4` | DataLoader worker processes |
 
@@ -724,7 +725,7 @@ python -m src.train [OPTIONS]
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `--phase1-epochs` | int | `8` | Phase 1 epoch count (all-heads warmup) |
-| `--phase2-epochs` | int | `60` | Phase 2 epoch count (multi-task fine-tune + EMA) |
+| `--phase2-epochs` | int | `80` | Phase 2 epoch count (multi-task fine-tune + EMA) |
 | `--phase3-epochs` | int | `10` | Phase 3 epoch count (QAT) |
 | `--include-qat` | flag | off | **Opt-in** QAT phase (per-tensor observers; recovery tool — mobile INT8 comes from converter PTQ) |
 | `--skip-qat` | flag | off | Kept for backwards compatibility; QAT is already off by default |
