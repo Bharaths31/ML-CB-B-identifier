@@ -19,11 +19,12 @@ data/raw/
 - **Full training**: 70/15/15 stratified per `(species, breed)` with long-tail minimums (≥1 val and ≥1 test image for every breed with ≥3 images)
 - **Smoke test**: 5 images/breed → 60/20/20 split (tiny but real)
 
-### Augmentation
+### Augmentation (OFF by default — opt-in per run)
 
-- **Train**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=9) → ToTensor()
-- **Eval**: Resize(260) → CenterCrop(260) → ToTensor()
-- **Batch mixing**: 50% chance of CutMix(α=0.4) or MixUp(α=0.2) applied directly on the GPU during the training loop.
+- **Train (no flags)**: Resize(260) → CenterCrop(260) → ToTensor() — identical to eval
+- **Train (opt-in)**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=5) → ToTensor(), gated by `--rrc` / `--flip` / `--color-jitter` / `--randaugment` (or `--augment-all`)
+- **Eval**: Resize(260) → CenterCrop(260) → ToTensor() (`EVAL_MATCH_TRAIN_RESOLUTION=True` switches to Resize(288)+CenterCrop(260))
+- **Batch mixing (opt-in, `--mix`)**: 25% chance of CutMix(α=0.4) or MixUp(α=0.2) on the GPU, pairing partners within the same species; disabled for the last 15% of phase 2.
 
 ### Performance Optimizations
 

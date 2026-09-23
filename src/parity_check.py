@@ -33,6 +33,7 @@ from .config import (CHECKPOINT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      METRICS_DIR, SPLIT_DIR)
 from .data_pipeline import get_dataloaders
 from .export import _load_model  # reuse the guarded checkpoint loader
+from .run_utils import make_run_id, timestamped
 
 MOBILE_CONVENTION = "input RGB in [0,1], normalization baked into the artifact"
 RAW_CONVENTION = "input ImageNet-normalized by the caller"
@@ -246,13 +247,19 @@ def main():
     parser.add_argument("--tolerance", type=float, default=0.01,
                         help="allowed combined_top1 drop vs fp32 (default 1pt)")
     parser.add_argument("--out", default=None, help="JSON report path")
+    parser.add_argument("--run-tag", default=None,
+                        help="run id for timestamped report filenames")
     args = parser.parse_args()
 
+    run_id = make_run_id(args.run_tag)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    checkpoint_path = args.checkpoint or os.path.join(
-        CHECKPOINT_DIR, f"{args.backbone}_phase2_best.pt")
-    if not os.path.exists(checkpoint_path):
-        print(f"[parity] checkpoint not found: {checkpoint_path}")
+    checkpoint_path = args.checkpoint
+    if not checkpoint_path:
+        from .run_utils import find_latest_checkpoint
+        checkpoint_path = find_latest_checkpoint(CHECKPOINT_DIR, args.backbone)
+    if not checkpoint_path or not os.path.exists(checkpoint_path):
+        print(f"[parity] checkpoint not found under {CHECKPOINT_DIR} "
+              f"(looked for {args.backbone}_*_phase2_best.pt); pass --checkpoint")
         return 1
 
     model = _load_model(checkpoint_path, args.backbone, args.attention)
@@ -295,8 +302,10 @@ def main():
         verdict = "PASS" if worst < 0.05 else "REVIEW"
         print(f"\n[parity] verdict: {verdict} "
               f"(worst max|Δlogit|={worst:.4f}, guidance < 0.05)")
-        report = {"mode": "synthetic", "verdict": verdict, "detail": detail}
-        out = args.out or os.path.join(METRICS_DIR, f"{args.backbone}_parity.json")
+        report = {"mode": "synthetic", "verdict": verdict, "detail": detail,
+                  "run_id": run_id}
+        out = args.out or timestamped(
+            os.path.join(METRICS_DIR, f"{args.backbone}_parity"), run_id) + ".json"
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w") as f:
             json.dump(report, f, indent=2)
@@ -339,9 +348,10 @@ def main():
     print(f"\n[parity] verdict: {verdict} (tolerance {args.tolerance:.2f} on "
           f"combined_top1)")
     report = {"mode": args.split, "verdict": verdict, "results": results,
-              "tolerance": args.tolerance}
-    out = args.out or os.path.join(METRICS_DIR,
-                                   f"{args.backbone}_parity_{args.split}.json")
+              "tolerance": args.tolerance, "run_id": run_id}
+    out = args.out or timestamped(
+        os.path.join(METRICS_DIR, f"{args.backbone}_parity_{args.split}"),
+        run_id) + ".json"
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         json.dump(report, f, indent=2)

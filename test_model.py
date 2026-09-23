@@ -56,8 +56,9 @@ from torchvision import transforms
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
-from src.config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGE_SIZE, LOGS_DIR,
-                        PORTABLE_EXPORT_DIR, SPLIT_DIR)
+from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
+                        IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
+                        TRAIN_RESIZE)
 from src.model import BreedClassifier
 
 # ---------------------------------------------------------------------------
@@ -68,8 +69,14 @@ SPECIES_LABELS = {0: "Cattle", 1: "Buffalo"}
 SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 PRESENTER_CONFIG_PATH = os.path.join(LOGS_DIR, "presenter_config.json")
 
+# MUST match src/data_pipeline._eval_transform exactly: shortest-side resize to
+# IMAGE_SIZE (260) then CenterCrop(260), ImageNet normalization. The previous
+# Resize((260, 260)) squashed the aspect ratio and disagreed with training eval,
+# which is enough on its own to wreck fine-grained breed predictions.
+_EVAL_RESIZE = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
 TRANSFORM = transforms.Compose([
-    transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+    transforms.Resize(_EVAL_RESIZE),
+    transforms.CenterCrop(IMAGE_SIZE),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225]),
@@ -513,7 +520,9 @@ class ModelManager:
             return {"error": f"Invalid image: {e}"}
 
         if logger:
-            logger.debug(f"Image decoded: {img.width}×{img.height} → resize to {IMAGE_SIZE}×{IMAGE_SIZE}")
+            logger.debug(f"Image decoded: {img.width}×{img.height} → "
+                         f"shortest-side resize {_EVAL_RESIZE} + center-crop "
+                         f"{IMAGE_SIZE}")
 
         tensor = TRANSFORM(img).unsqueeze(0)
         info = self.models[model_name]

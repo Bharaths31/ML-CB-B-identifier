@@ -12,12 +12,15 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 from tqdm import tqdm
 
-from .config import (CACHE_IMAGES, CUTMIX_ALPHA, HALF_DATA_RATIO, IMAGE_SIZE,
-                     MIXUP_ALPHA, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
-                     QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS,
-                     RARE_CLASS_THRESHOLD, RAW_DATA_DIR, SAMPLER_BETA,
-                     SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
-                     VAL_RATIO, IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
+from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
+                     AUG_RANDOM_RESIZED_CROP, CACHE_IMAGES, CUTMIX_ALPHA,
+                     EVAL_MATCH_TRAIN_RESOLUTION, HALF_DATA_RATIO, IMAGE_SIZE,
+                     MIX_SAME_SPECIES, MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
+                     NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
+                     RANDAUGMENT_OPS, RARE_CLASS_THRESHOLD, RAW_DATA_DIR,
+                     SAMPLER_BETA, SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
+                     TRAIN_RESIZE, VAL_RATIO, IMAGENET_MEAN, IMAGENET_STD,
+                     CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -145,9 +148,9 @@ def prepare_half_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
                         ratio=HALF_DATA_RATIO):
     """Create a dataset using a fraction of images per breed for faster training.
 
-    Uses the same 85/10/5 stratified split as full training but on a
-    randomly-sampled subset. Class maps include ALL breeds so the model
-    architecture stays identical.
+    Uses the same 70/15/15 stratified split (with long-tail minimums) as full
+    training but on a randomly-sampled subset. Class maps include ALL breeds so
+    the model architecture stays identical.
     """
     os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
@@ -359,23 +362,52 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     return summary
 
 
-def _train_transform():
-    return transforms.Compose([
-        transforms.Resize(IMAGE_SIZE + 28),  # 288px for scale variation
-        transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2,
-                               saturation=0.2, hue=0.1),
-        transforms.RandAugment(num_ops=RANDAUGMENT_OPS,
-                               magnitude=RANDAUGMENT_MAGNITUDE),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+def _train_transform(augment=None):
+    """Build the training transform.
+
+    Augmentation is OFF by default (see ``AUG_*`` / ``MIX_ENABLED`` in config)
+    because heavy stochastic augmentation hurts fine-grained breed
+    identification on a long tail. When no augmentation block is enabled the
+    train transform is identical to the eval transform.
+    """
+    augment = augment or {}
+    rrc = augment.get("random_resized_crop", AUG_RANDOM_RESIZED_CROP)
+    flip = augment.get("horizontal_flip", AUG_HORIZONTAL_FLIP)
+    color_jitter = augment.get("color_jitter", AUG_COLOR_JITTER)
+    randaugment = augment.get("randaugment", AUG_RANDAUGMENT)
+
+    if not (rrc or flip or color_jitter or randaugment):
+        return _eval_transform()
+
+    blocks = []
+    if rrc:
+        blocks += [transforms.Resize(TRAIN_RESIZE),  # 288px for scale variation
+                   transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0))]
+    else:
+        blocks += [transforms.Resize(IMAGE_SIZE),
+                   transforms.CenterCrop(IMAGE_SIZE)]
+    if flip:
+        blocks.append(transforms.RandomHorizontalFlip())
+    if color_jitter:
+        blocks.append(transforms.ColorJitter(brightness=0.2, contrast=0.2,
+                                             saturation=0.2, hue=0.1))
+    if randaugment:
+        blocks.append(transforms.RandAugment(num_ops=RANDAUGMENT_OPS,
+                                             magnitude=RANDAUGMENT_MAGNITUDE))
+    blocks += [transforms.ToTensor(),
+               transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)]
+    return transforms.Compose(blocks)
 
 
 def _eval_transform():
+    # Default matches the Flutter preprocessor and _MobileOutputs exactly:
+    # shortest-side resize to 260, then center-crop 260.
+    # EVAL_MATCH_TRAIN_RESOLUTION=True instead resizes to 288 then center-crops
+    # 260 (same object scale the training crop is drawn from) — compare on the
+    # GPU machine before changing the default.
+    resize = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
     return transforms.Compose([
-        transforms.Resize(IMAGE_SIZE),
+        transforms.Resize(resize),
         transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
@@ -456,6 +488,28 @@ def _rand_bbox(size, lam):
     return bbx1, bby1, bbx2, bby2
 
 
+def _pairing_perm(labels, same_species=True):
+    """Permutation that pairs each sample with another of the SAME species.
+
+    A global randperm can pair a cattle image with a buffalo image, which makes
+    the binary target fractional and leaves each breed target summing to λ<1
+    instead of 1. Pairing within species keeps the binary label one-hot and
+    every active breed target a proper distribution. Samples of a species with
+    only one member map to themselves (no mixing).
+    """
+    batch = labels["binary"].size(0)
+    perm = torch.arange(batch, device=labels["binary"].device)
+    if not same_species:
+        return torch.randperm(batch, device=labels["binary"].device)
+    species = labels["binary"].argmax(1)
+    for s in (0, 1):
+        idx = torch.nonzero(species == s, as_tuple=False).flatten()
+        if idx.numel() > 1:
+            perm[idx] = idx[torch.randperm(idx.numel(),
+                                           device=labels["binary"].device)]
+    return perm
+
+
 def _restore_unmixed(mixed, original, keep):
     """Return `mixed` where keep is False and `original` where keep is True.
 
@@ -468,12 +522,12 @@ def _restore_unmixed(mixed, original, keep):
     return torch.where(view, original, mixed)
 
 
-def cutmix(images, labels, alpha=CUTMIX_ALPHA, keep=None):
+def cutmix(images, labels, alpha=CUTMIX_ALPHA, keep=None,
+           same_species=MIX_SAME_SPECIES):
     original_images = images.clone()
     original_labels = {k: v.clone() for k, v in labels.items()}
-    batch = images.size(0)
     lam = np.random.beta(alpha, alpha)
-    perm = torch.randperm(batch, device=images.device)
+    perm = _pairing_perm(labels, same_species)
     x1, y1, x2, y2 = _rand_bbox(images.size(), lam)
     images[:, :, x1:x2, y1:y2] = images[perm, :, x1:x2, y1:y2]
     area = (x2 - x1) * (y2 - y1) / (images.size(2) * images.size(3))
@@ -485,11 +539,12 @@ def cutmix(images, labels, alpha=CUTMIX_ALPHA, keep=None):
     return images, labels
 
 
-def mixup(images, labels, alpha=MIXUP_ALPHA, keep=None):
+def mixup(images, labels, alpha=MIXUP_ALPHA, keep=None,
+          same_species=MIX_SAME_SPECIES):
     original_images = images.clone()
     original_labels = {k: v.clone() for k, v in labels.items()}
     lam = np.random.beta(alpha, alpha)
-    perm = torch.randperm(images.size(0), device=images.device)
+    perm = _pairing_perm(labels, same_species)
     images = lam * images + (1.0 - lam) * images[perm]
     labels = {k: lam * labels[k] + (1.0 - lam) * labels[k][perm] for k in labels}
     images = _restore_unmixed(images, original_images, keep)
@@ -552,12 +607,30 @@ def _count_per_class(df, class_map, num_classes, species=None):
     return counts
 
 
-def compute_class_priors(split_dir=SPLIT_DIR):
-    """Smoothed log class priors from the training split.
+def _effective_num_weights(counts, beta=SAMPLER_BETA):
+    """Per-class effective-number weights 1/E_n (same as the sampler).
 
-    Used by logit adjustment: during training we add `tau * log(prior)` to the
-    breed logits so frequent breeds must be much more confident to win, which
-    compensates for the long tail without forcing a near-uniform sampler.
+    Classes with zero samples get weight 0 (never sampled) — the effective
+    number E_0 = (1-beta^0)/(1-beta) = 0, so the raw reciprocal would be inf.
+    """
+    counts = np.asarray(counts, dtype=np.float64)
+    eff_num = (1.0 - beta ** counts) / (1.0 - beta)
+    eff_num = np.maximum(eff_num, 1e-12)
+    weights = 1.0 / eff_num
+    return weights * (counts > 0)
+
+
+def compute_class_priors(split_dir=SPLIT_DIR, source="sampled"):
+    """Smoothed log class priors for logit adjustment.
+
+    IMPORTANT: the effective-number sampler already rebalances every batch, so
+    applying logit adjustment on top of it double-corrects and over-predicts
+    rare breeds at inference. Logit adjustment is OFF by default; if it is
+    enabled, `source="sampled"` (the default here) uses the *effective sampled*
+    distribution ``count_c * sampler_weight_c`` normalised, which is the
+    distribution the model actually sees — not the raw image counts.
+
+    source="raw" reproduces the old (double-correcting) behaviour.
     Returns {"cattle": Tensor[C], "buffalo": Tensor[B]} of log priors.
     """
     train_df = _read_csv(split_dir, "train")
@@ -570,10 +643,38 @@ def compute_class_priors(split_dir=SPLIT_DIR):
             ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
         counts = _count_per_class(train_df, class_map, num_classes,
                                   species=species)
-        smoothed = counts + 1.0
-        prior = smoothed / smoothed.sum()
+        if source == "sampled":
+            sampled = counts * _effective_num_weights(counts)
+            present = counts > 0
+            if present.any():
+                prior = np.zeros_like(sampled)
+                prior[present] = sampled[present] / sampled[present].sum()
+                # Classes absent from train get the smallest present prior so
+                # logit adjustment never boosts (or NaNs) an untrained class.
+                prior[~present] = prior[present].min()
+            else:
+                prior = np.ones_like(sampled) / num_classes
+        else:
+            smoothed = counts + 1.0
+            prior = smoothed / smoothed.sum()
         priors[species] = torch.log(torch.as_tensor(prior, dtype=torch.float32))
     return priors
+
+
+def compute_class_counts(split_dir=SPLIT_DIR):
+    """Raw train image counts per breed, for shot-bucket diagnostics."""
+    train_df = _read_csv(split_dir, "train")
+    if train_df is None:
+        return None
+    cattle_classes, buffalo_classes = _load_class_maps(split_dir)
+    out = {}
+    for species, class_map, num_classes in (
+            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
+            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+        counts = _count_per_class(train_df, class_map, num_classes,
+                                  species=species)
+        out[species] = torch.as_tensor(counts, dtype=torch.float32)
+    return out
 
 
 def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
@@ -593,11 +694,13 @@ def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
 
 
 def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
-                    pin_memory=None):
+                    pin_memory=None, augment=None):
     """Build train/val/test DataLoaders.
 
     Args:
         pin_memory: If None, auto-detect (True when CUDA is available).
+        augment: Optional dict of augmentation switches for the TRAIN split
+            (see ``_train_transform``). Default = config defaults (all off).
     """
     train_df = _read_csv(split_dir, "train")
     val_df = _read_csv(split_dir, "val")
@@ -613,7 +716,8 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
         pin_memory = torch.cuda.is_available()
 
     train_ds = CattleBuffaloDataset(train_df, cattle_classes, buffalo_classes,
-                                    transform=_train_transform(), cache_images=CACHE_IMAGES)
+                                    transform=_train_transform(augment),
+                                    cache_images=CACHE_IMAGES)
     val_ds = CattleBuffaloDataset(val_df, cattle_classes, buffalo_classes,
                                   transform=_eval_transform(), cache_images=CACHE_IMAGES)
     test_ds = CattleBuffaloDataset(test_df, cattle_classes, buffalo_classes,
@@ -637,7 +741,7 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prepare stratified 80/10/10 splits")
+    parser = argparse.ArgumentParser(description="Prepare stratified 70/15/15 splits")
     parser.add_argument("--data", default=RAW_DATA_DIR, help="raw data root")
     parser.add_argument("--split-dir", default=SPLIT_DIR)
     args = parser.parse_args()

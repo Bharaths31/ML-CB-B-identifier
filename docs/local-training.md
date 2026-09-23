@@ -255,7 +255,7 @@ After a successful run, you'll find:
 ### Checkpoints (`outputs/checkpoints/`)
 ```
 lite2_phase1_best.pt    # Binary head warmup checkpoint
-lite2_phase2_best.pt    # Multi-task fine-tune checkpoint (primary model)
+lite2_phase2_best_<runid>.pt    # Multi-task fine-tune checkpoint (primary model)
 lite2_phase3_best.pt    # QAT checkpoint (if --include-qat)
 lite2_quantized.pt      # INT8 converted model (if --include-qat)
 ```

@@ -129,7 +129,7 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--teacher` | path | off | Teacher checkpoint (`.pt`) for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best.pt` |
+| `--teacher` | path | off | Teacher checkpoint (`.pt`) for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best_<runid>.pt` |
 | `--teacher-backbone` | `lite2` \| `lite4` | `lite4` | Teacher backbone architecture |
 | `--teacher-attention` | `cbam` \| `se` | same as student | Teacher attention type |
 
@@ -144,11 +144,32 @@ Blend and temperature are configured in `src/config.py` (`KD_ALPHA=0.7`, `KD_TEM
 | `--quarter-data` | 25% of images per breed, same 70/15/15 stratified split |
 | *(none)* | Full dataset (default) |
 
-### Augmentation & Compilation
+#### Augmentation (ALL OFF by default — opt-in per run)
 
 | Flag | Description |
 |---|---|
-| `--no-mix` | Disable CutMix/MixUp batch mixing |
+| `--mix` | Enable CutMix/MixUp (same-species pairing, α=0.4/0.2, p=0.25) |
+| `--flip` | Enable RandomHorizontalFlip |
+| `--color-jitter` | Enable ColorJitter |
+| `--randaugment` | Enable RandAugment(ops=2, mag=5) |
+| `--rrc` | Enable RandomResizedCrop(260, scale=0.8–1.0) |
+| `--augment-all` | Enable flip + color-jitter + randaugment + rrc + mix |
+| `--no-mix` | Force-disable mixing (default) |
+
+#### Imbalance & Output
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--logit-adjust` | flag | off | Enable logit adjustment **on top of** the sampler (off by default; double-corrects) |
+| `--logit-adjust-prior` | `sampled` \| `raw` | `sampled` | Prior source when logit adjustment is enabled |
+| `--rare-threshold` | int | `30` | Breeds below this many train images are excluded from CutMix/MixUp |
+| `--contrastive-weight` | float | `0.2` | SupCon weight (0 disables) |
+| `--run-tag` | str | auto `DD-MM-YYYY-HH-MM` | Run id for timestamped outputs |
+
+#### Compilation
+
+| Flag | Description |
+|---|---|
 | `--no-compile` | Disable `torch.compile` (auto-set on Windows; use to debug on Linux too) |
 | `--no-export` | Skip automatic portable export after training completes |
 
@@ -169,7 +190,7 @@ python -m src.train --backbone lite4
 
 # Full training, distilled from the lite4 teacher
 python -m src.train --backbone lite2 \
-  --teacher outputs/checkpoints/lite4_phase2_best.pt
+  --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt
 
 # Opt-in QAT phase (recovery path; mobile INT8 uses converter PTQ)
 python -m src.train --backbone lite2 --include-qat
@@ -179,7 +200,7 @@ python -m src.train \
   --backbone lite4 \
   --batch-size 32 \
   --phase1-epochs 8 \
-  --phase2-epochs 60 \
+  --phase2-epochs 80 \
   --weight-decay 0.01 \
   --label-smoothing 0.05 \
   --device cuda
@@ -204,7 +225,7 @@ python -m src.export [OPTIONS]
 |---|---|---|---|
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Which backbone's checkpoint to load |
 | `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | **required** | Export format |
-| `--checkpoint` | path | auto (`<backbone>_phase2_best.pt`) | Specific `.pt` file to export |
+| `--checkpoint` | path | auto (`<backbone>_phase2_best_<runid>.pt`) | Specific `.pt` file to export |
 | `--calibration-images` | int | `500` | Train images used for INT8 calibration (tflite / onnx-int8) |
 | `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into `flutter_app/assets/models/` |
 | `--onnx-static-batch` | flag | off | Fix batch size 1 in the fp32 ONNX export |
@@ -237,7 +258,7 @@ python -m src.export --mode float16 --backbone lite2
 
 # Export specific checkpoint file
 python -m src.export --mode tflite --backbone lite2 \
-  --checkpoint outputs/checkpoints/lite2_phase2_best.pt
+  --checkpoint outputs/checkpoints/lite2_phase2_best_<runid>.pt
 ```
 
 ---
@@ -254,7 +275,7 @@ python -m src.parity_check [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--checkpoint` | path | auto (`<backbone>_phase2_best.pt`) | fp32 reference checkpoint |
+| `--checkpoint` | path | auto (`<backbone>_phase2_best_<runid>.pt`) | fp32 reference checkpoint |
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Reference backbone |
 | `--tflite` | path | — | TFLite artifact (fp32 or INT8) |
 | `--onnx-int8` | path | — | Quantized ONNX (mobile convention: input [0,1]) |
@@ -317,7 +338,7 @@ python -m src.evaluate --backbone lite2
 
 # Evaluate specific checkpoint
 python -m src.evaluate --backbone lite2 \
-  --checkpoint outputs/checkpoints/lite2_phase2_best.pt
+  --checkpoint outputs/checkpoints/lite2_phase2_best_<runid>.pt
 
 # Force CPU evaluation
 python -m src.evaluate --backbone lite2 --device cpu

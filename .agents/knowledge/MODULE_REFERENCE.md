@@ -64,53 +64,72 @@ verify.py ← (uses model, efficientnet_lite)
 - `prepare_smoke_splits(data_root, split_dir, samples_per_breed)` → dict|None — mini-dataset
 - `prepare_half_splits(data_root, split_dir)` → dict|None — 50% dataset subset
 - `prepare_quarter_splits(data_root, split_dir)` → dict|None — 25% dataset subset
-- `compute_class_priors(split_dir)` → {cattle, buffalo} smoothed log-prior tensors (for logit adjustment)
-- `compute_rare_classes(split_dir, threshold)` → {cattle, buffalo} bool tensors (breeds < threshold train images)
-- `get_dataloaders(split_dir, batch_size, num_workers, pin_memory)` → tuple|None
+- `_train_transform(augment=None)` — train transform; **no-aug == eval transform**; opt-in blocks (rrc/flip/color/randaugment)
+- `_eval_transform()` — Resize(260)+CenterCrop(260)+Normalize (Resize(288) if `EVAL_MATCH_TRAIN_RESOLUTION`)
+- `compute_class_priors(split_dir, source="sampled"|"raw")` → log-prior tensors (absent classes get the smallest present prior)
+- `compute_class_counts(split_dir)` → {cattle, buffalo} raw train counts (shot buckets)
+- `compute_rare_classes(split_dir, threshold)` → {cattle, buffalo} bool tensors
+- `_effective_num_weights(counts, beta)` → weights (0 for zero-count classes; no divide-by-zero)
+- `get_dataloaders(split_dir, batch_size, num_workers, pin_memory, augment=None)` → tuple|None
 - `CattleBuffaloDataset(manifest, cattle_classes, buffalo_classes, transform)` — PyTorch Dataset
-- `cutmix(images, labels, alpha, keep)` / `mixup(images, labels, alpha, keep)` — batch augmentation with rare-class `keep` mask
+- `_pairing_perm(labels, same_species=True)` — mixing partner permutation (within-species)
+- `cutmix(images, labels, alpha, keep, same_species)` / `mixup(...)` — batch augmentation with rare-class `keep` mask + species pairing
 - `_make_weighted_sampler(df, beta)` — effective-number sampler keyed on `(species, breed)`
-- `mixed_collate(batch)` — collate_fn with random CutMix/MixUp
+- `mixed_collate(batch)` — collate_fn
 
 ### `src/train.py`
 - `setup_device(requested)` → (device, use_amp) — CUDA setup with optimizations & auto VRAM scaling
-- `soft_ce(pred, target, label_smoothing, logit_prior, tau)` — soft CE for mixed labels + logit adjustment
+- `soft_ce(pred, target, label_smoothing, logit_prior, tau)` — soft CE + optional logit adjustment
 - `supervised_contrastive_loss(embedding, class_ids, temperature)` — SupCon on the projection embedding
 - `_combined_class_ids(labels)` / `_rare_keep_mask(labels, rare_masks)` — loss helpers
-- `masked_loss(out, labels, w_binary, w_cattle, w_buffalo, ..., logit_priors, adjust_tau, contrastive_weight, mixed)` → (total, ce_b, ce_c, ce_buf)
-- `masked_kd_loss(out, teacher_out, labels, ..., kd_alpha, kd_temp, logit_priors, ..., contrastive_weight)` → distillation-blended multi-task loss
-- `_compute_loss(model, images, labels, ...)` → loss via hard CE or KD (+ SupCon)
-- `run_epoch(model, loader, optimizer, device, loss_weights, ..., mix_prob, rare_masks, logit_priors, contrastive_weight)` → loss tuple; EMA parameters AND BN buffers; optional teacher forward
-- `train_phase(model, loader, val_loader, device, phase, ..., best_key=BEST_METRIC, loss_weights_final, binary_sat_acc, ...)` → best; adaptive weights after binary saturation
-- `create_portable_export(checkpoint_path, backbone, split_dir, export_dir)` → out_dir
+- `_mix_off_epoch(epochs, mix_off_frac)` — last epoch that mixes
+- `_ema_decay_at(step, ema_decay, warmup)` / `_apply_ema(ema_model, model, decay)` — EMA schedule + params/BN-buffer update
+- `masked_loss(...)` / `masked_kd_loss(...)` → (total, ce_b, ce_c, ce_buf)
+- `_compute_loss(model, images, labels, ...)` → hard CE or KD (+ SupCon)
+- `run_epoch(..., mix_prob, same_species, ema_warmup, ema_state, rare_masks, logit_priors, contrastive_weight)` → loss tuple; EMA once per optimizer step
+- `train_phase(..., best_key=BEST_METRIC, mix_off_frac, same_species, train_counts, ...)` → best; dual raw/EMA eval, saves the better one
+- `_fmt_metrics(tag, m)` — one-line eval summary
+- `create_portable_export(...)` → unique out_dir
 - `setup_qat(model, device)` → bool — fuse conv-bn + per-tensor QAT observers
-- `main()` — CLI entry point (--teacher, --include-qat, --contrastive-weight, --no-logit-adjust, --rare-threshold)
+- `main()` — CLI entry point (`--mix/--flip/--color-jitter/--randaugment/--rrc/--augment-all`, `--logit-adjust`, `--logit-adjust-prior`, `--rare-threshold`, `--contrastive-weight`, `--run-tag`, `--teacher`, `--include-qat`)
+
+### `src/run_utils.py`
+- `make_run_id(run_tag=None, fmt=None)` — `DD-MM-YYYY-HH-MM` (config `RUN_ID_FORMAT`; `TIMESTAMP_OUTPUTS`)
+- `timestamped(path, run_id)` / `timestamped_dir(path, run_id)` — insert the run id into a filename/dir
+- `unique_path(path)` — `_2`, `_3`, ... if the path exists (never overwrite)
+- `find_latest(directory, pattern)` / `find_latest_checkpoint(dir, backbone, phase="phase2")`
 
 ### `src/metrics.py`
-- `_macro_scores(cm)` — macro-F1 + macro-recall from a confusion matrix (zero-support classes excluded)
-- `evaluate_epoch(model, loader, device, max_batches)` → dict{binary_acc, binary_f1, cattle_acc, buffalo_acc, cattle/buffalo_macro_f1, cattle/buffalo_balanced_acc, combined_top1, combined_top3, combined_top5, combined_top1_soft, balanced_score}
+- `_macro_scores(cm)` — macro-F1 + macro-recall (zero-support classes excluded)
+- `evaluate_epoch(model, loader, device, max_batches, train_counts, few_max, medium_max)` → dict{binary/cattle/buffalo acc, macro_f1, balanced_acc, combined_top1/3/5, combined_top1_soft, blended_score, acc_{few,medium,many}shot, pred_hist_entropy}
 
 ### `src/evaluate.py`
 - `full_evaluation(model, loader, device, ...)` → dict with confusion matrices
-- `main()` — CLI entry point
+- `main()` — CLI entry point (auto-discovers newest checkpoint; timestamped outputs; `--run-tag`)
 
 ### `src/export.py`
-- `_sanitize_state_dict(state)` — strip `_orig_mod./module.` prefixes + QAT/fused keys so QAT/compiled checkpoints load into float `BreedClassifier`
-- `_load_model(checkpoint_path, backbone, attention)` — sanitized load, `strict=False`, tolerates `projection_head.*`
+- `_sanitize_state_dict(state)` — strip `_orig_mod./module.` prefixes + QAT/fused keys
+- `_load_model(checkpoint_path, backbone, attention)` — sanitized load, `strict=False`, explicit missing/unexpected report, raises on missing non-projection keys
 - `_RawOutputs(model)` — export wrapper, caller-normalized input (test_model.py convention)
 - `_MobileOutputs(model)` — export wrapper, input [0,1] with ImageNet normalization baked in
 - `_write_label_files(split_dir, out_dir)` — labels_binary/cattle/buffalo.txt
 - `_calibration_images(split_dir, limit)` — [0,1] float32 calibration batches from train.csv
 - `export_onnx_int8(model, onnx_fp32, out_path, split_dir)` — QDQ static quantization (ORT Mobile)
-- `export_tflite(model, backbone, out_dir, split_dir)` — ONNX → onnx2tf → TFLite FP32 + INT8 PTQ
-- `create_portable_export(checkpoint_path, backbone, split_dir, export_dir)` → out_dir
-- `main()` — CLI entry point (onnx/onnx-int8/tflite/float16/portable)
+- `export_tflite(model, backbone, out_dir, split_dir, ..., stem=None)` — ONNX → onnx2tf → TFLite FP32 + INT8 PTQ (timestamped `stem`)
+- `create_portable_export(...)` → unique out_dir
+- `main()` — CLI entry point (onnx/onnx-int8/tflite/float16/portable; `--run-tag`; auto-discovers newest checkpoint)
 
 ### `src/parity_check.py`
 - `make_torch_runner(model, device)` / `make_onnx_runner(path, mobile)` / `make_tflite_runner(path)` — unified [0,1]-input runners
 - `accumulate(metrics, logits, labels)` / `finalize(metrics)` — training-equivalent metrics
 - `synthetic_parity(runnings, n)` — max |Δlogit| vs fp32 on random inputs
-- `main()` — CLI: accuracy mode (val/test) or `--synthetic N`
+- `main()` — CLI: accuracy mode (val/test) or `--synthetic N`; timestamped report (`--run-tag`)
+
+### `scripts/` (run on the GPU/dataset machine; read-only)
+- `audit_data.py` — per-breed counts, fuzzy breed-name collisions, `bargur` cross-species dupes, split duplicates, corrupt files
+- `diagnose_model.py` — detailed val/test report incl. shot buckets + confusion pairs (raw vs EMA)
+- `onnx_parity_10.py` — PyTorch vs fp32 ONNX top-5 + |Δlogit| assertion
+- `test_fixes_cpu.py` — CPU-only synthetic unit tests (no data/GPU)
 
 ### `src/verify.py`
 - `check_backbone(name)` — load weights + print stats

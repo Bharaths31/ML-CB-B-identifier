@@ -8,7 +8,7 @@
 │        ↓                                                     │
 │  data_pipeline.prepare_splits() → data/splits/*.csv          │
 │        ↓                                                     │
-│  CattleBuffaloDataset → DataLoader (CutMix/MixUp collate)   │
+│  CattleBuffaloDataset → DataLoader (mixing OFF by default)   │
 │        ↓                                                     │
 │  ┌─ EfficientNet-Lite backbone (stages 0..6) ─┐             │
 │  │   stem → [stage0..3] → CBAM → [stage4..6] → head        │
@@ -21,12 +21,12 @@
 │  (→2)        (→57)        (→18)          (→128, train-only)  │
 │        ↓                                                     │
 │  masked_loss: w_bin*CE_bin + w_cat*CE_cat + w_buf*CE_buf     │
-│               (+ τ·log(prior) logit adjustment on breed CE)  │
+│               (+ τ·log(prior) logit adjustment, OFF default) │
 │               (+ λ·SupCon(projection embedding))             │
 │        ↓                                                     │
-│  outputs/checkpoints/<backbone>_phase{1,2,3}_best.pt         │
+│  outputs/checkpoints/<backbone>_phase{N}_best_<runid>.pt     │
 │        ↓                                                     │
-│  outputs/export/portable/<backbone>_*/  (self-contained)     │
+│  outputs/export/portable/<backbone>_<...>_<runid>/           │
 └─────────────────────────────────────────────────────────────┘
 ```
 

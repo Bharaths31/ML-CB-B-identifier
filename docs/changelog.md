@@ -1,5 +1,59 @@
 # 16. Changelog
 
+### 2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs
+
+Diagnosed from a 10-photo ONNX batch test (0/10 correct; top-5 dominated by rare
+breeds; a Gir bull predicted as a rare breed) that regressed after the
+2026-09-21 overhaul.
+
+**Imbalance (`src/config.py`, `src/data_pipeline.py`, `src/train.py`):**
+- `LOGIT_ADJUST` is now **False by default** — the effective-number sampler is
+  the single long-tail mechanism. Enabling both double-corrects and over-predicts
+  rare breeds at inference. `--logit-adjust` re-enables it; its prior is computed
+  from the effective **sampled** distribution (`--logit-adjust-prior sampled|raw`),
+  never raw counts. Startup prints the active mechanism and prior max/min ratio.
+- Fixed `_effective_num_weights` divide-by-zero for classes absent from train
+  (previously produced NaN logit-adjustment priors).
+
+**Mixing (`src/config.py`, `src/data_pipeline.py`, `src/train.py`):**
+- CutMix/MixUp now pair **within the same species** (`_pairing_perm`), so binary
+  labels stay one-hot and breed targets stay proper distributions.
+- Strength reduced: `CUTMIX_MIXUP_PROB` 0.5→0.25, `CUTMIX_ALPHA` 1.0→0.4,
+  `MIXUP_ALPHA` 0.3→0.2. Rare-class guard kept.
+- `MIX_OFF_LAST_FRAC=0.15` disables mixing for the last 15% of phase 2.
+
+**Augmentation OFF by default (`src/config.py`, `src/data_pipeline.py`):**
+- flip / ColorJitter / RandAugment / RandomResizedCrop / mixing are opt-in via
+  `--mix --flip --color-jitter --randaugment --rrc --augment-all`. With all off,
+  the train transform equals the eval transform.
+
+**EMA (`src/train.py`):**
+- Updated once per **optimizer** step (was twice per micro-batch with
+  `grad_accum=2`), with warm-up `decay_t = min(0.999,(1+t)/(10+t))`.
+- Startup prints steps/epoch, total optimizer steps and the EMA time constant,
+  warning if it exceeds 25% of phase-2 steps. Every eval logs BOTH raw and EMA
+  metrics and saves whichever scores better.
+
+**Checkpoint selection (`src/config.py`, `src/metrics.py`):**
+- `BEST_METRIC="blended_score"` = 0.5·macro-F1 + 0.5·soft-routed top-1.
+- Each eval also logs few/medium/many-shot accuracy and predicted-histogram
+  entropy.
+
+**Preprocessing (`test_model.py`, `src/config.py`):**
+- `test_model.py` now uses the eval transform (shortest-side resize +
+  CenterCrop) instead of a square `Resize((260,260))`. New
+  `EVAL_MATCH_TRAIN_RESOLUTION` to test `Resize(288)+CenterCrop(260)` at eval.
+
+**Timestamped outputs (`src/run_utils.py`, new):**
+- Checkpoints/exports/metrics carry a `run id` (`DD-MM-YYYY-HH-MM` or `--run-tag`)
+  and never overwrite previous runs. `src.export` / `src.evaluate` /
+  `src.parity_check` / `local_train.py` auto-discover the newest checkpoint.
+
+**Tooling (run-later):** `scripts/audit_data.py`, `scripts/diagnose_model.py`,
+`scripts/onnx_parity_10.py`, `scripts/test_fixes_cpu.py`.
+
+---
+
 ### 2026-09-21 — Long-Tail Accuracy Overhaul: Logit Adjustment, Feature Metric Learning, Soft Routing, 70/15/15 Splits
 
 Motivated by a graph-assisted gap analysis: phase-2 best val top-1 was 0.578

@@ -713,6 +713,31 @@ def stage_train(args):
     if args.num_workers is not None:
         cmd.extend(["--num-workers", str(args.num_workers)])
 
+    # Augmentation is OFF unless explicitly requested.
+    if args.augment_all:
+        cmd.append("--augment-all")
+    else:
+        for flag, attr in (("--mix", "mix"), ("--flip", "flip"),
+                           ("--color-jitter", "color_jitter"),
+                           ("--randaugment", "randaugment"), ("--rrc", "rrc")):
+            if getattr(args, attr, False):
+                cmd.append(flag)
+    aug_on = [a for a in ("mix", "flip", "color_jitter", "randaugment", "rrc")
+              if args.augment_all or getattr(args, a, False)]
+    print(f"  Augmentation: {', '.join(aug_on) if aug_on else 'NONE (default)'}")
+
+    # Imbalance: sampler only unless --logit-adjust is passed.
+    if args.logit_adjust:
+        cmd.append("--logit-adjust")
+        if args.logit_adjust_prior:
+            cmd.extend(["--logit-adjust-prior", args.logit_adjust_prior])
+        print("  Imbalance: sampler + logit adjustment")
+    else:
+        print("  Imbalance: effective-number sampler ONLY (default)")
+
+    if args.run_tag:
+        cmd.extend(["--run-tag", args.run_tag])
+
     print(f"  Backbone: {args.backbone}")
     print(f"  Attention: {args.attention}")
     print(f"\n  Command: {' '.join(cmd)}\n")
@@ -733,12 +758,15 @@ def stage_export(args):
     checkpoint_dir = os.path.join(PROJECT_ROOT, "outputs", "checkpoints")
     best_ckpt = None
 
-    # Find the best checkpoint. Phase 2 (EMA) is preferred: phase-3 QAT
-    # measurably degrades accuracy and is opt-in only.
+    # Find the newest checkpoint. Phase 2 (EMA) is preferred: phase-3 QAT
+    # measurably degrades accuracy and is opt-in only. Checkpoints are
+    # timestamped per run, so pick the latest matching each phase.
+    import sys
+    sys.path.insert(0, PROJECT_ROOT)
+    from src.run_utils import find_latest_checkpoint
     for phase in ("phase2", "phase3", "phase1"):
-        candidate = os.path.join(checkpoint_dir,
-                                 f"{args.backbone}_{phase}_best.pt")
-        if os.path.exists(candidate):
+        candidate = find_latest_checkpoint(checkpoint_dir, args.backbone, phase)
+        if candidate:
             best_ckpt = candidate
             break
 
@@ -845,12 +873,19 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python local_train.py                    Full training (skip QAT)
+  python local_train.py                    Full training, NO augmentation (default)
   python local_train.py --half-data        Quick train with 50%% data
   python local_train.py --smoke-test       Tiny sanity check
-  python local_train.py --half-data --include-qat   Half data + QAT
+  python local_train.py --mix              Enable CutMix/MixUp (opt-in)
+  python local_train.py --augment-all      Enable flip+color-jitter+randaugment+rrc+mix
+  python local_train.py --logit-adjust     Add logit adjustment on top of the sampler
+  python local_train.py --run-tag exp1     Name this run's timestamped outputs
   python local_train.py --skip-download    Data already downloaded
   python local_train.py --skip-setup       Venv already ready
+
+Augmentation and CutMix/MixUp are OFF by default: they measurably hurt
+fine-grained breed identification. Enable only the specific flags you want.
+Outputs are timestamped per run and never overwrite previous results.
         """)
 
     # Data mode (mutually exclusive)
@@ -882,6 +917,34 @@ Examples:
     parser.add_argument("--num-workers", type=int, default=None,
                         help="dataloader worker count")
 
+    # Augmentation (ALL OFF by default — opt-in per run)
+    aug = parser.add_argument_group("augmentation (off by default)")
+    aug.add_argument("--mix", action="store_true",
+                     help="enable CutMix/MixUp batch mixing")
+    aug.add_argument("--flip", action="store_true",
+                     help="enable RandomHorizontalFlip")
+    aug.add_argument("--color-jitter", action="store_true",
+                     help="enable ColorJitter")
+    aug.add_argument("--randaugment", action="store_true",
+                     help="enable RandAugment")
+    aug.add_argument("--rrc", action="store_true",
+                     help="enable RandomResizedCrop")
+    aug.add_argument("--augment-all", action="store_true",
+                     help="enable flip + color-jitter + randaugment + rrc + mix")
+
+    # Imbalance mechanism (single mechanism by default)
+    imb = parser.add_argument_group("imbalance")
+    imb.add_argument("--logit-adjust", action="store_true",
+                     help="enable logit adjustment ON TOP of the sampler "
+                          "(off by default; double-corrects)")
+    imb.add_argument("--logit-adjust-prior", choices=["sampled", "raw"],
+                     default=None,
+                     help="prior source when --logit-adjust is used")
+
+    parser.add_argument("--run-tag", default=None,
+                        help="run id for timestamped outputs "
+                             "(default: current time DD-MM-YYYY-HH-MM)")
+
     # Skip stages
     parser.add_argument("--skip-download", action="store_true",
                         help="skip Kaggle dataset download")
@@ -911,9 +974,14 @@ Examples:
             else "half-data (50% images/breed)" if args.half_data
             else "smoke-test (tiny dataset)" if args.smoke_test
             else "full data")
+    aug_on = [a for a in ("mix", "flip", "color_jitter", "randaugment", "rrc")
+              if args.augment_all or getattr(args, a, False)]
     print(f"  Training mode: {mode}")
     print(f"  Backbone: {args.backbone}, Attention: {args.attention}")
     print(f"  QAT: {'enabled' if args.include_qat else 'skipped'}")
+    print(f"  Augmentation: {', '.join(aug_on) if aug_on else 'NONE (default)'}")
+    print(f"  Imbalance: {'sampler + logit adjustment' if args.logit_adjust else 'sampler ONLY (default)'}")
+    print(f"  Run id: {args.run_tag or '(auto timestamp)'}")
     print()
 
     try:

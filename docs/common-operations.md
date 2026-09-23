@@ -128,7 +128,7 @@ python -m src.train --backbone lite4
 
 # Distill the lite4 teacher into the lite2 student (same size/latency)
 python -m src.train --backbone lite2 \
-  --teacher outputs/checkpoints/lite4_phase2_best.pt
+  --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt
 
 # Opt-in QAT phase (recovery tool; mobile INT8 uses converter PTQ)
 python -m src.train --backbone lite2 --include-qat
@@ -138,7 +138,7 @@ python -m src.train \
   --backbone lite4 \
   --batch-size 32 \
   --phase1-epochs 8 \
-  --phase2-epochs 60 \
+  --phase2-epochs 80 \
   --weight-decay 0.01 \
   --device cuda
 ```
@@ -152,7 +152,7 @@ python -m src.evaluate --backbone lite2
 
 # Evaluate with specific checkpoint
 python -m src.evaluate --backbone lite2 \
-  --checkpoint outputs/checkpoints/lite2_phase2_best.pt
+  --checkpoint outputs/checkpoints/lite2_phase2_best_<runid>.pt
 ```
 Outputs per-class metrics to console and confusion matrix PNGs to `outputs/metrics/`.
 

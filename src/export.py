@@ -14,6 +14,8 @@ from .config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      IMAGE_SIZE, PORTABLE_EXPORT_DIR, SPLIT_DIR,
                      SPECIES_LABELS, TFLITE_APP_ASSETS_DIR)
 from .model import BreedClassifier
+from .run_utils import (find_latest_checkpoint, make_run_id, timestamped,
+                        unique_path)
 
 MOBILE_INPUT_RANGE = "[0, 1] RGB float32 (NCHW), normalization baked into the graph"
 
@@ -103,16 +105,19 @@ def _load_model(checkpoint_path, backbone, attention):
     state = _sanitize_state_dict(state)
     missing, unexpected = model.load_state_dict(state, strict=False)
     # The projection head is training-only; ignore it. Anything else missing is
-    # a real problem worth surfacing.
-    missing = [k for k in missing if not k.startswith("projection_head.")]
-    if missing:
+    # a real problem worth surfacing explicitly.
+    missing_proj = sorted(k for k in missing if k.startswith("projection_head."))
+    missing_real = sorted(k for k in missing if not k.startswith("projection_head."))
+    if missing_proj:
+        print(f"[export] tolerated {len(missing_proj)} training-only "
+              f"projection_head keys (e.g. {missing_proj[:3]})")
+    if unexpected:
+        print(f"[export] unexpected keys ({len(unexpected)}): {sorted(unexpected)[:10]}")
+    if missing_real:
         raise RuntimeError(
             f"checkpoint {checkpoint_path} does not match BreedClassifier"
-            f"({backbone}+{attention}); missing keys: {missing[:5]}"
-            f"{' ...' if len(missing) > 5 else ''}")
-    if unexpected:
-        print(f"[export] ignored {len(unexpected)} unexpected keys "
-              f"(e.g. {unexpected[:3]})")
+            f"({backbone}+{attention}); missing {len(missing_real)} required "
+            f"keys: {missing_real[:10]}")
     model.eval()
     return model
 
@@ -244,11 +249,14 @@ def export_onnx_int8(model, onnx_fp32_path, out_path, split_dir,
 # ---------------------------------------------------------------------------
 
 def export_tflite(model, backbone, out_dir, split_dir, static_batch=True,
-                  calibration_images=500):
+                  calibration_images=500, stem=None):
     """PyTorch -> ONNX -> (onnx2tf) -> TFLite fp32 -> full-integer INT8 PTQ.
 
     Returns (int8_path, fp32_path). Requires `onnx2tf` + `tensorflow`.
+    `stem` (default: backbone) is used for the artifact filenames so repeated
+    exports are timestamped and never overwrite.
     """
+    stem = stem or backbone
     try:
         import tensorflow as tf  # noqa: F401  (dependency guard)
     except ImportError as exc:
@@ -259,7 +267,7 @@ def export_tflite(model, backbone, out_dir, split_dir, static_batch=True,
 
     onnx_dir = os.path.join(out_dir, "onnx_tmp")
     os.makedirs(onnx_dir, exist_ok=True)
-    onnx_path = os.path.join(onnx_dir, f"{backbone}_mobile_fp32.onnx")
+    onnx_path = os.path.join(onnx_dir, f"{stem}_mobile_fp32.onnx")
     dummy = torch.randn(1, 3, IMAGE_SIZE, IMAGE_SIZE)
 
     wrapper = _MobileOutputs(model).eval()
@@ -300,7 +308,7 @@ def export_tflite(model, backbone, out_dir, split_dir, static_batch=True,
         raise RuntimeError("onnx2tf produced no .tflite file")
     fp32_src = next((p for p in tflites
                      if "float32" in os.path.basename(p)), tflites[0])
-    fp32_path = os.path.join(out_dir, f"{backbone}_fp32.tflite")
+    fp32_path = os.path.join(out_dir, f"{stem}_fp32.tflite")
     shutil.copy2(fp32_src, fp32_path)
     print(f"[export] TFLite FP32 -> {fp32_path} ({_size(fp32_path):.2f} MB)")
 
@@ -325,7 +333,7 @@ def export_tflite(model, backbone, out_dir, split_dir, static_batch=True,
     converter.inference_output_type = tf.float32
     int8_bytes = converter.convert()
 
-    int8_path = os.path.join(out_dir, f"{backbone}_int8.tflite")
+    int8_path = os.path.join(out_dir, f"{stem}_int8.tflite")
     with open(int8_path, "wb") as f:
         f.write(int8_bytes)
     print(f"[export] TFLite INT8 -> {int8_path} ({_size(int8_path):.2f} MB)")
@@ -344,7 +352,7 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
     anywhere — no project dependency needed.
     """
     tag = os.path.splitext(os.path.basename(checkpoint_path))[0]
-    out_dir = os.path.join(export_dir, f"{backbone}_{tag}")
+    out_dir = unique_path(os.path.join(export_dir, f"{backbone}_{tag}"))
     os.makedirs(out_dir, exist_ok=True)
 
     print(f"[export] creating portable bundle -> {out_dir}")
@@ -418,19 +426,28 @@ def main():
     parser.add_argument("--split-dir", default=SPLIT_DIR)
     parser.add_argument("--skip-app-assets", action="store_true",
                         help="do not copy artifacts into flutter_app/assets/models")
+    parser.add_argument("--run-tag", default=None,
+                        help="run id for timestamped artifacts "
+                             "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
-    checkpoint_path = args.checkpoint or os.path.join(
-        CHECKPOINT_DIR, f"{args.backbone}_phase2_best.pt")
-    if not os.path.exists(checkpoint_path):
-        print(f"[export] checkpoint not found: {checkpoint_path}")
+    run_id = make_run_id(args.run_tag)
+    checkpoint_path = args.checkpoint
+    if not checkpoint_path:
+        checkpoint_path = find_latest_checkpoint(CHECKPOINT_DIR, args.backbone)
+    if not checkpoint_path or not os.path.exists(checkpoint_path):
+        print(f"[export] checkpoint not found (looked for "
+              f"{args.backbone}_*_phase2_best.pt under {CHECKPOINT_DIR}); "
+              f"pass --checkpoint")
         return 1
 
     model = _load_model(checkpoint_path, args.backbone, args.attention)
     print(f"[export] loaded {checkpoint_path}")
+    print(f"[export] run id: {run_id}")
 
     os.makedirs(args.out_dir, exist_ok=True)
-    base = os.path.join(args.out_dir, f"{args.backbone}")
+    # Timestamp the artifact stem so repeated exports never overwrite.
+    base = timestamped(os.path.join(args.out_dir, args.backbone), run_id)
 
     if args.mode == "portable":
         create_portable_export(checkpoint_path, args.backbone,
@@ -504,7 +521,8 @@ def main():
             int8_path, fp32_path = export_tflite(
                 model, args.backbone, args.out_dir, args.split_dir,
                 static_batch=not args.dynamic_batch,
-                calibration_images=args.calibration_images)
+                calibration_images=args.calibration_images,
+                stem=f"{args.backbone}_{run_id}")
         except Exception as exc:
             print(f"[export] TFLite export failed: {exc}")
             return 1

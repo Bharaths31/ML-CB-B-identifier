@@ -14,7 +14,7 @@ python -m src.export [OPTIONS]
 |---|---|---|---|
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Which backbone's checkpoint to export |
 | `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | **required** | Export format |
-| `--checkpoint` | path | auto (`outputs/checkpoints/<backbone>_phase2_best.pt`) | Specific `.pt` file to use |
+| `--checkpoint` | path | auto (`outputs/checkpoints/<backbone>_phase2_best_<runid>.pt`) | Specific `.pt` file to use |
 | `--calibration-images` | int | `500` | Train-split images used for INT8 calibration |
 | `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into `flutter_app/assets/models/` |
 | `--onnx-static-batch` | flag | off | Fix batch size 1 in the fp32 ONNX export |
@@ -45,7 +45,7 @@ The mobile convention means the Flutter engine's existing `pixel / 255.0` prepro
 The portable format is a self-contained folder for Python-based inference:
 
 ```
-outputs/export/portable/<backbone>_phase2_best/
+outputs/export/portable/<backbone>_<...>_<runid>/
 ├── model.pt             # torch.load() checkpoint containing state_dict
 ├── cattle_classes.json  # {"amritmahal": 0, "ayrshire": 1, ...}
 ├── buffalo_classes.json # {"alambadi": 0, "banni": 1, ...}
@@ -94,7 +94,7 @@ python -m src.export --mode float16   --backbone lite2
 
 # Export from a specific checkpoint
 python -m src.export --mode tflite --backbone lite2 \
-  --checkpoint outputs/checkpoints/lite2_phase2_best.pt
+  --checkpoint outputs/checkpoints/lite2_phase2_best_<runid>.pt
 ```
 
 ---
@@ -139,7 +139,7 @@ The Android path is **converter-side PTQ**, not PyTorch QAT:
 
 ```bash
 # 1. Train (2 phases by default; QAT is opt-in and not needed for mobile INT8)
-python -m src.train --backbone lite2 --teacher outputs/checkpoints/lite4_phase2_best.pt
+python -m src.train --backbone lite2 --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt
 
 # 2. Export both runtimes
 python -m src.export --mode tflite --backbone lite2
@@ -163,4 +163,4 @@ Step 2 places the artifacts the Flutter app expects (`tflite_flutter` loads `ass
 
 ### QAT (optional recovery path)
 
-`python -m src.train --include-qat` (OFF by default) fine-tunes with fake-quantization and saves `<backbone>_quantized.pt`. This is an **x86-side recovery tool** if converter PTQ drops more than ~2 pts — the artifact is not a TFLite/ORT model. Quantized/QAT checkpoints also cannot be re-exported through `src.export` (fused module names); always export from the phase-2 EMA checkpoint.
+`python -m src.train --include-qat` (OFF by default) fine-tunes with fake-quantization and saves a timestamped `<backbone>_quantized_<runid>.pt`. This is an **x86-side recovery tool** if converter PTQ drops more than ~2 pts — the artifact is not a TFLite/ORT model.

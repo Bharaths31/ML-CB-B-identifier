@@ -11,8 +11,10 @@ from tqdm import tqdm
 
 from .config import (CHECKPOINT_DIR, METRICS_DIR, NUM_BUFFALO_BREEDS,
                      NUM_CATTLE_BREEDS, SPLIT_DIR)
-from .data_pipeline import get_dataloaders
+from .data_pipeline import compute_class_counts, get_dataloaders
+from .export import _sanitize_state_dict
 from .model import BreedClassifier
+from .run_utils import find_latest_checkpoint, make_run_id, timestamped
 
 
 @torch.no_grad()
@@ -94,8 +96,12 @@ def main():
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", default=None)
     parser.add_argument("--out-dir", default=METRICS_DIR)
+    parser.add_argument("--run-tag", default=None,
+                        help="run id for timestamped metric files "
+                             "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
+    run_id = make_run_id(args.run_tag)
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     loaders = get_dataloaders(split_dir=args.split_dir,
                               batch_size=args.batch_size,
@@ -105,26 +111,35 @@ def main():
         return 1
     _, val_loader, test_loader = loaders
 
-    checkpoint_path = args.checkpoint or os.path.join(
-        CHECKPOINT_DIR, f"{args.backbone}_phase2_best.pt")
-    if not os.path.exists(checkpoint_path):
-        print(f"[evaluate] checkpoint not found: {checkpoint_path}")
+    checkpoint_path = args.checkpoint or find_latest_checkpoint(
+        CHECKPOINT_DIR, args.backbone)
+    if not checkpoint_path or not os.path.exists(checkpoint_path):
+        print(f"[evaluate] no checkpoint found for {args.backbone} under "
+              f"{CHECKPOINT_DIR}; pass --checkpoint")
         return 1
 
     model = BreedClassifier(backbone=args.backbone, attention=args.attention)
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    model.load_state_dict(ckpt["state_dict"])
+    state = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
+    missing, _ = model.load_state_dict(_sanitize_state_dict(state), strict=False)
+    missing = [k for k in missing if not k.startswith("projection_head.")]
+    if missing:
+        print(f"[evaluate] checkpoint missing required keys: {missing[:10]}")
+        return 1
     model.to(device)
-    print(f"[evaluate] loaded {checkpoint_path}")
+    print(f"[evaluate] loaded {checkpoint_path} (run id {run_id})")
 
     from .metrics import evaluate_epoch
 
-    val_metrics = evaluate_epoch(model, val_loader, device)
-    test_metrics = evaluate_epoch(model, test_loader, device)
+    train_counts = compute_class_counts(args.split_dir)
+    val_metrics = evaluate_epoch(model, val_loader, device,
+                                 train_counts=train_counts)
+    test_metrics = evaluate_epoch(model, test_loader, device,
+                                  train_counts=train_counts)
     full = full_evaluation(model, test_loader, device)
 
     os.makedirs(args.out_dir, exist_ok=True)
-    prefix = os.path.join(args.out_dir, f"{args.backbone}")
+    prefix = timestamped(os.path.join(args.out_dir, args.backbone), run_id)
     np.savetxt(prefix + "_cattle_cm.csv", full["cattle_cm"], delimiter=",", fmt="%d")
     np.savetxt(prefix + "_buffalo_cm.csv", full["buffalo_cm"], delimiter=",", fmt="%d")
     _save_confusion(prefix + "_cattle_cm.png", full["cattle_cm"],
@@ -134,11 +149,13 @@ def main():
 
     report = {
         "backbone": args.backbone,
+        "run_id": run_id,
+        "checkpoint": checkpoint_path,
         "val": val_metrics,
         "test": test_metrics,
         "test_binary_f1_ok": test_metrics["binary_f1"] >= 0.95,
     }
-    with open(os.path.join(args.out_dir, f"{args.backbone}_metrics.json"), "w") as f:
+    with open(prefix + "_metrics.json", "w") as f:
         json.dump(report, f, indent=2)
 
     print()

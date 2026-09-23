@@ -45,19 +45,20 @@ A **lightweight, mobile-deployable image classifier** for **57 Indian cattle bre
 
 ```
 data/raw/{cattle,buffalo}/<breed>/*.jpg
-        ↓  data_pipeline.prepare_splits()
+        ↓  data_pipeline.prepare_splits()  (70/15/15, long-tail minimums)
 data/splits/{train,val,test}.csv
-        ↓  CattleBuffaloDataset + DataLoader (CutMix/MixUp on GPU)
+        ↓  CattleBuffaloDataset + DataLoader (augmentation OFF by default)
 EfficientNet-Lite backbone (stages 0..6)
   stem → [stage 0..3] → CBAM/SE attention → [stage 4..6] → head
         ↓  AdaptiveAvgPool2d(1) → flatten → 1280-dim pooled features
    ┌────┴────────────┬───────────────┬────────────────────────┐
 binary_head (→2)  cattle_head (→57)  buffalo_head (→18)  projection_head (→128, train-only)
         ↓  masked_loss: w_bin·CE + w_cat·CE + w_buf·CE
-           (+ τ·log(prior) logit adjustment, + λ·SupCon features)
-outputs/checkpoints/<backbone>_phase{1,2,3}_best.pt
-        ↓  auto-export
-outputs/export/portable/<backbone>_phase2_best/
+           (+ τ·log(prior) logit adjustment, OFF by default)
+           (+ λ·SupCon features)
+outputs/checkpoints/<backbone>_phase{1,2,3}_best_<runid>.pt
+        ↓  auto-export (timestamped, never overwrites)
+outputs/export/portable/<backbone>_<...>_<runid>/
 ```
 
 ---
@@ -278,9 +279,10 @@ The `--dataset-mode` flag controls which Kaggle datasets are downloaded and merg
 When `both` is selected, the pipeline automatically strips dataset-specific suffixes (e.g., `_cattle`, `_buffalo`, `_breed`) from the folder names. This ensures that the same breed from different datasets is correctly mapped to the exact same folder (e.g., `Punganur_Cattle` and `Punganur` both become `punganur`).
 
 **Handling Imbalance (Optimal Image Usage):**
-Merging multiple datasets introduces class imbalance (some breeds have 50 images, others have 500). To ensure each image is optimally used to bring out the highest performance of the final model:
-1. **WeightedRandomSampler:** The dataloader samples breeds inversely proportional to their image count. Rare breeds are oversampled per epoch, ensuring the model doesn't just memorize the majority classes.
-2. **Aggressive Augmentation:** Because rare breeds are sampled more often, they undergo heavy `RandAugment`, `CutMix`, and `MixUp` to prevent the model from overfitting on identical images.
+Merging multiple datasets introduces class imbalance (some breeds have 50 images, others have 500). To ensure each image is optimally used:
+1. **WeightedRandomSampler:** The dataloader samples breeds inversely proportional to their image count (effective-number weighting, β=0.99). Rare breeds are oversampled per epoch, ensuring the model doesn't just memorize the majority classes.
+2. **Exactly one long-tail mechanism:** Logit adjustment is **OFF by default** because the sampler already rebalances every batch — enabling both double-corrects and over-predicts rare breeds at inference (the 2026-09-21 regression). Enable it only explicitly with `--logit-adjust`.
+3. **Augmentation is OFF by default.** Heavy `RandAugment`, `ColorJitter`, `CutMix` and `MixUp` measurably hurt fine-grained breed identification on a long tail, so every stochastic transform is opt-in per run (`--mix`, `--flip`, `--color-jitter`, `--randaugment`, `--rrc`, or `--augment-all`). With everything off, the train transform equals the eval transform.
 
 ---
 
@@ -337,6 +339,25 @@ python local_train.py [OPTIONS]
 | `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
 | `--num-workers` | int | `4` | DataLoader worker processes |
 
+#### Augmentation (ALL OFF by default — opt-in per run)
+
+| Flag | Description |
+|---|---|
+| `--mix` | Enable CutMix/MixUp (same-species pairing, α=0.4/0.2, p=0.25) |
+| `--flip` | Enable RandomHorizontalFlip |
+| `--color-jitter` | Enable ColorJitter |
+| `--randaugment` | Enable RandAugment(ops=2, mag=5) |
+| `--rrc` | Enable RandomResizedCrop(260, scale=0.8–1.0) |
+| `--augment-all` | Enable flip + color-jitter + randaugment + rrc + mix |
+
+#### Imbalance & Output
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--logit-adjust` | flag | off | Add logit adjustment **on top of** the sampler (off by default; double-corrects) |
+| `--logit-adjust-prior` | `sampled` \| `raw` | `sampled` | Prior source when logit adjustment is enabled |
+| `--run-tag` | str | auto timestamp | Name this run's timestamped outputs |
+
 #### Skip Stages
 
 | Flag | Description |
@@ -351,7 +372,7 @@ python local_train.py [OPTIONS]
 ### Example Commands (`local_train.py`)
 
 ```bash
-# One-command full pipeline — quarter data, fastest local run
+# One-command full pipeline — quarter data, NO augmentation (default)
 python local_train.py --quarter-data
 
 # Half data with QAT (for Android INT8 deployment)
@@ -360,11 +381,15 @@ python local_train.py --half-data --include-qat
 # Full training with lite4 backbone
 python local_train.py --backbone lite4
 
+# Enable specific augmentation only (opt-in)
+python local_train.py --mix --flip
+python local_train.py --augment-all
+
 # Re-run training only (data already downloaded, venv ready)
 python local_train.py --half-data --skip-download --skip-setup
 
-# Custom epoch counts
-python local_train.py --half-data --phase2-epochs 20
+# Custom epoch counts + named timestamped outputs
+python local_train.py --half-data --phase2-epochs 20 --run-tag exp1
 
 # Skip export (just train, examine checkpoint manually)
 python local_train.py --quarter-data --skip-export
@@ -497,13 +522,17 @@ This notebook allows you to:
 | **Optimizer** | AdamW, weight_decay=1e-2 | Decoupled weight decay, better generalization |
 | **LR Schedule** | Linear warmup (3 epochs) → Cosine annealing | Stable convergence, avoids early overfitting |
 | **Label Smoothing** | ε=0.05 | Prevents overconfident predictions |
-| **Augmentation** | RandAugment(ops=2, mag=5) + ColorJitter + CutMix(α=1.0)/MixUp(α=0.3) on 50% of steps | Diverse training signal, reduces overfitting |
+| **Augmentation (OFF by default)** | Opt-in: `--mix` (CutMix α=0.4 / MixUp α=0.2, p=0.25), `--flip`, `--color-jitter`, `--randaugment`, `--rrc` | Fine-grained breeds need clean signal; enable only when it helps |
+| **Same-species mixing** | CutMix/MixUp pair only within a species | Keeps binary labels one-hot and breed targets proper distributions |
+| **Mixing off at the end** | `MIX_OFF_LAST_FRAC=0.15` of phase 2 | Model finishes on clean images → crisper boundaries |
+| **Rare-class mixing guard** | Breeds < 30 train imgs never mixed | Protects 10-image breeds |
 | **Knowledge Distillation** | `--teacher` (α=0.7, T=4.0) | Train a lite4 teacher, distill into lite2 — teacher accuracy at zero on-device cost |
-| **Weight EMA** | decay=0.999, parameters **and** BN buffers | Stable validation + trustworthy checkpoints |
+| **Weight EMA** | decay=0.999, once per **optimizer** step, warm-up `(1+t)/(10+t)` | Stable validation + trustworthy checkpoints |
 | **Effective-Number Sampler** | β=0.99 | Balances rare breeds without over-oversampling 5-image breeds |
-| **Logit Adjustment** | τ·log(prior) on breed logits | Menon et al. — compensates the long tail without distorting the sampler |
+| **Logit Adjustment (OFF by default)** | `--logit-adjust` (τ=1.0, prior from the *sampled* distribution) | Single-mechanism imbalance correction; off because the sampler already rebalances |
 | **SupCon Features** | λ=0.2 on pooled features | Separates visually near-identical indigenous breeds |
 | **Soft Species Routing** | p(species)·softmax(head) | Removes hard two-stage routing error propagation |
+| **Blended checkpoint metric** | 0.5·macro-F1 + 0.5·soft top-1 | Avoids noisy macro-F1-only selection |
 | **Binary Species Balancing** | per-batch re-weighting | Neutralizes the 57:18 breed-count species prior |
 | **Gradient Accumulation** | 2 steps → effective batch=128 | Stable gradients on small VRAM GPUs |
 | **Mixed Precision (AMP)** | Phases 1–2 | ~2× faster training, lower VRAM usage |
@@ -538,29 +567,30 @@ python -m src.export --mode float16 --backbone lite2
 |---|---|---|---|
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Which backbone's checkpoint to export |
 | `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | required | Export format |
-| `--checkpoint` | path | `<backbone>_phase2_best.pt` | Specific `.pt` file to export from |
+| `--checkpoint` | path | auto: newest `<backbone>_*_phase2_best_<runid>.pt` | Specific `.pt` file to export from |
 | `--calibration-images` | int | `500` | Train images for INT8 calibration |
+| `--run-tag` | str | auto `DD-MM-YYYY-HH-MM` | Run id for timestamped artifact names |
 | `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into the Flutter app |
 
 > The old `--mode int8` (x86 PTQ TorchScript) was **removed** — it failed conversion (`Unsupported qscheme: per_channel_affine`) and was unusable on Android.
 
 **Input conventions:** mobile artifacts (`tflite`, `onnx-int8`) take RGB float32 in **[0, 1]** with ImageNet normalization **baked into the graph** — the Flutter app's existing `pixel / 255.0` preprocessing is exactly correct with zero app changes. The fp32 `onnx` export keeps the legacy convention (caller normalizes) for `test_model.py` compatibility.
 
-**Output locations:**
+**Output locations** (artifact names carry the run id; nothing is overwritten):
 
 ```
 outputs/export/
-├── lite2_fp32.onnx              # ONNX fp32 (caller-normalized, test_model.py)
-├── lite2_mobile_fp32.onnx       # mobile ONNX (normalization baked in)
-├── lite2_mobile_int8.onnx       # ONNX Runtime Mobile INT8 (~7.1 MB)
-├── lite2_fp32.tflite            # TFLite fp32 fallback
-├── lite2_int8.tflite            # TFLite full-integer INT8
-├── labels_binary.txt            # 2 lines: cattle / buffalo
-├── labels_cattle.txt            # 57 lines, line i = class i
-├── labels_buffalo.txt           # 18 lines, line i = class i
-├── lite2_float16.pt             # FP16 TorchScript (mobile GPU)
+├── lite2_<runid>_fp32.onnx              # ONNX fp32 (caller-normalized, test_model.py)
+├── lite2_<runid>_mobile_fp32.onnx       # mobile ONNX (normalization baked in)
+├── lite2_<runid>_mobile_int8.onnx       # ONNX Runtime Mobile INT8 (~7.1 MB)
+├── lite2_<runid>_fp32.tflite            # TFLite fp32 fallback
+├── lite2_<runid>_int8.tflite            # TFLite full-integer INT8
+├── labels_binary.txt                    # 2 lines: cattle / buffalo (deterministic)
+├── labels_cattle.txt                    # 57 lines, line i = class i
+├── labels_buffalo.txt                   # 18 lines, line i = class i
+├── lite2_<runid>_float16.pt             # FP16 TorchScript (mobile GPU)
 └── portable/
-    └── lite2_phase2_best/
+    └── lite2_lite2_phase2_best_<runid>/ # unique per run
         ├── model.pt             # PyTorch checkpoint (state_dict)
         ├── cattle_classes.json  # {"amritmahal": 0, "ayrshire": 1, ...}
         ├── buffalo_classes.json # {"alambadi": 0, "banni": 1, ...}
@@ -579,14 +609,14 @@ outputs/export/
 
 ```bash
 python -m src.parity_check --backbone lite2 \
-  --tflite outputs/export/lite2_int8.tflite \
-  --onnx-int8 outputs/export/lite2_mobile_int8.onnx \
+  --tflite outputs/export/lite2_<runid>_int8.tflite \
+  --onnx-int8 outputs/export/lite2_<runid>_mobile_int8.onnx \
   --split val
 ```
 INT8 must stay within 1 pt `combined_top1` of the fp32 PyTorch reference. No dataset at hand? Use `--synthetic 16` for an artifact-only logit check.
 
 **Android workflow:**
-1. Train (optionally distilled): `python -m src.train --backbone lite2 --teacher outputs/checkpoints/lite4_phase2_best.pt`
+1. Train (optionally distilled): `python -m src.train --backbone lite2 --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt`
 2. Export both runtimes: `--mode tflite` and `--mode onnx-int8`
 3. Run the parity gate
 4. The Flutter app loads `assets/models/model.tflite` + `labels_*.txt` (outputs read by index: 0=binary, 1=cattle, 2=buffalo)
@@ -734,7 +764,7 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--teacher` | path | off | Teacher checkpoint for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best.pt` |
+| `--teacher` | path | off | Teacher checkpoint for knowledge distillation, e.g. `outputs/checkpoints/lite4_phase2_best_<runid>.pt` |
 | `--teacher-backbone` | `lite2` \| `lite4` | `lite4` | Teacher backbone architecture |
 | `--teacher-attention` | `cbam` \| `se` | same as student | Teacher attention type |
 
@@ -747,11 +777,37 @@ python -m src.train [OPTIONS]
 | `--quarter-data` | 25% of images per breed (seed=42) |
 | *(none)* | Full dataset (default) |
 
-#### Augmentation & Compilation
+#### Augmentation (ALL OFF by default — opt-in per run)
 
 | Flag | Description |
 |---|---|
-| `--no-mix` | Disable CutMix/MixUp batch mixing |
+| `--mix` | Enable CutMix/MixUp batch mixing (same-species pairing, α=0.4/0.2, p=0.25) |
+| `--flip` | Enable RandomHorizontalFlip |
+| `--color-jitter` | Enable ColorJitter |
+| `--randaugment` | Enable RandAugment(ops=2, mag=5) |
+| `--rrc` | Enable RandomResizedCrop(260, scale=0.8–1.0) |
+| `--augment-all` | Enable flip + color-jitter + randaugment + rrc + mix |
+| `--no-mix` | Force-disable mixing (default; kept for compatibility) |
+
+#### Imbalance
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--logit-adjust` | flag | off | Enable logit adjustment **on top of** the sampler (double-corrects; off by default) |
+| `--logit-adjust-prior` | `sampled` \| `raw` | `sampled` | Prior source when logit adjustment is enabled (effective sampled distribution vs raw counts) |
+| `--rare-threshold` | int | `30` | Breeds below this many train images are excluded from CutMix/MixUp |
+| `--contrastive-weight` | float | `0.2` | SupCon weight on the projection embedding (0 disables) |
+
+#### Output
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--run-tag` | str | auto timestamp | Run id used to timestamp checkpoints/exports so previous runs are never overwritten |
+
+#### Compilation
+
+| Flag | Description |
+|---|---|
 | `--no-compile` | Disable `torch.compile` (automatically set on Windows) |
 | `--no-export` | Skip automatic portable export after training |
 
@@ -772,7 +828,7 @@ python -m src.train --backbone lite4
 
 # Distill the lite4 teacher into the lite2 student (same size/latency)
 python -m src.train --backbone lite2 \
-  --teacher outputs/checkpoints/lite4_phase2_best.pt
+  --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt
 
 # Opt-in QAT phase (recovery path; mobile INT8 uses converter PTQ)
 python -m src.train --backbone lite2 --include-qat
@@ -793,6 +849,52 @@ python -m src.train --quarter-data --device cpu --no-compile
 
 ---
 
+## Timestamped Outputs & Run-Later Diagnostics
+
+Every training/export/evaluation run gets a `run id` (default `DD-MM-YYYY-HH-MM`,
+override with `--run-tag`). Checkpoints, exports, and metric files include it, so
+**repeated runs never overwrite previous results**. Timestamping is ON by default
+(`TIMESTAMP_OUTPUTS=True` in `src/config.py`); change `RUN_ID_FORMAT` to alter the
+format (literal `:` is avoided because it is illegal in Windows filenames).
+
+```
+outputs/checkpoints/lite2_phase2_best_23-09-2026-22-15.pt
+outputs/export/portable/lite2_lite2_phase2_best_23-09-2026-22-15/
+outputs/metrics/lite2_23-09-2026-22-15_metrics.json
+outputs/metrics/lite2_23-09-2026-22-15_parity_val.json
+```
+
+Tools that previously looked for the untimestamped `<backbone>_phase2_best.pt`
+now auto-discover the newest timestamped checkpoint, so `src.export`,
+`src.evaluate`, `src.parity_check`, and `local_train.py` keep working with no
+arguments.
+
+### Diagnostic scripts (run on the GPU/dataset machine — read-only)
+
+| Script | Purpose |
+|---|---|
+| `python scripts/audit_data.py --data data/raw --split-dir data/splits` | Per-breed counts, fuzzy breed-name collisions, `bargur` cross-species duplicates, exact/near-duplicate images across splits, corrupt files. **Report only, never deletes.** |
+| `python scripts/diagnose_model.py --checkpoint <pt> [--ema <pt>] --split test` | binary/cattle/buffalo acc, combined top1/3/5 + soft, per-class recall by shot bucket, true/pred histograms, top-20 confusion pairs. |
+| `python scripts/onnx_parity_10.py --checkpoint <pt> --onnx <fp32.onnx> --images "Testing data/**/*.jpg"` | Asserts identical soft top-5 and max &#124;Δlogit&#124; < 1e-3 between PyTorch and the fp32 ONNX. |
+| `python scripts/test_fixes_cpu.py` | CPU-only synthetic unit tests (no data/GPU needed). |
+
+### Suggested 3-run quarter-data ablation (GPU machine)
+
+All three start from the same splits and differ only in flags:
+
+| Run | Command | Question |
+|---|---|---|
+| **A** | `python local_train.py --quarter-data --run-tag A` | All fixes, single mechanism, no augmentation (recommended default) |
+| **B** | `python local_train.py --quarter-data --no-mix --run-tag B` | Same as A with mixing force-disabled (already the default — sanity check) |
+| **C** | `python local_train.py --quarter-data --logit-adjust --run-tag C` | A + logit adjustment re-enabled (tests the double-correction hypothesis) |
+
+Compare with `scripts/diagnose_model.py` on the **test** split:
+`combined_top1`, `combined_top1_soft`, `cattle_acc`, `buffalo_acc`,
+`acc_fewshot/mediumshot/manyshot`, and `pred_hist_entropy`. The expected winner
+is **A** (or **B**), with **C** showing rare-breed over-prediction.
+
+---
+
 ## Known Constraints & Gotchas
 
 1. **QAT + CUDA AMP conflict**: Phase 3 (QAT, opt-in) disables AMP because quantization observers don't support mixed precision. This is intentional and handled automatically.
@@ -805,25 +907,45 @@ python -m src.train --quarter-data --device cpu --no-compile
 
 5. **Fixed head sizes**: Model heads remain sized for 57 cattle + 18 buffalo classes even on subset training. Unused outputs are never trained — architecture is identical across all modes.
 
-6. **WeightedRandomSampler**: Training oversamples rare breeds with **effective-number-of-samples** weighting (β=0.999). Evaluation uses no sampling — test set reflects natural distribution. The binary head is species-balanced per batch on top.
+6. **WeightedRandomSampler**: Training oversamples rare breeds with **effective-number-of-samples** weighting (β=0.99). Evaluation uses no sampling — test set reflects natural distribution. The binary head is species-balanced per batch on top.
 
-7. **EMA tracks BatchNorm buffers**: the phase-2 EMA updates parameters **and** BN running stats (`num_batches_tracked` hard-copied). Do not remove the buffer sync — stale BN stats silently corrupt every exported checkpoint.
+7. **EMA tracks BatchNorm buffers**: the phase-2 EMA updates parameters **and** BN running stats (`num_batches_tracked` hard-copied), **once per optimizer step** with warm-up `decay_t = min(0.999, (1+t)/(10+t))`. Do not remove the buffer sync — stale BN stats silently corrupt every exported checkpoint.
 
 8. **Mobile artifacts are static batch-1, input [0,1]**: TFLite/ONNX-INT8 exports bake ImageNet normalization into the graph; the Flutter app's `pixel/255` preprocessing is exactly correct. Keep output order stable (`binary`, `cattle`, `buffalo`).
 
-9. **Quantized/QAT checkpoints cannot be re-exported**: `_quantized.pt` / phase-3 checkpoints carry fused module names. Always export from the phase-2 EMA checkpoint.
+9. **Preprocessing must match eval**: train-eval uses shortest-side `Resize(260)` + `CenterCrop(260)` + ImageNet normalize; `test_model.py` and the Flutter preprocessor now match. `Resize((260,260))` (square) is a bug — it distorts aspect ratio and wrecked external-batch predictions.
 
-10. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — use a ≤3.13 venv (the Windows venv is 3.13) or Colab.
+10. **QAT/compiled checkpoints are re-exportable**: `src/export._sanitize_state_dict` strips `_orig_mod.`/`module.` prefixes and QAT observer/fused keys, then loads with `strict=False` (training-only `projection_head.*` tolerated). Export the phase-2 EMA checkpoint for best accuracy.
 
-11. **Portable export requires class definition**: The portable bundle saves `state_dict`, not TorchScript. Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment, use ONNX / TFLite instead.
+11. **Logit adjustment is OFF by default**: the effective-number sampler already rebalances batches; enabling `--logit-adjust` too double-corrects and over-predicts rare breeds at inference. If enabled, its prior comes from the effective *sampled* distribution.
 
-12. **Smoke test uses ALL 75 classes**: Even with only 5 images per breed, class maps include all breeds. Architecture is identical to full training.
+12. **Outputs are timestamped**: checkpoints/exports/metrics carry a `run id` (`DD-MM-YYYY-HH-MM` or `--run-tag`) and never overwrite previous runs. Tools auto-discover the newest checkpoint.
 
-13. **Windows build tools (optional)**: PyTorch installs via pre-built wheels and does not need MSVC. C++ Build Tools are only required if a package (e.g., an older `onnx` build) tries to compile C extensions.
+13. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — use a ≤3.13 venv (the Windows venv is 3.13) or Colab.
+
+14. **Portable export requires class definition**: The portable bundle saves `state_dict`, not TorchScript. Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment, use ONNX / TFLite instead.
+
+15. **Smoke test uses ALL 75 classes**: Even with only 5 images per breed, class maps include all breeds. Architecture is identical to full training.
+
+16. **Windows build tools (optional)**: PyTorch installs via pre-built wheels and does not need MSVC. C++ Build Tools are only required if a package (e.g., an older `onnx` build) tries to compile C extensions.
 
 ---
 
 ## Changelog
+
+**2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs**
+
+Diagnosed from a 10-photo ONNX batch test (0/10 correct, top-5 dominated by rare breeds, a Gir bull predicted as a rare breed) that regressed after the 2026-09-21 overhaul.
+
+- **Double long-tail correction removed**: `LOGIT_ADJUST` is now **False by default** (the effective-number sampler is the single mechanism). `--logit-adjust` re-enables it, and its prior is computed from the effective **sampled** distribution (`--logit-adjust-prior sampled|raw`), never raw counts. Startup prints the active mechanism and prior max/min ratio.
+- **Same-species mixing**: CutMix/MixUp now pair only within a species, so binary labels stay one-hot and breed targets stay proper distributions. Strength reduced (`CUTMIX_MIXUP_PROB` 0.5→0.25, `CUTMIX_ALPHA` 1.0→0.4, `MIXUP_ALPHA` 0.3→0.2); rare-class guard kept; `MIX_OFF_LAST_FRAC=0.15` disables mixing for the last 15% of phase 2.
+- **Augmentation OFF by default**: flip / ColorJitter / RandAugment / RandomResizedCrop / mixing are opt-in (`--mix`, `--flip`, `--color-jitter`, `--randaugment`, `--rrc`, `--augment-all`). With everything off, the train transform equals the eval transform.
+- **EMA fixed**: updated once per **optimizer** step (was twice per step, pre- and post-step), with warm-up `min(0.999,(1+t)/(10+t))`. Startup prints steps/epoch, total optimizer steps and the EMA time constant, and warns if it exceeds 25% of phase-2 steps. Every eval logs BOTH raw and EMA metrics and saves whichever scores better.
+- **Checkpoint metric**: `BEST_METRIC="blended_score"` = 0.5·macro-F1 + 0.5·soft-routed top-1 (pure macro-F1 was too noisy with 1-2 val images/rare breed). Each eval also logs few/medium/many-shot accuracy and predicted-histogram entropy.
+- **Preprocessing consistency**: `test_model.py` now uses the eval transform (shortest-side resize + CenterCrop) instead of a square `Resize((260,260))`. Added `EVAL_MATCH_TRAIN_RESOLUTION` to test `Resize(288)+CenterCrop(260)` at eval.
+- **Timestamped, non-overwriting outputs**: checkpoints/exports/metrics carry a `run id`; `src.export`/`src.evaluate`/`src.parity_check`/`local_train.py` auto-discover the newest checkpoint.
+- **Bug fixes**: `_effective_num_weights` no longer divides by zero for classes absent from train (NaN logit-adjustment priors); fixed a stale "85/10/5" docstring.
+- **New tooling (run-later)**: `scripts/audit_data.py`, `scripts/diagnose_model.py`, `scripts/onnx_parity_10.py`, and `scripts/test_fixes_cpu.py` (30 CPU-only synthetic tests).
 
 **2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports**
 - **EMA bug fix (`src/train.py`)**: the phase-2 EMA now updates BatchNorm buffers in addition to parameters; previously every exported phase-2 checkpoint carried stale BN stats.

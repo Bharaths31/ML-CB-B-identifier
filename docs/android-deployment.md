@@ -8,7 +8,7 @@ The Android pipeline targets **two runtimes** — TFLite (what the Flutter app u
 
 ```
 data/raw → src.train (2 phases, EMA, optional --teacher distillation)
-        → outputs/checkpoints/<backbone>_phase2_best.pt   (EMA weights)
+        → outputs/checkpoints/<backbone>_phase2_best_<runid>.pt   (EMA weights)
         → src.export --mode tflite | onnx-int8            (INT8 PTQ)
         → flutter_app/assets/models/{model.tflite, labels_*.txt}
         → src.parity_check                                (accuracy gate)
@@ -24,7 +24,7 @@ python -m src.train --backbone lite4
 
 # Student: same lite2 size/latency, teacher-quality logits
 python -m src.train --backbone lite2 \
-  --teacher outputs/checkpoints/lite4_phase2_best.pt
+  --teacher outputs/checkpoints/lite4_phase2_best_<runid>.pt
 ```
 
 ## Step 2 — Export
@@ -86,4 +86,4 @@ flutter_app/assets/models/
 
 ## QAT — optional recovery path only
 
-`python -m src.train --include-qat` (OFF by default) fine-tunes with **per-tensor** fake-quantization observers (the x86 per-channel default broke conversion), starting from the best phase-2 EMA checkpoint, and saves `<backbone>_quantized.pt`. Use it only if converter PTQ drops more than ~2 pts — the artifact is not a TFLite/ORT model, and quantized checkpoints cannot be re-exported through `src.export`.
+`python -m src.train --include-qat` (OFF by default) fine-tunes with **per-tensor** fake-quantization observers (the x86 per-channel default broke conversion), starting from the best phase-2 EMA checkpoint, and saves a timestamped `<backbone>_quantized_<runid>.pt`. Use it only if converter PTQ drops more than ~2 pts — the artifact is not a TFLite/ORT model. (`src.export._sanitize_state_dict` can strip the QAT/fused keys and re-load it as a float model, but exporting the phase-2 EMA checkpoint is still preferred.)

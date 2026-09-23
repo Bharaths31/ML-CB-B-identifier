@@ -1,6 +1,11 @@
+import math
+
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+
+from .config import (BEST_METRIC_MACRO_WEIGHT, BEST_METRIC_TOP1_WEIGHT,
+                     SHOT_FEW_MAX, SHOT_MEDIUM_MAX)
 
 
 def _macro_scores(cm):
@@ -27,7 +32,8 @@ def _macro_scores(cm):
 
 
 @torch.no_grad()
-def evaluate_epoch(model, loader, device, max_batches=None):
+def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
+                   few_max=SHOT_FEW_MAX, medium_max=SHOT_MEDIUM_MAX):
     model.eval()
     n_binary = correct_binary = 0
     binary_tp = binary_fp = binary_fn = 0
@@ -40,6 +46,11 @@ def evaluate_epoch(model, loader, device, max_batches=None):
 
     n_cattle_classes = n_buffalo_classes = 0
     cattle_cm = buffalo_cm = None
+
+    # Shot-bucket accuracy (soft-routed) + predicted-class histogram.
+    bucket_stats = {"few": [0, 0], "medium": [0, 0], "many": [0, 0]}
+    pred_hist = None
+    shot_counts = None
 
     total = min(len(loader), max_batches) if max_batches is not None else len(loader)
     for step, (images, labels) in enumerate(
@@ -128,6 +139,25 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         correct_combined_soft += (soft_pred == true_global).sum().item()
         n_combined_soft += bs
 
+        # --- Shot-bucket accuracy + predicted-class histogram ---
+        n_global = n_cattle_classes + n_buffalo_classes
+        if pred_hist is None:
+            pred_hist = torch.zeros(n_global, dtype=torch.long, device=device)
+        pred_hist += torch.bincount(soft_pred, minlength=n_global)[:n_global]
+        if train_counts is not None:
+            if shot_counts is None:
+                shot_counts = torch.cat([
+                    train_counts["cattle"].to(device),
+                    train_counts["buffalo"].to(device)])
+            sample_counts = shot_counts[true_global]
+            hit = (soft_pred == true_global)
+            for name, lo, hi in (("few", 0, few_max),
+                                 ("medium", few_max, medium_max),
+                                 ("many", medium_max, float("inf"))):
+                m = (sample_counts >= lo) & (sample_counts < hi)
+                bucket_stats[name][0] += hit[m].sum().item()
+                bucket_stats[name][1] += m.sum().item()
+
     def acc(c, n):
         return c / n if n else 0.0
 
@@ -153,4 +183,23 @@ def evaluate_epoch(model, loader, device, max_batches=None):
         "combined_top1_soft": acc(correct_combined_soft, n_combined_soft),
     }
     metrics["balanced_score"] = 0.5 * (cattle_macro_f1 + buffalo_macro_f1)
+    macro = 0.5 * (cattle_macro_f1 + buffalo_macro_f1)
+    metrics["blended_score"] = (BEST_METRIC_MACRO_WEIGHT * macro
+                                + BEST_METRIC_TOP1_WEIGHT
+                                * metrics["combined_top1_soft"])
+
+    # Per-shot-bucket accuracy (soft-routed).
+    for name, (c, n) in bucket_stats.items():
+        metrics[f"acc_{name}shot"] = acc(c, n)
+        metrics[f"n_{name}shot"] = n
+
+    # Entropy of the predicted-class histogram, normalised to [0,1] by log(K).
+    # High entropy = diffuse/uncertain predictions; low = confident but
+    # possibly collapsed onto a few classes.
+    if pred_hist is not None and pred_hist.sum() > 0:
+        p = pred_hist.float() / pred_hist.sum()
+        ent = -(p * torch.log(p.clamp(min=1e-12))).sum().item()
+        metrics["pred_hist_entropy"] = ent / math.log(pred_hist.numel())
+    else:
+        metrics["pred_hist_entropy"] = 0.0
     return metrics

@@ -16,22 +16,27 @@ from tqdm import tqdm
 from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
                      BINARY_SATURATION_ACC, BATCH_SIZE, CHECKPOINT_DIR,
                      CONTRASTIVE_TEMPERATURE, CONTRASTIVE_WEIGHT, EMA_DECAY,
+                     EMA_WARMUP, EMA_WARN_FRAC,
                      EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
-                     KD_ALPHA, KD_TEMPERATURE, LOGIT_ADJUST, LOGIT_ADJUST_TAU,
+                     KD_ALPHA, KD_TEMPERATURE, LOGIT_ADJUST,
+                     LOGIT_ADJUST_PRIOR, LOGIT_ADJUST_TAU,
                      GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
                      LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BINARY_FINAL,
                      LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_BUFFALO_FINAL,
                      LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_CATTLE_FINAL, NUM_WORKERS,
+                     MIX_OFF_LAST_FRAC, MIX_SAME_SPECIES,
                      PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS, PHASE2_LR,
                      PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR, RAW_DATA_DIR,
-                     RARE_CLASS_THRESHOLD, SEED, SPLIT_DIR, WARMUP_EPOCHS,
+                     RARE_CLASS_THRESHOLD, SEED, SHOT_FEW_MAX, SHOT_MEDIUM_MAX,
+                     SPLIT_DIR, WARMUP_EPOCHS,
                      WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
-from .data_pipeline import (compute_class_priors, compute_rare_classes,
-                            get_dataloaders, prepare_half_splits,
-                            prepare_quarter_splits, prepare_smoke_splits,
-                            prepare_splits)
+from .data_pipeline import (compute_class_counts, compute_class_priors,
+                            compute_rare_classes, get_dataloaders,
+                            prepare_half_splits, prepare_quarter_splits,
+                            prepare_smoke_splits, prepare_splits)
 from .metrics import evaluate_epoch
 from .model import BreedClassifier
+from .run_utils import make_run_id, timestamped, unique_path
 
 
 # ---------------------------------------------------------------------------
@@ -263,22 +268,69 @@ def _rare_keep_mask(labels, rare_masks):
     return torch.where(is_cattle, cattle_rare[cattle_idx], buffalo_rare[buffalo_idx])
 
 
+def _mix_off_epoch(epochs, mix_off_frac):
+    """Last epoch that still mixes; mixing is OFF for epochs after this.
+
+    ``mix_off_frac`` of the phase (rounded) has no mixing at the end.
+    """
+    if mix_off_frac and mix_off_frac > 0:
+        return max(1, epochs - int(round(epochs * mix_off_frac)))
+    return epochs
+
+
+def _ema_decay_at(step, ema_decay, warmup=EMA_WARMUP):
+    """EMA decay for optimizer step ``step`` (1-based), with warm-up.
+
+    ``decay_t = min(EMA_DECAY, (1+t)/(10+t))`` so early steps track the raw
+    weights closely and the EMA only reaches full decay after many steps.
+    """
+    if warmup:
+        return min(ema_decay, (1.0 + step) / (10.0 + step))
+    return ema_decay
+
+
+def _apply_ema(ema_model, model, decay):
+    """One EMA update: parameters AND floating buffers (BN running stats)."""
+    with torch.no_grad():
+        # torch.compile wraps the module in OptimizedModule; EMA the original
+        # module's tensors (same iteration order either way).
+        src = getattr(model, "_orig_mod", model)
+        for ema_param, param in zip(ema_model.parameters(), src.parameters()):
+            ema_param.data.mul_(decay).add_(param.data, alpha=1 - decay)
+        for ema_buf, buf in zip(ema_model.buffers(), src.buffers()):
+            if buf.dtype.is_floating_point:
+                ema_buf.data.mul_(decay).add_(buf.data, alpha=1 - decay)
+            else:
+                ema_buf.data.copy_(buf.data)
+
+
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               max_batches=None, set_train=None, desc="train",
               grad_accum_steps=1, label_smoothing=0.0, ema_model=None,
-              ema_decay=EMA_DECAY, teacher_model=None, kd_alpha=KD_ALPHA,
+              ema_decay=EMA_DECAY, ema_warmup=EMA_WARMUP, ema_state=None,
+              teacher_model=None, kd_alpha=KD_ALPHA,
               kd_temp=KD_TEMPERATURE, mix_prob=CUTMIX_MIXUP_PROB,
+              same_species=MIX_SAME_SPECIES,
               rare_masks=None, logit_priors=None, adjust_tau=0.0,
               contrastive_weight=0.0,
               contrastive_temp=CONTRASTIVE_TEMPERATURE):
     """Run one training epoch with optional AMP, gradient accumulation,
     label smoothing, logit adjustment, contrastive features, EMA (parameters
-    *and* BatchNorm buffers), and teacher distillation."""
+    *and* BatchNorm buffers, once per optimizer step), and teacher distillation."""
     set_train = set_train or (lambda m: m.train())
     set_train(model)
     running = []
     total = min(len(loader), max_batches) if max_batches is not None else len(loader)
     use_amp = scaler is not None and device.type == "cuda"
+    ema_state = ema_state if ema_state is not None else {"step": 0}
+
+    def _ema_update():
+        """One EMA update per OPTIMIZER step (called after optimizer.step)."""
+        if ema_model is None:
+            return
+        ema_state["step"] += 1
+        decay = _ema_decay_at(ema_state["step"], ema_decay, ema_warmup)
+        _apply_ema(ema_model, model, decay)
 
     pbar = tqdm(loader, desc=desc, total=total, leave=False,
                 bar_format="{l_bar}{bar:30}{r_bar}")
@@ -296,9 +348,11 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
             from .data_pipeline import cutmix, mixup
             keep = _rare_keep_mask(labels, rare_masks)
             if random.random() < 0.5:
-                images, labels = cutmix(images, labels, keep=keep)
+                images, labels = cutmix(images, labels, keep=keep,
+                                        same_species=same_species)
             else:
-                images, labels = mixup(images, labels, keep=keep)
+                images, labels = mixup(images, labels, keep=keep,
+                                       same_species=same_species)
             mixed = True
 
         if use_amp:
@@ -317,6 +371,7 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
+                _ema_update()
         else:
             loss, ce_b, ce_c, ce_buf = _compute_loss(
                 model, images, labels, loss_weights, label_smoothing,
@@ -330,25 +385,7 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
-
-        if ema_model is not None:
-            with torch.no_grad():
-                # torch.compile wraps the module in OptimizedModule; EMA the
-                # original module's tensors (same iteration order either way).
-                src = getattr(model, "_orig_mod", model)
-                for ema_param, param in zip(ema_model.parameters(),
-                                            src.parameters()):
-                    ema_param.data.mul_(ema_decay).add_(param.data,
-                                                        alpha=1 - ema_decay)
-                # BatchNorm running stats live in buffers and must track the
-                # EMA too — a stale-BN EMA silently corrupts both validation
-                # metrics and every checkpoint exported from it.
-                for ema_buf, buf in zip(ema_model.buffers(), src.buffers()):
-                    if buf.dtype.is_floating_point:
-                        ema_buf.data.mul_(ema_decay).add_(buf.data,
-                                                          alpha=1 - ema_decay)
-                    else:
-                        ema_buf.data.copy_(buf.data)
+                _ema_update()
 
         running.append((loss.item() * grad_accum_steps, ce_b.item(),
                         ce_c.item(), ce_buf.item()))
@@ -374,6 +411,19 @@ def _build_warmup_cosine_scheduler(optimizer, warmup_epochs, total_epochs):
         milestones=[warmup_epochs])
 
 
+def _fmt_metrics(tag, m):
+    return (f"{tag}: bin={m['binary_acc']:.3f} cat={m['cattle_acc']:.3f} "
+            f"buf={m['buffalo_acc']:.3f} top1={m['combined_top1']:.3f} "
+            f"top1s={m['combined_top1_soft']:.3f} "
+            f"mF1={0.5*(m['cattle_macro_f1']+m['buffalo_macro_f1']):.3f} "
+            f"blend={m.get('blended_score', 0.0):.3f} "
+            f"few/med/many="
+            f"{m.get('acc_fewshot', 0.0):.2f}/"
+            f"{m.get('acc_mediumshot', 0.0):.2f}/"
+            f"{m.get('acc_manyshot', 0.0):.2f} "
+            f"ent={m.get('pred_hist_entropy', 0.0):.3f}")
+
+
 def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 loss_weights, scheduler_factory, checkpoint_path,
                 scaler=None, max_batches=None, best_key=BEST_METRIC,
@@ -382,6 +432,10 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 ema_model=None, teacher_model=None, kd_alpha=KD_ALPHA,
                 kd_temp=KD_TEMPERATURE, loss_weights_final=None,
                 binary_sat_acc=None, mix_prob=CUTMIX_MIXUP_PROB,
+                mix_off_frac=MIX_OFF_LAST_FRAC,
+                same_species=MIX_SAME_SPECIES, ema_warmup=EMA_WARMUP,
+                train_counts=None, few_max=SHOT_FEW_MAX,
+                medium_max=SHOT_MEDIUM_MAX,
                 rare_masks=None, logit_priors=None, adjust_tau=0.0,
                 contrastive_weight=0.0,
                 contrastive_temp=CONTRASTIVE_TEMPERATURE):
@@ -410,18 +464,43 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
     best = -1.0
     current_weights = tuple(loss_weights)
 
+    # Mixing is disabled for the last `mix_off_frac` of the phase.
+    mix_off_epoch = _mix_off_epoch(epochs, mix_off_frac)
+
+    # --- EMA diagnostics (steps are OPTIMIZER steps now) ---
+    ema_state = {"step": 0}
+    if ema_model is not None:
+        steps_per_epoch = max(1, len(loader))
+        opt_steps_per_epoch = max(1, math.ceil(steps_per_epoch / grad_accum_steps))
+        total_opt_steps = opt_steps_per_epoch * epochs
+        time_const = (1.0 / (1.0 - ema_decay)) if ema_decay < 1.0 else float("inf")
+        frac = (time_const / total_opt_steps) if total_opt_steps else 0.0
+        print(f"[train] EMA: {steps_per_epoch} batches/epoch, "
+              f"{opt_steps_per_epoch} optimizer steps/epoch, "
+              f"{total_opt_steps} total; decay={ema_decay}, warmup={ema_warmup}, "
+              f"time-constant≈{time_const:.0f} opt steps ({frac*100:.1f}% of phase)",
+              flush=True)
+        if frac > EMA_WARN_FRAC:
+            print(f"[train] WARNING: EMA time constant is {frac*100:.1f}% of "
+                  f"phase {phase} steps (> {EMA_WARN_FRAC*100:.0f}%); the EMA "
+                  f"checkpoint will lag. Consider lowering EMA_DECAY or "
+                  f"lengthening the phase.", flush=True)
+
     phase_pbar = tqdm(range(1, epochs + 1), desc=f"Phase {phase}",
                       unit="epoch", leave=True,
                       bar_format="{l_bar}{bar:20}{r_bar}")
     for epoch in phase_pbar:
+        eff_mix_prob = mix_prob if epoch <= mix_off_epoch else 0.0
         loss, ce_b, ce_c, ce_buf = run_epoch(
             model, loader, optimizer, device, current_weights, scaler,
             max_batches, set_train=set_train,
             desc=f"phase{phase} e{epoch}/{epochs}",
             grad_accum_steps=grad_accum_steps,
             label_smoothing=label_smoothing, ema_model=ema_model,
+            ema_warmup=ema_warmup, ema_state=ema_state,
             teacher_model=teacher_model, kd_alpha=kd_alpha, kd_temp=kd_temp,
-            mix_prob=mix_prob, rare_masks=rare_masks,
+            mix_prob=eff_mix_prob, same_species=same_species,
+            rare_masks=rare_masks,
             logit_priors=logit_priors, adjust_tau=adjust_tau,
             contrastive_weight=contrastive_weight,
             contrastive_temp=contrastive_temp)
@@ -429,33 +508,55 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             scheduler.step()
 
         if epoch % eval_every == 0 or epoch == epochs:
-            metrics = evaluate_epoch(ema_model if ema_model else model, val_loader, device,
-                                     max_batches=max_batches)
-            acc = metrics.get(best_key, 0.0)
+            raw_metrics = evaluate_epoch(
+                model, val_loader, device, max_batches=max_batches,
+                train_counts=train_counts, few_max=few_max,
+                medium_max=medium_max)
+            ema_metrics = None
+            if ema_model is not None:
+                ema_metrics = evaluate_epoch(
+                    ema_model, val_loader, device, max_batches=max_batches,
+                    train_counts=train_counts, few_max=few_max,
+                    medium_max=medium_max)
+
+            raw_acc = raw_metrics.get(best_key, 0.0)
+            ema_acc = ema_metrics.get(best_key, 0.0) if ema_metrics else -1.0
+            if ema_metrics is not None and ema_acc >= raw_acc:
+                chosen, chosen_acc, chosen_src = ema_metrics, ema_acc, "ema"
+            else:
+                chosen, chosen_acc, chosen_src = raw_metrics, raw_acc, "raw"
+
             tag = f"phase{phase} epoch {epoch}/{epochs}"
-            print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} ce_c={ce_c:.4f} "
-                  f"ce_buf={ce_buf:.4f} | val binary={metrics['binary_acc']:.4f} "
-                  f"cattle={metrics['cattle_acc']:.4f} buffalo={metrics['buffalo_acc']:.4f} "
-                  f"top1={metrics['combined_top1']:.4f} "
-                  f"top1_soft={metrics['combined_top1_soft']:.4f} "
-                  f"macroF1(c/b)={metrics['cattle_macro_f1']:.3f}/{metrics['buffalo_macro_f1']:.3f} "
-                  f"{best_key}={acc:.4f}", flush=True)
-            if acc >= best:
-                best = acc
-                eval_mdl = ema_model if ema_model else model
+            print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} "
+                  f"ce_c={ce_c:.4f} ce_buf={ce_buf:.4f} "
+                  f"mix={'on' if eff_mix_prob > 0 else 'OFF'} | "
+                  f"{_fmt_metrics('raw', raw_metrics)}", flush=True)
+            if ema_metrics is not None:
+                print(f"[train] {tag}: {_fmt_metrics('ema', ema_metrics)} "
+                      f"-> best={chosen_src} ({best_key}={chosen_acc:.4f})",
+                      flush=True)
+            else:
+                print(f"[train] {tag}: best={chosen_src} "
+                      f"({best_key}={chosen_acc:.4f})", flush=True)
+
+            if chosen_acc >= best:
+                best = chosen_acc
+                eval_mdl = ema_model if chosen_src == "ema" else model
                 sd = eval_mdl._orig_mod.state_dict() if hasattr(eval_mdl, "_orig_mod") else eval_mdl.state_dict()
-                torch.save({"phase": phase, "epoch": epoch, "val_top1": acc,
-                            "metrics": metrics, "state_dict": sd}, checkpoint_path)
+                torch.save({"phase": phase, "epoch": epoch,
+                            "val_top1": chosen_acc, "best_metric": best_key,
+                            "source": chosen_src, "metrics": chosen,
+                            "state_dict": sd}, checkpoint_path)
             # Once the binary head saturates, stop spending loss budget on it
             # and reallocate to the breed heads from the next epoch onward.
             if (loss_weights_final is not None and binary_sat_acc is not None
-                    and metrics["binary_acc"] >= binary_sat_acc
+                    and raw_metrics["binary_acc"] >= binary_sat_acc
                     and tuple(current_weights) != tuple(loss_weights_final)):
                 current_weights = tuple(loss_weights_final)
                 print(f"[train] binary head saturated "
-                      f"({metrics['binary_acc']:.4f} >= {binary_sat_acc}); "
+                      f"({raw_metrics['binary_acc']:.4f} >= {binary_sat_acc}); "
                       f"loss weights -> {current_weights}", flush=True)
-            phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{acc:.4f}",
+            phase_pbar.set_postfix(best=f"{best:.4f}", val=f"{chosen_acc:.4f}",
                                    refresh=False)
         else:
             tag = f"phase{phase} epoch {epoch}/{epochs}"
@@ -474,7 +575,7 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
 def create_portable_export(checkpoint_path, backbone, split_dir, export_dir):
     """Bundle the trained model + labels + metadata into a portable folder."""
     tag = os.path.splitext(os.path.basename(checkpoint_path))[0]
-    out_dir = os.path.join(export_dir, f"{backbone}_{tag}")
+    out_dir = unique_path(os.path.join(export_dir, f"{backbone}_{tag}"))
     os.makedirs(out_dir, exist_ok=True)
 
     # Copy checkpoint
@@ -554,7 +655,8 @@ def setup_qat(model, device):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Three-phase training: warmup -> multi-task -> QAT")
+        description="Two-phase training: all-heads warmup -> multi-task "
+                    "fine-tune (optional QAT phase 3 via --include-qat)")
     parser.add_argument("--backbone", choices=["lite2", "lite4"], default="lite2")
     parser.add_argument("--weights", default=None,
                         help="pretrained .pth (default: project checkpoint)")
@@ -564,8 +666,23 @@ def main():
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--num-workers", type=int, default=NUM_WORKERS)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--mix", action="store_true",
+                        help="enable CutMix/MixUp batch mixing (OFF by default)")
     parser.add_argument("--no-mix", action="store_true",
-                        help="disable CutMix/MixUp batch mixing")
+                        help="force-disable CutMix/MixUp (default; kept for compat)")
+    parser.add_argument("--flip", action="store_true",
+                        help="enable RandomHorizontalFlip (OFF by default)")
+    parser.add_argument("--color-jitter", action="store_true",
+                        help="enable ColorJitter (OFF by default)")
+    parser.add_argument("--randaugment", action="store_true",
+                        help="enable RandAugment (OFF by default)")
+    parser.add_argument("--rrc", action="store_true",
+                        help="enable RandomResizedCrop (OFF by default)")
+    parser.add_argument("--augment-all", action="store_true",
+                        help="enable flip + color-jitter + randaugment + rrc + mix")
+    parser.add_argument("--run-tag", default=None,
+                        help="run id used to timestamp outputs "
+                             "(default: current time DD-MM-YYYY-HH-MM)")
     parser.add_argument("--phase1-epochs", type=int, default=None)
     parser.add_argument("--phase2-epochs", type=int, default=None)
     parser.add_argument("--phase3-epochs", type=int, default=None)
@@ -602,15 +719,26 @@ def main():
     parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY,
                         help="AdamW weight decay (default: 1e-2)")
     parser.add_argument("--label-smoothing", type=float, default=LABEL_SMOOTHING,
-                        help="label smoothing factor (default: 0.1)")
+                        help="label smoothing factor (default: 0.05)")
     parser.add_argument("--warmup-epochs", type=int, default=WARMUP_EPOCHS,
                         help="linear warmup epochs for phase 2 (default: 3)")
     parser.add_argument("--contrastive-weight", type=float,
                         default=CONTRASTIVE_WEIGHT,
                         help="auxiliary SupCon loss weight on pooled features "
                              "(0 disables; default: 0.2)")
+    parser.add_argument("--logit-adjust", action="store_true",
+                        help="enable logit adjustment (OFF by default: the "
+                             "effective-number sampler is the single long-tail "
+                             "mechanism; enabling both double-corrects and "
+                             "over-predicts rare breeds)")
+    parser.add_argument("--logit-adjust-prior", choices=["sampled", "raw"],
+                        default=LOGIT_ADJUST_PRIOR,
+                        help="prior for logit adjustment: 'sampled' uses the "
+                             "effective sampled distribution (default), 'raw' "
+                             "uses raw train counts (old double-correcting "
+                             "behaviour)")
     parser.add_argument("--no-logit-adjust", action="store_true",
-                        help="disable logit adjustment for class imbalance")
+                        help="force-disable logit adjustment (kept for compat)")
     parser.add_argument("--rare-threshold", type=int, default=RARE_CLASS_THRESHOLD,
                         help="breeds below this many train images are excluded "
                              "from CutMix/MixUp (default: 30)")
@@ -623,6 +751,20 @@ def main():
         parser.error("--smoke-test and --half-data are mutually exclusive")
     if getattr(args, 'quarter_data', False) and args.smoke_test:
         parser.error("--smoke-test and --quarter-data are mutually exclusive")
+
+    # --- Run id + augmentation switches (all OFF unless flagged) ---
+    run_id = make_run_id(args.run_tag)
+    if args.augment_all:
+        args.mix = True
+    augment = {
+        "horizontal_flip": args.flip or args.augment_all,
+        "color_jitter": args.color_jitter or args.augment_all,
+        "randaugment": args.randaugment or args.augment_all,
+        "random_resized_crop": args.rrc or args.augment_all,
+    }
+    print(f"[train] run id: {run_id}")
+    print(f"[train] augmentation: " +
+          (", ".join(k for k, v in augment.items() if v) or "NONE (default)"))
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -681,29 +823,57 @@ def main():
     loaders = get_dataloaders(split_dir=args.split_dir,
                               batch_size=args.batch_size,
                               num_workers=args.num_workers,
-                              pin_memory=(device.type == "cuda"))
+                              pin_memory=(device.type == "cuda"),
+                              augment=augment)
     if loaders is None:
         print("[train] failed to build dataloaders")
         return 1
     train_loader, val_loader, _ = loaders
 
-    # --- Imbalance handling: logit adjustment + rare-class mixing guard ---
+    # --- Imbalance handling: EXACTLY ONE long-tail mechanism ---
+    # The effective-number sampler (used in get_dataloaders) already rebalances
+    # every batch. Logit adjustment is OFF by default; enabling it on top of the
+    # sampler double-corrects and over-predicts rare breeds at inference.
+    logit_on = (args.logit_adjust or LOGIT_ADJUST) and not args.no_logit_adjust
     logit_priors = None
     adjust_tau = 0.0
-    if LOGIT_ADJUST and not args.no_logit_adjust:
-        logit_priors = compute_class_priors(args.split_dir)
+    print(f"[train] imbalance mechanism: effective-number sampler "
+          f"(SAMPLER_BETA={SAMPLER_BETA})" +
+          ("" if not logit_on else " + logit adjustment"))
+    if logit_on:
+        logit_priors = compute_class_priors(args.split_dir,
+                                            source=args.logit_adjust_prior)
         if logit_priors is not None:
             adjust_tau = LOGIT_ADJUST_TAU
             logit_priors = {k: v.to(device) for k, v in logit_priors.items()}
-            print(f"[train] logit adjustment enabled (tau={adjust_tau})")
+            ratios = []
+            for species, lp in logit_priors.items():
+                p = torch.exp(lp)
+                ratio = (p.max() / p.min()).item()
+                ratios.append(f"{species}={ratio:.1f}x")
+            print(f"[train] logit adjustment ON: tau={adjust_tau}, "
+                  f"prior={args.logit_adjust_prior}, "
+                  f"max/min prior ratio {' '.join(ratios)}")
+        else:
+            print("[train] logit adjustment requested but priors unavailable; "
+                  "continuing without it")
+    else:
+        print("[train] logit adjustment OFF (recommended: sampler is the "
+              "single long-tail mechanism)")
     rare_masks = compute_rare_classes(args.split_dir, args.rare_threshold)
     if rare_masks is not None:
         rare_masks = {k: v.to(device) for k, v in rare_masks.items()}
         n_rare = sum(int(v.sum()) for v in rare_masks.values())
         print(f"[train] rare breeds (<{args.rare_threshold} train imgs): {n_rare} "
               f"(excluded from CutMix/MixUp)")
-    mix_prob = 0.0 if args.no_mix else CUTMIX_MIXUP_PROB
+    train_counts = compute_class_counts(args.split_dir)
+    # CutMix/MixUp are OFF by default and only run when --mix is passed.
+    mix_prob = CUTMIX_MIXUP_PROB if (args.mix and not args.no_mix) else 0.0
     contrastive_weight = args.contrastive_weight
+    print(f"[train] mixing: p={mix_prob}"
+          + ("" if mix_prob > 0 else " (OFF by default; enable with --mix)")
+          + f", same_species={MIX_SAME_SPECIES}, "
+          f"off_last_frac={MIX_OFF_LAST_FRAC}")
 
     # --- Model ---
     weights = args.weights or BACKBONE_WEIGHTS[args.backbone]
@@ -744,9 +914,13 @@ def main():
     if scaler:
         print(f"[train] mixed-precision: GradScaler enabled")
 
-    # --- Phase configuration ---
+    # --- Phase configuration (timestamped, never overwrites previous runs) ---
     max_batches = None  # No artificial limit — smoke test uses small dataset
     base = os.path.join(CHECKPOINT_DIR, args.backbone)
+    ckpt_p1 = unique_path(timestamped(f"{base}_phase1_best.pt", run_id))
+    ckpt_p2 = unique_path(timestamped(f"{base}_phase2_best.pt", run_id))
+    ckpt_p3 = unique_path(timestamped(f"{base}_phase3_best.pt", run_id))
+    ckpt_quant = unique_path(timestamped(f"{base}_quantized.pt", run_id))
     phase1 = args.phase1_epochs or (1 if args.smoke_test else PHASE1_EPOCHS)
     phase2 = args.phase2_epochs or (1 if args.smoke_test else PHASE2_EPOCHS)
     phase3 = args.phase3_epochs or (1 if args.smoke_test else PHASE3_EPOCHS)
@@ -757,6 +931,7 @@ def main():
     print(f"  TRAINING PLAN: {total_phases} phases, "
           f"epochs={phase1}/{phase2}" +
           (f"/{phase3}" if run_qat else ""))
+    print(f"  Run id: {run_id}")
     print(f"  Dataset: {summary.get('train', '?')} train / "
           f"{summary.get('val', '?')} val images")
     print(f"  Batch size: {args.batch_size}, Workers: {args.num_workers}")
@@ -787,14 +962,16 @@ def main():
     print(f"[train] phase 1: backbone frozen, all heads warm up, "
           f"lr={PHASE1_LR:.0e}, {phase1} epochs")
     train_phase(model, train_loader, val_loader, device, 1, phase1, PHASE1_LR,
-                (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO), None, f"{base}_phase1_best.pt", scaler,
+                (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO), None, ckpt_p1, scaler,
                 max_batches, best_key=BEST_METRIC,
                 set_train=lambda m: (m.train(), m.backbone_eval()),
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
                 eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE1,
-                mix_prob=mix_prob, rare_masks=rare_masks,
+                mix_prob=mix_prob, mix_off_frac=MIX_OFF_LAST_FRAC,
+                same_species=MIX_SAME_SPECIES, train_counts=train_counts,
+                rare_masks=rare_masks,
                 logit_priors=logit_priors, adjust_tau=adjust_tau,
                 contrastive_weight=0.0)
 
@@ -832,7 +1009,7 @@ def main():
                 (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
                 lambda opt: _build_warmup_cosine_scheduler(
                     opt, warmup_ep, phase2),
-                f"{base}_phase2_best.pt", scaler, max_batches,
+                ckpt_p2, scaler, max_batches,
                 weight_decay=args.weight_decay,
                 grad_accum_steps=args.grad_accum,
                 label_smoothing=args.label_smoothing,
@@ -842,13 +1019,15 @@ def main():
                                     LOSS_WEIGHT_CATTLE_FINAL,
                                     LOSS_WEIGHT_BUFFALO_FINAL),
                 binary_sat_acc=BINARY_SATURATION_ACC,
-                mix_prob=mix_prob, rare_masks=rare_masks,
+                mix_prob=mix_prob, mix_off_frac=MIX_OFF_LAST_FRAC,
+                same_species=MIX_SAME_SPECIES, train_counts=train_counts,
+                rare_masks=rare_masks,
                 logit_priors=logit_priors, adjust_tau=adjust_tau,
                 contrastive_weight=contrastive_weight,
                 contrastive_temp=CONTRASTIVE_TEMPERATURE)
 
     # --- Phase 3: QAT (opt-in; mobile INT8 is produced by converter PTQ) ---
-    best_checkpoint = f"{base}_phase2_best.pt"
+    best_checkpoint = ckpt_p2
     if run_qat:
         # Start from the best EMA phase-2 weights rather than the final-epoch
         # weights — quantization noise is much easier to recover from there.
@@ -865,13 +1044,15 @@ def main():
               f"lr={PHASE3_LR:.0e}, {phase3} epochs")
         train_phase(model, train_loader, val_loader, device, 3, phase3, PHASE3_LR,
                     (LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_BUFFALO),
-                    None, f"{base}_phase3_best.pt", None, max_batches,
+                    None, ckpt_p3, None, max_batches,
                     weight_decay=args.weight_decay,
                     grad_accum_steps=args.grad_accum,
                     label_smoothing=args.label_smoothing,
                     eval_every=1 if args.smoke_test else EVAL_EVERY_PHASE3,
                     teacher_model=teacher_model,
-                    mix_prob=mix_prob, rare_masks=rare_masks,
+                    mix_prob=mix_prob, mix_off_frac=MIX_OFF_LAST_FRAC,
+                    same_species=MIX_SAME_SPECIES, train_counts=train_counts,
+                    rare_masks=rare_masks,
                     logit_priors=logit_priors, adjust_tau=adjust_tau,
                     contrastive_weight=0.0)
         if qat_ok:
@@ -880,11 +1061,11 @@ def main():
                 model.eval()
                 qat.convert(model, inplace=True)
                 torch.save({"state_dict": model.state_dict(),
-                            "quantized": True}, f"{base}_quantized.pt")
-                print(f"[train] converted to INT8, saved {base}_quantized.pt")
+                            "quantized": True}, ckpt_quant)
+                print(f"[train] converted to INT8, saved {ckpt_quant}")
             except Exception as exc:
                 print(f"[train] INT8 conversion failed ({exc})")
-        best_checkpoint = f"{base}_phase2_best.pt"  # Export phase 2 by default to preserve accuracy
+        best_checkpoint = ckpt_p2  # Export phase 2 by default to preserve accuracy
 
     elapsed = time.time() - start_time
     elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))

@@ -52,13 +52,13 @@ After CutMix/MixUp, labels become fractional (e.g., `binary = [0.7, 0.3]`).
 ## 3. Loss Computation
 
 ```python
-# soft_ce: supports fractional labels from CutMix/MixUp + logit adjustment
-soft_ce(pred, target, logit_prior, tau) = -(target * log_softmax(pred + tau*log_prior)).sum(dim=1)
+# soft_ce: supports fractional labels from CutMix/MixUp + OPTIONAL logit adjustment
+soft_ce(pred, target, logit_prior=None, tau=0.0) = -(target * log_softmax(pred + tau*log_prior)).sum(dim=1)
 
 # masked_loss: species-conditional breed loss + SupCon
 total = w_binary * balanced_mean(soft_ce(binary_out, binary_label))
-      + w_cattle * sum(soft_ce(cattle_out, cattle_label, log_prior_cattle, 1.0) * cattle_mask) / sum(cattle_mask)
-      + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label, log_prior_buffalo, 1.0) * buffalo_mask) / sum(buffalo_mask)
+      + w_cattle * sum(soft_ce(cattle_out, cattle_label) * cattle_mask) / sum(cattle_mask)
+      + w_buffalo * sum(soft_ce(buffalo_out, buffalo_label) * buffalo_mask) / sum(buffalo_mask)
       + contrastive_weight * SupCon(projection_embedding, global_class_ids)   # skipped when mixed
 ```
 
@@ -66,10 +66,20 @@ Phase 1 weights: `(0.15, 0.5, 0.35)` — all heads train (backbone frozen, no Su
 Phase 2 weights: start `(0.15, 0.5, 0.35)`, auto-switch to `(0.05, 0.55, 0.40)` once `binary_acc ≥ 0.95` — differential LR + EMA + SupCon
 Phase 3 weights: `(0.15, 0.5, 0.35)` — no SupCon
 
+**Logit adjustment is OFF by default** (`LOGIT_ADJUST=False`): the effective-number
+sampler already rebalances every batch, so adding `tau*log_prior` too double-corrects
+and over-predicts rare breeds at inference. Enable with `--logit-adjust`; the prior
+then comes from the effective **sampled** distribution (`--logit-adjust-prior sampled`).
+
 **Binary species balancing** (`BALANCE_BINARY_HEAD=True`): the per-breed
 weighted sampler leaves a ~57:18 species prior, so per batch each species'
 binary-CE mass is renormalized to 0.5 via sample weights
 `w_cat·(1-p_buf) + w_buf·p_buf` (adaptive; identity on balanced batches).
+
+**Mixing is OFF by default** (`--mix` to enable). When on, CutMix/MixUp pair
+partners **within the same species** (`_pairing_perm`), so binary labels stay
+one-hot and breed targets stay proper distributions. Mixing is disabled for the
+last `MIX_OFF_LAST_FRAC` (15%) of phase 2 via `_mix_off_epoch`.
 
 **Distillation** (`masked_kd_loss`, active when `--teacher` is passed):
 
@@ -112,21 +122,25 @@ for epoch in range(epochs):
             optimizer.step()
 
         if ema_model is not None:            # phase 2 — see §3/§4 notes
-            with torch.no_grad():            # parameters AND BN buffers are
-                ...                          # EMA'd; num_batches_tracked copied
+            with torch.no_grad():            # EMA once per OPTIMIZER step
+                ...                          # parameters AND BN buffers;
+                                             # num_batches_tracked copied;
+                                             # decay = min(0.999,(1+t)/(10+t))
 
     scheduler.step()  # if cosine annealing (phase 2)
 
-    # -- Validation --
+    # -- Validation (BOTH raw and EMA, every eval) --
     model.eval()
-    eval_model = ema_model if ema_model else model
-    with torch.no_grad():
-        metrics = evaluate_epoch(eval_model, val_loader, device)
+    raw_metrics = evaluate_epoch(model, val_loader, device, train_counts=...)
+    ema_metrics = evaluate_epoch(ema_model, val_loader, device, ...) if ema_model else None
+    chosen, src = (ema_metrics, "ema") if (ema_metrics and ema_metrics[best_key] >= raw_metrics[best_key]) \
+                   else (raw_metrics, "raw")
 
-    # -- Checkpoint --
-    if metrics[best_key] >= best:
-        best = metrics[best_key]
-        torch.save({phase, epoch, val_top1, state_dict}, checkpoint_path)
+    # -- Checkpoint (save whichever of raw/EMA scores better) --
+    if chosen[best_key] >= best:
+        best = chosen[best_key]
+        torch.save({phase, epoch, val_top1, best_metric, source, metrics, state_dict},
+                   checkpoint_path)   # checkpoint_path carries the run id
 ```
 
 ---
@@ -141,9 +155,14 @@ for epoch in range(epochs):
 | `binary_f1` | 2·TP / (2·TP + FP + FN) — for buffalo class |
 | `cattle_acc` | correct among cattle-masked samples |
 | `buffalo_acc` | correct among buffalo-masked samples |
-| `combined_top1` | species + breed both correct |
-| `combined_top3` | species correct AND true breed in top-3 |
-| `combined_top5` | species correct AND true breed in top-5 |
+| `combined_top1` | hard routing: species argmax + breed both correct |
+| `combined_top1_soft` | soft routing: argmax of `p(species)·softmax(head)` over 75 classes |
+| `combined_top3` / `top5` | species correct AND true breed in top-3/5 |
+| `cattle_macro_f1` / `buffalo_macro_f1` | macro-F1 (zero-support classes excluded) |
+| `balanced_score` | 0.5·(cattle_macro_f1 + buffalo_macro_f1) |
+| `blended_score` | 0.5·macro-F1 + 0.5·`combined_top1_soft` (**checkpoint metric**) |
+| `acc_fewshot` / `acc_mediumshot` / `acc_manyshot` | soft-routed acc bucketed by true class train count (<30 / 30–100 / >100) |
+| `pred_hist_entropy` | normalised entropy of the predicted-class histogram |
 
 ---
 

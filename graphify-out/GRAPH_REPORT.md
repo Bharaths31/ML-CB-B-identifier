@@ -1,24 +1,26 @@
-# Graph Report - ML-CB-B-identifier  (2026-09-21)
+# Graph Report - ML-CB-B-identifier  (2026-09-23)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 69 files · ~266,805 words
+- Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 23 file(s) not represented in the graph (top: (none) 8, .pt 6, .ipynb 3)
 
 ## Summary
-- 712 nodes · 1366 edges · 39 communities (36 shown, 3 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.78)
+- 772 nodes · 1558 edges · 39 communities (36 shown, 3 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.78)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d1aaf5f2`
+- Built from commit: `768f0eb2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - data_pipeline.py
 - BreedClassifier
-- main
+- export.py
 - ModelManager
-- Documentation Index
+- Training Pipeline
 - camera_screen.dart
 - CONTEXT.md — Context Database
 - local_train.py
@@ -33,49 +35,49 @@
 - ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition
 - i_model_service.dart
 - image_preprocessor.dart
-- cattle_buffalo_trainer.py
+- train.py
 - Amruthamahal_01 — Amruthamahal (Amritmahal) cattle: dark grey-to-black coat with lighter grey body, heavy muscular neck/hump, long thick horns curving upward and outward, rope halter at head; large zebu-type frame (species/build partly buffalo-like)
 - Gangatiri_02 — Gangatiri cattle: white/off-white coat, prominent hump, short upward-curving horns, clean slender legs, rope halter; zebu cattle
 - ci workflow
-- parity_check.py
-- train.py
+- onnx_parity_10.py
+- run_epoch
 - setup.sh
 - evaluate.py
 - test_model.py
 - inference_controller.dart
 - main.dart
-- export.py
-- evaluate_epoch
+- diagnose_model.py
+- test_fixes_cpu.py
 - run_server
 - SessionLogger
 - ._load_model
-- build_html
-- Colab README
+- CattleBuffaloDataset
+- merge_into_species_dir
 - ExportWrapper
 
 ## God Nodes (most connected - your core abstractions)
-1. `BreedClassifier` - 39 edges
+1. `BreedClassifier` - 44 edges
 2. `CONTEXT.md — Context Database` - 25 edges
-3. `Colab README` - 16 edges
-4. `get_dataloaders()` - 15 edges
-5. `Documentation Index` - 15 edges
-6. `main()` - 14 edges
-7. `ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition` - 14 edges
-8. `Training Pipeline` - 14 edges
-9. `masked_loss()` - 13 edges
-10. `Android Deployment` - 13 edges
+3. `main()` - 18 edges
+4. `get_dataloaders()` - 17 edges
+5. `Colab README` - 16 edges
+6. `find_latest_checkpoint()` - 15 edges
+7. `Documentation Index` - 15 edges
+8. `ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition` - 14 edges
+9. `Training Pipeline` - 14 edges
+10. `main()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Binary-head species balancing` --semantically_similar_to--> `masked_loss()`  [INFERRED] [semantically similar]
   docs/changelog.md → src/train.py
 - `masked_loss()` --semantically_similar_to--> `Masked per-head loss`  [INFERRED] [semantically similar]
   src/train.py → ADR.md
+- `Portable export bundle` --references--> `BreedClassifier`  [EXTRACTED]
+  docs/export-deployment.md → src/model.py
 - `BreedClassifier` --implements--> `Species Routing Inference`  [INFERRED]
   src/model.py → docs/architecture.md
 - `BreedClassifier` --shares_data_with--> `FEATURE_DIM`  [INFERRED]
   src/model.py → docs/config-reference.md
-- `QAT phase 3 (opt-in)` --semantically_similar_to--> `Quantization-Aware Training (QAT)`  [INFERRED] [semantically similar]
-  docs/training-pipeline.md → ADR.md
 
 ## Import Cycles
 - None detected.
@@ -101,24 +103,24 @@
 ## Communities (39 total, 3 thin omitted)
 
 ### Community 0 - "data_pipeline.py"
-Cohesion: 0.07
-Nodes (40): Byte caching, Dataset, Data Pipeline, RandAugment, CattleBuffaloDataset, _collect_rows(), compute_class_priors(), compute_rare_classes() (+32 more)
+Cohesion: 0.11
+Nodes (28): _collect_rows(), compute_class_counts(), compute_class_priors(), compute_rare_classes(), _count_per_class(), _effective_num_weights(), get_dataloaders(), _load_class_maps() (+20 more)
 
 ### Community 1 - "BreedClassifier"
 Cohesion: 0.05
-Nodes (35): Project Rules (AGENTS.md), Config Centralization Convention, CBAM attention, Architecture & Data Flow, CBAM Attention, Masked Multi-Task Loss, Species Routing Inference, Configuration Reference (+27 more)
+Nodes (40): Project Rules (AGENTS.md), Config Centralization Convention, Automatic Mixed Precision (AMP), CBAM attention, Colab README, Architecture & Data Flow, CBAM Attention, Masked Multi-Task Loss (+32 more)
 
-### Community 2 - "main"
-Cohesion: 0.10
-Nodes (21): _calibration_images(), _copy_to_app_assets(), create_portable_export(), export_onnx_int8(), __init__(), export_tflite(), representative_dataset(), main() (+13 more)
+### Community 2 - "export.py"
+Cohesion: 0.06
+Nodes (47): Module Reference — Source Code Cross-Reference, Module dependency graph, Knowledge distillation (teacher-student), Android Deployment, Known Constraints & Gotchas, EMA (Exponential Moving Average), Flutter app, ONNX Runtime Mobile INT8 (QDQ) (+39 more)
 
 ### Community 3 - "ModelManager"
-Cohesion: 0.22
-Nodes (7): Model Tester GUI, Presenter configuration, ModelManager, Discovers, loads, and caches models for prediction., Load breed label maps from data/splits/., Find all available checkpoints., Return list of available model names with metadata.
+Cohesion: 0.20
+Nodes (8): Model Tester GUI, Presenter configuration, main(), ModelManager, Discovers, loads, and caches models for prediction., Load breed label maps from data/splits/., Find all available checkpoints., Return list of available model names with metadata.
 
-### Community 4 - "Documentation Index"
-Cohesion: 0.06
-Nodes (51): Training Internals & Data Flow — Deep Reference, Evaluation metrics (combined_top1/3/5), Image to tensor pipeline, Label encoding (binary/cattle/buffalo + masks), Loss computation, QAT internals (fuse conv-bn, per-tensor observers), Smoke test data flow, Training loop detail (+43 more)
+### Community 4 - "Training Pipeline"
+Cohesion: 0.05
+Nodes (57): Training Internals & Data Flow — Deep Reference, Evaluation metrics (combined_top1/3/5), Image to tensor pipeline, Label encoding (binary/cattle/buffalo + masks), Loss computation, QAT internals (fuse conv-bn, per-tensor observers), Smoke test data flow, Training loop detail (+49 more)
 
 ### Community 5 - "camera_screen.dart"
 Cohesion: 0.14
@@ -129,12 +131,12 @@ Cohesion: 0.17
 Nodes (31): CONTEXT.md — Context Database, Android / mobile INT8 deployment path, BreedClassifier (backbone + attention + 3 heads), 18 Indian buffalo breeds, 57 Indian cattle breeds, CBAM attention module, CutMix / MixUp batch mixing on GPU, Effective-number-of-samples WeightedRandomSampler (beta=0.999) (+23 more)
 
 ### Community 7 - "local_train.py"
-Cohesion: 0.16
-Nodes (30): _banner(), _check_windows_build_tools(), _detect_nvidia_gpu(), _elapsed(), _file_size_mb(), _install_torch(), main(), merge_into_species_dir() (+22 more)
+Cohesion: 0.09
+Nodes (37): Create a zip file of test-split images for Colab batch evaluation. Reads…, csv, Colab Testing & Evaluation, _banner(), _check_windows_build_tools(), _detect_nvidia_gpu(), _elapsed(), _file_size_mb() (+29 more)
 
 ### Community 8 - "cattle_buffalo_tester.py"
-Cohesion: 0.05
-Nodes (32): compute_macro_f1(), find_breed_folders(), img_to_base64(), per_breed_report(), plot_confusion_matrix(), predict_single(), preprocess_image(), Walk to find leaf dirs with images (breed folders). (+24 more)
+Cohesion: 0.06
+Nodes (29): compute_macro_f1(), find_breed_folders(), img_to_base64(), per_breed_report(), plot_confusion_matrix(), predict_single(), preprocess_image(), Walk to find leaf dirs with images (breed folders). (+21 more)
 
 ### Community 9 - "Breed Classifier -- Model Tester Web GUI (Screenshot 2026-09-14 21:35)"
 Cohesion: 0.10
@@ -145,8 +147,8 @@ Cohesion: 0.23
 Nodes (15): CUDA/CPU Graceful Support, Real Mini-Dataset Smoke Test Rule, API Reference, Knowledge Distillation, local_train.py Pipeline, src.parity_check Export Parity Gate, Phase 3 QAT, src.export Model Export (+7 more)
 
 ### Community 11 - "setup_venv.py"
-Cohesion: 0.14
-Nodes (23): py_to_ipynb(), Convert a percent-format .py script to .ipynb., Convert cattle_buffalo_trainer.py to .ipynb notebook format. Parses the `# %%`…, platform, re, load_index(), main(), write_labels() (+15 more)
+Cohesion: 0.21
+Nodes (18): platform, load_index(), main(), write_labels(), check_python(), clean_broken_torch(), create_venv(), detect_nvidia_gpu() (+10 more)
 
 ### Community 12 - "web_tfjs_engine.dart"
 Cohesion: 0.08
@@ -157,8 +159,8 @@ Cohesion: 0.08
 Nodes (23): _binaryLabels, _buffaloLabels, _cattleLabels, dispose, _exp, index, initialize, _inputSize (+15 more)
 
 ### Community 14 - "data_collection.py"
-Cohesion: 0.10
-Nodes (29): collections, Create a zip file of test-split images for Colab batch evaluation. Reads…, create_training_zip(), Script to create a lightweight standalone training zip package. Excludes…, Check if relative path matches any exclusion rule., should_exclude(), csv, _absolute() (+21 more)
+Cohesion: 0.15
+Nodes (22): py_to_ipynb(), Convert a percent-format .py script to .ipynb., Convert cattle_buffalo_trainer.py to .ipynb notebook format. Parses the `# %%`…, _absolute(), breed_dir(), _breed_from_name(), create_dataset_manifest(), download_file() (+14 more)
 
 ### Community 15 - "prediction_result.dart"
 Cohesion: 0.12
@@ -176,9 +178,9 @@ Nodes (8): dart:typed_data, ../entities/prediction_result.dart, TfliteEngine, Tf
 Cohesion: 0.33
 Nodes (5): ImagePreprocessor, preprocess, _resizeThenCenterCrop, size, package:image/image.dart
 
-### Community 19 - "cattle_buffalo_trainer.py"
-Cohesion: 0.09
-Nodes (23): download_kaggle_dataset(), find_breed_dirs(), merge_into_species_dir(), normalize_breed_name(), Download and unzip a Kaggle dataset into dest_dir., Find all leaf directories containing images (breed folders)., Normalize breed folder names: lowercase, underscores, strip whitespace., Auto-detect breed folders inside source_base and copy/merge them into… (+15 more)
+### Community 19 - "train.py"
+Cohesion: 0.13
+Nodes (23): download_kaggle_dataset(), Download and unzip a Kaggle dataset into dest_dir., math, random, _build_warmup_cosine_scheduler(), _fmt_metrics(), _mix_off_epoch(), Last epoch that still mixes; mixing is OFF for epochs after this.… (+15 more)
 
 ### Community 20 - "Amruthamahal_01 — Amruthamahal (Amritmahal) cattle: dark grey-to-black coat with lighter grey body, heavy muscular neck/hump, long thick horns curving upward and outward, rope halter at head; large zebu-type frame (species/build partly buffalo-like)"
 Cohesion: 0.40
@@ -192,21 +194,21 @@ Nodes (5): Deoni_01 — Deoni cattle: predominantly white/light grey coat with b
 Cohesion: 0.83
 Nodes (4): GitHub Pages, ci workflow, Deploy MkDocs to GitHub Pages workflow, MkDocs Material
 
-### Community 23 - "parity_check.py"
-Cohesion: 0.18
-Nodes (15): _load_model(), Make a checkpoint loadable into a plain float BreedClassifier. Phase-3 QAT…, _sanitize_state_dict(), accumulate(), evaluate_on_split(), finalize(), main(), make_onnx_runner() (+7 more)
+### Community 23 - "onnx_parity_10.py"
+Cohesion: 0.13
+Nodes (20): argparse, collections, difflib, hashlib, json, numpy, pil, ahash() (+12 more)
 
-### Community 24 - "train.py"
-Cohesion: 0.30
-Nodes (13): Knowledge distillation (teacher-student), Android Deployment, Known Constraints & Gotchas, EMA (Exponential Moving Average), Flutter app, math, ONNX Runtime Mobile INT8 (QDQ), Export parity gate (+5 more)
+### Community 24 - "run_epoch"
+Cohesion: 0.12
+Nodes (20): Byte caching, Data Pipeline, RandAugment, cutmix(), mixup(), _pairing_perm(), _rand_bbox(), Permutation that pairs each sample with another of the SAME species. A global… (+12 more)
 
 ### Community 26 - "evaluate.py"
-Cohesion: 0.19
-Nodes (9): argparse, Common Operations, json, numpy, Create colab_project.zip containing only the files needed for Colab training.…, full_evaluation(), main(), no_grad (+1 more)
+Cohesion: 0.14
+Nodes (16): matplotlib, matplotlib_pyplot, full_evaluation(), main(), no_grad, _save_confusion(), Make a checkpoint loadable into a plain float BreedClassifier. Phase-3 QAT…, _sanitize_state_dict() (+8 more)
 
 ### Community 28 - "test_model.py"
-Cohesion: 0.15
-Nodes (12): base64, datetime, glob, logging, pil_exiftags, struct, extract_image_metadata(), Extract detailed metadata from raw image bytes. (+4 more)
+Cohesion: 0.13
+Nodes (14): base64, datetime, logging, pil_exiftags, struct, _build_js(), extract_image_metadata(), generate_odt_report() (+6 more)
 
 ### Community 29 - "inference_controller.dart"
 Cohesion: 0.15
@@ -216,17 +218,17 @@ Nodes (12): bool get, _busy, dispose, _error, initialize, _initialized, predictI
 Cohesion: 0.17
 Nodes (11): data/ml_engines/android_tflite_engine.dart, data/ml_engines/web_tfjs_engine.dart, ../../domain/services/i_model_service.dart, build, controller, initialize, main, service (+3 more)
 
-### Community 31 - "export.py"
-Cohesion: 0.36
-Nodes (6): Module Reference — Source Code Cross-Reference, Module dependency graph, os, time, torch, torch_nn
+### Community 31 - "diagnose_model.py"
+Cohesion: 0.13
+Nodes (17): glob, os, detailed_eval(), load_model(), main(), print_report(), no_grad, Diagnose a trained checkpoint on a split (val or test). Reports, for one or two… (+9 more)
 
-### Community 32 - "evaluate_epoch"
-Cohesion: 0.22
-Nodes (8): evaluate_epoch(), _macro_scores(), no_grad, Macro-F1 and macro-recall from a confusion matrix (true x pred). Classes with…, Train a single phase with AdamW, optional AMP, gradient accumulation, and label…, train_phase(), torch_nn_functional, tqdm
+### Community 32 - "test_fixes_cpu.py"
+Cohesion: 0.17
+Nodes (9): copy, pandas, CPU-only synthetic tests for the 2026-09-23 fixes. No dataset/GPU needed. Run:…, src, Return ``path`` if free, else ``path`` with ``_2``, ``_3`` ... appended. Guards…, unique_path(), create_portable_export(), Bundle the trained model + labels + metadata into a portable folder. (+1 more)
 
 ### Community 33 - "run_server"
-Cohesion: 0.27
-Nodes (9): generate_odt_report(), main(), Run a minimal HTTP server with the GUI and prediction API., Generate an ODT report from prediction results. Args: results: single result…, run_server(), do_GET(), do_POST(), _parse_multipart() (+1 more)
+Cohesion: 0.23
+Nodes (12): build_html(), load_presenter_config(), Run a minimal HTTP server with the GUI and prediction API., Load presenter config from JSON, creating defaults if missing., Save presenter config to JSON., Return the complete single-page GUI HTML. Mode: 'dev' or 'present'., run_server(), do_GET() (+4 more)
 
 ### Community 34 - "SessionLogger"
 Cohesion: 0.22
@@ -236,33 +238,33 @@ Nodes (3): Read the current log file contents., File + stdout logger for the ent
 Cohesion: 0.22
 Nodes (7): get_model_spec(), _human_number(), no_grad, Extract detailed model architecture and parameter info., Format large numbers: 6234567 → '6.23M'., Load a model checkpoint into memory., Run prediction on raw image bytes. Returns result dict.
 
-### Community 36 - "build_html"
-Cohesion: 0.25
-Nodes (8): build_html(), _build_js(), load_presenter_config(), Build the JavaScript block — plain string, no f-string escaping issues., Load presenter config from JSON, creating defaults if missing., Save presenter config to JSON., Return the complete single-page GUI HTML. Mode: 'dev' or 'present'., save_presenter_config()
+### Community 36 - "CattleBuffaloDataset"
+Cohesion: 0.20
+Nodes (5): Dataset, CattleBuffaloDataset, _eval_transform(), Build the training transform. Augmentation is OFF by default (see ``AUG_*`` /…, _train_transform()
 
-### Community 37 - "Colab README"
-Cohesion: 0.53
-Nodes (6): Automatic Mixed Precision (AMP), Colab README, Colab Testing & Evaluation, Colab Training, Kaggle algsoch/breed-cattle-buffalo dataset, Colab T4 GPU
+### Community 37 - "merge_into_species_dir"
+Cohesion: 0.33
+Nodes (6): find_breed_dirs(), merge_into_species_dir(), normalize_breed_name(), Find all leaf directories containing images (breed folders)., Normalize breed folder names: lowercase, underscores, strip whitespace., Auto-detect breed folders inside source_base and copy/merge them into…
 
 ## Knowledge Gaps
-- **100 isolated node(s):** `_binaryLabels`, `_buffaloLabels`, `_cattleLabels`, `dispose`, `_execute` (+95 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 280 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **100 isolated node(s):** `_ScoredBreed`, `_inputSize`, `_preprocessor`, `_interpreter`, `_binaryLabels` (+95 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 306 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `BreedClassifier` connect `BreedClassifier` to `data_pipeline.py`, `ModelManager`, `._load_model`, `API Reference`, `ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition`, `cattle_buffalo_trainer.py`, `parity_check.py`, `train.py`, `evaluate.py`, `test_model.py`, `export.py`?**
-  _High betweenness centrality (0.102) - this node is a cross-community bridge._
-- **Why does `Common Operations` connect `evaluate.py` to `data_pipeline.py`, `BreedClassifier`, `Documentation Index`, `local_train.py`, `API Reference`, `setup_venv.py`, `data_collection.py`, `parity_check.py`, `train.py`, `test_model.py`, `export.py`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
-- **Why does `Training Pipeline` connect `Documentation Index` to `train.py`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `BreedClassifier` connect `BreedClassifier` to `test_fixes_cpu.py`, `data_pipeline.py`, `export.py`, `ModelManager`, `Training Pipeline`, `._load_model`, `API Reference`, `ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition`, `train.py`, `onnx_parity_10.py`, `evaluate.py`, `test_model.py`, `diagnose_model.py`?**
+  _High betweenness centrality (0.103) - this node is a cross-community bridge._
+- **Why does `Common Operations` connect `Training Pipeline` to `data_pipeline.py`, `BreedClassifier`, `export.py`, `local_train.py`, `API Reference`, `setup_venv.py`, `train.py`, `evaluate.py`, `test_model.py`?**
+  _High betweenness centrality (0.032) - this node is a cross-community bridge._
+- **Why does `Training Pipeline` connect `Training Pipeline` to `BreedClassifier`, `train.py`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `BreedClassifier` (e.g. with `Species Routing Inference` and `CBAM_AFTER_STAGE`) actually correct?**
   _`BreedClassifier` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `CONTEXT.md — Context Database` (e.g. with `README.md` and `mkdocs.yml — Material docs site config`) actually correct?**
   _`CONTEXT.md — Context Database` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `_binaryLabels`, `_buffaloLabels`, `_cattleLabels` to the rest of the system?**
+- **What connects `_ScoredBreed`, `_inputSize`, `_preprocessor` to the rest of the system?**
   _100 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `data_pipeline.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.06775510204081632 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11174242424242424 - nodes in this community are weakly interconnected._

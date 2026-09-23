@@ -31,13 +31,35 @@ DROPOUT = 0.3
 
 RANDAUGMENT_OPS = 2
 RANDAUGMENT_MAGNITUDE = 5
-CUTMIX_ALPHA = 1.0
-MIXUP_ALPHA = 0.3
-CUTMIX_MIXUP_PROB = 0.5
+
+# --- Batch mixing (CutMix / MixUp) ---
+# Strength reduced from the 2026-09-21 values (α 1.0/0.3, p 0.5) which
+# over-regularised a 10-image long tail.
+CUTMIX_ALPHA = 0.4
+MIXUP_ALPHA = 0.2
+CUTMIX_MIXUP_PROB = 0.25
+# Pair only within the same species so binary labels stay one-hot and each
+# breed target stays a proper distribution (no cattle<->buffalo mixtures).
+MIX_SAME_SPECIES = True
+# Disable mixing entirely for the last fraction of phase-2 epochs, so the model
+# finishes on clean, un-mixed images (crisper decision boundaries).
+MIX_OFF_LAST_FRAC = 0.15
 # Breeds with fewer than this many images are never mixed (CutMix/MixUp);
 # mixing 10-image breeds with other breeds destroys the little signal they
 # carry and makes the rare-breed signature unrecoverable.
 RARE_CLASS_THRESHOLD = 30
+
+# --- Augmentation: ALL OFF by default -------------------------------------
+# Fine-grained breed identification is hurt by heavy augmentation on a long
+# tail, so every stochastic transform is opt-in per run. Enable with the
+# matching CLI flag (--mix, --flip, --color-jitter, --randaugment, --rrc, or
+# --augment-all). With everything off, the train transform is identical to the
+# eval transform (Resize(260)+CenterCrop(260)+Normalize).
+MIX_ENABLED = False              # CutMix/MixUp master switch
+AUG_HORIZONTAL_FLIP = False
+AUG_COLOR_JITTER = False
+AUG_RANDAUGMENT = False
+AUG_RANDOM_RESIZED_CROP = False
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---
 # The 1280-d pooled feature vector was previously unused. A projection head +
@@ -47,10 +69,15 @@ CONTRASTIVE_WEIGHT = 0.2
 CONTRASTIVE_TEMPERATURE = 0.1
 
 # --- Logit adjustment for class imbalance (Menon et al., ICLR 2021) ---
-# tau * log(prior) is added to the breed logits during training only; the
-# prior shift is absorbed into the learned biases so inference stays raw.
-LOGIT_ADJUST = True
+# Use EXACTLY ONE long-tail mechanism. The effective-number sampler below
+# already rebalances every batch; enabling logit adjustment on top of it
+# double-corrects and over-predicts rare breeds at inference. Default OFF.
+# If enabled, the prior is computed from the effective SAMPLED distribution
+# (count_c * sampler_weight_c, normalised), not raw counts, unless
+# LOGIT_ADJUST_PRIOR="raw".
+LOGIT_ADJUST = False
 LOGIT_ADJUST_TAU = 1.0
+LOGIT_ADJUST_PRIOR = "sampled"   # "sampled" (effective) or "raw"
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
@@ -61,7 +88,11 @@ SAMPLER_BETA = 0.99           # effective-number-of-samples sampler beta
 BALANCE_BINARY_HEAD = True    # per-batch species re-weighting of binary CE
 
 # --- Exponential moving average of weights (phase 2) ---
+# Updated once per OPTIMIZER step (not per micro-batch). Warm-up decay is
+# decay_t = min(EMA_DECAY, (1+t)/(10+t)) so early steps track the raw model.
 EMA_DECAY = 0.999
+EMA_WARMUP = True
+EMA_WARN_FRAC = 0.25   # warn if the EMA time constant exceeds this frac of phase-2 steps
 
 BATCH_SIZE = 64
 NUM_WORKERS = 4
@@ -93,10 +124,16 @@ PHASE2_LR = 2e-4
 PHASE3_EPOCHS = 10
 PHASE3_LR = 5e-6
 
-# Checkpoint selection metric: macro-averaged F1 over both breed heads.
-# Combined top-1 is dominated by the ~10 large breeds; macro-F1 is the only
-# metric that rewards progress on the 30+ rare indigenous breeds.
-BEST_METRIC = "balanced_score"
+# Checkpoint selection metric. Pure macro-F1 is far too noisy with 1-2 val
+# images per rare breed, and pure combined top-1 is dominated by the ~10 large
+# breeds. Blend them: 0.5*macro_F1 + 0.5*combined_top1_soft.
+BEST_METRIC = "blended_score"
+BEST_METRIC_MACRO_WEIGHT = 0.5
+BEST_METRIC_TOP1_WEIGHT = 0.5
+
+# Shot-count buckets for per-eval diagnostics (train images per breed).
+SHOT_FEW_MAX = 30       # few-shot:  < 30
+SHOT_MEDIUM_MAX = 100   # medium:    30..100; many-shot: > 100
 
 # --- SOTA additions ---
 WEIGHT_DECAY = 1e-2
@@ -104,10 +141,26 @@ LABEL_SMOOTHING = 0.05
 WARMUP_EPOCHS = 3
 GRADIENT_ACCUMULATION_STEPS = 2
 
+# --- Preprocessing / resolution ---
+TRAIN_RESIZE = IMAGE_SIZE + 28   # 288: shortest side before RandomResizedCrop
+# Eval currently uses Resize(260)+CenterCrop(260) (shortest-side). Set True to
+# instead evaluate with Resize(288)+CenterCrop(260) so eval matches the scale
+# the training crop is drawn from. Off by default; compare on the GPU machine.
+EVAL_MATCH_TRAIN_RESOLUTION = False
+
 TFLITE_APP_ASSETS_DIR = os.path.join(
     PROJECT_ROOT, "flutter_app", "assets", "models")
 
 SEED = 42
+
+# --- Output naming -------------------------------------------------------
+# Timestamped, non-overwriting outputs are ON by default: every checkpoint,
+# export and metric filename gets a run id appended (see src/run_utils.py).
+# Format is DD-MM-YYYY-HH-MM. Colons are NOT used because they are illegal in
+# Windows filenames; set RUN_ID_FORMAT to "%d:%m:%Y:%H:%M" only on filesystems
+# that allow colons.
+TIMESTAMP_OUTPUTS = True
+RUN_ID_FORMAT = "%d-%m-%Y-%H-%M"
 
 RAW_DATA_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 SPLIT_DIR = os.path.join(PROJECT_ROOT, "data", "splits")
