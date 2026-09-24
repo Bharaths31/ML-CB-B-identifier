@@ -233,6 +233,16 @@ PORTABLE_EXPORT_DIR = os.path.join(OUTPUT_DIR, "export", "portable")
 METRICS_DIR = os.path.join(OUTPUT_DIR, "metrics")
 LOGS_DIR = os.path.join(OUTPUT_DIR, "logs")
 
+# --- Execution logging (src/run_logger.py) --------------------------------
+# Every python entry point writes a per-execution folder under LOG_ROOT:
+#   logs/<exec_id>/{manifest.json,config.json,run.log,events.jsonl,
+#                   training.jsonl,data.jsonl,test.jsonl,export.jsonl}
+LOG_ROOT = os.path.join(PROJECT_ROOT, "logs")
+LOG_TO_FILE = True          # master switch for file logging
+LOG_CAPTURE_STDIO = True    # tee stdout/stderr into run.log
+LOG_LEVEL = "INFO"          # console/file level
+LOG_EXEC_ID_ENV = "RUN_EXEC_ID"   # env var to force a shared exec id
+
 SMOKE_SAMPLES_PER_BREED = 5
 HALF_DATA_RATIO = 0.5    # Fraction of images per breed for --half-data mode
 QUARTER_DATA_RATIO = 0.25  # Fraction of images per breed for --quarter-data mode
@@ -245,5 +255,6 @@ CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 
 SPECIES_LABELS = {"cattle": 0, "buffalo": 1}
 
-for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR, LOGS_DIR):
+for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR,
+           LOGS_DIR, LOG_ROOT):
     os.makedirs(_d, exist_ok=True)

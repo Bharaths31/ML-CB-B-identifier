@@ -39,6 +39,7 @@ from .data_pipeline import (compute_class_counts, compute_class_priors,
                             prepare_smoke_splits, prepare_splits)
 from .metrics import evaluate_epoch
 from .model import BreedClassifier
+from .run_logger import finish_run, init_run_logger, log_event, log_metrics
 from .run_utils import make_run_id, timestamped, unique_path
 
 
@@ -448,7 +449,8 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 kd_temp=KD_TEMPERATURE, loss_weights_final=None,
                 binary_sat_acc=None, mix_prob=CUTMIX_MIXUP_PROB,
                 mix_off_frac=MIX_OFF_LAST_FRAC,
-                same_species=MIX_SAME_SPECIES, ema_warmup=EMA_WARMUP,
+                same_species=MIX_SAME_SPECIES, ema_decay=EMA_DECAY,
+                ema_warmup=EMA_WARMUP,
                 train_counts=None, few_max=SHOT_FEW_MAX,
                 medium_max=SHOT_MEDIUM_MAX,
                 rare_masks=None, logit_priors=None, adjust_tau=0.0,
@@ -514,7 +516,7 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             mix_stats=mix_stats,
             grad_accum_steps=grad_accum_steps,
             label_smoothing=label_smoothing, ema_model=ema_model,
-            ema_warmup=ema_warmup, ema_state=ema_state,
+            ema_decay=ema_decay, ema_warmup=ema_warmup, ema_state=ema_state,
             teacher_model=teacher_model, kd_alpha=kd_alpha, kd_temp=kd_temp,
             mix_prob=eff_mix_prob, same_species=same_species,
             rare_masks=rare_masks,
@@ -535,6 +537,12 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                     ema_model, val_loader, device, max_batches=max_batches,
                     train_counts=train_counts, few_max=few_max,
                     medium_max=medium_max)
+
+            log_metrics(raw_metrics, epoch=epoch, tag="raw", phase=phase,
+                        mix_prob=eff_mix_prob, loss=loss, ce_b=ce_b, ce_c=ce_c,
+                        ce_buf=ce_buf, ema_step=ema_state.get("step", 0))
+            if ema_metrics is not None:
+                log_metrics(ema_metrics, epoch=epoch, tag="ema", phase=phase)
 
             raw_acc = raw_metrics.get(best_key, 0.0)
             ema_acc = ema_metrics.get(best_key, 0.0) if ema_metrics else -1.0
@@ -567,6 +575,9 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                             "val_top1": chosen_acc, "best_metric": best_key,
                             "source": chosen_src, "metrics": chosen,
                             "state_dict": sd}, checkpoint_path)
+                log_event("checkpoint_saved", category="training",
+                          path=checkpoint_path, phase=phase, epoch=epoch,
+                          source=chosen_src, best_metric=best_key, best=chosen_acc)
             # Once the binary head saturates, stop spending loss budget on it
             # and reallocate to the breed heads from the next epoch onward.
             if (loss_weights_final is not None and binary_sat_acc is not None
@@ -717,6 +728,9 @@ def main():
     parser.add_argument("--run-tag", default=None,
                         help="run id used to timestamp outputs "
                              "(default: current time DD-MM-YYYY-HH-MM)")
+    parser.add_argument("--exec-id", default=None,
+                        help="execution-log folder name under logs/ "
+                             "(default: auto YYYYmmdd-HHMMSS-xxxx)")
     parser.add_argument("--phase1-epochs", type=int, default=None)
     parser.add_argument("--phase2-epochs", type=int, default=None)
     parser.add_argument("--phase3-epochs", type=int, default=None)
@@ -780,6 +794,10 @@ def main():
                         default=GRADIENT_ACCUMULATION_STEPS,
                         help="gradient accumulation steps (default: 2)")
     args = parser.parse_args()
+
+    # --- execution logger (per-run folder under logs/<exec_id>/) ---
+    init_run_logger(exec_id=getattr(args, "exec_id", None), module="src.train")
+    log_event("cli_args", category="actions", **vars(args))
 
     if args.smoke_test and args.half_data:
         parser.error("--smoke-test and --half-data are mutually exclusive")
@@ -1008,6 +1026,17 @@ def main():
         print("  QAT: enabled (phase 3)")
     print(f"{'=' * 60}\n")
 
+    log_event("train_plan", category="training", run_id=run_id,
+              backbone=args.backbone, attention=args.attention,
+              phase1=phase1, phase2=phase2, phase3=phase3, run_qat=run_qat,
+              batch_size=args.batch_size, grad_accum=args.grad_accum,
+              augment=augment, pad=pad, mix_prob=mix_prob,
+              logit_adjust=logit_on, contrastive_weight=contrastive_weight,
+              loss_weights=[LOSS_WEIGHT_BINARY, LOSS_WEIGHT_CATTLE,
+                            LOSS_WEIGHT_BUFFALO],
+              train_images=summary.get("train"), val_images=summary.get("val"),
+              test_images=summary.get("test"))
+
     start_time = time.time()
 
     # --- Phase 1: All heads warmup ---
@@ -1139,7 +1168,9 @@ def main():
         print(f"\n[train] creating portable export...")
         create_portable_export(best_checkpoint, args.backbone,
                                args.split_dir, args.export_dir)
+        log_event("portable_export", category="export", path=best_checkpoint)
 
+    finish_run(0)
     return 0
 
 

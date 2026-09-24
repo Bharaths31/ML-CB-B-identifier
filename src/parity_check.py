@@ -251,6 +251,10 @@ def main():
                         help="run id for timestamped report filenames")
     args = parser.parse_args()
 
+    from .run_logger import init_run_logger, log_event
+    init_run_logger(module="src.parity_check")
+    log_event("cli_args", category="actions", **vars(args))
+
     run_id = make_run_id(args.run_tag)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint_path = resolve_checkpoint(args.checkpoint, args.backbone,

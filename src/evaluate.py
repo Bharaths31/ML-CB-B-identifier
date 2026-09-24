@@ -102,6 +102,10 @@ def main():
                              "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
+    from .run_logger import init_run_logger, log_event, log_metrics
+    init_run_logger(module="src.evaluate")
+    log_event("cli_args", category="actions", **vars(args))
+
     run_id = make_run_id(args.run_tag)
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     loaders = get_dataloaders(split_dir=args.split_dir,
@@ -138,6 +142,9 @@ def main():
     test_metrics = evaluate_epoch(model, test_loader, device,
                                   train_counts=train_counts)
     full = full_evaluation(model, test_loader, device)
+
+    log_metrics(val_metrics, tag="val", category="test", checkpoint=checkpoint_path)
+    log_metrics(test_metrics, tag="test", category="test", checkpoint=checkpoint_path)
 
     os.makedirs(args.out_dir, exist_ok=True)
     prefix = timestamped(os.path.join(args.out_dir, args.backbone), run_id)

@@ -33,3 +33,6 @@ Thumbs.db
 
 # Developer environment metadata
 .opencode/
+
+# Execution logs (per-run folders)
+logs/

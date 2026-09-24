@@ -30,6 +30,15 @@ from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
 
+def _log_event(event, **fields):
+    """Best-effort structured logging (never raises if the logger is absent)."""
+    try:
+        from .run_logger import log_event
+        return log_event(event, **fields)
+    except Exception:
+        return None
+
+
 def _stratified_split(df, rng):
     """Per-breed train/val/test index lists with hard minimums.
 
@@ -143,6 +152,8 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
     print(f"[data] images={len(df)} train={n_train} val={n_val} test={n_test} "
           f"cattle_breeds={len(cattle_breeds)} buffalo_breeds={len(buffalo_breeds)}")
     _validate_class_counts(cattle_breeds, buffalo_breeds)
+    _log_event("splits_ready", category="data", mode="full", **summary,
+               shared_names=sorted(set(cattle_breeds) & set(buffalo_breeds)))
     return summary
 
 

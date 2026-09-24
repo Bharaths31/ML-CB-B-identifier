@@ -103,6 +103,7 @@ Mini Project/
 │   ├── train.py                # 2-phase training (logit adj, SupCon, EMA, adaptive weights)
 │   ├── metrics.py              # evaluate_epoch() — per-head acc, F1, macro-F1, soft-routed top1, shot buckets
 │   ├── run_utils.py            # run ids, timestamped paths, unique_path, find_latest_checkpoint, resolve_checkpoint
+│   ├── run_logger.py           # per-execution logger -> logs/<exec_id>/ (manifest, config, events, training/data/test/export jsonl)
 │   ├── evaluate.py             # Full evaluation with confusion matrices (timestamped outputs)
 │   ├── export.py               # ONNX, INT8, float16, portable export
 │   └── verify.py               # Quick architecture sanity check
@@ -113,6 +114,8 @@ Mini Project/
 │   ├── cattle_buffalo_tester.ipynb # Colab testing notebook (auto-generated)
 │   ├── convert_to_notebook.py  # .py → .ipynb converter
 │   └── README.md               # Colab setup instructions
+├── logs/                       # Per-execution folders (gitignored): logs/<exec_id>/...
+├── sitecustomize.py            # auto-inits the execution logger for any python run (with PYTHONPATH=.)
 ├── data/
 │   ├── raw/                    # Source images: raw/{cattle,buffalo}/<breed>/*.jpg
 │   ├── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
@@ -651,6 +654,18 @@ python scripts/audit_data.py --data data/raw --split-dir data/splits
 python scripts/diagnose_model.py --checkpoint <pt> [--ema <pt>] --split test
 python scripts/onnx_parity_10.py --checkpoint <pt> --onnx <fp32.onnx> --images "Testing data/**/*.jpg"
 python scripts/test_fixes_cpu.py                          # CPU-only, no data needed
+python scripts/test_master_cpu.py                         # CPU-only, no data needed
+```
+
+### Execution logs (`src/run_logger.py`)
+Every entry point writes `logs/<exec_id>/` with `manifest.json`, `config.json`,
+`run.log` (tee'd stdout/stderr), `events.jsonl` and category streams
+(`training/data/test/export/actions.jsonl`). `exec_id` = `YYYYmmdd-HHMMSS-<4hex>`,
+overridable via `--exec-id` or `RUN_EXEC_ID` (children inherit it). Auto-start
+comes from `sitecustomize.py` (run with `PYTHONPATH=.`) plus explicit
+`init_run_logger()` in each `main()`. Disable with `RUN_LOG_DISABLE=1`. Inspect:
+```bash
+python scripts/view_logs.py list|summary|metrics|events|diff ...
 ```
 
 ### Evaluate

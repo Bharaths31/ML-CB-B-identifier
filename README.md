@@ -878,6 +878,45 @@ arguments.
 | `python scripts/onnx_parity_10.py --checkpoint <pt> --onnx <fp32.onnx> --images "Testing data/**/*.jpg"` | Asserts identical soft top-5 and max &#124;Δlogit&#124; < 1e-3 between PyTorch and the fp32 ONNX. |
 | `python scripts/test_fixes_cpu.py` | CPU-only synthetic unit tests (no data/GPU needed). |
 
+### Execution logging (`logs/<exec_id>/`)
+
+Every Python entry point writes a self-contained execution folder:
+
+```
+logs/20260924-153000-a3f2/
+├── manifest.json     # argv, cwd, python, git commit, env, start/end, exit code
+├── config.json       # snapshot of every src/config.py constant
+├── run.log           # human-readable log (includes tee'd stdout/stderr)
+├── events.jsonl      # every structured event (one JSON object per line)
+├── actions.jsonl     # stage/command/section events
+├── training.jsonl    # per-epoch loss + all val metrics (raw and EMA)
+├── data.jsonl        # dataset download / inventory / split events
+├── test.jsonl        # one record per prediction (GUI/CLI)
+└── export.jsonl      # artifact paths/sizes + parity verdicts
+```
+
+- **Execution id** = `YYYYmmdd-HHMMSS-<4 hex>`, auto-generated per process.
+  Override with `--exec-id NAME` or the `RUN_EXEC_ID` env var (child processes
+  inherit it, so a training run and its exports share one id).
+- **Automatic start:** `sitecustomize.py` initialises the logger for *any*
+  Python process started inside the project. To guarantee it is picked up, run
+  with the project root on `PYTHONPATH`:
+  ```bash
+  export PYTHONPATH=.        # Windows: set PYTHONPATH=.
+  python -m src.train --run-tag V3
+  ```
+  Every entry point also calls `init_run_logger()` explicitly, so logging works
+  even without `PYTHONPATH`.
+- Disable with `RUN_LOG_DISABLE=1` or `LOG_TO_FILE=False` in `src/config.py`.
+- Inspect runs (read-only):
+  ```bash
+  python scripts/view_logs.py list
+  python scripts/view_logs.py summary latest
+  python scripts/view_logs.py metrics latest --tag ema
+  python scripts/view_logs.py events  latest --category data
+  python scripts/view_logs.py diff <exec_a> <exec_b>
+  ```
+
 ### Dataset inventory (breed / species / count / resolution)
 
 Both `local_train.py` and the Colab downloader write a JSON inventory per source

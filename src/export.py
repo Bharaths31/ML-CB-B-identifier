@@ -431,6 +431,10 @@ def main():
                              "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
+    from .run_logger import init_run_logger, log_event
+    init_run_logger(module="src.export")
+    log_event("cli_args", category="actions", **vars(args))
+
     run_id = make_run_id(args.run_tag)
     # --checkpoint accepts a path, a run-tag (e.g. V3), or None (newest).
     checkpoint_path = resolve_checkpoint(args.checkpoint, args.backbone,
@@ -450,8 +454,10 @@ def main():
     base = timestamped(os.path.join(args.out_dir, args.backbone), run_id)
 
     if args.mode == "portable":
-        create_portable_export(checkpoint_path, args.backbone,
-                               args.split_dir, PORTABLE_EXPORT_DIR)
+        out_dir = create_portable_export(checkpoint_path, args.backbone,
+                                         args.split_dir, PORTABLE_EXPORT_DIR)
+        log_event("artifact", category="export", mode="portable",
+                  checkpoint=checkpoint_path, path=out_dir)
         return 0
 
     if args.mode == "float16":
@@ -463,6 +469,9 @@ def main():
             traced.save(path)
             print(f"[export] float16 TorchScript -> {path} "
                   f"({_size(path):.2f} MB)")
+            log_event("artifact", category="export", mode="float16",
+                      checkpoint=checkpoint_path, path=path,
+                      size_mb=round(_size(path), 2))
         except Exception as exc:
             print(f"[export] float16 export failed ({exc})")
         return 0
@@ -484,8 +493,13 @@ def main():
                               opset_version=13, dynamic_axes=dynamic_axes,
                               dynamo=False)
             print(f"[export] ONNX -> {path} ({_size(path):.2f} MB)")
+            log_event("artifact", category="export", mode="onnx",
+                      checkpoint=checkpoint_path, path=path,
+                      size_mb=round(_size(path), 2))
         except Exception as exc:
             print(f"[export] ONNX export failed ({exc})")
+            log_event("artifact_failed", category="export", level="error",
+                      mode="onnx", error=str(exc))
             return 1
         return 0
 
@@ -511,8 +525,13 @@ def main():
             labels = _write_label_files(args.split_dir, args.out_dir)
             print(f"[export] labels written: {', '.join(labels)}")
             print(f"[export] input convention: {MOBILE_INPUT_RANGE}")
+            log_event("artifact", category="export", mode="onnx-int8",
+                      checkpoint=checkpoint_path, path=int8_path,
+                      size_mb=round(_size(int8_path), 2))
         except Exception as exc:
             print(f"[export] ONNX INT8 quantization failed ({exc})")
+            log_event("artifact_failed", category="export", level="error",
+                      mode="onnx-int8", error=str(exc))
             return 1
         return 0
 
@@ -529,6 +548,9 @@ def main():
         labels = _write_label_files(args.split_dir, args.out_dir)
         print(f"[export] labels written: {', '.join(labels)}")
         print(f"[export] input convention: {MOBILE_INPUT_RANGE}")
+        log_event("artifact", category="export", mode="tflite",
+                  checkpoint=checkpoint_path, int8_path=int8_path,
+                  fp32_path=fp32_path, size_mb=round(_size(int8_path), 2))
 
         if not args.skip_app_assets and os.path.isdir(TFLITE_APP_ASSETS_DIR):
             _copy_to_app_assets({

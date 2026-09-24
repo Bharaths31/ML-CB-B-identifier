@@ -62,12 +62,22 @@ EXPORT_FORMATS = ["portable", "onnx", "int8", "float16"]
 #  Helpers
 # ============================================================
 
+def _log_event(event, **fields):
+    """Best-effort structured logging (never raises if the logger is absent)."""
+    try:
+        from src.run_logger import log_event
+        return log_event(event, **fields)
+    except Exception:
+        return None
+
+
 def _banner(stage, title):
     """Print a prominent stage banner."""
     width = 60
     print(f"\n{'=' * width}")
     print(f"  §{stage} — {title}")
     print(f"{'=' * width}\n")
+    _log_event("stage_start", category="actions", stage=stage, title=title)
 
 
 def _run(cmd, cwd=None, env=None, check=True, capture=False):
@@ -76,15 +86,30 @@ def _run(cmd, cwd=None, env=None, check=True, capture=False):
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
+    # Give child processes the SAME execution id so their logs correlate.
+    try:
+        from src.run_logger import get_logger
+        lg = get_logger()
+        if lg is not None:
+            merged_env.setdefault("RUN_EXEC_ID", lg.exec_id)
+    except Exception:
+        pass
     kwargs = dict(cwd=cwd, env=merged_env)
     if capture:
         kwargs["capture_output"] = True
         kwargs["text"] = True
+    start = time.time()
+    _log_event("command_start", category="actions", cmd=list(cmd), cwd=cwd)
     result = subprocess.run(cmd, **kwargs)
+    _log_event("command_end", category="actions", cmd=list(cmd),
+               returncode=result.returncode,
+               duration_s=round(time.time() - start, 3))
     if check and result.returncode != 0:
         if capture:
             print(f"  STDOUT: {result.stdout}")
             print(f"  STDERR: {result.stderr}")
+        _log_event("command_failed", category="actions", level="error",
+                   cmd=list(cmd), returncode=result.returncode)
         raise RuntimeError(
             f"Command failed (exit {result.returncode}): {' '.join(cmd)}")
     return result
@@ -643,6 +668,10 @@ def build_dataset_inventory(source_base, dataset_name, out_dir=None,
           f"({inventory['totals']['breeds']} breeds, "
           f"{inventory['totals']['images']} images"
           + (f", {len(errors)} unreadable" if errors else "") + ")")
+    _log_event("dataset_inventory", category="data", dataset=dataset_name,
+               out_path=out_path, totals=inventory["totals"],
+               breeds={e["breed"]: {"species": e["species"], "count": e["count"]}
+                       for e in breeds})
     return inventory
 
 
@@ -1087,6 +1116,9 @@ Outputs are timestamped per run and never overwrite previous results.
     parser.add_argument("--run-tag", default=None,
                         help="run id for timestamped outputs "
                              "(default: current time DD-MM-YYYY-HH-MM)")
+    parser.add_argument("--exec-id", default=None,
+                        help="execution-log folder name under logs/ "
+                             "(default: auto YYYYmmdd-HHMMSS-xxxx)")
 
     # Skip stages
     parser.add_argument("--skip-download", action="store_true",
@@ -1106,6 +1138,14 @@ Outputs are timestamped per run and never overwrite previous results.
                         help="select the dataset sources to use for training (default: both)")
 
     args = parser.parse_args()
+
+    # --- execution logger (single folder logs/<exec_id>/) ---
+    try:
+        from src.run_logger import init_run_logger, log_event
+        init_run_logger(exec_id=getattr(args, "exec_id", None), module="local_train")
+        log_event("cli_args", category="actions", **vars(args))
+    except Exception:
+        pass
 
     total_start = time.time()
 

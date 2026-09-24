@@ -635,6 +635,20 @@ class ModelManager:
             for p, idx in zip(raw_probs.tolist(), raw_idxs.tolist())
         ]
 
+        # --- execution log: one record per prediction ---
+        try:
+            from src.run_logger import log_event
+            log_event("prediction", category="test", model=model_name,
+                      species=result.get("species"),
+                      species_confidence=result.get("species_confidence"),
+                      top_breed=result.get("top_breed"),
+                      top_breed_confidence=result.get("top_breed_confidence"),
+                      top5=[b["breed"] for b in result.get("top5_breeds", [])],
+                      latency_ms=result.get("inference_time_ms"),
+                      routing=result.get("routing"))
+        except Exception:
+            pass
+
         return result
 
 
@@ -2206,6 +2220,13 @@ def main():
     mode_group.add_argument("--present", action="store_true",
                             help="presenter mode — clean, polished view")
     args = parser.parse_args()
+
+    try:
+        from src.run_logger import init_run_logger, log_event
+        init_run_logger(module="test_model")
+        log_event("cli_args", category="actions", **vars(args))
+    except Exception:
+        pass
 
     mode = "present" if args.present else "dev"
 

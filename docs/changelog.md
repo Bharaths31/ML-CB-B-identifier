@@ -1,5 +1,29 @@
 # 16. Changelog
 
+### 2026-09-24 — Unified execution logger (`logs/<exec_id>/`) + `ema_decay` fix
+
+- **Fixed `NameError: ema_decay`** in `train_phase` (the EMA-diagnostics block
+  referenced `ema_decay` without declaring it — crashed phase 2). Added the
+  parameter and forwarded it to `run_epoch`. Verified on CPU with an EMA model;
+  `pyflakes` now reports **no undefined names** across `src/`, `local_train.py`,
+  `test_model.py`.
+- **New `src/run_logger.py`**: per-execution logger writing
+  `logs/<exec_id>/{manifest.json,config.json,run.log,events.jsonl,actions.jsonl,
+  training.jsonl,data.jsonl,test.jsonl,export.jsonl}`. `exec_id` =
+  `YYYYmmdd-HHMMSS-<4hex>`, override with `--exec-id` / `RUN_EXEC_ID`.
+- **Auto-start**: `sitecustomize.py` initialises the logger for any Python run
+  inside the project (use `PYTHONPATH=.`), and every entry point
+  (`src.train`, `local_train.py`, `test_model.py`, `src.export`,
+  `src.evaluate`, `src/parity_check`, `src.verify`) calls `init_run_logger()`.
+  Stdout/stderr are tee'd into `run.log` (tqdm `\r` frames collapsed).
+- **Instrumentation**: training logs the plan + per-epoch raw/EMA metrics +
+  checkpoint saves; `local_train.py` logs stages, subprocess commands and the
+  dataset inventory; `data_pipeline` logs split summaries; `test_model.py` logs
+  one record per prediction; export/evaluate/parity log artifacts and verdicts.
+- **New `scripts/view_logs.py`**: `list` / `summary` / `metrics` / `events` /
+  `diff` over the log folders (read-only).
+- `logs/` added to `.gitignore`.
+
 ### 2026-09-24 — Blocking bug fixes, flip+RRC on by default, dataset inventory
 
 - **Missing `src/run_utils.py` crash fixed**: the file is now present and

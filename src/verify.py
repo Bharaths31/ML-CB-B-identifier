@@ -40,6 +40,8 @@ def check_full_model(name):
 
 
 def main():
+    from .run_logger import init_run_logger
+    init_run_logger(module="src.verify")
     print(f"Python: {sys.version.split()[0]}")
     print(f"torch: {torch.__version__}")
     try:

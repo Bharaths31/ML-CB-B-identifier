@@ -1,12 +1,10 @@
 # Graph Report - ML-CB-B-identifier  (2026-09-24)
 
 ## Corpus Check
-- 70 files · ~271,525 words
-- Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 23 file(s) not represented in the graph (top: (none) 8, .pt 6, .ipynb 3)
+- cluster-only mode — file stats not available
 
 ## Summary
-- 812 nodes · 1655 edges · 44 communities (40 shown, 4 thin omitted)
+- 812 nodes · 1650 edges · 42 communities (39 shown, 3 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.78)
 - Token cost: 0 input · 0 output
 
@@ -55,10 +53,8 @@
 - build_dataset_inventory
 - ExportWrapper
 - cbam.py
-- .__init__
 - Colab README
 - predict_single
-- _RawOutputs
 
 ## God Nodes (most connected - your core abstractions)
 1. `BreedClassifier` - 44 edges
@@ -105,7 +101,7 @@
 - **Cattle Breed Prediction Outputs Across Test Screenshots** — test_results_screenshot_20260913_135102_umblachery_prediction, test_results_screenshot_20260914_213516_amritmahal_prediction, test_results_screenshot_20260914_215842_amritmahal_prediction, test_results_screenshot_20260914_215909_kenkatha_prediction [INFERRED 0.85]
 - **Mobile INT8 deployment pipeline: export -> parity gate -> Flutter app** — concept_tflite_export, concept_onnx_int8, concept_parity_gate, concept_flutter_app, concept_android_deployment [INFERRED 0.85]
 
-## Communities (44 total, 4 thin omitted)
+## Communities (42 total, 3 thin omitted)
 
 ### Community 0 - "data_pipeline.py"
 Cohesion: 0.05
@@ -116,8 +112,8 @@ Cohesion: 0.06
 Nodes (43): Project Rules (AGENTS.md), Config Centralization Convention, CUDA/CPU Graceful Support, Real Mini-Dataset Smoke Test Rule, Knowledge distillation (teacher-student), Android Deployment, API Reference, Knowledge Distillation (+35 more)
 
 ### Community 2 - "export.py"
-Cohesion: 0.13
-Nodes (22): Module Reference — Source Code Cross-Reference, Module dependency graph, Common Operations, _calibration_images(), _copy_to_app_assets(), create_portable_export(), export_onnx_int8(), __init__() (+14 more)
+Cohesion: 0.11
+Nodes (24): Module Reference — Source Code Cross-Reference, Module dependency graph, Common Operations, _calibration_images(), _copy_to_app_assets(), create_portable_export(), export_onnx_int8(), __init__() (+16 more)
 
 ### Community 3 - "ModelManager"
 Cohesion: 0.15
@@ -252,12 +248,8 @@ Cohesion: 0.22
 Nodes (8): build_dataset_inventory(), find_breed_dirs(), merge_into_species_dir(), normalize_breed_name(), Find all leaf directories containing images (breed folders)., Normalize breed folder names: lowercase, underscores, strip whitespace., Write a JSON inventory of one dataset to ``<out_dir>/<dataset_name>.json``. For…, Auto-detect breed folders inside source_base and copy/merge them into…
 
 ### Community 39 - "cbam.py"
-Cohesion: 0.31
-Nodes (6): CBAM attention, Model Architecture, SE attention, build_attention(), CBAM, SEBlock
-
-### Community 40 - ".__init__"
-Cohesion: 0.27
-Nodes (4): ChannelAttention, Zero the last Conv2d weight in a Sequential so its output is 0., SpatialAttention, _zero_init_last()
+Cohesion: 0.16
+Nodes (10): CBAM attention, Model Architecture, SE attention, build_attention(), CBAM, ChannelAttention, Zero the last Conv2d weight in a Sequential so its output is 0., SEBlock (+2 more)
 
 ### Community 41 - "Colab README"
 Cohesion: 0.39
@@ -268,9 +260,9 @@ Cohesion: 0.32
 Nodes (8): predict_single(), preprocess_image(), Preprocess a PIL image for ONNX inference. Matches the evaluation transform…, Numerically stable softmax., Run full inference pipeline on a single PIL image. Returns: dict with species,…, softmax(), Image, ndarray
 
 ## Knowledge Gaps
-- **100 isolated node(s):** `_ScoredBreed`, `_inputSize`, `_preprocessor`, `_interpreter`, `_binaryLabels` (+95 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 324 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **100 isolated node(s):** `_binaryLabels`, `_buffaloLabels`, `_cattleLabels`, `dispose`, `_execute` (+95 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 325 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -285,7 +277,7 @@ _Questions this graph is uniquely positioned to answer:_
   _`BreedClassifier` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `CONTEXT.md — Context Database` (e.g. with `README.md` and `mkdocs.yml — Material docs site config`) actually correct?**
   _`CONTEXT.md — Context Database` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `_ScoredBreed`, `_inputSize`, `_preprocessor` to the rest of the system?**
+- **What connects `_binaryLabels`, `_buffaloLabels`, `_cattleLabels` to the rest of the system?**
   _100 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `data_pipeline.py` be split into smaller, more focused modules?**
   _Cohesion score 0.05029838022165388 - nodes in this community are weakly interconnected._

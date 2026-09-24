@@ -296,6 +296,19 @@
       "source_location": "L42"
     },
     {
+      "id": "src_export_rawoutputs",
+      "label": "_RawOutputs",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "export.py",
+      "file_type": "code",
+      "norm_label": "_rawoutputs",
+      "source_file": "src/export.py",
+      "source_location": "L27"
+    },
+    {
       "id": "test_model_modelmanager",
       "label": "ModelManager",
       "_callable": true,
@@ -413,6 +426,19 @@
       "source_location": "L62"
     },
     {
+      "id": "src_cbam_channelattention",
+      "label": "ChannelAttention",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": "channelattention",
+      "source_file": "src/cbam.py",
+      "source_location": "L17"
+    },
+    {
       "id": "src_cbam_seblock",
       "label": "SEBlock",
       "_callable": true,
@@ -426,43 +452,17 @@
       "source_location": "L77"
     },
     {
-      "id": "src_cbam_channelattention",
-      "label": "ChannelAttention",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": "channelattention",
-      "source_file": "src/cbam.py",
-      "source_location": "L17"
-    },
-    {
       "id": "src_cbam_spatialattention",
       "label": "SpatialAttention",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
+      "community": 39,
+      "community_name": "cbam.py",
       "file_type": "code",
       "norm_label": "spatialattention",
       "source_file": "src/cbam.py",
       "source_location": "L42"
-    },
-    {
-      "id": "src_export_rawoutputs",
-      "label": "_RawOutputs",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "_RawOutputs",
-      "file_type": "code",
-      "norm_label": "_rawoutputs",
-      "source_file": "src/export.py",
-      "source_location": "L27"
     },
     {
       "id": "src_data_pipeline_cattlebuffalodataset_disable_cache",
@@ -1773,6 +1773,18 @@
       "source_location": "L57"
     },
     {
+      "id": "src_export_mobileoutputs_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "export.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/export.py",
+      "source_location": "L51"
+    },
+    {
       "id": "src_export_onnx_input_name",
       "label": "_onnx_input_name()",
       "_callable": true,
@@ -1783,6 +1795,30 @@
       "norm_label": "_onnx_input_name()",
       "source_file": "src/export.py",
       "source_location": "L195"
+    },
+    {
+      "id": "src_export_rawoutputs_forward",
+      "label": ".forward()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "export.py",
+      "file_type": "code",
+      "norm_label": ".forward()",
+      "source_file": "src/export.py",
+      "source_location": "L37"
+    },
+    {
+      "id": "src_export_rawoutputs_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "export.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/export.py",
+      "source_location": "L33"
     },
     {
       "id": "src_export_size",
@@ -3057,6 +3093,42 @@
       "source_location": "L71"
     },
     {
+      "id": "src_cbam_cbam_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/cbam.py",
+      "source_location": "L63"
+    },
+    {
+      "id": "src_cbam_channelattention_forward",
+      "label": ".forward()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".forward()",
+      "source_file": "src/cbam.py",
+      "source_location": "L31"
+    },
+    {
+      "id": "src_cbam_channelattention_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/cbam.py",
+      "source_location": "L18"
+    },
+    {
       "id": "src_cbam_seblock_forward",
       "label": ".forward()",
       "_callable": true,
@@ -3067,6 +3139,54 @@
       "norm_label": ".forward()",
       "source_file": "src/cbam.py",
       "source_location": "L92"
+    },
+    {
+      "id": "src_cbam_seblock_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/cbam.py",
+      "source_location": "L78"
+    },
+    {
+      "id": "src_cbam_spatialattention_forward",
+      "label": ".forward()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".forward()",
+      "source_file": "src/cbam.py",
+      "source_location": "L51"
+    },
+    {
+      "id": "src_cbam_spatialattention_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/cbam.py",
+      "source_location": "L43"
+    },
+    {
+      "id": "src_cbam_zero_init_last",
+      "label": "_zero_init_last()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "code",
+      "norm_label": "_zero_init_last()",
+      "source_file": "src/cbam.py",
+      "source_location": "L7"
     },
     {
       "id": "src_model_breedclassifier_init",
@@ -3165,90 +3285,6 @@
       "source_location": "L105"
     },
     {
-      "id": "src_cbam_cbam_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/cbam.py",
-      "source_location": "L63"
-    },
-    {
-      "id": "src_cbam_channelattention_forward",
-      "label": ".forward()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".forward()",
-      "source_file": "src/cbam.py",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_cbam_channelattention_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/cbam.py",
-      "source_location": "L18"
-    },
-    {
-      "id": "src_cbam_seblock_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/cbam.py",
-      "source_location": "L78"
-    },
-    {
-      "id": "src_cbam_spatialattention_forward",
-      "label": ".forward()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".forward()",
-      "source_file": "src/cbam.py",
-      "source_location": "L51"
-    },
-    {
-      "id": "src_cbam_spatialattention_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/cbam.py",
-      "source_location": "L43"
-    },
-    {
-      "id": "src_cbam_zero_init_last",
-      "label": "_zero_init_last()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": "_zero_init_last()",
-      "source_file": "src/cbam.py",
-      "source_location": "L7"
-    },
-    {
       "id": "colab_cattle_buffalo_tester_predict_single",
       "label": "predict_single()",
       "_callable": true,
@@ -3283,42 +3319,6 @@
       "norm_label": "softmax()",
       "source_file": "colab/cattle_buffalo_tester.py",
       "source_location": "L224"
-    },
-    {
-      "id": "src_export_mobileoutputs_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "_RawOutputs",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/export.py",
-      "source_location": "L51"
-    },
-    {
-      "id": "src_export_rawoutputs_forward",
-      "label": ".forward()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "_RawOutputs",
-      "file_type": "code",
-      "norm_label": ".forward()",
-      "source_file": "src/export.py",
-      "source_location": "L37"
-    },
-    {
-      "id": "src_export_rawoutputs_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "_RawOutputs",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/export.py",
-      "source_location": "L33"
     },
     {
       "id": "local_train_banner",
@@ -5293,6 +5293,17 @@
       "source_location": "L253"
     },
     {
+      "id": "src_export_rationale_28",
+      "label": "Legacy convention: the CALLER normalizes with ImageNet mean/std. Used for\u2026",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "export.py",
+      "file_type": "rationale",
+      "norm_label": "legacy convention: the caller normalizes with imagenet mean/std. used for...",
+      "source_file": "src/export.py",
+      "source_location": "L28"
+    },
+    {
       "id": "src_export_rationale_349",
       "label": "Bundle the trained model + labels + metadata into a portable folder. The\u2026",
       "_origin": "ast",
@@ -6302,6 +6313,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_cbam_rationale_8",
+      "label": "Zero the last Conv2d weight in a Sequential so its output is 0.",
+      "_origin": "ast",
+      "community": 39,
+      "community_name": "cbam.py",
+      "file_type": "rationale",
+      "norm_label": "zero the last conv2d weight in a sequential so its output is 0.",
+      "source_file": "src/cbam.py",
+      "source_location": "L8"
+    },
+    {
       "id": "src_train_rationale_106",
       "label": "SupCon (Khosla et al., 2020) over the auxiliary projection embedding. Pulls\u2026",
       "_origin": "ast",
@@ -6357,17 +6379,6 @@
       "source_location": "L239"
     },
     {
-      "id": "src_cbam_rationale_8",
-      "label": "Zero the last Conv2d weight in a Sequential so its output is 0.",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": ".__init__",
-      "file_type": "rationale",
-      "norm_label": "zero the last conv2d weight in a sequential so its output is 0.",
-      "source_file": "src/cbam.py",
-      "source_location": "L8"
-    },
-    {
       "id": "image",
       "label": "Image",
       "_origin": "ast",
@@ -6421,17 +6432,6 @@
       "norm_label": "run full inference pipeline on a single pil image. returns: dict with species,...",
       "source_file": "colab/cattle_buffalo_tester.py",
       "source_location": "L231"
-    },
-    {
-      "id": "src_export_rationale_28",
-      "label": "Legacy convention: the CALLER normalizes with ImageNet mean/std. Used for\u2026",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "_RawOutputs",
-      "file_type": "rationale",
-      "norm_label": "legacy convention: the caller normalizes with imagenet mean/std. used for...",
-      "source_file": "src/export.py",
-      "source_location": "L28"
     },
     {
       "id": "changenotifier",

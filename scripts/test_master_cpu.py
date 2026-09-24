@@ -19,6 +19,8 @@ from PIL import Image
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
+# Keep the test run itself out of logs/ (logger is tested in a subprocess).
+os.environ.setdefault("RUN_LOG_DISABLE", "1")
 
 import src.config as C
 from src import data_pipeline as dp
@@ -259,6 +261,30 @@ check("local_train preflight lists run_utils.py",
       "run_utils.py" in lt.REQUIRED_SRC_MODULES)
 
 # ---------------------------------------------------------------------------
+print("\n[Logger] per-execution folder, manifest, config, events, metrics")
+tmp_logs = tempfile.mkdtemp(prefix="logs_")
+code = (
+    "import sys; sys.path.insert(0, %r)\n"
+    "from src.run_logger import init_run_logger, log_event, log_metrics, finish_run\n"
+    "lg = init_run_logger(exec_id='TESTEXEC', module='unit', log_root=%r, capture_stdio=False)\n"
+    "log_event('hello', category='actions', x=1)\n"
+    "log_metrics({'blended_score':0.5,'combined_top1_soft':0.4}, epoch=1, tag='raw')\n"
+    "finish_run(0)\n"
+    "print(lg.dir)\n" % (PROJECT_ROOT, tmp_logs)
+)
+env = {k: v for k, v in os.environ.items() if k != "RUN_LOG_DISABLE"}
+r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+folder = (r.stdout.strip().splitlines() or [""])[-1]
+check("logger creates exec folder", os.path.isdir(folder), folder or r.stderr[-200:])
+check("manifest.json written", os.path.exists(os.path.join(folder, "manifest.json")))
+check("config.json written", os.path.exists(os.path.join(folder, "config.json")))
+check("events.jsonl contains the event",
+      os.path.exists(os.path.join(folder, "events.jsonl"))
+      and '"hello"' in open(os.path.join(folder, "events.jsonl")).read())
+check("training.jsonl contains metrics",
+      os.path.exists(os.path.join(folder, "training.jsonl"))
+      and "blended_score" in open(os.path.join(folder, "training.jsonl")).read())
+
 print(f"\n{'='*60}\nRESULT: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     print("FAILED:", FAIL)
