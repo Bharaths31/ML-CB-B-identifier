@@ -118,10 +118,36 @@ HARD_PAIR_BOOST = 4.0            # sampler boost for confused-pair co-sampling
 
 # --- Data integrity -------------------------------------------------------
 DEDUP_SPLITS = False             # group-aware splits by perceptual hash
-DEDUP_HAMMING = 4
-HASH_CACHE_NAME = "hashes.csv"
 VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
-BREED_ALIASES = {}               # spelling-variant merge map (opt-in, empty)
+BREED_ALIASES = {
+    "holstein-friesian": "holstein_friesian",
+    "luit_(swamp)": "luit",
+    # Fix 1 Option C: Merge rare similar breeds into broader categories
+    "gangatiri": "light_draught",
+    "kenkatha": "light_draught",
+    "hariana": "light_draught",
+    "malvi": "light_draught",
+    "bachaur": "light_draught",
+    "gaolao": "light_draught",
+    
+    "ponwar": "dark_draught",
+    "siri": "dark_draught",
+    "ladakhi": "dark_draught",
+    "himachali_pahari": "dark_draught",
+    "belahi": "dark_draught",
+    "dagri": "dark_draught",
+    "thutho": "dark_draught",
+    
+    "red_kandhari": "red_draught",
+    "poda_thurpu": "red_draught",
+    
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "marathwadi": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo"
+}
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---
 # The 1280-d pooled feature vector was previously unused. A projection head +
@@ -180,7 +206,7 @@ BINARY_SATURATION_ACC = 0.95
 PHASE1_EPOCHS = 8
 PHASE1_LR = 3e-3
 
-PHASE2_EPOCHS = 80
+PHASE2_EPOCHS = 50
 PHASE2_LR = 2e-4
 
 PHASE3_EPOCHS = 10

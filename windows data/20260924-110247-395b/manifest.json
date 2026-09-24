@@ -1,0 +1,28 @@
+{
+  "exec_id": "20260924-110247-395b",
+  "module": "src.train",
+  "argv": [
+    "E:\\ML-CB-B-identifier\\src\\train.py",
+    "--backbone",
+    "lite2",
+    "--attention",
+    "cbam",
+    "--skip-qat",
+    "--run-tag",
+    "V3"
+  ],
+  "cwd": "E:\\ML-CB-B-identifier",
+  "project_root": "E:\\ML-CB-B-identifier",
+  "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+  "executable": "E:\\ML-CB-B-identifier\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "git_commit": "984ea52",
+  "env": {
+    "RUN_EXEC_ID": "20260924-110247-395b"
+  },
+  "started_at": "2026-09-24T11:04:16",
+  "hostname": "LAPTOP-O5GAR6UF",
+  "ended_at": "2026-09-24T20:49:06",
+  "duration_s": 35178.546,
+  "exit_code": 0
+}

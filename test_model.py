@@ -375,23 +375,24 @@ class ModelManager:
         self._discover_models()
 
     def _load_class_maps(self):
-        """Load breed label maps from data/splits/."""
-        for species in ("cattle", "buffalo"):
-            path = os.path.join(SPLIT_DIR, f"{species}_classes.json")
-            if os.path.exists(path):
-                with open(path) as f:
-                    self.class_maps[species] = json.load(f)
-
-        # Also check portable export directories
+        """Load breed label maps, prioritizing portable exports to avoid mismatch."""
+        # 1. Try portable export directories first
+        for portable_dir in glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*")):
+            for species in ("cattle", "buffalo"):
+                path = os.path.join(portable_dir, f"{species}_classes.json")
+                if os.path.exists(path):
+                    with open(path) as f:
+                        self.class_maps[species] = json.load(f)
+            if len(self.class_maps) == 2:
+                break
+                
+        # 2. Fallback to data/splits/ if no portable exports found
         if not self.class_maps:
-            for portable_dir in glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*")):
-                for species in ("cattle", "buffalo"):
-                    path = os.path.join(portable_dir, f"{species}_classes.json")
-                    if os.path.exists(path):
-                        with open(path) as f:
-                            self.class_maps[species] = json.load(f)
-                if len(self.class_maps) == 2:
-                    break
+            for species in ("cattle", "buffalo"):
+                path = os.path.join(SPLIT_DIR, f"{species}_classes.json")
+                if os.path.exists(path):
+                    with open(path) as f:
+                        self.class_maps[species] = json.load(f)
 
         if logger:
             for sp, cm in self.class_maps.items():

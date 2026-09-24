@@ -258,6 +258,15 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None):
     df = pd.DataFrame(rows, columns=["path", "species", "breed", "binary_label"])
     df = df[df["path"].apply(os.path.exists)].reset_index(drop=True)
 
+    # Fix 1 Option A: Drop ultra-rare breeds (< 20 images) to prevent metrics inflation
+    # and to stop wasting model capacity.
+    counts = df.groupby("breed").size()
+    keep_breeds = counts[counts >= 20].index
+    dropped = len(counts) - len(keep_breeds)
+    if dropped > 0:
+        print(f"[data] dropping {dropped} ultra-rare breeds (< 20 images)")
+        df = df[df["breed"].isin(keep_breeds)].reset_index(drop=True)
+
     rng = random.Random(42)
     if dedup is None:
         dedup = DEDUP_SPLITS
