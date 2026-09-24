@@ -1,5 +1,43 @@
 # 16. Changelog
 
+### 2026-09-24 — Blocking bug fixes, flip+RRC on by default, dataset inventory
+
+- **Missing `src/run_utils.py` crash fixed**: the file is now present and
+  `local_train.py` preflights every required `src/` module, raising a clear
+  "sync these files" error instead of `ModuleNotFoundError`.
+- **`SAMPLER_BETA` import** added to `src/train.py` (it was used in `main()`
+  but never imported → would crash).
+- **Mixing gate fixed**: `run_epoch` gated mixing on `desc.startswith("train")`,
+  which never matched `phase{n} e{i}/{N}`, so `--mix` was dead code. Replaced
+  with an explicit `training=True` flag and a `mix_stats` counter; the eval log
+  now prints `mix=on (n/N batches)` only when mixing actually ran.
+- **`find_latest_checkpoint` pattern fixed** to match timestamped names
+  (`lite2_phase2_best_V3.pt`), and `resolve_checkpoint(path_or_tag)` added so
+  `--run-tag V3` works with `--checkpoint` in export/evaluate/parity_check.
+- **Class-count fail-fast**: `prepare_*` now raises with explicit extra/missing
+  breed names and prints names shared across species (`bargur`).
+- **Flip + mild RRC ON by default** (`AUG_HORIZONTAL_FLIP`,
+  `AUG_RANDOM_RESIZED_CROP`) — they don't mix content between breeds. Colour
+  jitter / RandAugment / mix stay off. `--no-augment` forces all off.
+- **RRC ratio tightened** to `(0.92, 1.08)` and **hue capped at 0.02**
+  (`--allow-hue` to raise) so body proportions and coat colour survive.
+- **Breed-aware augmentation**: `BREED_AUG_POLICY` / `COAT_COLOUR_BREEDS`
+  (coat-colour breeds skip colour jitter), applied per sample in the Dataset.
+- **Pad-to-square** (`--pad-to-square`): resize long side + pad to square,
+  keeping full-body side profiles.
+- **CBAM/SE identity at init** (`CBAM_IDENTITY_INIT`): zero-init final layers
+  with `x*(1+gate)`, so attention no longer distorts pretrained features during
+  phase-1 warmup.
+- **Metrics**: `combined_top3/5` are now species-aware over the soft-routed
+  75-way scores; the old true-species versions are `combined_top3_oracle` /
+  `combined_top5_oracle`. Added `val_min_per_breed` / `val_median_per_breed`
+  and fixed the `pred_hist_entropy` comment.
+- **Dataset inventory**: `build_dataset_inventory()` in `local_train.py` and the
+  Colab downloader writes `data/dataset_inventory/<dataset>.json` with breed,
+  species (cattle/buffalo), count, and per-image resolution for both datasets
+  and the merged tree.
+- **Tests**: `scripts/test_master_cpu.py` (40 CPU-only synthetic checks).
+
 ### 2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs
 
 Diagnosed from a 10-photo ONNX batch test (0/10 correct; top-5 dominated by rare

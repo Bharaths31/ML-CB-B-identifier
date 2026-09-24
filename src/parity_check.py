@@ -33,7 +33,7 @@ from .config import (CHECKPOINT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      METRICS_DIR, SPLIT_DIR)
 from .data_pipeline import get_dataloaders
 from .export import _load_model  # reuse the guarded checkpoint loader
-from .run_utils import make_run_id, timestamped
+from .run_utils import make_run_id, resolve_checkpoint, timestamped
 
 MOBILE_CONVENTION = "input RGB in [0,1], normalization baked into the artifact"
 RAW_CONVENTION = "input ImageNet-normalized by the caller"
@@ -253,13 +253,11 @@ def main():
 
     run_id = make_run_id(args.run_tag)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    checkpoint_path = args.checkpoint
-    if not checkpoint_path:
-        from .run_utils import find_latest_checkpoint
-        checkpoint_path = find_latest_checkpoint(CHECKPOINT_DIR, args.backbone)
+    checkpoint_path = resolve_checkpoint(args.checkpoint, args.backbone,
+                                         CHECKPOINT_DIR)
     if not checkpoint_path or not os.path.exists(checkpoint_path):
-        print(f"[parity] checkpoint not found under {CHECKPOINT_DIR} "
-              f"(looked for {args.backbone}_*_phase2_best.pt); pass --checkpoint")
+        print(f"[parity] checkpoint not found for '{args.checkpoint}' under "
+              f"{CHECKPOINT_DIR}; pass --checkpoint PATH or --run-tag")
         return 1
 
     model = _load_model(checkpoint_path, args.backbone, args.attention)

@@ -42,7 +42,14 @@
 | `CUTMIX_MIXUP_PROB` | 0.25 | Per-step probability of CutMix or MixUp (when enabled) |
 | `MIX_SAME_SPECIES` | True | Pair mixing partners within the same species |
 | `MIX_OFF_LAST_FRAC` | 0.15 | Disable mixing for the last 15% of phase 2 |
-| `AUG_HORIZONTAL_FLIP` / `AUG_COLOR_JITTER` / `AUG_RANDAUGMENT` / `AUG_RANDOM_RESIZED_CROP` | False | Stochastic train transforms (opt-in) |
+| `AUG_HORIZONTAL_FLIP` / `AUG_RANDOM_RESIZED_CROP` | **True** | On by default — they don't mix content between breeds |
+| `AUG_COLOR_JITTER` / `AUG_RANDAUGMENT` | False | Off by default (can erase breed-defining coat colour/features) |
+| `RRC_SCALE` / `RRC_RATIO` | (0.8,1.0) / (0.92,1.08) | RRC near-square so body proportions are preserved |
+| `COLOR_JITTER_*` / `ALLOW_HUE` | 0.15/0.15/0.1/0.02 / False | Hue capped at 0.02 unless `--allow-hue` |
+| `BREED_AUG_POLICY` / `COAT_COLOUR_BREEDS` | coat breeds → color_jitter False | Per-breed augmentation overrides |
+| `EVAL_PAD_TO_SQUARE` / `TRAIN_PAD_TO_SQUARE` | False | Pad-to-square keeps full-body side profiles |
+| `CBAM_IDENTITY_INIT` | True | Attention is identity at init (bug fix) |
+| `TIMESTAMP_OUTPUTS` / `RUN_ID_FORMAT` | True / `%d-%m-%Y-%H-%M` | Timestamped, non-overwriting outputs |
 | `RANDAUGMENT_OPS` / `RANDAUGMENT_MAGNITUDE` | 2 / 5 | RandAugment settings (when enabled) |
 | `TRAIN_RESIZE` | 288 | Shortest side before RandomResizedCrop (when RRC enabled) |
 | `EVAL_MATCH_TRAIN_RESOLUTION` | False | Eval with Resize(288)+CenterCrop(260) instead of Resize(260)+CenterCrop |

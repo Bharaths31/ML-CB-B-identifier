@@ -14,7 +14,8 @@ from .config import (CHECKPOINT_DIR, METRICS_DIR, NUM_BUFFALO_BREEDS,
 from .data_pipeline import compute_class_counts, get_dataloaders
 from .export import _sanitize_state_dict
 from .model import BreedClassifier
-from .run_utils import find_latest_checkpoint, make_run_id, timestamped
+from .run_utils import (find_latest_checkpoint, make_run_id,
+                        resolve_checkpoint, timestamped)
 
 
 @torch.no_grad()
@@ -111,11 +112,11 @@ def main():
         return 1
     _, val_loader, test_loader = loaders
 
-    checkpoint_path = args.checkpoint or find_latest_checkpoint(
-        CHECKPOINT_DIR, args.backbone)
+    checkpoint_path = resolve_checkpoint(args.checkpoint, args.backbone,
+                                         CHECKPOINT_DIR)
     if not checkpoint_path or not os.path.exists(checkpoint_path):
-        print(f"[evaluate] no checkpoint found for {args.backbone} under "
-              f"{CHECKPOINT_DIR}; pass --checkpoint")
+        print(f"[evaluate] no checkpoint found for '{args.checkpoint}' under "
+              f"{CHECKPOINT_DIR}; pass --checkpoint PATH or --run-tag")
         return 1
 
     model = BreedClassifier(backbone=args.backbone, attention=args.attention)

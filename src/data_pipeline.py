@@ -12,15 +12,20 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 from tqdm import tqdm
 
-from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
-                     AUG_RANDOM_RESIZED_CROP, CACHE_IMAGES, CUTMIX_ALPHA,
-                     EVAL_MATCH_TRAIN_RESOLUTION, HALF_DATA_RATIO, IMAGE_SIZE,
-                     MIX_SAME_SPECIES, MIXUP_ALPHA, NUM_BUFFALO_BREEDS,
-                     NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO, RANDAUGMENT_MAGNITUDE,
-                     RANDAUGMENT_OPS, RARE_CLASS_THRESHOLD, RAW_DATA_DIR,
-                     SAMPLER_BETA, SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
-                     TRAIN_RESIZE, VAL_RATIO, IMAGENET_MEAN, IMAGENET_STD,
-                     CUTMIX_MIXUP_PROB)
+from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
+                     AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_AUG_POLICY,
+                     CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
+                     COLOR_JITTER_CONTRAST, COLOR_JITTER_HUE,
+                     COLOR_JITTER_SATURATION, CUTMIX_ALPHA,
+                     EVAL_MATCH_TRAIN_RESOLUTION, EVAL_PAD_TO_SQUARE,
+                     EXPECTED_BUFFALO_BREEDS, EXPECTED_CATTLE_BREEDS,
+                     HALF_DATA_RATIO, IMAGE_SIZE, MIX_SAME_SPECIES, MIXUP_ALPHA,
+                     NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO,
+                     RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS, RARE_CLASS_THRESHOLD,
+                     RAW_DATA_DIR, RRC_RATIO, RRC_SCALE, SAMPLER_BETA,
+                     SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
+                     TRAIN_PAD_TO_SQUARE, TRAIN_RESIZE, VAL_RATIO,
+                     IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -137,10 +142,7 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
     }
     print(f"[data] images={len(df)} train={n_train} val={n_val} test={n_test} "
           f"cattle_breeds={len(cattle_breeds)} buffalo_breeds={len(buffalo_breeds)}")
-    if len(cattle_breeds) != NUM_CATTLE_BREEDS or len(buffalo_breeds) != NUM_BUFFALO_BREEDS:
-        print(f"[data] WARNING: expected {NUM_CATTLE_BREEDS} cattle and "
-              f"{NUM_BUFFALO_BREEDS} buffalo breeds, found {len(cattle_breeds)} "
-              f"and {len(buffalo_breeds)}")
+    _validate_class_counts(cattle_breeds, buffalo_breeds)
     return summary
 
 
@@ -208,6 +210,7 @@ def prepare_half_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     }
     print(f"[data] half-data: {len(half_df)} images ({ratio*100:.0f}%/breed) "
           f"train={n_train} val={n_val} test={n_test}")
+    _validate_class_counts(cattle_breeds, buffalo_breeds)
     return summary
 
 
@@ -274,6 +277,7 @@ def prepare_quarter_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     }
     print(f"[data] quarter-data: {len(quarter_df)} images ({ratio*100:.0f}%/breed) "
           f"train={n_train} val={n_val} test={n_test}")
+    _validate_class_counts(cattle_breeds, buffalo_breeds)
     return summary
 
 
@@ -362,7 +366,45 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     return summary
 
 
-def _train_transform(augment=None):
+class _PadToSquare:
+    """Resize the LONG side to ``size`` and pad the short side to a square.
+
+    A 4:3 photo loses ~25% of its width to CenterCrop; padding keeps the whole
+    body. Fill is the ImageNet mean in 8-bit, which becomes ~0 after Normalize.
+    """
+
+    def __init__(self, size, fill=None):
+        self.size = size
+        self.fill = fill or tuple(int(round(m * 255)) for m in IMAGENET_MEAN)
+
+    def __call__(self, img):
+        w, h = img.size
+        scale = self.size / max(w, h)
+        nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
+        resized = img.resize((nw, nh), Image.BILINEAR)
+        canvas = Image.new("RGB", (self.size, self.size), self.fill)
+        canvas.paste(resized, ((self.size - nw) // 2, (self.size - nh) // 2))
+        return canvas
+
+    def __repr__(self):
+        return f"PadToSquare({self.size}, fill={self.fill})"
+
+
+def resolve_breed_augment(breed, base_augment):
+    """Merge per-breed augmentation overrides on top of the base flags."""
+    policy = dict(base_augment)
+    policy.update(BREED_AUG_POLICY.get(breed, {}))
+    return policy
+
+
+def _color_jitter(allow_hue=False):
+    hue = max(COLOR_JITTER_HUE, 0.1) if allow_hue else COLOR_JITTER_HUE
+    return transforms.ColorJitter(brightness=COLOR_JITTER_BRIGHTNESS,
+                                  contrast=COLOR_JITTER_CONTRAST,
+                                  saturation=COLOR_JITTER_SATURATION, hue=hue)
+
+
+def _train_transform(augment=None, pad=None, allow_hue=False):
     """Build the training transform.
 
     Augmentation is OFF by default (see ``AUG_*`` / ``MIX_ENABLED`` in config)
@@ -371,26 +413,30 @@ def _train_transform(augment=None):
     train transform is identical to the eval transform.
     """
     augment = augment or {}
+    if pad is None:
+        pad = TRAIN_PAD_TO_SQUARE
     rrc = augment.get("random_resized_crop", AUG_RANDOM_RESIZED_CROP)
     flip = augment.get("horizontal_flip", AUG_HORIZONTAL_FLIP)
     color_jitter = augment.get("color_jitter", AUG_COLOR_JITTER)
     randaugment = augment.get("randaugment", AUG_RANDAUGMENT)
 
     if not (rrc or flip or color_jitter or randaugment):
-        return _eval_transform()
+        return _eval_transform(pad=pad)
 
     blocks = []
-    if rrc:
+    if pad:
+        blocks.append(_PadToSquare(IMAGE_SIZE))
+    elif rrc:
         blocks += [transforms.Resize(TRAIN_RESIZE),  # 288px for scale variation
-                   transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.8, 1.0))]
+                   transforms.RandomResizedCrop(IMAGE_SIZE, scale=RRC_SCALE,
+                                                ratio=RRC_RATIO)]
     else:
         blocks += [transforms.Resize(IMAGE_SIZE),
                    transforms.CenterCrop(IMAGE_SIZE)]
     if flip:
         blocks.append(transforms.RandomHorizontalFlip())
     if color_jitter:
-        blocks.append(transforms.ColorJitter(brightness=0.2, contrast=0.2,
-                                             saturation=0.2, hue=0.1))
+        blocks.append(_color_jitter(allow_hue))
     if randaugment:
         blocks.append(transforms.RandAugment(num_ops=RANDAUGMENT_OPS,
                                              magnitude=RANDAUGMENT_MAGNITUDE))
@@ -399,29 +445,62 @@ def _train_transform(augment=None):
     return transforms.Compose(blocks)
 
 
-def _eval_transform():
+def _eval_transform(pad=None):
     # Default matches the Flutter preprocessor and _MobileOutputs exactly:
     # shortest-side resize to 260, then center-crop 260.
     # EVAL_MATCH_TRAIN_RESOLUTION=True instead resizes to 288 then center-crops
     # 260 (same object scale the training crop is drawn from) — compare on the
-    # GPU machine before changing the default.
-    resize = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
-    return transforms.Compose([
-        transforms.Resize(resize),
-        transforms.CenterCrop(IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-    ])
+    # GPU machine before changing the default. pad=True keeps the whole frame.
+    if pad is None:
+        pad = EVAL_PAD_TO_SQUARE
+    if pad:
+        blocks = [_PadToSquare(IMAGE_SIZE)]
+    else:
+        resize = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
+        blocks = [transforms.Resize(resize), transforms.CenterCrop(IMAGE_SIZE)]
+    blocks += [transforms.ToTensor(),
+               transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)]
+    return transforms.Compose(blocks)
+
+
+def describe_transform(transform):
+    """Human-readable list of a Compose's ops (for startup logging)."""
+    if transform is None:
+        return "none"
+    ops = getattr(transform, "transforms", [transform])
+    return " -> ".join(repr(op) for op in ops)
 
 
 class CattleBuffaloDataset(Dataset):
-    def __init__(self, manifest, cattle_classes, buffalo_classes, transform=None, cache_images=False):
+    def __init__(self, manifest, cattle_classes, buffalo_classes, transform=None,
+                 cache_images=False, augment=None, breed_augment=False, pad=None,
+                 allow_hue=False):
         self.manifest = manifest.reset_index(drop=True)
         self.cattle_classes = cattle_classes
         self.buffalo_classes = buffalo_classes
-        self.transform = transform or _eval_transform()
+        self.transform = transform or _eval_transform(pad=pad)
         self._use_cache = cache_images
         self._image_cache = {}
+        # Per-breed augmentation: when `augment` is non-empty the transform is
+        # selected per sample by breed (coat-colour breeds skip colour jitter).
+        self._augment = dict(augment or {})
+        self._breed_augment = breed_augment
+        self._pad = pad
+        self._allow_hue = allow_hue
+        self._transform_cache = {}
+
+    def _transform_for(self, breed):
+        if not self._augment:
+            return self.transform
+        aug = (resolve_breed_augment(breed, self._augment)
+               if self._breed_augment else dict(self._augment))
+        key = (tuple(sorted((k, bool(v)) for k, v in aug.items())),
+               bool(self._pad), bool(self._allow_hue))
+        tf = self._transform_cache.get(key)
+        if tf is None:
+            tf = _train_transform(aug, pad=self._pad, allow_hue=self._allow_hue)
+            self._transform_cache[key] = tf
+        return tf
 
     def enable_cache(self):
         self._use_cache = True
@@ -448,8 +527,9 @@ class CattleBuffaloDataset(Dataset):
             import io
             image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
-        if self.transform is not None:
-            image = self.transform(image)
+        transform = self._transform_for(row["breed"])
+        if transform is not None:
+            image = transform(image)
         is_cattle = row["binary_label"] == 0
         if is_cattle:
             cattle_onehot = torch.zeros(NUM_CATTLE_BREEDS)
@@ -596,6 +676,43 @@ def _load_class_maps(split_dir):
     return cattle_classes, buffalo_classes
 
 
+def _validate_class_counts(cattle_breeds, buffalo_breeds):
+    """Fail fast when breed counts differ from the model's head sizes.
+
+    A mismatch would otherwise surface much later as an index error when the
+    dataset builds a one-hot vector. Also prints any breed name that appears
+    under BOTH species (e.g. ``bargur``).
+    """
+    shared = sorted(set(cattle_breeds) & set(buffalo_breeds))
+    if shared:
+        print(f"[data] NOTE: breed name(s) under BOTH species: {shared} "
+              f"(kept as separate classes, split per (species, breed))")
+    errors = []
+    for species, found, expected_n, expected_list in (
+            ("cattle", cattle_breeds, NUM_CATTLE_BREEDS, EXPECTED_CATTLE_BREEDS),
+            ("buffalo", buffalo_breeds, NUM_BUFFALO_BREEDS, EXPECTED_BUFFALO_BREEDS)):
+        if len(found) == expected_n:
+            continue
+        msg = f"{species}: found {len(found)} breeds, expected {expected_n}"
+        if expected_list:
+            extra = sorted(set(found) - set(expected_list))
+            missing = sorted(set(expected_list) - set(found))
+            if extra:
+                msg += f"; extra={extra}"
+            if missing:
+                msg += f"; missing={missing}"
+        else:
+            msg += f"; found={sorted(found)}"
+        errors.append(msg)
+    if errors:
+        raise ValueError(
+            "[data] breed-count mismatch (model heads are sized "
+            f"{NUM_CATTLE_BREEDS} cattle + {NUM_BUFFALO_BREEDS} buffalo):\n  "
+            + "\n  ".join(errors)
+            + "\n  Fix the dataset folders, or set EXPECTED_*_BREEDS in "
+              "src/config.py, or update NUM_*_BREEDS to match.")
+
+
 def _count_per_class(df, class_map, num_classes, species=None):
     counts = np.zeros(num_classes, dtype=np.float64)
     if species is not None:
@@ -694,13 +811,16 @@ def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
 
 
 def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
-                    pin_memory=None, augment=None):
+                    pin_memory=None, augment=None, breed_augment=False, pad=None,
+                    allow_hue=False):
     """Build train/val/test DataLoaders.
 
     Args:
         pin_memory: If None, auto-detect (True when CUDA is available).
         augment: Optional dict of augmentation switches for the TRAIN split
             (see ``_train_transform``). Default = config defaults (all off).
+        breed_augment: Apply per-breed overrides (``BREED_AUG_POLICY``).
+        pad: Pad-to-square for all splits (None = config defaults).
     """
     train_df = _read_csv(split_dir, "train")
     val_df = _read_csv(split_dir, "val")
@@ -715,13 +835,16 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
     if pin_memory is None:
         pin_memory = torch.cuda.is_available()
 
-    train_ds = CattleBuffaloDataset(train_df, cattle_classes, buffalo_classes,
-                                    transform=_train_transform(augment),
-                                    cache_images=CACHE_IMAGES)
+    train_ds = CattleBuffaloDataset(
+        train_df, cattle_classes, buffalo_classes,
+        transform=_train_transform(augment, pad=pad), cache_images=CACHE_IMAGES,
+        augment=augment, breed_augment=breed_augment, pad=pad)
     val_ds = CattleBuffaloDataset(val_df, cattle_classes, buffalo_classes,
-                                  transform=_eval_transform(), cache_images=CACHE_IMAGES)
+                                  transform=_eval_transform(pad=pad),
+                                  cache_images=CACHE_IMAGES)
     test_ds = CattleBuffaloDataset(test_df, cattle_classes, buffalo_classes,
-                                   transform=_eval_transform(), cache_images=CACHE_IMAGES)
+                                   transform=_eval_transform(pad=pad),
+                                   cache_images=CACHE_IMAGES)
 
     prefetch = 4 if num_workers > 0 else None
     train_loader = DataLoader(

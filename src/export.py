@@ -14,8 +14,8 @@ from .config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      IMAGE_SIZE, PORTABLE_EXPORT_DIR, SPLIT_DIR,
                      SPECIES_LABELS, TFLITE_APP_ASSETS_DIR)
 from .model import BreedClassifier
-from .run_utils import (find_latest_checkpoint, make_run_id, timestamped,
-                        unique_path)
+from .run_utils import (find_latest_checkpoint, make_run_id,
+                        resolve_checkpoint, timestamped, unique_path)
 
 MOBILE_INPUT_RANGE = "[0, 1] RGB float32 (NCHW), normalization baked into the graph"
 
@@ -432,13 +432,13 @@ def main():
     args = parser.parse_args()
 
     run_id = make_run_id(args.run_tag)
-    checkpoint_path = args.checkpoint
-    if not checkpoint_path:
-        checkpoint_path = find_latest_checkpoint(CHECKPOINT_DIR, args.backbone)
+    # --checkpoint accepts a path, a run-tag (e.g. V3), or None (newest).
+    checkpoint_path = resolve_checkpoint(args.checkpoint, args.backbone,
+                                         CHECKPOINT_DIR)
     if not checkpoint_path or not os.path.exists(checkpoint_path):
-        print(f"[export] checkpoint not found (looked for "
-              f"{args.backbone}_*_phase2_best.pt under {CHECKPOINT_DIR}); "
-              f"pass --checkpoint")
+        print(f"[export] checkpoint not found for '{args.checkpoint}' "
+              f"(looked for {args.backbone}_*_phase2_best.pt under "
+              f"{CHECKPOINT_DIR}); pass --checkpoint PATH or --run-tag")
         return 1
 
     model = _load_model(checkpoint_path, args.backbone, args.attention)

@@ -522,7 +522,7 @@ This notebook allows you to:
 | **Optimizer** | AdamW, weight_decay=1e-2 | Decoupled weight decay, better generalization |
 | **LR Schedule** | Linear warmup (3 epochs) → Cosine annealing | Stable convergence, avoids early overfitting |
 | **Label Smoothing** | ε=0.05 | Prevents overconfident predictions |
-| **Augmentation (OFF by default)** | Opt-in: `--mix` (CutMix α=0.4 / MixUp α=0.2, p=0.25), `--flip`, `--color-jitter`, `--randaugment`, `--rrc` | Fine-grained breeds need clean signal; enable only when it helps |
+| **Augmentation** | Flip + mild RRC **ON by default** (no content mixing). Opt-in: `--mix` (CutMix α=0.4 / MixUp α=0.2, p=0.25), `--color-jitter`, `--randaugment`, `--augment-preset light`, `--breed-aug`, `--pad-to-square`. `--no-augment` forces all off | Flip/RRC improve generalization without erasing breed identity |
 | **Same-species mixing** | CutMix/MixUp pair only within a species | Keeps binary labels one-hot and breed targets proper distributions |
 | **Mixing off at the end** | `MIX_OFF_LAST_FRAC=0.15` of phase 2 | Model finishes on clean images → crisper boundaries |
 | **Rare-class mixing guard** | Breeds < 30 train imgs never mixed | Protects 10-image breeds |
@@ -877,6 +877,32 @@ arguments.
 | `python scripts/diagnose_model.py --checkpoint <pt> [--ema <pt>] --split test` | binary/cattle/buffalo acc, combined top1/3/5 + soft, per-class recall by shot bucket, true/pred histograms, top-20 confusion pairs. |
 | `python scripts/onnx_parity_10.py --checkpoint <pt> --onnx <fp32.onnx> --images "Testing data/**/*.jpg"` | Asserts identical soft top-5 and max &#124;Δlogit&#124; < 1e-3 between PyTorch and the fp32 ONNX. |
 | `python scripts/test_fixes_cpu.py` | CPU-only synthetic unit tests (no data/GPU needed). |
+
+### Dataset inventory (breed / species / count / resolution)
+
+Both `local_train.py` and the Colab downloader write a JSON inventory per source
+dataset and for the merged tree, into `data/dataset_inventory/`:
+
+```
+data/dataset_inventory/
+├── algsoch.json                 # breeds under cattle/ and buffalo/, counts, per-image resolution
+├── atharvadarpude_cattle.json
+├── atharvadarpude_buffalo.json
+└── merged.json                  # the final data/raw tree
+```
+
+Each file records, per breed: `breed`, `species` (cattle/buffalo), `count`,
+`resolutions` (e.g. `{"640x480": 700}`) and `images` (name + width + height).
+Unreadable files are listed under `errors` (read-only; nothing is deleted).
+Skip it with `local_train.py --skip-inventory`.
+
+### Missing-module preflight (why training can crash with `No module named 'src.X'`)
+
+New files (e.g. `src/run_utils.py`) must be synced to the training machine.
+`local_train.py` now checks every required `src/` module up front and raises a
+clear "sync these files" error instead of a raw traceback. If you hit
+`ModuleNotFoundError: No module named 'src.run_utils'`, run `git pull` (or copy
+the whole `src/` folder) — the file list is under **Files to commit/sync**.
 
 ### Suggested 3-run quarter-data ablation (GPU machine)
 

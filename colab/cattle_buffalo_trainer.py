@@ -200,6 +200,94 @@ def normalize_breed_name(name):
     """Normalize breed folder names: lowercase, underscores, strip whitespace."""
     return name.strip().lower().replace(" ", "_").replace("-", "_")
 
+def build_dataset_inventory(source_base, dataset_name, out_dir=None,
+                            source_hint=None, include_images=True):
+    """Write a JSON inventory of one dataset to ``<out_dir>/<dataset_name>.json``.
+
+    For every breed folder it records the breed name, whether it sits under a
+    cattle or buffalo directory (``species``), the image count, the resolution
+    of EACH image (width x height), and a resolution histogram. ``source_hint``
+    ("cattle"/"buffalo") is used when the source tree has no species
+    sub-directory (e.g. the atharvadarpude datasets). Read-only: never modifies
+    or deletes data. Returns the inventory dict.
+    """
+    import json as _json
+    import time as _time
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+
+    VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
+    out_dir = out_dir or f"{PROJECT_DIR}/data/dataset_inventory"
+    os.makedirs(out_dir, exist_ok=True)
+
+    def _species_from_path(rel_parts):
+        for p in rel_parts:
+            pl = p.lower()
+            if pl in ("cattle", "cow", "cows"):
+                return "cattle"
+            if pl in ("buffalo", "buff", "buffaloes"):
+                return "buffalo"
+        return source_hint or "unknown"
+
+    breeds, errors = [], []
+    for root, dirs, files in os.walk(source_base):
+        imgs = sorted(f for f in files
+                      if os.path.splitext(f)[1].lower() in VALID_EXTS)
+        if not imgs:
+            continue
+        rel = os.path.relpath(root, source_base)
+        rel_parts = [] if rel == "." else rel.split(os.sep)
+        species = _species_from_path(rel_parts)
+        breed = normalize_breed_name(os.path.basename(root))
+        entry = {"breed": breed, "species": species,
+                 "source_folder": rel.replace(os.sep, "/"), "count": 0,
+                 "resolutions": {}, "images": [] if include_images else None}
+        for fname in imgs:
+            fpath = os.path.join(root, fname)
+            w = h = None
+            if Image is not None:
+                try:
+                    with Image.open(fpath) as im:
+                        w, h = im.size
+                except Exception as exc:
+                    errors.append({"file": fpath, "error": str(exc)})
+                    continue
+            entry["count"] += 1
+            key = f"{w}x{h}" if w and h else "unknown"
+            entry["resolutions"][key] = entry["resolutions"].get(key, 0) + 1
+            if include_images:
+                entry["images"].append(
+                    {"file": os.path.relpath(fpath, source_base).replace(os.sep, "/"),
+                     "width": w, "height": h})
+        breeds.append(entry)
+
+    breeds.sort(key=lambda e: (e["species"], e["breed"]))
+    by_species = {}
+    for e in breeds:
+        by_species[e["species"]] = by_species.get(e["species"], 0) + e["count"]
+    inventory = {
+        "dataset": dataset_name,
+        "source_dir": os.path.abspath(source_base),
+        "source_hint": source_hint,
+        "generated_at": _time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "totals": {"breeds": len(breeds),
+                   "images": sum(e["count"] for e in breeds),
+                   "by_species": by_species,
+                   "unreadable": len(errors)},
+        "breeds": breeds,
+        "errors": errors,
+    }
+    out_path = os.path.join(out_dir, f"{dataset_name}.json")
+    with open(out_path, "w") as f:
+        _json.dump(inventory, f, indent=2)
+    print(f"   📋 Inventory: {dataset_name} -> {out_path} "
+          f"({inventory['totals']['breeds']} breeds, "
+          f"{inventory['totals']['images']} images"
+          + (f", {len(errors)} unreadable" if errors else "") + ")")
+    return inventory
+
 def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
     """
     Auto-detect breed folders inside source_base and copy/merge them into
@@ -268,6 +356,7 @@ if KAGGLE_USERNAME and KAGGLE_KEY:
         print(f"
 📥 Downloading algsoch dataset...")
         dl_path = download_kaggle_dataset(SLUG_ALGSOCH, f"{TMP_DL}/algsoch")
+        build_dataset_inventory(dl_path, "algsoch")
         n = merge_into_species_dir(dl_path, cattle_dir, species_hint="cattle")
         print(f"      Cattle: {n} images merged")
         n = merge_into_species_dir(dl_path, buffalo_dir, species_hint="buffalo")
@@ -277,14 +366,19 @@ if KAGGLE_USERNAME and KAGGLE_KEY:
         print(f"
 📥 Downloading atharvadarpude cattle dataset...")
         dl_path = download_kaggle_dataset(SLUG_ATHARVA_CATTLE, f"{TMP_DL}/atharva_cattle")
+        build_dataset_inventory(dl_path, "atharvadarpude_cattle", source_hint="cattle")
         n = merge_into_species_dir(dl_path, cattle_dir)
         print(f"      Cattle: {n} images merged")
 
         print(f"
 📥 Downloading atharvadarpude buffalo dataset...")
         dl_path = download_kaggle_dataset(SLUG_ATHARVA_BUFFALO, f"{TMP_DL}/atharva_buffalo")
+        build_dataset_inventory(dl_path, "atharvadarpude_buffalo", source_hint="buffalo")
         n = merge_into_species_dir(dl_path, buffalo_dir)
         print(f"      Buffalo: {n} images merged")
+
+    # Inventory the final merged tree too
+    build_dataset_inventory(DATA_RAW, "merged")
 
     # Cleanup temp downloads
     if os.path.exists(TMP_DL):

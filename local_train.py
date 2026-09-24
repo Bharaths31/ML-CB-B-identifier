@@ -45,6 +45,15 @@ DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
 REQUIREMENTS = os.path.join(PROJECT_ROOT, "requirements.txt")
 
+# Every src module the training run imports. If any is missing the run crashes
+# with "No module named 'src.X'" — usually a stale checkout that never got the
+# new files (e.g. src/run_utils.py). Checked up front with a clear message.
+REQUIRED_SRC_MODULES = (
+    "__init__.py", "config.py", "run_utils.py", "data_pipeline.py", "model.py",
+    "cbam.py", "efficientnet_lite.py", "train.py", "metrics.py", "export.py",
+    "evaluate.py", "parity_check.py", "verify.py",
+)
+
 # Export formats to produce after training
 EXPORT_FORMATS = ["portable", "onnx", "int8", "float16"]
 
@@ -532,6 +541,111 @@ def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
 
     return copied
 
+
+INVENTORY_DIR = os.path.join(PROJECT_ROOT, "data", "dataset_inventory")
+
+
+def build_dataset_inventory(source_base, dataset_name, out_dir=None,
+                            source_hint=None, include_images=True):
+    """Write a JSON inventory of a dataset to ``<out_dir>/<dataset_name>.json``.
+
+    For every breed folder it records:
+      * the breed name,
+      * whether it sits under a cattle or buffalo directory (``species``),
+      * the number of images,
+      * the resolution of EACH image (width x height),
+      * a resolution histogram (e.g. ``{"640x480": 700}``).
+
+    ``source_hint`` ("cattle"/"buffalo") is used when the source tree has no
+    species sub-directory (e.g. the atharvadarpude datasets). Unreadable images
+    are recorded under ``"errors"`` instead of aborting. This function only
+    reads; it never modifies or deletes data. Returns the inventory dict.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+
+    VALID_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+    out_dir = out_dir or INVENTORY_DIR
+    os.makedirs(out_dir, exist_ok=True)
+
+    def _species_from_path(rel_parts):
+        for p in rel_parts:
+            pl = p.lower()
+            if pl in ("cattle", "cow", "cows"):
+                return "cattle"
+            if pl in ("buffalo", "buff", "buffaloes"):
+                return "buffalo"
+        return source_hint or "unknown"
+
+    breeds = []
+    errors = []
+    for root, dirs, files in os.walk(source_base):
+        imgs = sorted(f for f in files
+                      if os.path.splitext(f)[1].lower() in VALID_EXTS)
+        if not imgs:
+            continue
+        rel = os.path.relpath(root, source_base)
+        rel_parts = [] if rel == "." else rel.split(os.sep)
+        species = _species_from_path(rel_parts)
+        breed = normalize_breed_name(os.path.basename(root))
+        entry = {
+            "breed": breed,
+            "species": species,
+            "source_folder": rel.replace(os.sep, "/"),
+            "count": 0,
+            "resolutions": {},
+            "images": [] if include_images else None,
+        }
+        for fname in imgs:
+            fpath = os.path.join(root, fname)
+            w = h = None
+            if Image is not None:
+                try:
+                    with Image.open(fpath) as im:
+                        w, h = im.size
+                except Exception as exc:  # unreadable / corrupt
+                    errors.append({"file": fpath, "error": str(exc)})
+                    continue
+            entry["count"] += 1
+            key = f"{w}x{h}" if w and h else "unknown"
+            entry["resolutions"][key] = entry["resolutions"].get(key, 0) + 1
+            if include_images:
+                entry["images"].append(
+                    {"file": os.path.relpath(fpath, source_base).replace(os.sep, "/"),
+                     "width": w, "height": h})
+        breeds.append(entry)
+
+    breeds.sort(key=lambda e: (e["species"], e["breed"]))
+    by_species = {}
+    for e in breeds:
+        by_species[e["species"]] = by_species.get(e["species"], 0) + e["count"]
+
+    inventory = {
+        "dataset": dataset_name,
+        "source_dir": os.path.abspath(source_base),
+        "source_hint": source_hint,
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "totals": {
+            "breeds": len(breeds),
+            "images": sum(e["count"] for e in breeds),
+            "by_species": by_species,
+            "unreadable": len(errors),
+        },
+        "breeds": breeds,
+        "errors": errors,
+    }
+    out_path = os.path.join(out_dir, f"{dataset_name}.json")
+    with open(out_path, "w") as f:
+        json.dump(inventory, f, indent=2)
+    print(f"  📋 Inventory: {dataset_name} -> {out_path} "
+          f"({inventory['totals']['breeds']} breeds, "
+          f"{inventory['totals']['images']} images"
+          + (f", {len(errors)} unreadable" if errors else "") + ")")
+    return inventory
+
+
 def stage_unzip_organize(args):
     _banner(3, "Unzip & Organize Dataset")
 
@@ -547,6 +661,8 @@ def stage_unzip_organize(args):
         if n_cattle > 0 and n_buffalo > 0:
             print(f"  ✅ Dataset already organized: {n_cattle} cattle, "
                   f"{n_buffalo} buffalo breeds")
+            if not getattr(args, "skip_inventory", False):
+                build_dataset_inventory(DATA_RAW_DIR, "merged")
             return
 
     # Find the zip files
@@ -572,7 +688,21 @@ def stage_unzip_organize(args):
         
         with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(zip_extract_dir)
-            
+
+        # Inventory the raw source dataset BEFORE merging, so the JSON records
+        # which breeds live under cattle/ vs buffalo/ with per-image resolutions.
+        if not getattr(args, "skip_inventory", False):
+            if "breed-cattle-buffalo" in zip_path:
+                build_dataset_inventory(zip_extract_dir, "algsoch")
+            elif "indian-cattle" in zip_path:
+                build_dataset_inventory(zip_extract_dir, "atharvadarpude_cattle",
+                                        source_hint="cattle")
+            elif "indian-buffalo" in zip_path:
+                build_dataset_inventory(zip_extract_dir, "atharvadarpude_buffalo",
+                                        source_hint="buffalo")
+            else:
+                build_dataset_inventory(zip_extract_dir, zip_name)
+
         # Merge logic based on filename
         if "breed-cattle-buffalo" in zip_path:
             merge_into_species_dir(zip_extract_dir, cattle_dir, species_hint="cattle")
@@ -598,6 +728,10 @@ def stage_unzip_organize(args):
                  if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".webp"))])
             for b in breeds)
         print(f"  ✅ {species}: {len(breeds)} breeds, {n_images} images")
+
+    # Inventory the final merged tree (data/raw/{cattle,buffalo}/<breed>/).
+    if not getattr(args, "skip_inventory", False):
+        build_dataset_inventory(DATA_RAW_DIR, "merged")
 
     # Clean up zip to save disk space
     print(f"  Removing archives and temp files to save disk space...")
@@ -673,6 +807,15 @@ def stage_data_splits(args):
 
 def stage_train(args):
     _banner(6, "Model Training")
+
+    # Preflight: make sure every src module exists before spawning training.
+    missing = [m for m in REQUIRED_SRC_MODULES
+               if not os.path.exists(os.path.join(PROJECT_ROOT, "src", m))]
+    if missing:
+        raise RuntimeError(
+            "Missing src module(s): " + ", ".join(f"src/{m}" for m in missing)
+            + "\n  These are new/updated files that must be synced (git pull / "
+              "copy the whole src/ folder). Training cannot start without them.")
 
     # Build training command
     cmd = [_python(), "-m", "src.train",
@@ -954,6 +1097,9 @@ Outputs are timestamped per run and never overwrite previous results.
                         help="skip architecture verification")
     parser.add_argument("--skip-export", action="store_true",
                         help="skip multi-format export after training")
+    parser.add_argument("--skip-inventory", action="store_true",
+                        help="skip writing data/dataset_inventory/*.json "
+                             "(per-dataset breed/image/resolution logs)")
     
     # Dataset mode
     parser.add_argument("--dataset-mode", choices=["algsoch", "atharvadarpude", "both"], default="both",

@@ -43,6 +43,8 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
     n_combined_soft = correct_combined_soft = 0
     n_top3 = correct_top3 = 0
     n_top5 = correct_top5 = 0
+    n_top3_oracle = correct_top3_oracle = 0
+    n_top5_oracle = correct_top5_oracle = 0
 
     n_cattle_classes = n_buffalo_classes = 0
     cattle_cm = buffalo_cm = None
@@ -100,34 +102,35 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
             for t, p in zip(bt.tolist(), bp.tolist()):
                 buffalo_cm[t, p] += 1
 
-        # --- Hard-routing combined top-1/3/5 (legacy metric) ---
+        # --- Hard-routing combined top-1 (legacy metric) ---
         cattle_hit = (bin_pred == 0) & (bin_true == 0) & (cattle_pred == cattle_true)
         buffalo_hit = (bin_pred == 1) & (bin_true == 1) & (buffalo_pred == buffalo_true)
         correct_combined += (cattle_hit | buffalo_hit).sum().item()
         n_combined += bs
 
+        is_cattle = (bin_true == 0)
+
+        # --- Oracle top-3/5: uses the TRUE species' head (cheating on routing,
+        #     kept for continuity with older reports) ---
         cattle_top3 = out["cattle"].topk(3, dim=1).indices
         buffalo_top3 = out["buffalo"].topk(3, dim=1).indices
         cattle_in_top3 = (cattle_top3 == cattle_true.unsqueeze(1)).any(dim=1)
         buffalo_in_top3 = (buffalo_top3 == buffalo_true.unsqueeze(1)).any(dim=1)
-
         cattle_top5 = out["cattle"].topk(5, dim=1).indices
         buffalo_top5 = out["buffalo"].topk(5, dim=1).indices
         cattle_in_top5 = (cattle_top5 == cattle_true.unsqueeze(1)).any(dim=1)
         buffalo_in_top5 = (buffalo_top5 == buffalo_true.unsqueeze(1)).any(dim=1)
+        correct_top3_oracle += torch.where(is_cattle, cattle_in_top3,
+                                           buffalo_in_top3).sum().item()
+        n_top3_oracle += bs
+        correct_top5_oracle += torch.where(is_cattle, cattle_in_top5,
+                                           buffalo_in_top5).sum().item()
+        n_top5_oracle += bs
 
-        is_cattle = (bin_true == 0)
-        correct_top3 += torch.where(is_cattle, cattle_in_top3,
-                                    buffalo_in_top3).sum().item()
-        n_top3 += bs
-        correct_top5 += torch.where(is_cattle, cattle_in_top5,
-                                    buffalo_in_top5).sum().item()
-        n_top5 += bs
-
-        # --- Soft-routing combined top-1 ---
+        # --- Soft-routing combined top-1/3/5 (species-aware over 75 classes) ---
         # p(species) * softmax(breed head): a confident breed head can still
         # win when the binary head is ambiguous, removing the hard two-stage
-        # error propagation.
+        # error propagation. Top-k is taken over the combined 75-way scores.
         p_species = F.softmax(out["binary"], dim=1)
         p_cattle = F.softmax(out["cattle"], dim=1)
         p_buffalo = F.softmax(out["buffalo"], dim=1)
@@ -138,6 +141,13 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
                                   n_cattle_classes + buffalo_true)
         correct_combined_soft += (soft_pred == true_global).sum().item()
         n_combined_soft += bs
+
+        soft_top3 = soft_scores.topk(3, dim=1).indices
+        soft_top5 = soft_scores.topk(5, dim=1).indices
+        correct_top3 += (soft_top3 == true_global.unsqueeze(1)).any(dim=1).sum().item()
+        n_top3 += bs
+        correct_top5 += (soft_top5 == true_global.unsqueeze(1)).any(dim=1).sum().item()
+        n_top5 += bs
 
         # --- Shot-bucket accuracy + predicted-class histogram ---
         n_global = n_cattle_classes + n_buffalo_classes
@@ -178,8 +188,12 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
         "cattle_balanced_acc": cattle_balanced,
         "buffalo_balanced_acc": buffalo_balanced,
         "combined_top1": acc(correct_combined, n_combined),
+        # Species-aware: top-k over the soft-routed 75-way scores.
         "combined_top3": acc(correct_top3, n_top3),
         "combined_top5": acc(correct_top5, n_top5),
+        # Oracle: top-k within the TRUE species head (legacy, routing-free).
+        "combined_top3_oracle": acc(correct_top3_oracle, n_top3_oracle),
+        "combined_top5_oracle": acc(correct_top5_oracle, n_top5_oracle),
         "combined_top1_soft": acc(correct_combined_soft, n_combined_soft),
     }
     metrics["balanced_score"] = 0.5 * (cattle_macro_f1 + buffalo_macro_f1)
@@ -193,9 +207,18 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
         metrics[f"acc_{name}shot"] = acc(c, n)
         metrics[f"n_{name}shot"] = n
 
+    # Validation support per breed (how many val images each class had).
+    support_cattle = cattle_cm.sum(dim=1)
+    support_buffalo = buffalo_cm.sum(dim=1)
+    present = torch.cat([support_cattle, support_buffalo])
+    present = present[present > 0]
+    metrics["val_min_per_breed"] = int(present.min().item()) if present.numel() else 0
+    metrics["val_median_per_breed"] = (
+        float(present.median().item()) if present.numel() else 0.0)
+
     # Entropy of the predicted-class histogram, normalised to [0,1] by log(K).
-    # High entropy = diffuse/uncertain predictions; low = confident but
-    # possibly collapsed onto a few classes.
+    # LOW entropy = predictions collapsed onto a few classes (possibly
+    # tail-biased); HIGH entropy = spread out / diffuse (uncertain).
     if pred_hist is not None and pred_hist.sum() > 0:
         p = pred_hist.float() / pred_hist.sum()
         ent = -(p * torch.log(p.clamp(min=1e-12))).sum().item()

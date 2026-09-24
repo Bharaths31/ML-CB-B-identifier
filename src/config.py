@@ -7,6 +7,12 @@ NUM_CATTLE_BREEDS = 57
 NUM_BUFFALO_BREEDS = 18
 NUM_BREEDS_TOTAL = 75
 
+# Optional canonical breed-name lists. When set, prepare_* reports the exact
+# extra/missing names on a count mismatch instead of only a count. Leave None
+# to validate counts only.
+EXPECTED_CATTLE_BREEDS = None
+EXPECTED_BUFFALO_BREEDS = None
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 BACKBONE_LR_MULT = 0.1
@@ -53,13 +59,69 @@ RARE_CLASS_THRESHOLD = 30
 # Fine-grained breed identification is hurt by heavy augmentation on a long
 # tail, so every stochastic transform is opt-in per run. Enable with the
 # matching CLI flag (--mix, --flip, --color-jitter, --randaugment, --rrc, or
-# --augment-all). With everything off, the train transform is identical to the
-# eval transform (Resize(260)+CenterCrop(260)+Normalize).
+# --augment-all/--augment-preset light). With everything off, the train
+# transform is identical to the eval transform (Resize(260)+CenterCrop(260)).
 MIX_ENABLED = False              # CutMix/MixUp master switch
-AUG_HORIZONTAL_FLIP = False
+# Horizontal flip and mild RandomResizedCrop are ON by default: they do NOT mix
+# content between breeds and improve generalization. Colour jitter, RandAugment
+# and mixing stay OFF (they can erase breed-defining coat colour / features).
+AUG_HORIZONTAL_FLIP = True
+AUG_RANDOM_RESIZED_CROP = True
 AUG_COLOR_JITTER = False
 AUG_RANDAUGMENT = False
-AUG_RANDOM_RESIZED_CROP = False
+
+# --- Augmentation strengths (only used when the transform is enabled) ------
+# RRC ratio near 1.0 keeps body proportions (hump/dewlap); the torchvision
+# default (3/4, 4/3) distorts them badly.
+RRC_SCALE = (0.8, 1.0)
+RRC_RATIO = (0.92, 1.08)
+# Coat colour is breed-defining for many indigenous cattle, so hue is capped.
+COLOR_JITTER_BRIGHTNESS = 0.15
+COLOR_JITTER_CONTRAST = 0.15
+COLOR_JITTER_SATURATION = 0.1
+COLOR_JITTER_HUE = 0.02
+ALLOW_HUE = False                # raise the hue cap above 0.02 only with --allow-hue
+
+# --- Breed-aware augmentation ---------------------------------------------
+# Per-breed override of {flip, rrc, color_jitter}. Breeds whose identity is
+# coat colour should keep color_jitter=False. Editable; keys are folder names.
+BREED_AUG_DEFAULT = {"flip": True, "rrc": True, "color_jitter": True}
+COAT_COLOUR_BREEDS = (
+    "gir", "kankrej", "red_sindhi", "tharparkar", "sahiwal", "kapila",
+    "red_kandhari", "shweta_kapila", "konkan_kapila", "gir_cattle",
+)
+# Per-breed overrides merged on top of the active augmentation flags. Breeds
+# whose identity is coat colour keep color_jitter=False by default; add or
+# edit entries here (e.g. {"gir": {"color_jitter": True}}).
+BREED_AUG_POLICY = {b: {"color_jitter": False} for b in COAT_COLOUR_BREEDS}
+
+# --- Pad-to-square (opt-in) -----------------------------------------------
+# 4:3 phone photos lose ~25% of width to CenterCrop. Pad mode resizes the LONG
+# side to IMAGE_SIZE and pads to a square (ImageNet-mean fill -> 0 after
+# Normalize). Changes train + eval; Flutter/test_model.py/export must match.
+EVAL_PAD_TO_SQUARE = False
+TRAIN_PAD_TO_SQUARE = False
+PAD_FILL = "imagenet_mean"
+
+# --- Breed-specific feature learning (all opt-in) --------------------------
+CBAM_IDENTITY_INIT = True        # bug fix: attention is identity at init
+TRAIT_WEIGHT = 0.0               # auxiliary trait-head loss weight (0 = off)
+TRAIT_FILE = os.path.join(PROJECT_ROOT, "data", "breed_traits.json")
+TRAIT_FIELDS = ("hump", "horn", "coat", "ear", "dewlap", "face", "size")
+COSINE_HEAD = False              # ArcFace-style normalised breed heads
+COSINE_SCALE = 30.0
+COSINE_MARGIN = 0.3
+COSINE_MARGIN_RAMP_EPOCHS = 10   # ramp margin over the first N phase-2 epochs
+CONTRASTIVE_HARD_NEG_WEIGHT = 2.0
+HARD_PAIRS = None                # path to confusion_pairs.json (opt-in)
+HARD_PAIR_BOOST = 4.0            # sampler boost for confused-pair co-sampling
+
+# --- Data integrity -------------------------------------------------------
+DEDUP_SPLITS = False             # group-aware splits by perceptual hash
+DEDUP_HAMMING = 4
+HASH_CACHE_NAME = "hashes.csv"
+VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
+BREED_ALIASES = {}               # spelling-variant merge map (opt-in, empty)
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---
 # The 1280-d pooled feature vector was previously unused. A projection head +

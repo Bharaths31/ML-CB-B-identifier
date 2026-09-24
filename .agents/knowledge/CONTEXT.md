@@ -102,7 +102,7 @@ Mini Project/
 │   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
 │   ├── train.py                # 2-phase training (logit adj, SupCon, EMA, adaptive weights)
 │   ├── metrics.py              # evaluate_epoch() — per-head acc, F1, macro-F1, soft-routed top1, shot buckets
-│   ├── run_utils.py            # run ids, timestamped paths, unique_path, find_latest_checkpoint
+│   ├── run_utils.py            # run ids, timestamped paths, unique_path, find_latest_checkpoint, resolve_checkpoint
 │   ├── evaluate.py             # Full evaluation with confusion matrices (timestamped outputs)
 │   ├── export.py               # ONNX, INT8, float16, portable export
 │   └── verify.py               # Quick architecture sanity check
@@ -115,7 +115,8 @@ Mini Project/
 │   └── README.md               # Colab setup instructions
 ├── data/
 │   ├── raw/                    # Source images: raw/{cattle,buffalo}/<breed>/*.jpg
-│   └── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
+│   ├── splits/                 # Generated: train.csv, val.csv, test.csv, *_classes.json
+│   └── dataset_inventory/      # Per-dataset JSON: breed, species, count, per-image resolution
 ├── outputs/
 │   ├── checkpoints/            # Training checkpoints (*.pt)
 │   ├── export/                 # ONNX/INT8/float16 exports
@@ -345,12 +346,13 @@ data/raw/
 - **Full training**: 70/15/15 stratified per `(species, breed)` with long-tail minimums — every breed with ≥3 images gets ≥1 val and ≥1 test image (grouping is by species+breed because `bargur` exists under both)
 - **Smoke test**: 5 images/breed → 60/20/20 split (tiny but real)
 
-### Augmentation (OFF by default)
+### Augmentation (flip + RRC ON by default)
 
-- **Train (no flags)**: identical to eval — Resize(260) → CenterCrop(260) → Normalize
-- **Train (opt-in)**: Resize(288) → RandomResizedCrop(260, scale=0.8-1.0) → RandomHorizontalFlip → ColorJitter(0.2,0.2,0.2,0.1) → RandAugment(ops=2, mag=5) → Normalize, each gated by `--rrc` / `--flip` / `--color-jitter` / `--randaugment` (or `--augment-all`)
-- **Eval**: Resize(260) → CenterCrop(260) → ToTensor() → Normalize (`EVAL_MATCH_TRAIN_RESOLUTION=True` switches to Resize(288)+CenterCrop(260))
-- **Batch mixing (opt-in, `--mix`)**: 25% chance of CutMix(α=0.4) or MixUp(α=0.2) on the GPU; partners are drawn **within the same species**; samples from breeds below `RARE_CLASS_THRESHOLD` (30 train images) are kept unmixed; disabled for the last `MIX_OFF_LAST_FRAC` (15%) of phase 2
+- **Train (default)**: Resize(288) → RandomResizedCrop(260, scale=(0.8,1.0), ratio=(0.92,1.08)) → RandomHorizontalFlip → Normalize. Flip/RRC don't mix content between breeds, so they are on by default.
+- **Train (opt-in)**: `--color-jitter` (hue capped at 0.02), `--randaugment`, `--augment-preset light`, `--breed-aug` (per-breed `BREED_AUG_POLICY`; coat-colour breeds skip colour jitter), `--pad-to-square` (resize long side + pad, keeps full-body side profiles).
+- **`--no-augment`** forces every transform off; then the train transform equals eval.
+- **Eval**: Resize(260) → CenterCrop(260) → ToTensor() → Normalize (`EVAL_MATCH_TRAIN_RESOLUTION=True` switches to Resize(288)+CenterCrop(260); `--pad-to-square` uses pad mode). Train/eval chains are printed at startup and a scale-mismatch warning is emitted when RRC is on but eval is not aligned.
+- **Batch mixing (opt-in, `--mix`)**: 25% chance of CutMix(α=0.4) or MixUp(α=0.2); partners drawn **within the same species**; rare breeds kept unmixed; disabled for the last `MIX_OFF_LAST_FRAC` (15%) of phase 2. Gated on the explicit `training=True` flag (not the tqdm desc), and the eval log prints `mix=on (n/N)` only when mixing actually ran.
 - **Caching**: `CACHE_IMAGES` stores raw JPEG bytes in RAM, preventing OOMs while bypassing disk I/O.
 
 ### Label Encoding
@@ -455,7 +457,14 @@ outputs/export/portable/<backbone>_phase2_best/
 | `MIXUP_ALPHA` | 0.2 | MixUp beta distribution α (when enabled) |
 | `CUTMIX_MIXUP_PROB` | 0.25 | Per-step probability of CutMix or MixUp (when enabled) |
 | `MIX_SAME_SPECIES` / `MIX_OFF_LAST_FRAC` | True / 0.15 | Pair within species; disable mixing for the last 15% of phase 2 |
-| `AUG_HORIZONTAL_FLIP` / `AUG_COLOR_JITTER` / `AUG_RANDAUGMENT` / `AUG_RANDOM_RESIZED_CROP` | False | Stochastic train transforms (opt-in) |
+| `AUG_HORIZONTAL_FLIP` / `AUG_RANDOM_RESIZED_CROP` | **True** | On by default (no content mixing between breeds) |
+| `AUG_COLOR_JITTER` / `AUG_RANDAUGMENT` | False | Off by default (can erase breed identity) |
+| `RRC_SCALE` / `RRC_RATIO` | (0.8,1.0) / (0.92,1.08) | Near-square crop preserves body proportions |
+| `COLOR_JITTER_*` / `ALLOW_HUE` | 0.15/0.15/0.1/0.02 / False | Hue capped unless `--allow-hue` |
+| `BREED_AUG_POLICY` / `COAT_COLOUR_BREEDS` | coat breeds skip jitter | Per-breed augmentation |
+| `EVAL_PAD_TO_SQUARE` / `TRAIN_PAD_TO_SQUARE` | False | Pad-to-square (keeps full frame) |
+| `CBAM_IDENTITY_INIT` | True | Attention identity at init (bug fix) |
+| `TRAIT_WEIGHT` / `COSINE_HEAD` / `HARD_PAIRS` / `DEDUP_SPLITS` | 0.0 / False / None / False | New opt-in features (see Phase D/E) |
 | `RANDAUGMENT_OPS` / `RANDAUGMENT_MAGNITUDE` | 2 / 5 | RandAugment settings (when enabled) |
 | `TRAIN_RESIZE` / `EVAL_MATCH_TRAIN_RESOLUTION` | 288 / False | Crop-source scale; eval can match train resolution |
 | `TIMESTAMP_OUTPUTS` / `RUN_ID_FORMAT` | True / `%d-%m-%Y-%H-%M` | Timestamped non-overwriting outputs (DD-MM-YYYY-HH-MM) |
@@ -790,6 +799,33 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 ---
 
 ## 16. Changelog
+
+### 2026-09-24 — Blocking bug fixes, flip+RRC default-on, dataset inventory
+
+- **`src/run_utils.py` must be synced** (it was missing on the GPU machine →
+  `ModuleNotFoundError`). `local_train.py` now preflights every required `src/`
+  module and raises a clear "sync these files" error.
+- **`SAMPLER_BETA` import** added to `src/train.py` (used but not imported).
+- **Mixing gate fixed**: `run_epoch` used `desc.startswith("train")` (never
+  matched `phase{n} ...`), so `--mix` did nothing. Now an explicit `training`
+  flag + `mix_stats`; log prints `mix=on (n/N)` only when it ran.
+- **`find_latest_checkpoint` fixed** to match timestamped names; new
+  `resolve_checkpoint(path_or_tag)` lets `--checkpoint V3` find a tagged run.
+- **Class-count fail-fast** in `prepare_*` (extra/missing names; prints shared
+  species names like `bargur`).
+- **Flip + mild RRC ON by default** (`AUG_HORIZONTAL_FLIP`,
+  `AUG_RANDOM_RESIZED_CROP`); colour jitter / RandAugment / mix stay off;
+  `--no-augment` forces all off. RRC ratio `(0.92,1.08)`, hue capped at 0.02.
+- **Breed-aware augmentation** (`BREED_AUG_POLICY`, coat-colour breeds skip
+  jitter) and **pad-to-square** (`--pad-to-square`).
+- **CBAM/SE identity at init** (`CBAM_IDENTITY_INIT`).
+- **Metrics**: species-aware `combined_top3/5` over the soft-routed 75-way
+  scores; oracle variants renamed `*_oracle`; `val_min_per_breed` /
+  `val_median_per_breed`; entropy comment fixed.
+- **Dataset inventory** (`build_dataset_inventory` in `local_train.py` + Colab):
+  `data/dataset_inventory/<dataset>.json` with breed, species, count and
+  per-image resolution for both datasets and the merged tree.
+- **Tests**: `scripts/test_master_cpu.py` (40 checks) + `scripts/test_fixes_cpu.py`.
 
 ### 2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs
 

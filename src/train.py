@@ -13,11 +13,14 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from tqdm import tqdm
 
-from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
+from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
+                     AUG_RANDOM_RESIZED_CROP,
+                     BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
                      BINARY_SATURATION_ACC, BATCH_SIZE, CHECKPOINT_DIR,
                      CONTRASTIVE_TEMPERATURE, CONTRASTIVE_WEIGHT, EMA_DECAY,
                      EMA_WARMUP, EMA_WARN_FRAC,
                      EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
+                     EVAL_MATCH_TRAIN_RESOLUTION,
                      KD_ALPHA, KD_TEMPERATURE, LOGIT_ADJUST,
                      LOGIT_ADJUST_PRIOR, LOGIT_ADJUST_TAU,
                      GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
@@ -27,8 +30,8 @@ from .config import (BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
                      MIX_OFF_LAST_FRAC, MIX_SAME_SPECIES,
                      PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS, PHASE2_LR,
                      PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR, RAW_DATA_DIR,
-                     RARE_CLASS_THRESHOLD, SEED, SHOT_FEW_MAX, SHOT_MEDIUM_MAX,
-                     SPLIT_DIR, WARMUP_EPOCHS,
+                     RARE_CLASS_THRESHOLD, SAMPLER_BETA, SEED, SHOT_FEW_MAX,
+                     SHOT_MEDIUM_MAX, SPLIT_DIR, WARMUP_EPOCHS,
                      WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
 from .data_pipeline import (compute_class_counts, compute_class_priors,
                             compute_rare_classes, get_dataloaders,
@@ -306,6 +309,7 @@ def _apply_ema(ema_model, model, decay):
 
 def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               max_batches=None, set_train=None, desc="train",
+              training=False, mix_stats=None,
               grad_accum_steps=1, label_smoothing=0.0, ema_model=None,
               ema_decay=EMA_DECAY, ema_warmup=EMA_WARMUP, ema_state=None,
               teacher_model=None, kd_alpha=KD_ALPHA,
@@ -316,7 +320,13 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               contrastive_temp=CONTRASTIVE_TEMPERATURE):
     """Run one training epoch with optional AMP, gradient accumulation,
     label smoothing, logit adjustment, contrastive features, EMA (parameters
-    *and* BatchNorm buffers, once per optimizer step), and teacher distillation."""
+    *and* BatchNorm buffers, once per optimizer step), and teacher distillation.
+
+    ``training`` must be True only for actual training epochs; batch mixing is
+    gated on it (never on the tqdm description string). ``mix_stats`` (a dict)
+    is updated with batch counts so callers can report whether mixing actually
+    ran.
+    """
     set_train = set_train or (lambda m: m.train())
     set_train(model)
     running = []
@@ -342,8 +352,11 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
 
+        if mix_stats is not None:
+            mix_stats["batches"] = mix_stats.get("batches", 0) + 1
+
         mixed = False
-        if desc.startswith("train") and mix_prob > 0 and len(images) > 1 \
+        if training and mix_prob > 0 and len(images) > 1 \
                 and random.random() < mix_prob:
             from .data_pipeline import cutmix, mixup
             keep = _rare_keep_mask(labels, rare_masks)
@@ -354,6 +367,8 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 images, labels = mixup(images, labels, keep=keep,
                                        same_species=same_species)
             mixed = True
+            if mix_stats is not None:
+                mix_stats["mixed_batches"] = mix_stats.get("mixed_batches", 0) + 1
 
         if use_amp:
             with torch.amp.autocast("cuda"):
@@ -491,10 +506,12 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                       bar_format="{l_bar}{bar:20}{r_bar}")
     for epoch in phase_pbar:
         eff_mix_prob = mix_prob if epoch <= mix_off_epoch else 0.0
+        mix_stats = {"batches": 0, "mixed_batches": 0}
         loss, ce_b, ce_c, ce_buf = run_epoch(
             model, loader, optimizer, device, current_weights, scaler,
             max_batches, set_train=set_train,
-            desc=f"phase{phase} e{epoch}/{epochs}",
+            desc=f"phase{phase} e{epoch}/{epochs}", training=True,
+            mix_stats=mix_stats,
             grad_accum_steps=grad_accum_steps,
             label_smoothing=label_smoothing, ema_model=ema_model,
             ema_warmup=ema_warmup, ema_state=ema_state,
@@ -527,9 +544,12 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 chosen, chosen_acc, chosen_src = raw_metrics, raw_acc, "raw"
 
             tag = f"phase{phase} epoch {epoch}/{epochs}"
+            mix_note = (f"mix=on ({mix_stats['mixed_batches']}/"
+                        f"{mix_stats['batches']} batches)"
+                        if mix_stats["mixed_batches"] > 0 else "mix=OFF")
             print(f"[train] {tag}: loss={loss:.4f} ce_b={ce_b:.4f} "
                   f"ce_c={ce_c:.4f} ce_buf={ce_buf:.4f} "
-                  f"mix={'on' if eff_mix_prob > 0 else 'OFF'} | "
+                  f"{mix_note} | "
                   f"{_fmt_metrics('raw', raw_metrics)}", flush=True)
             if ema_metrics is not None:
                 print(f"[train] {tag}: {_fmt_metrics('ema', ema_metrics)} "
@@ -666,6 +686,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--num-workers", type=int, default=NUM_WORKERS)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--no-augment", action="store_true",
+                        help="force ALL augmentation off (flip + rrc included)")
     parser.add_argument("--mix", action="store_true",
                         help="enable CutMix/MixUp batch mixing (OFF by default)")
     parser.add_argument("--no-mix", action="store_true",
@@ -680,6 +702,18 @@ def main():
                         help="enable RandomResizedCrop (OFF by default)")
     parser.add_argument("--augment-all", action="store_true",
                         help="enable flip + color-jitter + randaugment + rrc + mix")
+    parser.add_argument("--augment-preset", choices=["none", "light"],
+                        default="none",
+                        help="'light' = flip + mild RRC + mild colour jitter "
+                             "(no RandAugment, no mix). Default: none")
+    parser.add_argument("--breed-aug", action="store_true",
+                        help="apply per-breed augmentation overrides "
+                             "(BREED_AUG_POLICY; coat-colour breeds skip jitter)")
+    parser.add_argument("--allow-hue", action="store_true",
+                        help="allow the stronger ColorJitter hue cap (> 0.02)")
+    parser.add_argument("--pad-to-square", action="store_true",
+                        help="resize the long side and pad to square for train "
+                             "AND eval (keeps full-body side profiles)")
     parser.add_argument("--run-tag", default=None,
                         help="run id used to timestamp outputs "
                              "(default: current time DD-MM-YYYY-HH-MM)")
@@ -756,15 +790,28 @@ def main():
     run_id = make_run_id(args.run_tag)
     if args.augment_all:
         args.mix = True
+    light = args.augment_preset == "light"
+    # Config defaults (flip + rrc on) are OR-ed with the CLI flags; --no-augment
+    # forces everything off.
     augment = {
-        "horizontal_flip": args.flip or args.augment_all,
-        "color_jitter": args.color_jitter or args.augment_all,
-        "randaugment": args.randaugment or args.augment_all,
-        "random_resized_crop": args.rrc or args.augment_all,
+        "horizontal_flip": (AUG_HORIZONTAL_FLIP or args.flip
+                            or args.augment_all or light),
+        "color_jitter": (AUG_COLOR_JITTER or args.color_jitter
+                         or args.augment_all or light),
+        "randaugment": AUG_RANDAUGMENT or args.randaugment or args.augment_all,
+        "random_resized_crop": (AUG_RANDOM_RESIZED_CROP or args.rrc
+                                or args.augment_all or light),
     }
+    if args.no_augment:
+        augment = {k: False for k in augment}
+        args.mix = False
+    pad = bool(args.pad_to_square)
     print(f"[train] run id: {run_id}")
     print(f"[train] augmentation: " +
-          (", ".join(k for k, v in augment.items() if v) or "NONE (default)"))
+          (", ".join(k for k, v in augment.items() if v) or "NONE (default)")
+          + (f" (preset={args.augment_preset})" if light else "")
+          + (", breed-aware" if args.breed_aug else "")
+          + (", pad-to-square" if pad else ""))
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -824,11 +871,24 @@ def main():
                               batch_size=args.batch_size,
                               num_workers=args.num_workers,
                               pin_memory=(device.type == "cuda"),
-                              augment=augment)
+                              augment=augment,
+                              breed_augment=args.breed_aug, pad=pad)
     if loaders is None:
         print("[train] failed to build dataloaders")
         return 1
     train_loader, val_loader, _ = loaders
+
+    # --- Log the exact transform chain (C6) ---
+    from .data_pipeline import describe_transform, _eval_transform, _train_transform
+    print(f"[train] train transform: "
+          f"{describe_transform(_train_transform(augment, pad=pad))}")
+    print(f"[train] eval  transform: "
+          f"{describe_transform(_eval_transform(pad=pad))}")
+    if augment.get("random_resized_crop") and not pad \
+            and not EVAL_MATCH_TRAIN_RESOLUTION:
+        print("[train] WARNING: RRC is on (train Resize(288)) but eval uses "
+              "Resize(260); set EVAL_MATCH_TRAIN_RESOLUTION=True or "
+              "--pad-to-square to align scales.")
 
     # --- Imbalance handling: EXACTLY ONE long-tail mechanism ---
     # The effective-number sampler (used in get_dataloaders) already rebalances
