@@ -94,14 +94,17 @@ class _Tee:
             self._stream.write(data)
         except Exception:
             pass
-        if self._file is None:
+        if self._file is None or self._file.closed:
             return
         self._buf += data
         while "\n" in self._buf:
             line, self._buf = self._buf.split("\n", 1)
             line = line.replace("\r", "").rstrip()
             if line:
-                self._file.write(line + "\n")
+                try:
+                    self._file.write(line + "\n")
+                except ValueError:
+                    return      # file closed mid-write (shutdown race)
         # progress bars emit many \r without \n — keep only the last frame
         if len(self._buf) > 4000:
             self._buf = self._buf.rsplit("\r", 1)[-1][-1000:]
@@ -293,13 +296,26 @@ class RunLogger:
             self._write_json("manifest.json", m)
         except Exception:
             pass
+        # Print summary BEFORE closing file handles (sys.stdout may be a
+        # _Tee writing to self._run_fh — closing first triggers ValueError).
+        print(f"[logger] exec {self.exec_id} -> {self.dir} "
+              f"({duration:.1f}s, exit={exit_code})")
+        # Restore original stdio so later prints don't hit the closed _Tee
+        global _STDIO_INSTALLED
+        if _STDIO_INSTALLED:
+            try:
+                if isinstance(sys.stdout, _Tee):
+                    sys.stdout = sys.stdout._stream
+                if isinstance(sys.stderr, _Tee):
+                    sys.stderr = sys.stderr._stream
+            except Exception:
+                pass
+            _STDIO_INSTALLED = False
         for fh in [self._events_fh, self._run_fh] + list(self._category_fhs.values()):
             try:
                 fh.close()
             except Exception:
                 pass
-        print(f"[logger] exec {self.exec_id} -> {self.dir} "
-              f"({duration:.1f}s, exit={exit_code})")
 
 
 # ---------------------------------------------------------------------------
