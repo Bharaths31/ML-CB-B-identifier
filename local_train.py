@@ -40,6 +40,12 @@ KAGGLE_DATASET_ALGSOCH = "algsoch/breed-cattle-buffalo"
 KAGGLE_DATASET_CATTLE = "atharvadarpude/indian-cattle-image-dataset"
 KAGGLE_DATASET_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 
+# Spelling-variant merge map applied to breed folder names during merging.
+# Empty by default — add entries only after confirming with audit_data.py, e.g.
+#   BREED_ALIASES = {"amruthamahal": "amritmahal", "hallikaru": "hallikar",
+#                    "malenadu_gidda": "malnad_gidda"}
+BREED_ALIASES = {}
+
 
 DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
@@ -550,6 +556,7 @@ def merge_into_species_dir(source_base, target_species_dir, species_hint=None):
 
     for breed_path in breed_dirs:
         breed_name = normalize_breed_name(os.path.basename(breed_path))
+        breed_name = BREED_ALIASES.get(breed_name, breed_name)
         target_breed_dir = os.path.join(target_species_dir, breed_name)
         os.makedirs(target_breed_dir, exist_ok=True)
 

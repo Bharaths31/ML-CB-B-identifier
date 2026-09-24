@@ -36,3 +36,5 @@ Thumbs.db
 
 # Execution logs (per-run folders)
 logs/
+data/dataset_inventory/
+data/tmp_extract/

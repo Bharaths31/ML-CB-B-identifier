@@ -16,15 +16,16 @@ from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
                      AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_AUG_POLICY,
                      CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
                      COLOR_JITTER_CONTRAST, COLOR_JITTER_HUE,
-                     COLOR_JITTER_SATURATION, CUTMIX_ALPHA,
-                     EVAL_MATCH_TRAIN_RESOLUTION, EVAL_PAD_TO_SQUARE,
+                     COLOR_JITTER_SATURATION, CUTMIX_ALPHA, DEDUP_HAMMING,
+                     DEDUP_SPLITS, EVAL_MATCH_TRAIN_RESOLUTION,
+                     EVAL_PAD_TO_SQUARE, HASH_CACHE_NAME,
                      EXPECTED_BUFFALO_BREEDS, EXPECTED_CATTLE_BREEDS,
                      HALF_DATA_RATIO, IMAGE_SIZE, MIX_SAME_SPECIES, MIXUP_ALPHA,
                      NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO,
                      RANDAUGMENT_MAGNITUDE, RANDAUGMENT_OPS, RARE_CLASS_THRESHOLD,
                      RAW_DATA_DIR, RRC_RATIO, RRC_SCALE, SAMPLER_BETA,
                      SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
-                     TRAIN_PAD_TO_SQUARE, TRAIN_RESIZE, VAL_RATIO,
+                     TRAIN_PAD_TO_SQUARE, TRAIN_RESIZE, VAL_MIN_WARN, VAL_RATIO,
                      IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
@@ -83,6 +84,143 @@ def _stratified_split(df, rng):
     return train_rows, val_rows, test_rows
 
 
+def _dhash(path, hash_size=8):
+    """64-bit difference hash (no external deps). None if unreadable."""
+    try:
+        with Image.open(path) as im:
+            im = im.convert("L").resize((hash_size + 1, hash_size), Image.BILINEAR)
+            arr = np.asarray(im, dtype=np.int16)
+        bits = arr[:, 1:] > arr[:, :-1]
+        val = 0
+        for b in bits.flatten():
+            val = (val << 1) | int(b)
+        return val
+    except Exception:
+        return None
+
+
+def _hamming(a, b):
+    return bin(a ^ b).count("1") if (a is not None and b is not None) else 64
+
+
+def compute_hashes(df, cache_path):
+    """Return {path: dhash} for every row, caching results in a CSV."""
+    hashes = {}
+    if os.path.exists(cache_path):
+        try:
+            cached = pd.read_csv(cache_path)
+            for p, h in zip(cached["path"], cached["hash"]):
+                hashes[p] = int(h)
+        except Exception:
+            hashes = {}
+    missing = [p for p in df["path"] if p not in hashes]
+    if missing:
+        for p in tqdm(missing, desc="hashing images", leave=False, unit="img"):
+            h = _dhash(p)
+            if h is not None:
+                hashes[p] = h
+        try:
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            pd.DataFrame({"path": list(hashes), "hash": list(hashes.values())}) \
+                .to_csv(cache_path, index=False)
+        except Exception:
+            pass
+    return hashes
+
+
+def _groups_by_hash(items, hamming):
+    """Union-find groups of (index, hash) within `hamming` distance."""
+    parent = list(range(len(items)))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i in range(len(items)):
+        hi = items[i][1]
+        if hi is None:
+            continue
+        for j in range(i + 1, len(items)):
+            hj = items[j][1]
+            if hj is None:
+                continue
+            if _hamming(hi, hj) <= hamming:
+                ri, rj = find(i), find(j)
+                if ri != rj:
+                    parent[rj] = ri
+    groups = defaultdict(list)
+    for i in range(len(items)):
+        groups[find(i)].append(items[i][0])
+    return list(groups.values())
+
+
+def _stratified_split_dedup(df, rng, hashes, hamming=DEDUP_HAMMING):
+    """Like ``_stratified_split`` but near-duplicate groups stay in one split.
+
+    Duplicates are grouped WITHIN each (species, breed) so a near-duplicate
+    image can never appear in a different split than its twin (which would
+    inflate validation/test accuracy). Long-tail minimums are preserved.
+    """
+    train_rows, val_rows, test_rows = [], [], []
+    for (_, _), group in tqdm(df.groupby(["species", "breed"]),
+                              desc="splitting (dedup)", leave=False, unit="breed"):
+        idxs = list(group.index)
+        rng.shuffle(idxs)
+        n = len(idxs)
+        if n == 1:
+            train_rows.extend(idxs)
+            continue
+        if n == 2:
+            train_rows.append(idxs[0])
+            test_rows.append(idxs[1])
+            continue
+        n_val = max(1, int(round(n * VAL_RATIO)))
+        n_test = max(1, int(round(n * TEST_RATIO)))
+        n_train = n - n_val - n_test
+        if n_train < 2:
+            deficit = 2 - n_train
+            take = min(deficit, n_test - 1)
+            n_test -= take
+            deficit -= take
+            n_train = n - n_val - n_test
+            if deficit > 0:
+                n_val = max(1, n_val - deficit)
+                n_train = n - n_val - n_test
+
+        items = [(idx, hashes.get(df.at[idx, "path"])) for idx in idxs]
+        groups = _groups_by_hash(items, hamming)
+        groups.sort(key=len, reverse=True)
+
+        cap = [n_train, n_val, n_test]
+        cur = [0, 0, 0]
+        buckets = [[], [], []]      # buckets of groups
+        for g in groups:
+            k = max(range(3), key=lambda s: cap[s] - cur[s])
+            buckets[k].append(g)
+            cur[k] += len(g)
+
+        def move_smallest(src, dst):
+            if not buckets[src]:
+                return
+            gi = min(range(len(buckets[src])), key=lambda i: len(buckets[src][i]))
+            g = buckets[src].pop(gi)
+            buckets[dst].append(g)
+            cur[src] -= len(g)
+            cur[dst] += len(g)
+
+        if cur[1] == 0:
+            move_smallest(0, 1)
+        if cur[2] == 0:
+            move_smallest(0, 2)
+
+        for k, out in ((0, train_rows), (1, val_rows), (2, test_rows)):
+            for g in buckets[k]:
+                out.extend(g)
+    return train_rows, val_rows, test_rows
+
+
 def _collect_rows(data_root):
     rows = []
     for species, binary in (("cattle", 0), ("buffalo", 1)):
@@ -108,7 +246,7 @@ def _collect_rows(data_root):
     return rows
 
 
-def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
+def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None):
     os.makedirs(split_dir, exist_ok=True)
     rows = _collect_rows(data_root)
     if not rows:
@@ -121,7 +259,15 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
     df = df[df["path"].apply(os.path.exists)].reset_index(drop=True)
 
     rng = random.Random(42)
-    train_rows, val_rows, test_rows = _stratified_split(df, rng)
+    if dedup is None:
+        dedup = DEDUP_SPLITS
+    if dedup:
+        print("[data] group-aware (dedup) splits enabled — near-duplicates "
+              "stay within one split")
+        hashes = compute_hashes(df, os.path.join(split_dir, HASH_CACHE_NAME))
+        train_rows, val_rows, test_rows = _stratified_split_dedup(df, rng, hashes)
+    else:
+        train_rows, val_rows, test_rows = _stratified_split(df, rng)
 
     def save(name, idxs):
         out = os.path.join(split_dir, f"{name}.csv")
@@ -152,7 +298,23 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR):
     print(f"[data] images={len(df)} train={n_train} val={n_val} test={n_test} "
           f"cattle_breeds={len(cattle_breeds)} buffalo_breeds={len(buffalo_breeds)}")
     _validate_class_counts(cattle_breeds, buffalo_breeds)
-    _log_event("splits_ready", category="data", mode="full", **summary,
+
+    # Validation-noise check: a breed with < VAL_MIN_WARN val images makes
+    # checkpoint selection noisy.
+    val_counts = df.loc[val_rows].groupby(["species", "breed"])["path"].count()
+    if len(val_counts):
+        low = val_counts[val_counts < VAL_MIN_WARN]
+        print(f"[data] val images/breed: min={int(val_counts.min())} "
+              f"median={val_counts.median():.0f} "
+              f"(breeds<{VAL_MIN_WARN}: {len(low)})")
+        if len(low):
+            print(f"[data] WARNING: {len(low)} breed(s) have <{VAL_MIN_WARN} val "
+                  f"images — validation/selection will be noisy for them")
+        summary["val_min_per_breed"] = int(val_counts.min())
+        summary["val_median_per_breed"] = float(val_counts.median())
+
+    _log_event("splits_ready", category="data", mode="full", dedup=bool(dedup),
+               **summary,
                shared_names=sorted(set(cattle_breeds) & set(buffalo_breeds)))
     return summary
 

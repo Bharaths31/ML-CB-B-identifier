@@ -1,0 +1,693 @@
+{
+  "_comment": "Fill in trait values per breed (free-form strings). Leave a field empty ('') to ignore it for that breed. Empty values are excluded from the masked trait loss.",
+  "fields": [
+    "hump",
+    "horn",
+    "coat",
+    "ear",
+    "dewlap",
+    "face",
+    "size"
+  ],
+  "breeds": {
+    "cattle": {
+      "amritmahal": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "ayrshire": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "bachaur": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "badri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "bargur": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "belahi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "binjharpuri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "brown_swiss": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "dagri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "dangi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "deoni": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "gangatiri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "gaolao": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "ghumusari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "gir": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "guernsey": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "hallikar": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "hariana": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "himachali_pahari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "holstein_friesian": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "jersey": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kangayam": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kankrej": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kenkatha": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "khariar": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kherigarh": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "khillar": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "konkan_kapila": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kosali": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "krishna_valley": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "ladakhi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "lakhimi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "limousin": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "malnad_gidda": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "malvi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "mewati": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "motu": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "nagori": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "nari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "nimari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "ongole": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "poda_thurpu": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "ponwar": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "pulikulam": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "punganur": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "purnea": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "rathi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "red_dane": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "red_kandhari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "red_sindhi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "sahiwal": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "shweta_kapila": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "siri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "tharparkar": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "thutho": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "umblachery": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "vechur": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      }
+    },
+    "buffalo": {
+      "alambadi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "banni": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "bargur": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "bhadawari": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "chhattisgarhi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "chilika": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "gojri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "jaffarabadi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "kalahandi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "luit": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "marathwadi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "mehsana": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "murrah": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "nagpuri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "nili_ravi": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "pandharpuri": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "surti": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      },
+      "toda": {
+        "hump": "",
+        "horn": "",
+        "coat": "",
+        "ear": "",
+        "dewlap": "",
+        "face": "",
+        "size": ""
+      }
+    }
+  }
+}

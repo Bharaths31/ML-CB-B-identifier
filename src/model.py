@@ -2,18 +2,58 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .config import (BINARY_DIM, BREED_DIM, CBAM_AFTER_STAGE, DROPOUT,
-                     NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, PROJECTION_DIM)
+from .config import (BINARY_DIM, BREED_DIM, CBAM_AFTER_STAGE, COSINE_SCALE,
+                     DROPOUT, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                     PROJECTION_DIM)
 from .efficientnet_lite import EfficientNetLite, load_backbone_weights
 from .cbam import build_attention
+
+
+class CosineHead(nn.Module):
+    """Normalised-feature scaled-cosine classifier (ArcFace-style).
+
+    Forward returns ``scale * cos(theta)`` with NO additive margin, so inference
+    and export are plain scaled-cosine logits. The angular margin is applied to
+    the target class only during training, inside the loss (see
+    ``train._apply_cosine_margin``), which keeps the exported graph margin-free.
+    """
+
+    def __init__(self, in_features, out_features, scale=COSINE_SCALE):
+        super().__init__()
+        self.weight = nn.Parameter(torch.empty(out_features, in_features))
+        nn.init.xavier_uniform_(self.weight)
+        self.scale = float(scale)
+
+    def forward(self, x):
+        cos = F.linear(F.normalize(x, dim=1), F.normalize(self.weight, dim=1))
+        return self.scale * cos
+
+
+def _make_breed_head(feature_dim, num_classes, dropout, cosine=False,
+                     scale=COSINE_SCALE):
+    layers = [
+        nn.Linear(feature_dim, BREED_DIM),
+        nn.BatchNorm1d(BREED_DIM),
+        nn.ReLU(inplace=True),
+        nn.Dropout(dropout),
+        nn.Linear(BREED_DIM, BREED_DIM // 2),
+        nn.BatchNorm1d(BREED_DIM // 2),
+        nn.ReLU(inplace=True),
+        nn.Dropout(0.2),
+    ]
+    layers.append(CosineHead(BREED_DIM // 2, num_classes, scale) if cosine
+                  else nn.Linear(BREED_DIM // 2, num_classes))
+    return nn.Sequential(*layers)
 
 
 class BreedClassifier(nn.Module):
     def __init__(self, backbone="lite2", num_cattle=NUM_CATTLE_BREEDS,
                  num_buffalo=NUM_BUFFALO_BREEDS, cbam_stage=CBAM_AFTER_STAGE,
                  attention="cbam", activation="relu6", pretrained_path=None,
-                 dropout=DROPOUT):
+                 dropout=DROPOUT, cosine_head=False, cosine_scale=COSINE_SCALE):
         super().__init__()
+        self.cosine_head = bool(cosine_head)
+        self.cosine_scale = float(cosine_scale)
         self.backbone = EfficientNetLite(arch=backbone, activation=activation)
         self.cbam_stage = cbam_stage
         stage_channels = self.backbone.stage_channels[cbam_stage]
@@ -26,28 +66,10 @@ class BreedClassifier(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(BINARY_DIM, 2),
         )
-        self.cattle_head = nn.Sequential(
-            nn.Linear(feature_dim, BREED_DIM),
-            nn.BatchNorm1d(BREED_DIM),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(BREED_DIM, BREED_DIM // 2),
-            nn.BatchNorm1d(BREED_DIM // 2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(BREED_DIM // 2, num_cattle),
-        )
-        self.buffalo_head = nn.Sequential(
-            nn.Linear(feature_dim, BREED_DIM),
-            nn.BatchNorm1d(BREED_DIM),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(BREED_DIM, BREED_DIM // 2),
-            nn.BatchNorm1d(BREED_DIM // 2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
-            nn.Linear(BREED_DIM // 2, num_buffalo),
-        )
+        self.cattle_head = _make_breed_head(feature_dim, num_cattle, dropout,
+                                            self.cosine_head, self.cosine_scale)
+        self.buffalo_head = _make_breed_head(feature_dim, num_buffalo, dropout,
+                                             self.cosine_head, self.cosine_scale)
 
         # Auxiliary projection head used only by the supervised-contrastive
         # loss (never exported). The 1280-d pooled features were previously

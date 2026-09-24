@@ -815,6 +815,30 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 
 ## 16. Changelog
 
+### 2026-09-24 — Execution logger, breed trait heads, group-aware splits, hard negatives
+
+- **Execution logger (`src/run_logger.py` + `sitecustomize.py`)**: every run
+  writes `logs/<exec_id>/{manifest,config,run.log,events,actions,training,data,test,export}`.
+  `--exec-id` / `RUN_EXEC_ID`; inspect with `scripts/view_logs.py`.
+- **`ema_decay` NameError fixed** in `train_phase` (crashed phase 2).
+- **`src/traits.py` + `scripts/make_trait_template.py` (D2)**: `data/breed_traits.json`
+  template (75 breeds × hump/horn/coat/ear/dewlap/face/size, empty). `--trait-weight`
+  (suggested 0.1) attaches training-only trait heads on the pooled features; masked
+  loss ignores empty traits; per-trait val acc logged; excluded from export.
+- **Group-aware splits (E1)**: `--dedup-splits` + dHash grouping (Hamming ≤ 4)
+  keeps near-duplicates in one split; cache `data/splits/hashes.csv`.
+- **Val-noise warning (E3)**: `prepare_splits` prints min/median val/breed + warns.
+- **SupCon hard negatives (D4)**: `--hard-pairs outputs/metrics/confusion_pairs.json`
+  (from `scripts/mine_confusions.py`) up-weights confused-pair negatives.
+- **Cosine/ArcFace heads (D3, `--cosine-head`)**: `CosineHead` replaces the final
+  head Linear; forward is margin-free scaled cosine (inference/export unchanged);
+  the angular margin (`COSINE_MARGIN=0.3`) ramps over
+  `COSINE_MARGIN_RAMP_EPOCHS=10` phase-2 epochs and is applied in the loss.
+  `export._load_model` / `test_model.py` auto-detect cosine checkpoints.
+- **Per-group LR logging (F4)** at phase start.
+- **Tooling**: `mine_confusions.py`, `run_ablations.sh/.ps1`, `view_logs.py`.
+- **Pending**: hard-pair **batch sampler** (D5).
+
 ### 2026-09-24 — Blocking bug fixes, flip+RRC default-on, dataset inventory
 
 - **`src/run_utils.py` must be synced** (it was missing on the GPU machine →

@@ -49,6 +49,10 @@
 | `BREED_AUG_POLICY` / `COAT_COLOUR_BREEDS` | coat breeds → color_jitter False | Per-breed augmentation overrides |
 | `EVAL_PAD_TO_SQUARE` / `TRAIN_PAD_TO_SQUARE` | False | Pad-to-square keeps full-body side profiles |
 | `CBAM_IDENTITY_INIT` | True | Attention is identity at init (bug fix) |
+| `TRAIT_WEIGHT` / `TRAIT_FILE` / `TRAIT_FIELDS` | 0.0 / `data/breed_traits.json` / 7 | Breed trait aux-heads (opt-in; training-only) |
+| `COSINE_HEAD` / `COSINE_SCALE` / `COSINE_MARGIN` / `COSINE_MARGIN_RAMP_EPOCHS` | False / 30.0 / 0.3 / 10 | ArcFace-style heads (margin applied in-loss only) |
+| `HARD_PAIRS` / `CONTRASTIVE_HARD_NEG_WEIGHT` | None / 2.0 | Confusion-driven SupCon negatives (`--hard-pairs`) |
+| `DEDUP_SPLITS` / `DEDUP_HAMMING` / `HASH_CACHE_NAME` | False / 4 / `hashes.csv` | Group-aware splits (`--dedup-splits`) |
 | `TIMESTAMP_OUTPUTS` / `RUN_ID_FORMAT` | True / `%d-%m-%Y-%H-%M` | Timestamped, non-overwriting outputs |
 | `RANDAUGMENT_OPS` / `RANDAUGMENT_MAGNITUDE` | 2 / 5 | RandAugment settings (when enabled) |
 | `TRAIN_RESIZE` | 288 | Shortest side before RandomResizedCrop (when RRC enabled) |

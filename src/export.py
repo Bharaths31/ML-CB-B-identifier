@@ -99,10 +99,22 @@ def _sanitize_state_dict(state):
 
 
 def _load_model(checkpoint_path, backbone, attention):
-    model = BreedClassifier(backbone=backbone, attention=attention)
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
     state = _sanitize_state_dict(state)
+    # Detect cosine/ArcFace heads: the final head layer has a weight but no bias
+    # (CosineHead) instead of a Linear (weight+bias). Derive the final index
+    # from a probe model so head-structure changes don't break detection.
+    probe = BreedClassifier(backbone=backbone, attention=attention)
+    final_idx = len(probe.cattle_head) - 1
+    cosine = any(f"{h}.{final_idx}.weight" in state
+                 and f"{h}.{final_idx}.bias" not in state
+                 for h in ("cattle_head", "buffalo_head"))
+    del probe
+    if cosine:
+        print("[export] detected cosine/ArcFace breed heads in checkpoint")
+    model = BreedClassifier(backbone=backbone, attention=attention,
+                            cosine_head=cosine)
     missing, unexpected = model.load_state_dict(state, strict=False)
     # The projection head is training-only; ignore it. Anything else missing is
     # a real problem worth surfacing explicitly.

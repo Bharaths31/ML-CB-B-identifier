@@ -7,11 +7,13 @@ Run:  python scripts/test_master_cpu.py
 import copy
 import json
 import os
+import random
 import subprocess
 import sys
 import tempfile
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,6 +60,7 @@ class _FakeModel(nn.Module):
         return {"binary": torch.zeros(B, 2) + self.p,
                 "cattle": torch.zeros(B, C.NUM_CATTLE_BREEDS) + self.p,
                 "buffalo": torch.zeros(B, C.NUM_BUFFALO_BREEDS) + self.p,
+                "features": torch.zeros(B, C.FEATURE_DIM) + self.p,
                 "embedding": torch.zeros(B, C.PROJECTION_DIM) + self.p}
 
 
@@ -261,6 +264,100 @@ check("local_train preflight lists run_utils.py",
       "run_utils.py" in lt.REQUIRED_SRC_MODULES)
 
 # ---------------------------------------------------------------------------
+print("\n[D2] breed trait heads: vocab, targets, masked loss, train integration")
+from src.traits import (TraitClassifier, breed_trait_targets, build_trait_vocab)
+spec = {"fields": ["hump", "coat"],
+        "breeds": {"cattle": {"gir": {"hump": "prominent", "coat": "red"},
+                              "sahiwal": {"hump": "moderate", "coat": ""}},
+                   "buffalo": {"murrah": {"hump": "", "coat": "black"}}}}
+vocab = build_trait_vocab(spec)
+check("trait vocab built from non-empty values",
+      vocab == {"hump": {"moderate": 0, "prominent": 1},
+                "coat": {"black": 0, "red": 1}}, str(vocab))
+cat_c = {"gir": 0, "sahiwal": 1}
+buf_c = {"murrah": 0}
+tg = breed_trait_targets(spec, vocab, cat_c, buf_c)
+check("empty trait -> -1 (ignored) and buffalo offset correct",
+      tg["coat"][1] == -1 and tg["hump"][C.NUM_CATTLE_BREEDS] == -1
+      and tg["coat"][C.NUM_CATTLE_BREEDS] == 0)
+tm = TraitClassifier(C.FEATURE_DIM, vocab)
+tloss, taccs = tm.loss(torch.randn(4, C.FEATURE_DIM),
+                       torch.tensor([0, 1, 0, C.NUM_CATTLE_BREEDS]), tg)
+check("trait masked loss finite", bool(torch.isfinite(tloss)))
+
+# integration: train_phase runs with trait heads attached
+import copy as _copy
+tm_model = _FakeModel()
+tm_model.trait_heads = TraitClassifier(C.FEATURE_DIM, vocab)
+tm_ema = _copy.deepcopy(tm_model); tm_ema.eval()
+_ = T.train_phase(tm_model, loader, torch.utils.data.DataLoader(_DS(8), batch_size=4),
+                  torch.device("cpu"), 2, 1, 1e-3, (0.15, 0.5, 0.35),
+                  lambda o: None, os.path.join(tempfile.mkdtemp(), "ck.pt"),
+                  best_key="blended_score", ema_model=tm_ema, mix_prob=0.0,
+                  trait_module=tm_model.trait_heads, trait_targets=tg,
+                  trait_weight=0.1)
+check("train_phase runs with trait heads", True)
+
+print("\n[D4] SupCon hard-negative weighting")
+from src.train import supervised_contrastive_loss
+_z = torch.randn(6, 64)
+_ids = torch.tensor([0, 0, 1, 1, 2, 2])
+_base = supervised_contrastive_loss(_z, _ids, 0.1)
+_hard = supervised_contrastive_loss(_z, _ids, 0.1,
+                                    hard_pairs={frozenset({0, 1})},
+                                    hard_neg_weight=4.0)
+check("hard-neg SupCon finite", bool(torch.isfinite(_base) and torch.isfinite(_hard)))
+check("hard-neg changes the loss", not torch.isclose(_base, _hard))
+
+print("\n[E1] group-aware (dHash) splits keep near-duplicates together")
+_inv = tempfile.mkdtemp(prefix="dedup_")
+for _n, _s in (("a.jpg", 1), ("b.jpg", 1), ("c.jpg", 1), ("d.jpg", 1),
+               ("e.jpg", 50), ("f.jpg", 51), ("g.jpg", 52), ("h.jpg", 53)):
+    Image.fromarray((np.random.RandomState(_s).rand(40, 40, 3) * 255)
+                    .astype("uint8")).save(os.path.join(_inv, _n))
+_dpaths = [os.path.join(_inv, n) for n in
+           ("a.jpg", "b.jpg", "c.jpg", "d.jpg", "e.jpg", "f.jpg", "g.jpg", "h.jpg")]
+_hashes = {p: dp._dhash(p) for p in _dpaths}
+check("dHash: identical images distance 0",
+      dp._hamming(_hashes[_dpaths[0]], _hashes[_dpaths[1]]) == 0)
+check("dHash: distinct images distance > 4",
+      dp._hamming(_hashes[_dpaths[0]], _hashes[_dpaths[4]]) > 4)
+_ddf = pd.DataFrame({"path": _dpaths, "species": ["cattle"] * 8,
+                     "breed": ["gir"] * 8, "binary_label": [0] * 8})
+_dtr, _dva, _dte = dp._stratified_split_dedup(_ddf, random.Random(0), _hashes, 4)
+_assign = {i: ("train" if i in _dtr else "val" if i in _dva else "test")
+           for i in range(8)}
+check("near-duplicate group stays in ONE split",
+      len({_assign[i] for i in range(4)}) == 1, str(_assign))
+check("dedup split keeps val/test non-empty",
+      len(_dva) >= 1 and len(_dte) >= 1)
+
+print("\n[D3] cosine/ArcFace breed heads")
+from src.model import BreedClassifier as _BC, CosineHead as _CosineHead
+from src.train import _apply_cosine_margin
+from src.export import _load_model
+_cm = _BC("lite2", cosine_head=True).eval()
+check("cosine head is the final breed-head layer",
+      isinstance(_cm.cattle_head[-1], _CosineHead))
+with torch.no_grad():
+    _co = _cm(torch.randn(2, 3, 260, 260))
+check("margin-free forward bounded by scale",
+      float(_co["cattle"].abs().max()) <= _cm.cosine_scale + 1e-3)
+_lg = torch.randn(4, 5)
+_tgt = F.one_hot(torch.tensor([0, 1, 2, 3]), 5).float()
+_mg = _apply_cosine_margin(_lg, _tgt, 0.3, 30.0)
+check("margin changes target logits", not torch.allclose(_lg, _mg))
+check("margin output finite", bool(torch.isfinite(_mg).all()))
+_cp = os.path.join(tempfile.mkdtemp(), "cos.pt")
+torch.save({"state_dict": _cm.state_dict()}, _cp)
+check("export auto-detects cosine head",
+      _load_model(_cp, "lite2", "cbam").cosine_head is True)
+_lin = _BC("lite2", cosine_head=False)
+_lp = os.path.join(tempfile.mkdtemp(), "lin.pt")
+torch.save({"state_dict": _lin.state_dict()}, _lp)
+check("export keeps linear head when not cosine",
+      _load_model(_lp, "lite2", "cbam").cosine_head is False)
+
 print("\n[Logger] per-execution folder, manifest, config, events, metrics")
 tmp_logs = tempfile.mkdtemp(prefix="logs_")
 code = (

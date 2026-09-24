@@ -12,7 +12,6 @@ from tqdm import tqdm
 from .config import (CHECKPOINT_DIR, METRICS_DIR, NUM_BUFFALO_BREEDS,
                      NUM_CATTLE_BREEDS, SPLIT_DIR)
 from .data_pipeline import compute_class_counts, get_dataloaders
-from .export import _sanitize_state_dict
 from .model import BreedClassifier
 from .run_utils import (find_latest_checkpoint, make_run_id,
                         resolve_checkpoint, timestamped)
@@ -123,14 +122,8 @@ def main():
               f"{CHECKPOINT_DIR}; pass --checkpoint PATH or --run-tag")
         return 1
 
-    model = BreedClassifier(backbone=args.backbone, attention=args.attention)
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    state = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
-    missing, _ = model.load_state_dict(_sanitize_state_dict(state), strict=False)
-    missing = [k for k in missing if not k.startswith("projection_head.")]
-    if missing:
-        print(f"[evaluate] checkpoint missing required keys: {missing[:10]}")
-        return 1
+    from .export import _load_model
+    model = _load_model(checkpoint_path, args.backbone, args.attention)
     model.to(device)
     print(f"[evaluate] loaded {checkpoint_path} (run id {run_id})")
 

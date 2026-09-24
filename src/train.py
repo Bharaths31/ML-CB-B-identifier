@@ -17,7 +17,9 @@ from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
                      AUG_RANDOM_RESIZED_CROP,
                      BACKBONE_WEIGHTS, BALANCE_BINARY_HEAD, BEST_METRIC,
                      BINARY_SATURATION_ACC, BATCH_SIZE, CHECKPOINT_DIR,
-                     CONTRASTIVE_TEMPERATURE, CONTRASTIVE_WEIGHT, EMA_DECAY,
+                     CONTRASTIVE_HARD_NEG_WEIGHT, CONTRASTIVE_TEMPERATURE,
+                     CONTRASTIVE_WEIGHT, COSINE_HEAD, COSINE_MARGIN,
+                     COSINE_MARGIN_RAMP_EPOCHS, EMA_DECAY,
                      EMA_WARMUP, EMA_WARN_FRAC,
                      EVAL_EVERY_PHASE1, EVAL_EVERY_PHASE2, EVAL_EVERY_PHASE3,
                      EVAL_MATCH_TRAIN_RESOLUTION,
@@ -30,8 +32,9 @@ from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
                      MIX_OFF_LAST_FRAC, MIX_SAME_SPECIES,
                      PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS, PHASE2_LR,
                      PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR, RAW_DATA_DIR,
-                     RARE_CLASS_THRESHOLD, SAMPLER_BETA, SEED, SHOT_FEW_MAX,
-                     SHOT_MEDIUM_MAX, SPLIT_DIR, WARMUP_EPOCHS,
+                     FEATURE_DIM, RARE_CLASS_THRESHOLD, SAMPLER_BETA, SEED,
+                     SHOT_FEW_MAX, SHOT_MEDIUM_MAX, SPLIT_DIR, TRAIT_FILE,
+                     TRAIT_WEIGHT, WARMUP_EPOCHS,
                      WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
 from .data_pipeline import (compute_class_counts, compute_class_priors,
                             compute_rare_classes, get_dataloaders,
@@ -103,11 +106,41 @@ def soft_ce(pred, target, label_smoothing=0.0, logit_prior=None, tau=0.0):
     return -(target * F.log_softmax(pred, dim=1)).sum(dim=1)
 
 
-def supervised_contrastive_loss(embedding, class_ids, temperature=0.1):
+# Cosine/ArcFace head state (set by main()/train_phase; read by masked_loss).
+_COSINE_SCALE = None
+_COSINE_MARGIN = 0.0
+
+
+def _apply_cosine_margin(logits, target, margin, scale):
+    """Add the additive angular margin to the TARGET class logits.
+
+    Only applied to (near-)one-hot targets; mixed/soft targets are left as-is
+    (mixing is off by default). Forward/export never apply the margin.
+    """
+    if margin <= 0 or scale is None:
+        return logits
+    cos = (logits / scale).clamp(-1 + 1e-7, 1 - 1e-7)
+    sin = torch.sqrt(1.0 - cos * cos)
+    idx = target.argmax(1)
+    hard = target.max(1).values > 0.9
+    if not hard.any():
+        return logits
+    m = torch.as_tensor(float(margin), device=logits.device)
+    new_cos = cos * torch.cos(m) - sin * torch.sin(m)
+    out = logits.clone()
+    rows = torch.arange(logits.size(0), device=logits.device)[hard]
+    out[rows, idx[hard]] = scale * new_cos[rows, idx[hard]]
+    return out
+
+
+def supervised_contrastive_loss(embedding, class_ids, temperature=0.1,
+                                hard_pairs=None, hard_neg_weight=1.0):
     """SupCon (Khosla et al., 2020) over the auxiliary projection embedding.
 
     Pulls same-breed embeddings together and pushes others apart. Anchors with
-    no positive in the batch are ignored.
+    no positive in the batch are ignored. ``hard_pairs`` (a set of frozenset of
+    global class ids) up-weights those negatives by ``hard_neg_weight`` so the
+    model is pushed hardest on the breeds it confuses.
     """
     if embedding.size(0) < 2:
         return embedding.new_zeros(())
@@ -119,6 +152,15 @@ def supervised_contrastive_loss(embedding, class_ids, temperature=0.1):
     pos_mask = (class_ids.unsqueeze(0) == class_ids.unsqueeze(1)) & ~self_mask
     logits_mask = ~self_mask
     exp_sim = torch.exp(sim) * logits_mask
+    if hard_pairs and hard_neg_weight != 1.0:
+        ci = class_ids.unsqueeze(0)
+        cj = class_ids.unsqueeze(1)
+        hard = torch.zeros_like(exp_sim, dtype=torch.bool)
+        for pair in hard_pairs:
+            a, b = tuple(pair)
+            hard |= ((ci == a) & (cj == b)) | ((ci == b) & (cj == a))
+        hard &= logits_mask
+        exp_sim = torch.where(hard, exp_sim * hard_neg_weight, exp_sim)
     log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True) + 1e-8)
 
     pos_count = pos_mask.sum(dim=1)
@@ -138,11 +180,18 @@ def _combined_class_ids(labels):
     return torch.where(is_cattle, cattle_idx, offset + buffalo_idx)
 
 
+# Confusion-driven hard pairs (set by main() from --hard-pairs); read by the
+# contrastive term. Module-level to avoid threading through every loss call.
+_HARD_PAIRS = None
+_HARD_NEG_WEIGHT = CONTRASTIVE_HARD_NEG_WEIGHT
+
+
 def _contrastive_term(out, labels, weight, temperature, mixed):
     if weight <= 0.0 or mixed or "embedding" not in out:
         return out["binary"].new_zeros(())
     return weight * supervised_contrastive_loss(
-        out["embedding"], _combined_class_ids(labels), temperature)
+        out["embedding"], _combined_class_ids(labels), temperature,
+        hard_pairs=_HARD_PAIRS, hard_neg_weight=_HARD_NEG_WEIGHT)
 
 
 def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
@@ -172,9 +221,16 @@ def masked_loss(out, labels, w_binary, w_cattle, w_buffalo,
         ce_binary = (ce_binary * sample_w).sum() / sample_w.sum()
     else:
         ce_binary = ce_binary.mean()
-    ce_cattle = (soft_ce(out["cattle"], labels["cattle"], label_smoothing,
+    cattle_logits = out["cattle"]
+    buffalo_logits = out["buffalo"]
+    if _COSINE_SCALE is not None and _COSINE_MARGIN > 0:
+        cattle_logits = _apply_cosine_margin(cattle_logits, labels["cattle"],
+                                             _COSINE_MARGIN, _COSINE_SCALE)
+        buffalo_logits = _apply_cosine_margin(buffalo_logits, labels["buffalo"],
+                                              _COSINE_MARGIN, _COSINE_SCALE)
+    ce_cattle = (soft_ce(cattle_logits, labels["cattle"], label_smoothing,
                          cattle_prior, adjust_tau) * labels["cattle_mask"])
-    ce_buffalo = (soft_ce(out["buffalo"], labels["buffalo"], label_smoothing,
+    ce_buffalo = (soft_ce(buffalo_logits, labels["buffalo"], label_smoothing,
                           buffalo_prior, adjust_tau) * labels["buffalo_mask"])
     denom_c = labels["cattle_mask"].sum().clamp(min=1.0)
     denom_b = labels["buffalo_mask"].sum().clamp(min=1.0)
@@ -236,22 +292,34 @@ def _compute_loss(model, images, labels, loss_weights, label_smoothing,
                   teacher_model=None, kd_alpha=KD_ALPHA,
                   kd_temp=KD_TEMPERATURE, logit_priors=None, adjust_tau=0.0,
                   contrastive_weight=0.0,
-                  contrastive_temp=CONTRASTIVE_TEMPERATURE, mixed=False):
-    """Forward pass + loss, with optional knowledge distillation."""
+                  contrastive_temp=CONTRASTIVE_TEMPERATURE, mixed=False,
+                  trait_module=None, trait_targets=None, trait_weight=0.0,
+                  trait_stats=None):
+    """Forward pass + loss, with optional knowledge distillation + trait heads."""
     out = model(images)
     if teacher_model is not None:
         teacher_out = teacher_model(images)
-        return masked_kd_loss(out, teacher_out, labels, *loss_weights,
-                              kd_alpha=kd_alpha, kd_temp=kd_temp,
-                              label_smoothing=label_smoothing,
-                              logit_priors=logit_priors, adjust_tau=adjust_tau,
-                              contrastive_weight=contrastive_weight,
-                              contrastive_temp=contrastive_temp, mixed=mixed)
-    return masked_loss(out, labels, *loss_weights,
-                       label_smoothing=label_smoothing,
-                       logit_priors=logit_priors, adjust_tau=adjust_tau,
-                       contrastive_weight=contrastive_weight,
-                       contrastive_temp=contrastive_temp, mixed=mixed)
+        result = masked_kd_loss(out, teacher_out, labels, *loss_weights,
+                                kd_alpha=kd_alpha, kd_temp=kd_temp,
+                                label_smoothing=label_smoothing,
+                                logit_priors=logit_priors, adjust_tau=adjust_tau,
+                                contrastive_weight=contrastive_weight,
+                                contrastive_temp=contrastive_temp, mixed=mixed)
+    else:
+        result = masked_loss(out, labels, *loss_weights,
+                             label_smoothing=label_smoothing,
+                             logit_priors=logit_priors, adjust_tau=adjust_tau,
+                             contrastive_weight=contrastive_weight,
+                             contrastive_temp=contrastive_temp, mixed=mixed)
+    if trait_module is not None and trait_weight > 0 and "features" in out:
+        cls = _combined_class_ids(labels)
+        tloss, taccs = trait_module.loss(out["features"], cls, trait_targets,
+                                         label_smoothing=label_smoothing)
+        total, ce_b, ce_c, ce_buf = result
+        result = (total + trait_weight * tloss, ce_b, ce_c, ce_buf)
+        if trait_stats is not None:
+            trait_stats.update(taccs)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -318,7 +386,9 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
               same_species=MIX_SAME_SPECIES,
               rare_masks=None, logit_priors=None, adjust_tau=0.0,
               contrastive_weight=0.0,
-              contrastive_temp=CONTRASTIVE_TEMPERATURE):
+              contrastive_temp=CONTRASTIVE_TEMPERATURE,
+              trait_module=None, trait_targets=None, trait_weight=0.0,
+              trait_stats=None):
     """Run one training epoch with optional AMP, gradient accumulation,
     label smoothing, logit adjustment, contrastive features, EMA (parameters
     *and* BatchNorm buffers, once per optimizer step), and teacher distillation.
@@ -378,7 +448,9 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                     teacher_model=teacher_model, kd_alpha=kd_alpha,
                     kd_temp=kd_temp, logit_priors=logit_priors,
                     adjust_tau=adjust_tau, contrastive_weight=contrastive_weight,
-                    contrastive_temp=contrastive_temp, mixed=mixed)
+                    contrastive_temp=contrastive_temp, mixed=mixed,
+                    trait_module=trait_module, trait_targets=trait_targets,
+                    trait_weight=trait_weight, trait_stats=trait_stats)
                 loss = loss / grad_accum_steps
             scaler.scale(loss).backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -394,7 +466,9 @@ def run_epoch(model, loader, optimizer, device, loss_weights, scaler=None,
                 teacher_model=teacher_model, kd_alpha=kd_alpha,
                 kd_temp=kd_temp, logit_priors=logit_priors,
                 adjust_tau=adjust_tau, contrastive_weight=contrastive_weight,
-                contrastive_temp=contrastive_temp, mixed=mixed)
+                contrastive_temp=contrastive_temp, mixed=mixed,
+                trait_module=trait_module, trait_targets=trait_targets,
+                trait_weight=trait_weight, trait_stats=trait_stats)
             loss_scaled = loss / grad_accum_steps
             loss_scaled.backward()
             if (step + 1) % grad_accum_steps == 0 or (step + 1) == total:
@@ -455,21 +529,32 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 medium_max=SHOT_MEDIUM_MAX,
                 rare_masks=None, logit_priors=None, adjust_tau=0.0,
                 contrastive_weight=0.0,
-                contrastive_temp=CONTRASTIVE_TEMPERATURE):
+                contrastive_temp=CONTRASTIVE_TEMPERATURE,
+                trait_module=None, trait_targets=None, trait_weight=0.0):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
     raw_model = getattr(model, '_orig_mod', model)
     if hasattr(raw_model, 'backbone') and phase == 2:
         param_groups = [
-            {"params": raw_model.backbone.parameters(), "lr": lr * BACKBONE_LR_MULT},
-            {"params": raw_model.attention.parameters(), "lr": lr * 0.5},
-            {"params": raw_model.binary_head.parameters(), "lr": lr},
-            {"params": raw_model.cattle_head.parameters(), "lr": lr},
-            {"params": raw_model.buffalo_head.parameters(), "lr": lr},
+            {"name": "backbone", "params": raw_model.backbone.parameters(),
+             "lr": lr * BACKBONE_LR_MULT},
+            {"name": "attention", "params": raw_model.attention.parameters(),
+             "lr": lr * 0.5},
+            {"name": "binary_head", "params": raw_model.binary_head.parameters(),
+             "lr": lr},
+            {"name": "cattle_head", "params": raw_model.cattle_head.parameters(),
+             "lr": lr},
+            {"name": "buffalo_head", "params": raw_model.buffalo_head.parameters(),
+             "lr": lr},
         ]
         if hasattr(raw_model, "projection_head"):
             param_groups.append(
-                {"params": raw_model.projection_head.parameters(), "lr": lr})
+                {"name": "projection_head",
+                 "params": raw_model.projection_head.parameters(), "lr": lr})
+        if hasattr(raw_model, "trait_heads"):
+            param_groups.append(
+                {"name": "trait_heads",
+                 "params": raw_model.trait_heads.parameters(), "lr": lr})
         for group in param_groups:
             group["params"] = [p for p in group["params"] if p.requires_grad]
         optimizer = AdamW(param_groups, lr=lr, weight_decay=weight_decay)
@@ -478,6 +563,19 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
         optimizer = AdamW(params, lr=lr, weight_decay=weight_decay)
 
     scheduler = scheduler_factory(optimizer) if scheduler_factory else None
+
+    # --- log the per-group learning rates at phase start ---
+    try:
+        groups_info = [{"name": g.get("name", f"group{i}"), "lr": g["lr"],
+                        "params": sum(p.numel() for p in g["params"])}
+                       for i, g in enumerate(optimizer.param_groups)]
+        print(f"[train] phase {phase} param groups: " + ", ".join(
+            f"{g['name']}(lr={g['lr']:.1e}, n={g['params']:,})"
+            for g in groups_info))
+        log_event("param_groups", category="training", phase=phase,
+                  groups=groups_info)
+    except Exception:
+        pass
     best = -1.0
     current_weights = tuple(loss_weights)
 
@@ -506,9 +604,18 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
     phase_pbar = tqdm(range(1, epochs + 1), desc=f"Phase {phase}",
                       unit="epoch", leave=True,
                       bar_format="{l_bar}{bar:20}{r_bar}")
+    global _COSINE_MARGIN
     for epoch in phase_pbar:
         eff_mix_prob = mix_prob if epoch <= mix_off_epoch else 0.0
+        # ArcFace margin ramps over the first N phase-2 epochs, 0 elsewhere.
+        if _COSINE_SCALE is not None:
+            if phase == 2:
+                ramp = max(1, COSINE_MARGIN_RAMP_EPOCHS)
+                _COSINE_MARGIN = COSINE_MARGIN * min(1.0, epoch / ramp)
+            else:
+                _COSINE_MARGIN = 0.0
         mix_stats = {"batches": 0, "mixed_batches": 0}
+        trait_stats = {}
         loss, ce_b, ce_c, ce_buf = run_epoch(
             model, loader, optimizer, device, current_weights, scaler,
             max_batches, set_train=set_train,
@@ -522,7 +629,9 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             rare_masks=rare_masks,
             logit_priors=logit_priors, adjust_tau=adjust_tau,
             contrastive_weight=contrastive_weight,
-            contrastive_temp=contrastive_temp)
+            contrastive_temp=contrastive_temp,
+            trait_module=trait_module, trait_targets=trait_targets,
+            trait_weight=trait_weight, trait_stats=trait_stats)
         if scheduler is not None:
             scheduler.step()
 
@@ -543,6 +652,19 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                         ce_buf=ce_buf, ema_step=ema_state.get("step", 0))
             if ema_metrics is not None:
                 log_metrics(ema_metrics, epoch=epoch, tag="ema", phase=phase)
+
+            if trait_module is not None and trait_weight > 0:
+                from .traits import evaluate_traits
+                val_traits = evaluate_traits(model, trait_module, val_loader,
+                                             trait_targets, device, max_batches)
+                log_event("trait_accuracy", category="training", epoch=epoch,
+                          phase=phase,
+                          train={k: v for k, v in trait_stats.items()},
+                          val=val_traits)
+                shown = ", ".join(f"{k}={v:.3f}" for k, v in val_traits.items()
+                                  if v is not None)
+                print(f"[train] phase{phase} epoch {epoch}/{epochs}: "
+                      f"trait val acc: {shown}", flush=True)
 
             raw_acc = raw_metrics.get(best_key, 0.0)
             ema_acc = ema_metrics.get(best_key, 0.0) if ema_metrics else -1.0
@@ -774,6 +896,18 @@ def main():
                         default=CONTRASTIVE_WEIGHT,
                         help="auxiliary SupCon loss weight on pooled features "
                              "(0 disables; default: 0.2)")
+    parser.add_argument("--trait-weight", type=float, default=TRAIT_WEIGHT,
+                        help="auxiliary breed-trait head loss weight "
+                             "(0 disables; suggested 0.1)")
+    parser.add_argument("--trait-file", default=TRAIT_FILE,
+                        help="breed traits JSON (see scripts/make_trait_template.py)")
+    parser.add_argument("--hard-pairs", default=None,
+                        help="confusion_pairs.json (scripts/mine_confusions.py); "
+                             "up-weights confused-pair SupCon negatives")
+    parser.add_argument("--cosine-head", action="store_true",
+                        help="normalised scaled-cosine breed heads (ArcFace); "
+                             "margin is applied only in the loss, export stays "
+                             "plain cosine logits")
     parser.add_argument("--logit-adjust", action="store_true",
                         help="enable logit adjustment (OFF by default: the "
                              "effective-number sampler is the single long-tail "
@@ -790,6 +924,9 @@ def main():
     parser.add_argument("--rare-threshold", type=int, default=RARE_CLASS_THRESHOLD,
                         help="breeds below this many train images are excluded "
                              "from CutMix/MixUp (default: 30)")
+    parser.add_argument("--dedup-splits", action="store_true",
+                        help="group-aware splits: near-duplicate images "
+                             "(dHash Hamming<=4) never cross train/val/test")
     parser.add_argument("--grad-accum", type=int,
                         default=GRADIENT_ACCUMULATION_STEPS,
                         help="gradient accumulation steps (default: 2)")
@@ -798,6 +935,20 @@ def main():
     # --- execution logger (per-run folder under logs/<exec_id>/) ---
     init_run_logger(exec_id=getattr(args, "exec_id", None), module="src.train")
     log_event("cli_args", category="actions", **vars(args))
+
+    # --- confusion-driven hard pairs (optional) ---
+    global _HARD_PAIRS
+    if args.hard_pairs:
+        try:
+            with open(args.hard_pairs) as f:
+                hp = json.load(f)
+            pairs = hp.get("pairs", hp) if isinstance(hp, dict) else hp
+            _HARD_PAIRS = {frozenset(int(x) for x in p) for p in pairs}
+            print(f"[train] hard pairs: {len(_HARD_PAIRS)} confused pairs "
+                  f"from {args.hard_pairs} (SupCon hard-neg weight="
+                  f"{_HARD_NEG_WEIGHT})")
+        except Exception as exc:
+            print(f"[train] could not load --hard-pairs ({exc}); ignoring")
 
     if args.smoke_test and args.half_data:
         parser.error("--smoke-test and --half-data are mutually exclusive")
@@ -880,7 +1031,8 @@ def main():
         summary = prepare_quarter_splits(data_root=args.data,
                                          split_dir=args.split_dir)
     else:
-        summary = prepare_splits(data_root=args.data, split_dir=args.split_dir)
+        summary = prepare_splits(data_root=args.data, split_dir=args.split_dir,
+                                 dedup=args.dedup_splits)
 
     if summary is None:
         return 1
@@ -956,11 +1108,18 @@ def main():
     # --- Model ---
     weights = args.weights or BACKBONE_WEIGHTS[args.backbone]
     model = BreedClassifier(backbone=args.backbone, attention=args.attention,
-                            pretrained_path=weights if os.path.exists(weights) else None)
+                            pretrained_path=weights if os.path.exists(weights) else None,
+                            cosine_head=args.cosine_head)
     if not os.path.exists(weights):
         print(f"[train] WARNING: {weights} not found, training backbone from scratch")
     model.to(device)
     model = model.to(memory_format=torch.channels_last)
+
+    global _COSINE_SCALE
+    if args.cosine_head:
+        _COSINE_SCALE = model.cosine_scale
+        print(f"[train] cosine/ArcFace breed heads ON (scale={model.cosine_scale}, "
+              f"margin={COSINE_MARGIN}, ramp={COSINE_MARGIN_RAMP_EPOCHS} epochs)")
 
     # --- Teacher (knowledge distillation) ---
     teacher_model = None
@@ -982,6 +1141,31 @@ def main():
         print(f"[train] KD: teacher {args.teacher_backbone}+{teacher_attention} "
               f"loaded from {args.teacher} "
               f"(alpha={KD_ALPHA}, T={KD_TEMPERATURE})")
+
+    # --- Breed trait auxiliary heads (training-only; excluded from export) ---
+    trait_module = None
+    trait_targets = None
+    if args.trait_weight and args.trait_weight > 0:
+        from .traits import (TraitClassifier, breed_trait_targets,
+                             build_trait_vocab, load_trait_spec)
+        spec = load_trait_spec(args.trait_file)
+        vocab = build_trait_vocab(spec) if spec else {}
+        if not vocab:
+            print(f"[train] trait heads requested but no filled values found in "
+                  f"{args.trait_file}; run scripts/make_trait_template.py and "
+                  f"fill it in. Continuing without trait heads.")
+        else:
+            with open(os.path.join(args.split_dir, "cattle_classes.json")) as f:
+                cattle_classes = json.load(f)
+            with open(os.path.join(args.split_dir, "buffalo_classes.json")) as f:
+                buffalo_classes = json.load(f)
+            trait_targets = breed_trait_targets(spec, vocab, cattle_classes,
+                                                buffalo_classes)
+            trait_module = TraitClassifier(FEATURE_DIM, vocab)
+            model.trait_heads = trait_module  # registers submodule (in state_dict)
+            model.to(device)
+            print(f"[train] trait heads ON (weight={args.trait_weight}): "
+                  + ", ".join(f"{k}({len(v)})" for k, v in vocab.items()))
 
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
@@ -1062,7 +1246,9 @@ def main():
                 same_species=MIX_SAME_SPECIES, train_counts=train_counts,
                 rare_masks=rare_masks,
                 logit_priors=logit_priors, adjust_tau=adjust_tau,
-                contrastive_weight=0.0)
+                contrastive_weight=0.0,
+                trait_module=trait_module, trait_targets=trait_targets,
+                trait_weight=args.trait_weight)
 
     # --- Phase 2: Full multi-task fine-tuning ---
     model.unfreeze_all()
@@ -1113,7 +1299,9 @@ def main():
                 rare_masks=rare_masks,
                 logit_priors=logit_priors, adjust_tau=adjust_tau,
                 contrastive_weight=contrastive_weight,
-                contrastive_temp=CONTRASTIVE_TEMPERATURE)
+                contrastive_temp=CONTRASTIVE_TEMPERATURE,
+                trait_module=trait_module, trait_targets=trait_targets,
+                trait_weight=args.trait_weight)
 
     # --- Phase 3: QAT (opt-in; mobile INT8 is produced by converter PTQ) ---
     best_checkpoint = ckpt_p2
@@ -1143,7 +1331,9 @@ def main():
                     same_species=MIX_SAME_SPECIES, train_counts=train_counts,
                     rare_masks=rare_masks,
                     logit_priors=logit_priors, adjust_tau=adjust_tau,
-                    contrastive_weight=0.0)
+                    contrastive_weight=0.0,
+                    trait_module=trait_module, trait_targets=trait_targets,
+                    trait_weight=args.trait_weight)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat

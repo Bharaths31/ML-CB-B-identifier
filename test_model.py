@@ -472,7 +472,6 @@ class ModelManager:
                 raise RuntimeError("onnxruntime is not installed. Please `pip install onnxruntime` to test ONNX models.")
 
         backbone = info["backbone"]
-        model = BreedClassifier(backbone=backbone)
         ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
 
         # Handle different checkpoint formats
@@ -482,6 +481,14 @@ class ModelManager:
             state = ckpt["model_state_dict"]
         else:
             state = ckpt
+
+        # Detect cosine/ArcFace heads (final head layer has weight but no bias)
+        _probe = BreedClassifier(backbone=backbone)
+        _fi = len(_probe.cattle_head) - 1
+        del _probe
+        cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
+                     for h in ("cattle_head", "buffalo_head"))
+        model = BreedClassifier(backbone=backbone, cosine_head=cosine)
 
         # Filter out QAT observer keys that don't exist in the base model
         model_keys = set(model.state_dict().keys())

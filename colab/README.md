@@ -22,14 +22,18 @@ python scripts/create_colab_project_zip.py
 ```
 src/__init__.py
 src/config.py
+src/run_utils.py
+src/run_logger.py
 src/data_pipeline.py
 src/model.py
 src/cbam.py
 src/efficientnet_lite.py
+src/traits.py
 src/train.py
 src/metrics.py
 src/evaluate.py
 src/export.py
+src/parity_check.py
 src/verify.py
 requirements.txt
 efficientnet_lite2.pth         (~24 MB)
@@ -44,7 +48,7 @@ The notebook will mount your Drive and copy it automatically.
 
 | Method | How |
 |--------|-----|
-| **Kaggle API** | Set Kaggle credentials, auto-downloads and extracts `algsoch/breed-cattle-buffalo` into `data/raw/` |
+| **Kaggle API** | Set Kaggle credentials, auto-downloads and extracts datasets (`algsoch`, `atharvadarpude`, or `both`) into `data/raw/` |
 | **Upload archive.zip** | Create locally with `python scripts/create_colab_archive.py`, then upload to Colab |
 | **Google Drive** | Upload `archive.zip` to Drive, notebook copies it |
 
@@ -52,16 +56,17 @@ The notebook will mount your Drive and copy it automatically.
 
 The notebook exports:
 - **Portable bundle** — `model.pt` + class maps + metadata (for inference anywhere)
-- **ONNX** — for Android/mobile deployment
-- **INT8 quantized** — from QAT phase 3, optimized for mobile
+- **FP32 ONNX** — for desktop evaluation and GUI tester
+- **Mobile INT8 ONNX & TFLite** — converter-side PTQ (QDQ/INT8) optimized for mobile deployment
+- **Parity verification** — validates exported artifacts against PyTorch reference
 
-You can download the results directly or save to Google Drive.
+You can download the complete results archive directly or save it to Google Drive.
 
 ## T4 GPU Settings
 
 The notebook is pre-configured for Colab's free T4 (15 GB VRAM):
-- Batch size: 64 (effective 128 with gradient accumulation)
+- Dynamic VRAM auto-scaling (16 to 128 batch size, maintains 128 effective batch)
 - Workers: 2 (Colab CPU limit)
 - Mixed precision (AMP) for phases 1-2
-- AMP disabled for QAT phase 3 (required for quantization)
+- AMP disabled for optional QAT phase 3
 - Dataset on local SSD (`/content/data/raw/`), not Drive

@@ -875,8 +875,29 @@ arguments.
 |---|---|
 | `python scripts/audit_data.py --data data/raw --split-dir data/splits` | Per-breed counts, fuzzy breed-name collisions, `bargur` cross-species duplicates, exact/near-duplicate images across splits, corrupt files. **Report only, never deletes.** |
 | `python scripts/diagnose_model.py --checkpoint <pt> [--ema <pt>] --split test` | binary/cattle/buffalo acc, combined top1/3/5 + soft, per-class recall by shot bucket, true/pred histograms, top-20 confusion pairs. |
+| `python scripts/mine_confusions.py --checkpoint <pt> --top 30` | Writes `outputs/metrics/confusion_pairs.json` (top confused breed pairs) for `--hard-pairs`. |
+| `python scripts/make_trait_template.py` | Writes `data/breed_traits.json` (75 breeds × trait fields, empty) to fill in for `--trait-weight`. |
 | `python scripts/onnx_parity_10.py --checkpoint <pt> --onnx <fp32.onnx> --images "Testing data/**/*.jpg"` | Asserts identical soft top-5 and max &#124;Δlogit&#124; < 1e-3 between PyTorch and the fp32 ONNX. |
-| `python scripts/test_fixes_cpu.py` | CPU-only synthetic unit tests (no data/GPU needed). |
+| `bash scripts/run_ablations.sh --dry-run` / `powershell -File scripts\run_ablations.ps1` | Quarter-data ablation sweep R0→R7 (distinct `--run-tag`s). |
+| `python scripts/view_logs.py list\|summary\|metrics\|events\|diff` | Inspect the per-execution logs. |
+| `python scripts/test_fixes_cpu.py` / `scripts/test_master_cpu.py` | CPU-only synthetic unit tests (no data/GPU needed). |
+
+**Breed trait heads (opt-in).** Fill `data/breed_traits.json` (free-form strings
+per breed), then train with `--trait-weight 0.1`. Traits run on the pooled
+features as an auxiliary masked loss and are **excluded from export**.
+
+**Group-aware splits (opt-in).** `--dedup-splits` keeps near-duplicate images
+(dHash Hamming ≤ 4) in the same split so validation/test accuracy isn't inflated
+by twins from the two merged Kaggle sources.
+
+**Confusion-driven training (opt-in).** `scripts/mine_confusions.py` →
+`python -m src.train --hard-pairs outputs/metrics/confusion_pairs.json` up-weights
+SupCon negatives for the breeds the model confuses most.
+
+**Cosine/ArcFace heads (opt-in).** `--cosine-head` replaces the final breed-head
+Linear with normalised scaled-cosine logits (scale 30), margin ramped over the
+first 10 phase-2 epochs. Inference/export stay margin-free, and `export` /
+`test_model.py` auto-detect cosine checkpoints.
 
 ### Execution logging (`logs/<exec_id>/`)
 

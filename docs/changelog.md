@@ -1,5 +1,39 @@
 # 16. Changelog
 
+### 2026-09-24 — Breed trait heads, group-aware splits, hard negatives, tooling
+
+- **Breed trait auxiliary heads (D2, opt-in `--trait-weight`, suggested 0.1)**:
+  new `src/traits.py` + `scripts/make_trait_template.py` generating
+  `data/breed_traits.json` (75 breeds × `hump/horn/coat/ear/dewlap/face/size`,
+  all empty for you to fill). Trait classifiers run on the pooled 1280-d
+  features, masked loss ignores empty traits, and per-trait val accuracy is
+  logged each eval. Training-only; excluded from export (verified).
+- **Group-aware splits (E1, `--dedup-splits`)**: dHash (no external deps) groups
+  near-duplicates (Hamming ≤ `DEDUP_HAMMING=4`) within each breed so twins never
+  cross train/val/test; hashes cached in `data/splits/hashes.csv`; long-tail
+  minimums preserved.
+- **Val-noise warning (E3)**: `prepare_splits` prints min/median val images per
+  breed and warns when any breed has < `VAL_MIN_WARN` (2).
+- **SupCon hard negatives (D4)**: `supervised_contrastive_loss` up-weights
+  confused-pair negatives (`CONTRASTIVE_HARD_NEG_WEIGHT=2.0`); `--hard-pairs`
+  loads `confusion_pairs.json` produced by the new `scripts/mine_confusions.py`.
+- **Per-group LR logging (F4)**: `train_phase` prints + logs each optimizer
+  group's LR and parameter count at phase start.
+- **Tooling (G2/G4)**: `scripts/mine_confusions.py` (top-30 confused breed pairs
+  as global ids), `scripts/run_ablations.sh` / `.ps1` (quarter-data sweep
+  R0→R7, `--dry-run` supported), plus `scripts/view_logs.py`.
+- **Cosine/ArcFace breed heads (D3, `--cosine-head`)**: `CosineHead` replaces the
+  final Linear on cattle/buffalo heads. Forward is margin-free scaled cosine
+  (`scale=30`), so inference/export are unchanged; the additive angular margin
+  (`COSINE_MARGIN=0.3`) is ramped over the first `COSINE_MARGIN_RAMP_EPOCHS=10`
+  phase-2 epochs and applied to the target class **inside the loss**. `export`
+  and `test_model.py` auto-detect cosine checkpoints (final head layer has no
+  bias) and build the matching model.
+- **Tests**: `scripts/test_master_cpu.py` now 61 checks (traits, dedup, hard
+  negatives, cosine head, logger, mixing, EMA, metrics, transforms, CBAM identity).
+- **Still pending**: the hard-pair **batch sampler** (D5); `--hard-pairs` only
+  up-weights SupCon negatives for now.
+
 ### 2026-09-24 — Unified execution logger (`logs/<exec_id>/`) + `ema_decay` fix
 
 - **Fixed `NameError: ema_decay`** in `train_phase` (the EMA-diagnostics block

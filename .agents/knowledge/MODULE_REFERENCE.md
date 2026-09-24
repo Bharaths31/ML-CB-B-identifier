@@ -125,11 +125,21 @@ verify.py ← (uses model, efficientnet_lite)
 - `synthetic_parity(runnings, n)` — max |Δlogit| vs fp32 on random inputs
 - `main()` — CLI: accuracy mode (val/test) or `--synthetic N`; timestamped report (`--run-tag`)
 
+### `src/traits.py`
+- `load_trait_spec(path)` / `build_trait_vocab(spec)` — trait JSON + per-field value vocab
+- `breed_trait_targets(spec, vocab, cattle_classes, buffalo_classes)` → per-field LongTensor[75] (global id → trait idx, -1 = ignore)
+- `TraitClassifier(in_dim, vocab)` — training-only per-field heads; `.loss(features, class_ids, targets)` masked CE
+- `evaluate_traits(model, trait_module, loader, targets, device)` → {field: val acc}
+
 ### `scripts/` (run on the GPU/dataset machine; read-only)
 - `audit_data.py` — per-breed counts, fuzzy breed-name collisions, `bargur` cross-species dupes, split duplicates, corrupt files
 - `diagnose_model.py` — detailed val/test report incl. shot buckets + confusion pairs (raw vs EMA)
+- `mine_confusions.py` — writes `outputs/metrics/confusion_pairs.json` (top-N confused pairs) for `--hard-pairs`
+- `make_trait_template.py` — writes `data/breed_traits.json` template (75 breeds, empty trait fields)
 - `onnx_parity_10.py` — PyTorch vs fp32 ONNX top-5 + |Δlogit| assertion
-- `test_fixes_cpu.py` — CPU-only synthetic unit tests (no data/GPU)
+- `view_logs.py` — inspect `logs/<exec_id>/` (list/summary/metrics/events/diff)
+- `run_ablations.sh` / `run_ablations.ps1` — quarter-data ablation sweep R0→R7
+- `test_fixes_cpu.py` / `test_master_cpu.py` — CPU-only synthetic unit tests (no data/GPU)
 
 ### `src/verify.py`
 - `check_backbone(name)` — load weights + print stats
