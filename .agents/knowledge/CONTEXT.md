@@ -1098,6 +1098,11 @@ old 85/10/5 split left many rare breeds with **zero** test images.
 
 ### 2026-09-05 — Major Update
 
+**V4 Updates (2026-09-24):**
+- **Option C (Breed Merging)**: Implemented `BREED_ALIASES` across `src/config.py`, `local_train.py`, and `colab/cattle_buffalo_trainer.py` to map 33 ultra-rare breeds into broader phenotypic categories (e.g., `light_draught`, `dark_draught`, `other_buffalo`), reducing task complexity and fixing long-tail imbalance.
+- **Model Efficiency**: Reduced Phase 2 epochs from 80 to 50 as models reliably plateau, culling unnecessary training time.
+- **Label Alignment**: `test_model.py` now explicitly prioritizes loading class maps directly from the portable export directory over `data/splits/` to guarantee perfect label alignment.
+
 **Training:**
 - Added CUDA optimization: `cudnn.benchmark`, TF32, AMP (`torch.amp`), `GradScaler`
 - Added gradient clipping (`max_norm=1.0`)

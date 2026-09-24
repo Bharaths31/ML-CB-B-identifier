@@ -1049,6 +1049,11 @@ Diagnosed from a 10-photo ONNX batch test (0/10 correct, top-5 dominated by rare
 - **Presenter Config**: UI configurations (branding, section toggles, confidence modes) are saved persistently via `outputs/logs/presenter_config.json`.
 - **Session Logging**: Captures all UI interactions, model/image selections, and prediction reasoning into a separate log file in `outputs/logs/`.
 
+**2026-09-24 — V4 Enhancements**
+- **Option C (Breed Merging)**: Implemented `BREED_ALIASES` across `src/config.py`, `local_train.py`, and `colab/cattle_buffalo_trainer.py` to map 33 ultra-rare breeds into broader phenotypic categories (e.g., `light_draught`, `dark_draught`, `other_buffalo`), reducing task complexity and fixing long-tail imbalance without dropping data.
+- **Model Efficiency**: Reduced Phase 2 epochs to 50 as models reliably plateau, culling unnecessary training time.
+- **Label Alignment**: `test_model.py` now explicitly prioritizes loading class maps directly from the portable export directory over `data/splits/` to guarantee perfect label alignment.
+
 **2026-09-14 — GUI Batch Processing & ODT Export**
 - **GUI Modernization (`test_model.py`)**: Added a tabbed interface separating single image testing from batch processing.
 - **Batch Analysis**: Drag-and-drop multiple images at once with real-time progress indicators and an aggregate dashboard.

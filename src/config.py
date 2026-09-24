@@ -30,7 +30,7 @@ BACKBONE_CHANNELS = {
 }
 
 FEATURE_DIM = 1280
-BINARY_DIM = 256
+BINARY_DIM = 512
 BREED_DIM = 512
 PROJECTION_DIM = 128
 DROPOUT = 0.3
@@ -118,6 +118,8 @@ HARD_PAIR_BOOST = 4.0            # sampler boost for confused-pair co-sampling
 
 # --- Data integrity -------------------------------------------------------
 DEDUP_SPLITS = False             # group-aware splits by perceptual hash
+DEDUP_HAMMING = 4
+HASH_CACHE_NAME = "hashes.csv"
 VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",

@@ -44,7 +44,31 @@ KAGGLE_DATASET_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 # Empty by default — add entries only after confirming with audit_data.py, e.g.
 #   BREED_ALIASES = {"amruthamahal": "amritmahal", "hallikaru": "hallikar",
 #                    "malenadu_gidda": "malnad_gidda"}
-BREED_ALIASES = {}
+BREED_ALIASES = {
+    "holstein-friesian": "holstein_friesian",
+    "luit_(swamp)": "luit",
+    "gangatiri": "light_draught",
+    "kenkatha": "light_draught",
+    "hariana": "light_draught",
+    "malvi": "light_draught",
+    "bachaur": "light_draught",
+    "gaolao": "light_draught",
+    "ponwar": "dark_draught",
+    "siri": "dark_draught",
+    "ladakhi": "dark_draught",
+    "himachali_pahari": "dark_draught",
+    "belahi": "dark_draught",
+    "dagri": "dark_draught",
+    "thutho": "dark_draught",
+    "red_kandhari": "red_draught",
+    "poda_thurpu": "red_draught",
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "marathwadi": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo"
+}
 
 
 DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
@@ -901,9 +925,14 @@ def stage_train(args):
                            ("--randaugment", "randaugment"), ("--rrc", "rrc")):
             if getattr(args, attr, False):
                 cmd.append(flag)
+    
+    if getattr(args, "augment_preset", None):
+        cmd.extend(["--augment-preset", args.augment_preset])
+
     aug_on = [a for a in ("mix", "flip", "color_jitter", "randaugment", "rrc")
               if args.augment_all or getattr(args, a, False)]
-    print(f"  Augmentation: {', '.join(aug_on) if aug_on else 'NONE (default)'}")
+    preset_str = f" (preset={args.augment_preset})" if getattr(args, "augment_preset", None) else ""
+    print(f"  Augmentation: {', '.join(aug_on) if aug_on else 'NONE (default)'}{preset_str}")
 
     # Imbalance: sampler only unless --logit-adjust is passed.
     if args.logit_adjust:
@@ -1110,6 +1139,8 @@ Outputs are timestamped per run and never overwrite previous results.
                      help="enable RandomResizedCrop")
     aug.add_argument("--augment-all", action="store_true",
                      help="enable flip + color-jitter + randaugment + rrc + mix")
+    aug.add_argument("--augment-preset", choices=["none", "light"],
+                     help="apply pre-defined augmentation preset (e.g. light)")
 
     # Imbalance mechanism (single mechanism by default)
     imb = parser.add_argument_group("imbalance")

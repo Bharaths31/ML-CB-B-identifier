@@ -63,8 +63,12 @@ class BreedClassifier(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.binary_head = nn.Sequential(
             nn.Linear(feature_dim, BINARY_DIM),
+            nn.BatchNorm1d(BINARY_DIM),
             nn.ReLU(inplace=True),
-            nn.Linear(BINARY_DIM, 2),
+            nn.Dropout(p=dropout),
+            nn.Linear(BINARY_DIM, BINARY_DIM // 2),
+            nn.ReLU(inplace=True),
+            nn.Linear(BINARY_DIM // 2, 2),
         )
         self.cattle_head = _make_breed_head(feature_dim, num_cattle, dropout,
                                             self.cosine_head, self.cosine_scale)

@@ -210,7 +210,31 @@ def find_breed_dirs(base_dir):
     return breed_dirs
 
 # Spelling-variant merge map (empty by default; confirm with audit_data.py first)
-BREED_ALIASES = {}
+BREED_ALIASES = {
+    "holstein-friesian": "holstein_friesian",
+    "luit_(swamp)": "luit",
+    "gangatiri": "light_draught",
+    "kenkatha": "light_draught",
+    "hariana": "light_draught",
+    "malvi": "light_draught",
+    "bachaur": "light_draught",
+    "gaolao": "light_draught",
+    "ponwar": "dark_draught",
+    "siri": "dark_draught",
+    "ladakhi": "dark_draught",
+    "himachali_pahari": "dark_draught",
+    "belahi": "dark_draught",
+    "dagri": "dark_draught",
+    "thutho": "dark_draught",
+    "red_kandhari": "red_draught",
+    "poda_thurpu": "red_draught",
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "marathwadi": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo"
+}
 
 def normalize_breed_name(name):
     """Normalize breed folder names: lowercase, underscores, strip whitespace."""
