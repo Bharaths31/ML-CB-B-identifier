@@ -59,26 +59,29 @@
 │  └──────────────────────────────────────────────┘            │
 │        ↓ AdaptiveAvgPool2d(1) → flatten(1)                   │
 │        ↓ (1280-dim pooled feature vector)                    │
-│  ┌─────┼─────────┬──────────────┬───────────────────┐        │
-│  ↓     ↓         ↓              ↓                   ↓        │
-│ binary_head  cattle_head  buffalo_head   projection_head     │
-│  (→2)        (→57)        (→18)          (→128, train-only)  │
-│        ↓                                                     │
-│  masked_loss: w_bin*CE_bin + w_cat*CE_cat + w_buf*CE_buf     │
-│               (+ τ·log(prior) logit adjustment on breed CE)  │
-│               (+ λ·SupCon(projection embedding))             │
-│        ↓                                                     │
-│  outputs/checkpoints/<backbone>_phase{1,2,3}_best.pt         │
-│        ↓                                                     │
-│  outputs/export/portable/<backbone>_*/  (self-contained)     │
-└─────────────────────────────────────────────────────────────┘
+│  ┌─────┼─────────┬──────────────┬───────────────────┬──────────────┐
+│  ↓     ↓         ↓              ↓                   ↓              │
+│ binary_head  cattle_head  buffalo_head   projection_head  trait_heads│
+│  (→2)        (→57)        (→18)          (→128)           (→75)      │
+│        ↓                                                           │
+│  masked_loss: w_bin*CE + w_cat*CE + w_buf*CE + w_trait*BCE         │
+│               (+ τ·log(prior) logit adjustment on breed CE)        │
+│               (+ λ·SupCon(projection embedding))                   │
+│        ↓                                                           │
+│  outputs/<tag>/checkpoints/<backbone>_phase{1,2,3}_best.pt         │
+│        ↓                                                           │
+│  Energy-based OOD Filtering (rejects inputs with E > -25.0)        │
+│        ↓                                                           │
+│  outputs/<tag>/export/portable/<backbone>_*/  (self-contained)     │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Inference Flow
 
 ```
 Image → Resize(260) → CenterCrop(260) → ToTensor()
-     → model.forward() → {binary, cattle, buffalo, features, embedding}
+     → model.forward() → {binary, cattle, buffalo, features, embedding, traits}
+     → Energy OOD check (abort if non-bovine detected)
      → soft routing: p(species)·softmax(head) over all 75 breeds → top-k
 ```
 
@@ -152,12 +155,13 @@ class BreedClassifier(nn.Module):
     cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→57)
     buffalo_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→18)
     projection_head: Linear(1280→1280) + ReLU + Linear(1280→128)   # training-only (SupCon)
+    trait_heads: Parallel linear layers for multiple morphological traits
 ```
 
 ### Forward Path
 
 1. `forward_features(x)`: backbone stages 0..3 → CBAM → stages 4..6 → head → pool → flatten
-2. `forward(x)`: features → 3 parallel heads + projection head → dict{binary, cattle, buffalo, features, embedding}
+2. `forward(x)`: features → 4 parallel heads + projection head → dict{binary, cattle, buffalo, features, embedding, traits}
 3. `predict(x)` (`@torch.no_grad()`): returns the soft-routed combined 75-class distribution `[p(species=0)·softmax(cattle), p(species=1)·softmax(buffalo)]`
 
 The `projection_head` and `embedding` output are consumed only by the
@@ -310,21 +314,20 @@ Creates a reduced dataset using 25% of images per breed via `prepare_quarter_spl
 - Class maps include ALL breeds — model architecture stays identical to full training
 - Fastest local training mode (~4x speedup)
 
-### Auto-Export (timestamped, non-overwriting)
+### Auto-Export & Version Tagging
 
 After training completes, automatically creates a portable export in
-`outputs/export/portable/<backbone>_<...>_<runid>/` containing:
+`outputs/<tag>/export/portable/<backbone>_<...>_<tag>/` containing:
 - `model.pt` — checkpoint with state_dict
 - `cattle_classes.json`, `buffalo_classes.json` — label maps
 - `model_info.json` — architecture metadata + usage instructions
 
-**All outputs are timestamped by default** (`TIMESTAMP_OUTPUTS=True`,
-`RUN_ID_FORMAT="%d-%m-%Y-%H-%M"` → `DD-MM-YYYY-HH-MM`; colons are illegal on
-Windows). Checkpoints are `<backbone>_phase{N}_best_<runid>.pt`; exports/metrics
-carry the same run id. `src/run_utils.find_latest_checkpoint()` discovers the
-newest checkpoint, so `src.export` / `src.evaluate` / `src.parity_check` /
-`local_train.py` need no path argument. `unique_path()` guards explicit
-`--run-tag` reuse so nothing is overwritten.
+**All outputs are tagged and categorized by version** (`VERSION.txt` auto-increments).
+When `local_train.py` starts without an explicit `--run-tag`, it reads `VERSION.txt`, 
+increments it (e.g., to `v5`), and saves the new outputs in `outputs/v5/checkpoints/`, 
+`outputs/v5/export/`, etc.
+Loose legacy files in `outputs/checkpoints/` will automatically be grouped into their 
+respective tagged directories by `local_train.py`'s cleanup mechanic.
 
 ---
 

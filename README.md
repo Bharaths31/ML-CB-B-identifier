@@ -357,7 +357,7 @@ python local_train.py [OPTIONS]
 |---|---|---|---|
 | `--logit-adjust` | flag | off | Add logit adjustment **on top of** the sampler (off by default; double-corrects) |
 | `--logit-adjust-prior` | `sampled` \| `raw` | `sampled` | Prior source when logit adjustment is enabled |
-| `--run-tag` | str | auto timestamp | Name this run's timestamped outputs |
+| `--run-tag` | str | auto-increment tag (e.g. v5) | Name this run's outputs and sub-folder |
 
 #### Skip Stages
 
@@ -571,7 +571,7 @@ python -m src.export --mode float16 --backbone lite2
 | `--mode` | `onnx` \| `onnx-int8` \| `tflite` \| `float16` \| `portable` | required | Export format |
 | `--checkpoint` | path | auto: newest `<backbone>_*_phase2_best_<runid>.pt` | Specific `.pt` file to export from |
 | `--calibration-images` | int | `500` | Train images for INT8 calibration |
-| `--run-tag` | str | auto `DD-MM-YYYY-HH-MM` | Run id for timestamped artifact names |
+| `--run-tag` | str | auto `v{N}` increment | Run id for versioned artifact folders |
 | `--skip-app-assets` | flag | off | Don't copy TFLite artifacts into the Flutter app |
 
 > The old `--mode int8` (x86 PTQ TorchScript) was **removed** — it failed conversion (`Unsupported qscheme: per_channel_affine`) and was unusable on Android.
@@ -804,7 +804,7 @@ python -m src.train [OPTIONS]
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--run-tag` | str | auto timestamp | Run id used to timestamp checkpoints/exports so previous runs are never overwritten |
+| `--run-tag` | str | auto-increment tag | Run id used to version checkpoints/exports so previous runs are never overwritten |
 
 #### Compilation
 
@@ -854,7 +854,7 @@ python -m src.train --quarter-data --device cpu --no-compile
 ## Timestamped Outputs & Run-Later Diagnostics
 
 Every training/export/evaluation run gets a `run id` (default `DD-MM-YYYY-HH-MM`,
-override with `--run-tag`). Checkpoints, exports, and metric files include it, so
+override with `--run-tag`). Checkpoints, exports, and metric files are cleanly placed into `outputs/<tag>/` so
 **repeated runs never overwrite previous results**. Timestamping is ON by default
 (`TIMESTAMP_OUTPUTS=True` in `src/config.py`); change `RUN_ID_FORMAT` to alter the
 format (literal `:` is avoided because it is illegal in Windows filenames).
@@ -1007,7 +1007,7 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 
 11. **Logit adjustment is OFF by default**: the effective-number sampler already rebalances batches; enabling `--logit-adjust` too double-corrects and over-predicts rare breeds at inference. If enabled, its prior comes from the effective *sampled* distribution.
 
-12. **Outputs are timestamped**: checkpoints/exports/metrics carry a `run id` (`DD-MM-YYYY-HH-MM` or `--run-tag`) and never overwrite previous runs. Tools auto-discover the newest checkpoint.
+12. **Outputs are version tagged**: checkpoints/exports/metrics carry a `run id` (auto-incrementing `v4`, `v5` or `--run-tag`), neatly categorized into `outputs/<tag>/` folders, and never overwrite previous runs. Tools auto-discover the newest checkpoint.
 
 13. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — use a ≤3.13 venv (the Windows venv is 3.13) or Colab.
 
