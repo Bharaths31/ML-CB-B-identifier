@@ -51,12 +51,13 @@ data/splits/{train,val,test}.csv
 EfficientNet-Lite backbone (stages 0..6)
   stem → [stage 0..3] → CBAM/SE attention → [stage 4..6] → head
         ↓  AdaptiveAvgPool2d(1) → flatten → 1280-dim pooled features
-   ┌────┴────────────┬───────────────┬────────────────────────┐
-binary_head (→2)  cattle_head (→57)  buffalo_head (→18)  projection_head (→128, train-only)
-        ↓  masked_loss: w_bin·CE + w_cat·CE + w_buf·CE
+   ┌────┴────────────┬───────────────┬────────────────────────┬─────────────────────┐
+binary_head (→2)  cattle_head (→57)  buffalo_head (→18)  projection_head (→128)  trait_heads (→75 traits)
+        ↓  masked_loss: w_bin·CE + w_cat·CE + w_buf·CE + w_trait·BCE
            (+ τ·log(prior) logit adjustment, OFF by default)
            (+ λ·SupCon features)
 outputs/checkpoints/<backbone>_phase{1,2,3}_best_<runid>.pt
+        ↓  Energy-based OOD filtering intercepts non-bovine inputs (conf > -25.0)
         ↓  auto-export (timestamped, never overwrites)
 outputs/export/portable/<backbone>_<...>_<runid>/
 ```

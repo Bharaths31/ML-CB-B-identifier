@@ -404,33 +404,31 @@ class ModelManager:
         """Find all available checkpoints."""
         found = {}
 
-        # 1. Checkpoints directory
-        if os.path.isdir(CHECKPOINT_DIR):
-            for f in sorted(os.listdir(CHECKPOINT_DIR)):
+        out_dir = os.path.join(PROJECT_ROOT, "outputs")
+        for root, dirs, files in os.walk(out_dir):
+            if "logs" in root or "metrics" in root: continue
+            for f in sorted(files):
                 if f.endswith(".pt") or f.endswith(".onnx"):
-                    path = os.path.join(CHECKPOINT_DIR, f)
-                    name = f.replace(".pt", "").replace(".onnx", " (ONNX)")
-                    backbone = "lite2" if "lite2" in f else ("lite4" if "lite4" in f else "lite2")
-                    mtype = "onnx" if f.endswith(".onnx") else "pt"
+                    path = os.path.join(root, f)
+                    
+                    if f == "model.pt" and "portable" in root:
+                        d = os.path.basename(root)
+                        name = f"portable/{d}"
+                        backbone = "lite2" if "lite2" in d else ("lite4" if "lite4" in d else "lite2")
+                        mtype = "pt"
+                    else:
+                        name = f.replace(".pt", "").replace(".onnx", " (ONNX)")
+                        rel_dir = os.path.relpath(root, out_dir)
+                        if rel_dir != "." and not rel_dir.startswith("checkpoints") and not rel_dir.startswith("export"):
+                            parts = rel_dir.split(os.sep)
+                            if parts[0].startswith("v") or parts[0].startswith("202"):
+                                name = f"[{parts[0]}] {name}"
+                                
+                        backbone = "lite2" if "lite2" in f else ("lite4" if "lite4" in f else "lite2")
+                        mtype = "onnx" if f.endswith(".onnx") else "pt"
+                        
                     found[name] = {"path": path, "backbone": backbone, "model": None, "type": mtype}
-
-        # 2. Portable exports
-        if os.path.isdir(PORTABLE_EXPORT_DIR):
-            for d in sorted(os.listdir(PORTABLE_EXPORT_DIR)):
-                model_pt = os.path.join(PORTABLE_EXPORT_DIR, d, "model.pt")
-                if os.path.exists(model_pt):
-                    backbone = "lite2" if "lite2" in d else ("lite4" if "lite4" in d else "lite2")
-                    found[f"portable/{d}"] = {"path": model_pt, "backbone": backbone, "model": None, "type": "pt"}
-
-        # 3. ONNX Exports directory
-        if os.path.isdir(EXPORT_DIR):
-            for f in sorted(os.listdir(EXPORT_DIR)):
-                if f.endswith(".onnx"):
-                    path = os.path.join(EXPORT_DIR, f)
-                    name = f"export/{f.replace('.onnx', '')} (ONNX)"
-                    backbone = "lite2" if "lite2" in f else ("lite4" if "lite4" in f else "lite2")
-                    found[name] = {"path": path, "backbone": backbone, "model": None, "type": "onnx"}
-
+                    
         self.models = found
 
         if logger:
@@ -1328,8 +1326,12 @@ def build_html(mode="dev"):
         <button class="clear-btn" id="clear-btn" title="Clear image">✕</button>
       </div>
       <div class="model-selector" id="single-model-selector" style="{model_sel_display}">
-        <label for="model-select">Select Model</label>
+        <label for="model-select" style="display:flex; justify-content:space-between; align-items:center;">
+          Select Model
+          <span style="font-size: 0.7rem; cursor:pointer; color:var(--accent); text-transform:none;" onclick="document.getElementById('model-upload').click()">+ Upload Custom</span>
+        </label>
         <select id="model-select"></select>
+        <input type="file" id="model-upload" accept=".pt,.onnx" hidden>
         <div class="model-meta" id="model-meta"></div>
       </div>
       <button class="predict-btn" id="predict-btn" disabled>🔍 Analyze Breed</button>
@@ -1560,6 +1562,24 @@ function syncPresenterConfig() {
   }).catch(() => {});
 }
 syncPresenterConfig();
+
+const mu = $('#model-upload');
+if (mu) {
+  mu.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('model_file', file);
+    form.append('filename', file.name);
+    mu.disabled = true;
+    try {
+      const res = await fetch('/api/upload-model', { method: 'POST', body: form });
+      if (res.ok) { alert('Model uploaded successfully!'); location.reload(); }
+      else { const txt = await res.text(); alert('Upload failed: ' + txt); }
+    } catch (err) { alert('Upload error: ' + err); }
+    finally { mu.disabled = false; mu.value = ''; }
+  });
+}
 
 // SINGLE IMAGE
 const dz = $('#dropzone'), fi = $('#file-input'), pw = $('#preview-wrap'), pi = $('#preview-img'), pb = $('#predict-btn');
@@ -2159,6 +2179,27 @@ def run_server(manager, port=8501, mode="dev"):
                     result.pop("total_time_ms", None)
 
                 self._respond(200, "application/json", json.dumps(result).encode())
+
+            elif self.path == "/api/upload-model":
+                content_type = self.headers.get("Content-Type", "")
+                if "multipart/form-data" not in content_type:
+                    self._respond(400, "application/json", json.dumps({"error": "Expected multipart/form-data"}).encode())
+                    return
+                parts_data, parts_text = _parse_multipart(self)
+                model_bytes = parts_data.get("model_file")
+                filename = parts_text.get("filename", "uploaded_model.pt")
+                if not model_bytes:
+                    self._respond(400, "application/json", json.dumps({"error": "No model file provided"}).encode())
+                    return
+                
+                upload_dir = os.path.join(CHECKPOINT_DIR, "uploaded_models")
+                os.makedirs(upload_dir, exist_ok=True)
+                save_path = os.path.join(upload_dir, filename)
+                with open(save_path, "wb") as f:
+                    f.write(model_bytes)
+                
+                manager._discover_models()
+                self._respond(200, "application/json", json.dumps({"status": "success"}).encode())
 
             elif self.path == "/api/export-odt":
                 if mode == "present":

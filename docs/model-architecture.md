@@ -10,12 +10,13 @@ class BreedClassifier(nn.Module):
     binary_head: Linear(1280→256→2)
     cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→57)
     buffalo_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→18)
+    trait_heads: Parallel linear layers for multiple morphological traits
 ```
 
 ### Forward Path
 
 1. `forward_features(x)`: backbone stages 0..3 → CBAM → stages 4..6 → head → pool → flatten
-2. `forward(x)`: features → 3 parallel heads → dict{binary, cattle, buffalo, features}
+2. `forward(x)`: features → 4 parallel heads → dict{binary, cattle, buffalo, features, embedding, traits}
 
 ### Freeze/Unfreeze Methods
 

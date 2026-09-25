@@ -1184,10 +1184,28 @@ Outputs are timestamped per run and never overwrite previous results.
     print(f"  QAT: {'enabled' if args.include_qat else 'skipped'}")
     print(f"  Augmentation: {', '.join(aug_on) if aug_on else 'NONE (default)'}")
     print(f"  Imbalance: {'sampler + logit adjustment' if args.logit_adjust else 'sampler ONLY (default)'}")
-    print(f"  Run id: {args.run_tag or '(auto timestamp)'}")
+    print(f"  Run id: {args.run_tag or '(auto-incremented tag)'}")
     print()
 
     try:
+        # §0.5 — Organize old outputs
+        import shutil
+        import re
+        output_root = os.path.join(PROJECT_ROOT, "outputs")
+        for sub in ["checkpoints", "export", "metrics"]:
+            cat_dir = os.path.join(output_root, sub)
+            if not os.path.isdir(cat_dir): continue
+            for item in os.listdir(cat_dir):
+                if item == "portable" or os.path.isdir(os.path.join(cat_dir, item)): continue
+                path = os.path.join(cat_dir, item)
+                if os.path.isfile(path):
+                    match = re.search(r'_([vV]\d+|[\d-]{10,})\.', item)
+                    if match:
+                        tag = match.group(1).lower()
+                        target_dir = os.path.join(output_root, tag, sub)
+                        os.makedirs(target_dir, exist_ok=True)
+                        shutil.move(path, os.path.join(target_dir, item))
+
         # §0 — Prerequisites
         stage_prerequisites(args)
 

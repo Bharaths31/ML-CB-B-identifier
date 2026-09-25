@@ -28,17 +28,28 @@ def sanitize_run_id(run_id):
 
 
 def make_run_id(run_tag=None, fmt=None):
-    """Return a sanitized explicit run tag, or a fresh timestamp.
-
-    Uses config ``RUN_ID_FORMAT`` (DD-MM-YYYY-HH-MM). When
-    ``TIMESTAMP_OUTPUTS`` is False the literal ``"latest"`` is returned, which
-    makes outputs overwrite (opt-out only).
-    """
+    """Return a sanitized explicit run tag, or an auto-incremented version tag (v5, v6...)."""
     if run_tag:
         return sanitize_run_id(run_tag)
     if not TIMESTAMP_OUTPUTS:
         return "latest"
-    return sanitize_run_id(time.strftime(fmt or RUN_ID_FORMAT))
+    
+    # Auto-increment version mechanic
+    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "VERSION.txt")
+    current_version = 4
+    if os.path.exists(version_file):
+        try:
+            with open(version_file, "r") as f:
+                content = f.read().strip().lower().replace("v", "")
+                current_version = int(content)
+        except ValueError:
+            pass
+    
+    next_version = current_version + 1
+    with open(version_file, "w") as f:
+        f.write(f"v{next_version}")
+    
+    return f"v{next_version}"
 
 
 def timestamped(path, run_id):

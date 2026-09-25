@@ -15,26 +15,29 @@
 │  └──────────────────────────────────────────────┘            │
 │        ↓ AdaptiveAvgPool2d(1) → flatten(1)                   │
 │        ↓ (1280-dim pooled feature vector)                    │
-│  ┌─────┼─────────┬──────────────┬───────────────────┐        │
-│  ↓     ↓         ↓              ↓                   ↓        │
-│ binary_head  cattle_head  buffalo_head   projection_head     │
-│  (→2)        (→57)        (→18)          (→128, train-only)  │
+│  ┌─────┼─────────┬──────────────┬───────────────────┬──────────────┐
+│  ↓     ↓         ↓              ↓                   ↓              │
+│ binary_head  cattle_head  buffalo_head   projection_head  trait_heads│
+│  (→2)        (→57)        (→18)          (→128)           (→75)      │
+│        ↓                                                           │
+│  masked_loss: w_bin*CE + w_cat*CE + w_buf*CE + w_trait*BCE         │
+│               (+ τ·log(prior) logit adjustment, OFF default)       │
+│               (+ λ·SupCon(projection embedding))                   │
 │        ↓                                                     │
-│  masked_loss: w_bin*CE_bin + w_cat*CE_cat + w_buf*CE_buf     │
-│               (+ τ·log(prior) logit adjustment, OFF default) │
-│               (+ λ·SupCon(projection embedding))             │
-│        ↓                                                     │
-│  outputs/checkpoints/<backbone>_phase{N}_best_<runid>.pt     │
-│        ↓                                                     │
-│  outputs/export/portable/<backbone>_<...>_<runid>/           │
-└─────────────────────────────────────────────────────────────┘
+│  outputs/checkpoints/<backbone>_phase{N}_best_<runid>.pt           │
+│        ↓                                                           │
+│  Energy-based OOD Filtering (rejects inputs with E > -25.0)        │
+│        ↓                                                           │
+│  outputs/export/portable/<backbone>_<...>_<runid>/                 │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Inference Flow
 
 ```
 Image → Resize(260) → CenterCrop(260) → ToTensor()
-     → model.forward() → {binary, cattle, buffalo, features, embedding}
+     → model.forward() → {binary, cattle, buffalo, features, embedding, traits}
+     → Energy OOD check (abort if OOD)
      → soft routing: p(species)·softmax(head) over all 75 breeds → top-k
 ```
 
