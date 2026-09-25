@@ -47,12 +47,17 @@ def main():
     state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
 
     binary_dim = 256
+    num_cattle = 57
+    num_buffalo = 18
     for k, v in state_dict.items():
         if k == "binary_head.0.weight":
             binary_dim = v.shape[0]
-            break
+        elif k == "cattle_head.8.weight":
+            num_cattle = v.shape[0]
+        elif k == "buffalo_head.8.weight":
+            num_buffalo = v.shape[0]
 
-    model = BreedClassifier(backbone=args.backbone, binary_dim=binary_dim)
+    model = BreedClassifier(backbone=args.backbone, binary_dim=binary_dim, num_cattle=num_cattle, num_buffalo=num_buffalo)
     model.load_state_dict(state_dict, strict=False)
     
     model.to(device)

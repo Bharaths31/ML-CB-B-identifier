@@ -490,10 +490,12 @@ class ModelManager:
         cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
                      for h in ("cattle_head", "buffalo_head"))
         
-        # Detect binary_dim from checkpoint to support loading older models
+        # Detect binary_dim, num_cattle, num_buffalo from checkpoint to support loading older models
         binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
+        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else 57
+        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else 18
         
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim)
+        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim, num_cattle=num_cattle, num_buffalo=num_buffalo)
 
         # Filter out QAT observer keys that don't exist in the base model
         model_keys = set(model.state_dict().keys())
