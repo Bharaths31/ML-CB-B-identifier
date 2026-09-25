@@ -46,28 +46,7 @@ KAGGLE_DATASET_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 #                    "malenadu_gidda": "malnad_gidda"}
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit",
-    "gangatiri": "light_draught",
-    "kenkatha": "light_draught",
-    "hariana": "light_draught",
-    "malvi": "light_draught",
-    "bachaur": "light_draught",
-    "gaolao": "light_draught",
-    "ponwar": "dark_draught",
-    "siri": "dark_draught",
-    "ladakhi": "dark_draught",
-    "himachali_pahari": "dark_draught",
-    "belahi": "dark_draught",
-    "dagri": "dark_draught",
-    "thutho": "dark_draught",
-    "red_kandhari": "red_draught",
-    "poda_thurpu": "red_draught",
-    "chhattisgarhi": "other_buffalo",
-    "chilika": "other_buffalo",
-    "kalahandi": "other_buffalo",
-    "marathwadi": "other_buffalo",
-    "pandharpuri": "other_buffalo",
-    "gojri": "other_buffalo"
+    "luit_(swamp)": "luit"
 }
 
 

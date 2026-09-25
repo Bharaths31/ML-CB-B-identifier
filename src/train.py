@@ -492,8 +492,14 @@ def _build_warmup_cosine_scheduler(optimizer, warmup_epochs, total_epochs):
     if warmup_epochs <= 0:
         return CosineAnnealingLR(optimizer, T_max=total_epochs)
 
+    def get_warmup_lambda(group_idx):
+        group_name = optimizer.param_groups[group_idx].get("name", "")
+        if "head" in group_name:
+            return lambda epoch: 1.0  # Heads are already warm from Phase 1
+        return lambda epoch: (epoch + 1) / warmup_epochs
+
     warmup_sched = LambdaLR(
-        optimizer, lr_lambda=lambda epoch: (epoch + 1) / warmup_epochs)
+        optimizer, lr_lambda=[get_warmup_lambda(i) for i in range(len(optimizer.param_groups))])
     cosine_sched = CosineAnnealingLR(
         optimizer, T_max=max(1, total_epochs - warmup_epochs))
     return SequentialLR(

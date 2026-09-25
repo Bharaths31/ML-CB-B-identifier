@@ -1,0 +1,9 @@
+{
+  "backbone": "lite2",
+  "checkpoint": "lite2_phase2_best_V3.pt",
+  "image_size": 260,
+  "num_cattle_breeds": 57,
+  "num_buffalo_breeds": 18,
+  "exported_at": "2026-09-24T20:48:24",
+  "usage": "Load with: model = BreedClassifier(backbone=info['backbone']); ckpt = torch.load('model.pt', map_location='cpu'); model.load_state_dict(ckpt['state_dict'])"
+}

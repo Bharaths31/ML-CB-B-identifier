@@ -1,0 +1,27 @@
+{
+  "exec_id": "20260925-011758-29c2",
+  "module": "src.export",
+  "argv": [
+    "E:\\ML-CB-B-identifier\\src\\export.py",
+    "--mode",
+    "float16",
+    "--backbone",
+    "lite2",
+    "--checkpoint",
+    "E:\\ML-CB-B-identifier\\outputs\\checkpoints\\lite2_phase2_best_V4_2.pt"
+  ],
+  "cwd": "E:\\ML-CB-B-identifier",
+  "project_root": "E:\\ML-CB-B-identifier",
+  "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+  "executable": "E:\\ML-CB-B-identifier\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "git_commit": "7fdd88f",
+  "env": {
+    "RUN_EXEC_ID": "20260925-011758-29c2"
+  },
+  "started_at": "2026-09-25T14:58:04",
+  "hostname": "LAPTOP-O5GAR6UF",
+  "ended_at": "2026-09-25T14:58:09",
+  "duration_s": 49210.54,
+  "exit_code": 0
+}

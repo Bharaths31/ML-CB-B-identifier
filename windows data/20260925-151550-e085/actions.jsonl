@@ -1,0 +1,2 @@
+{"ts": "2026-09-25T15:15:50", "t": 0.065, "exec_id": "20260925-151550-e085", "module": "test_model", "category": "actions", "event": "run_start", "argv": ["test_model.py"], "cwd": "E:\\ML-CB-B-identifier"}
+{"ts": "2026-09-25T15:15:50", "t": 0.066, "exec_id": "20260925-151550-e085", "module": "test_model", "category": "actions", "event": "cli_args", "port": 8501, "no_browser": false, "dev": true, "present": false}

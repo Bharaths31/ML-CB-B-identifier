@@ -1,0 +1,16 @@
+{
+  "exec_id": "20260925-151550-e085",
+  "module": "test_model",
+  "argv": [
+    "test_model.py"
+  ],
+  "cwd": "E:\\ML-CB-B-identifier",
+  "project_root": "E:\\ML-CB-B-identifier",
+  "python": "3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]",
+  "executable": "E:\\ML-CB-B-identifier\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "git_commit": "7fdd88f",
+  "env": {},
+  "started_at": "2026-09-25T15:15:50",
+  "hostname": "LAPTOP-O5GAR6UF"
+}

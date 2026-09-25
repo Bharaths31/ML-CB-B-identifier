@@ -105,7 +105,7 @@ PAD_FILL = "imagenet_mean"
 
 # --- Breed-specific feature learning (all opt-in) --------------------------
 CBAM_IDENTITY_INIT = True        # bug fix: attention is identity at init
-TRAIT_WEIGHT = 0.0               # auxiliary trait-head loss weight (0 = off)
+TRAIT_WEIGHT = 0.15               # auxiliary trait-head loss weight (0 = off)
 TRAIT_FILE = os.path.join(PROJECT_ROOT, "data", "breed_traits.json")
 TRAIT_FIELDS = ("hump", "horn", "coat", "ear", "dewlap", "face", "size")
 COSINE_HEAD = False              # ArcFace-style normalised breed heads
@@ -123,32 +123,7 @@ HASH_CACHE_NAME = "hashes.csv"
 VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit",
-    # Fix 1 Option C: Merge rare similar breeds into broader categories
-    "gangatiri": "light_draught",
-    "kenkatha": "light_draught",
-    "hariana": "light_draught",
-    "malvi": "light_draught",
-    "bachaur": "light_draught",
-    "gaolao": "light_draught",
-    
-    "ponwar": "dark_draught",
-    "siri": "dark_draught",
-    "ladakhi": "dark_draught",
-    "himachali_pahari": "dark_draught",
-    "belahi": "dark_draught",
-    "dagri": "dark_draught",
-    "thutho": "dark_draught",
-    
-    "red_kandhari": "red_draught",
-    "poda_thurpu": "red_draught",
-    
-    "chhattisgarhi": "other_buffalo",
-    "chilika": "other_buffalo",
-    "kalahandi": "other_buffalo",
-    "marathwadi": "other_buffalo",
-    "pandharpuri": "other_buffalo",
-    "gojri": "other_buffalo"
+    "luit_(swamp)": "luit"
 }
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---

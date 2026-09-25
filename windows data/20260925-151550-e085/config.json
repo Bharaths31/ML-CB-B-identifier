@@ -1,0 +1,251 @@
+{
+  "ALLOW_HUE": false,
+  "AUG_COLOR_JITTER": false,
+  "AUG_HORIZONTAL_FLIP": true,
+  "AUG_RANDAUGMENT": false,
+  "AUG_RANDOM_RESIZED_CROP": true,
+  "BACKBONE_CHANNELS": {
+    "lite2": [
+      16,
+      24,
+      48,
+      88,
+      120,
+      208,
+      352
+    ],
+    "lite4": [
+      24,
+      32,
+      56,
+      112,
+      160,
+      272,
+      448
+    ]
+  },
+  "BACKBONE_LR_MULT": 0.1,
+  "BACKBONE_WEIGHTS": {
+    "lite2": "E:\\ML-CB-B-identifier\\efficientnet_lite2.pth",
+    "lite4": "E:\\ML-CB-B-identifier\\efficientnet_lite4.pth"
+  },
+  "BALANCE_BINARY_HEAD": true,
+  "BATCH_SIZE": 64,
+  "BEST_METRIC": "blended_score",
+  "BEST_METRIC_MACRO_WEIGHT": 0.5,
+  "BEST_METRIC_TOP1_WEIGHT": 0.5,
+  "BINARY_DIM": 512,
+  "BINARY_SATURATION_ACC": 0.95,
+  "BREED_ALIASES": {
+    "holstein-friesian": "holstein_friesian",
+    "luit_(swamp)": "luit",
+    "bhadwari": "bhadawari",
+    "ghumsari": "ghumusari",
+    "khillari": "khillar",
+    "gangatari": "light_draught",
+    "poda_thirupu": "red_draught",
+    "gangatiri": "light_draught",
+    "kenkatha": "light_draught",
+    "hariana": "light_draught",
+    "malvi": "light_draught",
+    "bachaur": "light_draught",
+    "gaolao": "light_draught",
+    "ponwar": "dark_draught",
+    "siri": "dark_draught",
+    "ladakhi": "dark_draught",
+    "himachali_pahari": "dark_draught",
+    "belahi": "dark_draught",
+    "dagri": "dark_draught",
+    "thutho": "dark_draught",
+    "red_kandhari": "red_draught",
+    "poda_thurpu": "red_draught",
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "marathwadi": "other_buffalo",
+    "marathwada": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo"
+  },
+  "BREED_AUG_DEFAULT": {
+    "flip": true,
+    "rrc": true,
+    "color_jitter": true
+  },
+  "BREED_AUG_POLICY": {
+    "gir": {
+      "color_jitter": false
+    },
+    "kankrej": {
+      "color_jitter": false
+    },
+    "red_sindhi": {
+      "color_jitter": false
+    },
+    "tharparkar": {
+      "color_jitter": false
+    },
+    "sahiwal": {
+      "color_jitter": false
+    },
+    "kapila": {
+      "color_jitter": false
+    },
+    "red_kandhari": {
+      "color_jitter": false
+    },
+    "shweta_kapila": {
+      "color_jitter": false
+    },
+    "konkan_kapila": {
+      "color_jitter": false
+    },
+    "gir_cattle": {
+      "color_jitter": false
+    }
+  },
+  "BREED_DIM": 512,
+  "CACHE_IMAGES": false,
+  "CBAM_AFTER_STAGE": 3,
+  "CBAM_IDENTITY_INIT": true,
+  "CHECKPOINT_DIR": "E:\\ML-CB-B-identifier\\outputs\\checkpoints",
+  "COAT_COLOUR_BREEDS": [
+    "gir",
+    "kankrej",
+    "red_sindhi",
+    "tharparkar",
+    "sahiwal",
+    "kapila",
+    "red_kandhari",
+    "shweta_kapila",
+    "konkan_kapila",
+    "gir_cattle"
+  ],
+  "COLOR_JITTER_BRIGHTNESS": 0.15,
+  "COLOR_JITTER_CONTRAST": 0.15,
+  "COLOR_JITTER_HUE": 0.02,
+  "COLOR_JITTER_SATURATION": 0.1,
+  "CONTRASTIVE_HARD_NEG_WEIGHT": 2.0,
+  "CONTRASTIVE_TEMPERATURE": 0.1,
+  "CONTRASTIVE_WEIGHT": 0.2,
+  "COSINE_HEAD": false,
+  "COSINE_MARGIN": 0.3,
+  "COSINE_MARGIN_RAMP_EPOCHS": 10,
+  "COSINE_SCALE": 30.0,
+  "CUTMIX_ALPHA": 0.4,
+  "CUTMIX_MIXUP_PROB": 0.25,
+  "DEDUP_HAMMING": 4,
+  "DEDUP_SPLITS": false,
+  "DROPOUT": 0.3,
+  "EMA_DECAY": 0.999,
+  "EMA_WARMUP": true,
+  "EMA_WARN_FRAC": 0.25,
+  "EVAL_EVERY_PHASE1": 1,
+  "EVAL_EVERY_PHASE2": 2,
+  "EVAL_EVERY_PHASE3": 2,
+  "EVAL_MATCH_TRAIN_RESOLUTION": false,
+  "EVAL_PAD_TO_SQUARE": false,
+  "EXPECTED_BUFFALO_BREEDS": null,
+  "EXPECTED_CATTLE_BREEDS": null,
+  "EXPORT_DIR": "E:\\ML-CB-B-identifier\\outputs\\export",
+  "FEATURE_DIM": 1280,
+  "GRADIENT_ACCUMULATION_STEPS": 2,
+  "HALF_DATA_RATIO": 0.5,
+  "HARD_PAIRS": null,
+  "HARD_PAIR_BOOST": 4.0,
+  "HASH_CACHE_NAME": "hashes.csv",
+  "IMAGENET_MEAN": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "IMAGENET_STD": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "IMAGE_SIZE": 260,
+  "KD_ALPHA": 0.7,
+  "KD_TEMPERATURE": 4.0,
+  "LABEL_SMOOTHING": 0.05,
+  "LOGIT_ADJUST": false,
+  "LOGIT_ADJUST_PRIOR": "sampled",
+  "LOGIT_ADJUST_TAU": 1.0,
+  "LOGS_DIR": "E:\\ML-CB-B-identifier\\outputs\\logs",
+  "LOG_CAPTURE_STDIO": true,
+  "LOG_EXEC_ID_ENV": "RUN_EXEC_ID",
+  "LOG_LEVEL": "INFO",
+  "LOG_ROOT": "E:\\ML-CB-B-identifier\\logs",
+  "LOG_TO_FILE": true,
+  "LOSS_WEIGHT_BINARY": 0.15,
+  "LOSS_WEIGHT_BINARY_FINAL": 0.05,
+  "LOSS_WEIGHT_BUFFALO": 0.35,
+  "LOSS_WEIGHT_BUFFALO_FINAL": 0.4,
+  "LOSS_WEIGHT_CATTLE": 0.5,
+  "LOSS_WEIGHT_CATTLE_FINAL": 0.55,
+  "METRICS_DIR": "E:\\ML-CB-B-identifier\\outputs\\metrics",
+  "MIXUP_ALPHA": 0.2,
+  "MIX_ENABLED": false,
+  "MIX_OFF_LAST_FRAC": 0.15,
+  "MIX_SAME_SPECIES": true,
+  "NUM_BREEDS_TOTAL": 57,
+  "NUM_BUFFALO_BREEDS": 11,
+  "NUM_CATTLE_BREEDS": 46,
+  "NUM_WORKERS": 4,
+  "OUTPUT_DIR": "E:\\ML-CB-B-identifier\\outputs",
+  "PAD_FILL": "imagenet_mean",
+  "PHASE1_EPOCHS": 8,
+  "PHASE1_LR": 0.003,
+  "PHASE2_EPOCHS": 50,
+  "PHASE2_LR": 0.0002,
+  "PHASE3_EPOCHS": 10,
+  "PHASE3_LR": 5e-06,
+  "PORTABLE_EXPORT_DIR": "E:\\ML-CB-B-identifier\\outputs\\export\\portable",
+  "PROJECTION_DIM": 128,
+  "PROJECT_ROOT": "E:\\ML-CB-B-identifier",
+  "QUARTER_DATA_RATIO": 0.25,
+  "RANDAUGMENT_MAGNITUDE": 5,
+  "RANDAUGMENT_OPS": 2,
+  "RARE_CLASS_THRESHOLD": 30,
+  "RAW_DATA_DIR": "E:\\ML-CB-B-identifier\\data\\raw",
+  "RRC_RATIO": [
+    0.92,
+    1.08
+  ],
+  "RRC_SCALE": [
+    0.8,
+    1.0
+  ],
+  "RUN_ID_FORMAT": "%d-%m-%Y-%H-%M",
+  "SAMPLER_BETA": 0.99,
+  "SEED": 42,
+  "SHOT_FEW_MAX": 30,
+  "SHOT_MEDIUM_MAX": 100,
+  "SMOKE_SAMPLES_PER_BREED": 5,
+  "SPECIES_LABELS": {
+    "cattle": 0,
+    "buffalo": 1
+  },
+  "SPLIT_DIR": "E:\\ML-CB-B-identifier\\data\\splits",
+  "TEST_RATIO": 0.15,
+  "TFLITE_APP_ASSETS_DIR": "E:\\ML-CB-B-identifier\\flutter_app\\assets\\models",
+  "TIMESTAMP_OUTPUTS": true,
+  "TRAIN_PAD_TO_SQUARE": false,
+  "TRAIN_RATIO": 0.7,
+  "TRAIN_RESIZE": 288,
+  "TRAIT_FIELDS": [
+    "hump",
+    "horn",
+    "coat",
+    "ear",
+    "dewlap",
+    "face",
+    "size"
+  ],
+  "TRAIT_FILE": "E:\\ML-CB-B-identifier\\data\\breed_traits.json",
+  "TRAIT_WEIGHT": 0.0,
+  "VAL_MIN_WARN": 2,
+  "VAL_RATIO": 0.15,
+  "WARMUP_EPOCHS": 3,
+  "WEIGHT_DECAY": 0.01
+}
