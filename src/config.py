@@ -145,10 +145,14 @@ LOGIT_ADJUST_TAU = 1.0
 LOGIT_ADJUST_PRIOR = "sampled"   # "sampled" (effective) or "raw"
 
 # --- OOD (Out-Of-Distribution) Detection ---
-OOD_ENABLED = True
+# IMPORTANT: OOD is disabled by default until thresholds are calibrated on
+# real training data (run `python scripts/calibrate_ood.py` after training).
+# The uncalibrated defaults below caused every image to be rejected because
+# the model's logit magnitudes produce energy ~-3.7 (not ~-30).
+OOD_ENABLED = False
 OOD_ENERGY_TEMPERATURE = 1.0
-OOD_ENERGY_THRESHOLD = -25.0
-OOD_MSP_THRESHOLD = 0.65
+OOD_ENERGY_THRESHOLD = -1.0    # permissive fallback; calibrate after training
+OOD_MSP_THRESHOLD = 0.35       # permissive fallback; calibrate after training
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)

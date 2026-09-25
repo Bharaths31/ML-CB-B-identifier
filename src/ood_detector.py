@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn.functional as F
 
@@ -9,11 +10,31 @@ class OODDetector:
     
     Computes an OOD score from raw model logits. No retraining needed.
     Works with both PyTorch and ONNX models (when using numpy arrays).
+    
+    If ``outputs/ood_thresholds.json`` exists (produced by
+    ``scripts/calibrate_ood.py``), thresholds are auto-loaded from it so
+    you don't need to manually update ``src/config.py``.
     """
+    
+    CALIBRATION_FILE = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "outputs", "ood_thresholds.json"
+    )
     
     def __init__(self, temperature=OOD_ENERGY_TEMPERATURE,
                  energy_threshold=OOD_ENERGY_THRESHOLD,
                  msp_threshold=OOD_MSP_THRESHOLD):
+        # Auto-load calibrated thresholds if available
+        if os.path.exists(self.CALIBRATION_FILE):
+            try:
+                import json
+                with open(self.CALIBRATION_FILE) as f:
+                    cal = json.load(f)
+                temperature = cal.get("energy_temperature", temperature)
+                energy_threshold = cal.get("energy_threshold", energy_threshold)
+                msp_threshold = cal.get("msp_threshold", msp_threshold)
+            except Exception:
+                pass  # fall back to defaults
         self.T = temperature
         self.energy_threshold = energy_threshold
         self.msp_threshold = msp_threshold
