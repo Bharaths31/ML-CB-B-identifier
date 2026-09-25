@@ -1,0 +1,9 @@
+flask>=3.0.0
+flask-socketio>=5.3.6
+flask-cors>=4.0.0
+python-socketio>=5.10.0
+torch>=2.1.0
+torchvision>=0.16.0
+Pillow>=10.0.0
+numpy
+odfpy

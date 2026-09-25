@@ -38,3 +38,12 @@ Thumbs.db
 logs/
 data/dataset_inventory/
 data/tmp_extract/
+
+# React Frontend
+breed-classifier-react/node_modules/
+breed-classifier-react/dist/
+breed-classifier-react/dist-ssr/
+breed-classifier-react/*.local
+breed-classifier-react/.env
+breed-classifier-react/.env.*
+breed-classifier-react/.DS_Store
