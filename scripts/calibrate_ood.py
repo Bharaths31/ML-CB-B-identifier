@@ -8,7 +8,8 @@ from tqdm import tqdm
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from src.data_pipeline import CattleBuffaloDataset, prepare_splits, _eval_transform
+import pandas as pd
+from src.data_pipeline import CattleBuffaloDataset, prepare_splits, _eval_transform, _load_class_maps
 from src.model import BreedClassifier
 from src.run_utils import find_latest_checkpoint, resolve_checkpoint
 from src.config import OOD_ENERGY_TEMPERATURE, CHECKPOINT_DIR
@@ -28,8 +29,20 @@ def main():
 
     # Load model
     ckpt_path = resolve_checkpoint(args.checkpoint, args.backbone, CHECKPOINT_DIR)
+    if ckpt_path is None:
+        import glob
+        pt_files = sorted(glob.glob("outputs/export/portable/*/model.pt", recursive=True))
+        if not pt_files:
+            pt_files = sorted(glob.glob("outputs/checkpoints/*.pt"))
+        if pt_files:
+            ckpt_path = pt_files[-1]
+            print(f"[calibrate_ood] Fallback to checkpoint: {ckpt_path}")
+        else:
+            print("[calibrate_ood] Error: No checkpoint found!")
+            sys.exit(1)
+            
     print(f"[calibrate_ood] Loading checkpoint: {ckpt_path}")
-    ckpt = torch.load(ckpt_path, map_location=device)
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     state_dict = ckpt["state_dict"] if "state_dict" in ckpt else ckpt
     state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
 
@@ -47,12 +60,16 @@ def main():
 
     # Load validation data
     prepare_splits()
-    val_csv = os.path.join(PROJECT_ROOT, "data", "splits", "val.csv")
+    split_dir = os.path.join(PROJECT_ROOT, "data", "splits")
+    val_csv = os.path.join(split_dir, "val.csv")
     if not os.path.exists(val_csv):
         print(f"[calibrate_ood] Error: {val_csv} not found.")
         return
         
-    dataset = CattleBuffaloDataset(val_csv, transform=_eval_transform())
+    manifest = pd.read_csv(val_csv)
+    cattle_classes, buffalo_classes = _load_class_maps(split_dir)
+        
+    dataset = CattleBuffaloDataset(manifest, cattle_classes, buffalo_classes, transform=_eval_transform())
     loader = torch.utils.data.DataLoader(
         dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
     )

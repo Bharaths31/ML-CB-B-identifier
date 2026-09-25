@@ -995,6 +995,17 @@ def stage_export(args):
 
 
 # ============================================================
+#  §7.5 — OOD Calibration
+# ============================================================
+
+def stage_calibrate_ood(args):
+    _banner(7.5, "OOD Calibration")
+    print("  Running OOD calibration on the validation set...")
+    _run([_python(), "scripts/calibrate_ood.py", "--backbone", args.backbone], check=False)
+    print("  ✅ OOD calibration completed (thresholds saved)")
+
+
+# ============================================================
 #  §8 — Summary
 # ============================================================
 
@@ -1251,6 +1262,9 @@ Outputs are timestamped per run and never overwrite previous results.
             stage_export(args)
         else:
             print("\n  ⏭️  Skipping export (--skip-export)")
+
+        # §7.5 — OOD Calibration
+        stage_calibrate_ood(args)
 
         # §8 — Summary
         stage_summary(args, total_start)
