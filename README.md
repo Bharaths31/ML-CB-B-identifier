@@ -540,6 +540,7 @@ This notebook allows you to:
 | **Byte Caching** | Raw JPEG bytes in RAM | Prevents RAM OOM, eliminates repeated disk I/O |
 | **GPU-side CutMix/MixUp** | Operations on CUDA device | Prevents CPU DataLoader bottleneck |
 | **Split Ratio** | 70/15/15 stratified (≥1 val/test per breed) | Maximizes rare-breed evaluation |
+| **OOD Security Harness** | Energy-based detector (post-hoc) | Rejects non-bovine inputs natively without retraining |
 
 ---
 
@@ -1018,6 +1019,12 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 ---
 
 ## Changelog
+
+**2026-09-25 — OOD Security Harness & Breed Trait Auto-Population**
+
+- **OOD Security Harness**: Added an energy-based Out-Of-Distribution detector (`src/ood_detector.py`) that scores raw logits and rejects non-bovine images (e.g., dogs, cars) post-hoc without retraining. Integrated directly into `test_model.py` GUI to show a clear `⚠️ Not a recognized cattle or buffalo` banner.
+- **OOD Calibration**: Added `scripts/calibrate_ood.py` to auto-calibrate OOD energy thresholds dynamically against the validation set. Portable exports (`src/export.py`) now bundle these thresholds in `model_info.json`.
+- **Breed Trait Auto-Population**: Added `scripts/populate_breed_traits.py` which uses the Gemini 2.5 Flash API to automatically fetch and standardize morphological descriptors (hump, horn, coat, ear, etc.) for all 75 breeds into `data/breed_traits.json`.
 
 **2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs**
 

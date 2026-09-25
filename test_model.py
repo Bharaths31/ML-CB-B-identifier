@@ -58,8 +58,9 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
                         IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
-                        TRAIN_RESIZE)
+                        TRAIN_RESIZE, OOD_ENABLED)
 from src.model import BreedClassifier
+from src.ood_detector import OODDetector
 
 # ---------------------------------------------------------------------------
 #  Constants
@@ -371,6 +372,7 @@ class ModelManager:
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.ood_detector = OODDetector() if OOD_ENABLED else None
         self._load_class_maps()
         self._discover_models()
 
@@ -489,7 +491,11 @@ class ModelManager:
         del _probe
         cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
                      for h in ("cattle_head", "buffalo_head"))
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine)
+        
+        # Detect binary_dim from checkpoint to support loading older models
+        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
+        
+        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim)
 
         # Filter out QAT observer keys that don't exist in the base model
         model_keys = set(model.state_dict().keys())
@@ -566,6 +572,14 @@ class ModelManager:
 
         inference_time = time.time() - inference_start
 
+        is_ood = False
+        ood_score = 0.0
+        ood_details = {}
+        if self.ood_detector is not None:
+            is_ood, ood_score, ood_details = self.ood_detector.is_ood(
+                binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
+            )
+
         # --- Soft species routing -------------------------------------------
         # Instead of a hard binary argmax (which forces every sample down one
         # breed head and propagates ~5% routing errors), score all breeds as
@@ -587,23 +601,28 @@ class ModelManager:
             logger.debug(f"Binary softmax: {bp} (soft routing over "
                          f"{n_cattle} cattle + {buffalo_logits.numel()} buffalo)")
 
-        k = min(5, combined.numel())
-        top5_probs, top5_idxs = combined.topk(k)
-        top5 = []
-        for prob, idx in zip(top5_probs.tolist(), top5_idxs.tolist()):
-            if idx < n_cattle:
-                breed = cattle_inv.get(idx, f"cattle_{idx}")
-            else:
-                breed = buffalo_inv.get(idx - n_cattle, f"buffalo_{idx - n_cattle}")
-            display_name = breed.replace("_", " ").title()
-            top5.append({
-                "breed": display_name,
-                "confidence": round(prob * 100, 2),
-            })
-
-        species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
-        species_name = SPECIES_LABELS[species_idx]
-        species_conf = binary_probs[species_idx].item() * 100
+        if is_ood:
+            top5 = [{"breed": "Not a recognized animal", "confidence": 0.0}]
+            species_name = "Unknown"
+            species_conf = 0.0
+        else:
+            k = min(5, combined.numel())
+            top5_probs, top5_idxs = combined.topk(k)
+            top5 = []
+            for prob, idx in zip(top5_probs.tolist(), top5_idxs.tolist()):
+                if idx < n_cattle:
+                    breed = cattle_inv.get(idx, f"cattle_{idx}")
+                else:
+                    breed = buffalo_inv.get(idx - n_cattle, f"buffalo_{idx - n_cattle}")
+                display_name = breed.replace("_", " ").title()
+                top5.append({
+                    "breed": display_name,
+                    "confidence": round(prob * 100, 2),
+                })
+    
+            species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
+            species_name = SPECIES_LABELS[species_idx]
+            species_conf = binary_probs[species_idx].item() * 100
 
         total_time = time.time() - predict_start
 
@@ -624,6 +643,9 @@ class ModelManager:
             "inference_time_ms": round(inference_time * 1000, 1),
             "total_time_ms": round(total_time * 1000, 1),
             "routing": "soft",
+            "ood": is_ood,
+            "ood_score": round(ood_score, 2) if is_ood else None,
+            "ood_details": ood_details
         }
 
         # Add raw logits for dev mode (API consumer decides whether to use them)
@@ -1202,6 +1224,7 @@ def build_html(mode="dev"):
     .results {{ display: none; }}
     .results.visible {{ display: block; animation: fadeUp 0.5s ease; }}
     @keyframes fadeUp {{ from {{ opacity:0; transform:translateY(12px); }} to {{ opacity:1; transform:translateY(0); }} }}
+    .ood-banner {{ background: rgba(239,68,68,0.15); color: #ef4444; padding: 12px; border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-sm); text-align: center; font-weight: 600; margin-bottom: 16px; }}
     .result-hero {{ background: var(--surface2); border-radius: var(--radius-sm); padding: 24px; text-align: center; margin-bottom: 16px; border: 1px solid var(--border); }}
     .result-hero .species-badge {{ display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }}
     .result-hero .species-badge.cattle {{ background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }}
@@ -1316,6 +1339,7 @@ def build_html(mode="dev"):
     <div class="card">
       <h2>📊 Prediction Results</h2>
       <div class="results" id="results">
+        <div class="ood-banner hidden" id="ood-banner">⚠️ Not a recognized cattle or buffalo</div>
         <div class="result-hero" id="result-hero">
           <div class="species-badge" id="species-badge"></div>
           <div class="breed-name" id="breed-name"></div>
@@ -1584,9 +1608,15 @@ function showResults(data) {
   $('#placeholder').classList.add('hidden');
   $('#results').classList.add('visible');
 
+  const oodBanner = $('#ood-banner');
+  if (oodBanner) {
+    if (data.ood) oodBanner.classList.remove('hidden');
+    else oodBanner.classList.add('hidden');
+  }
+
   // Species badge
   const badge = $('#species-badge');
-  if (effectivePresent && presenterConfig.hide_species_badge) {
+  if (data.ood || (effectivePresent && presenterConfig.hide_species_badge)) {
     badge.style.display = 'none';
   } else {
     badge.style.display = '';
@@ -1600,6 +1630,9 @@ function showResults(data) {
 
   // Top Breed Name
   $('#breed-name').textContent = data.top_breed;
+  if (data.ood && IS_DEV) {
+      $('#breed-name').innerHTML += `<div style="font-size:0.9rem; color:#ef4444; margin-top:8px">OOD Energy: ${data.ood_score}</div>`;
+  }
 
   // Breed Confidence Display
   const confEl = $('#breed-conf');

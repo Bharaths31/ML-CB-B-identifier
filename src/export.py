@@ -113,8 +113,9 @@ def _load_model(checkpoint_path, backbone, attention):
     del probe
     if cosine:
         print("[export] detected cosine/ArcFace breed heads in checkpoint")
+    binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
     model = BreedClassifier(backbone=backbone, attention=attention,
-                            cosine_head=cosine)
+                            cosine_head=cosine, binary_dim=binary_dim)
     missing, unexpected = model.load_state_dict(state, strict=False)
     # The projection head is training-only; ignore it. Anything else missing is
     # a real problem worth surfacing explicitly.
@@ -381,6 +382,8 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
             shutil.copy2(src, os.path.join(out_dir, name))
             print(f"[export]   {name}")
 
+    from .config import OOD_ENABLED, OOD_ENERGY_TEMPERATURE, OOD_ENERGY_THRESHOLD, OOD_MSP_THRESHOLD
+
     # Write model info
     info = {
         "backbone": backbone,
@@ -389,6 +392,12 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
         "num_cattle_breeds": 57,
         "num_buffalo_breeds": 18,
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "ood": {
+            "enabled": OOD_ENABLED,
+            "energy_temperature": OOD_ENERGY_TEMPERATURE,
+            "energy_threshold": OOD_ENERGY_THRESHOLD,
+            "msp_threshold": OOD_MSP_THRESHOLD,
+        },
         "usage": {
             "load": (
                 "model = BreedClassifier(backbone='{backbone}'); "

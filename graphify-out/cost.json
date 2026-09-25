@@ -6,8 +6,14 @@
       "output_tokens": 53695,
       "files": 88,
       "note": "token estimate: doc words*1.33 + 1500/image (subagent usage not reported)"
+    },
+    {
+      "date": "2026-09-25T11:58:29.534844+00:00",
+      "input_tokens": 73270,
+      "output_tokens": 4263,
+      "files": 117
     }
   ],
-  "total_input_tokens": 68244,
-  "total_output_tokens": 53695
+  "total_input_tokens": 141514,
+  "total_output_tokens": 57958
 }

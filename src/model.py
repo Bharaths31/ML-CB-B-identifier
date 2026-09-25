@@ -50,7 +50,8 @@ class BreedClassifier(nn.Module):
     def __init__(self, backbone="lite2", num_cattle=NUM_CATTLE_BREEDS,
                  num_buffalo=NUM_BUFFALO_BREEDS, cbam_stage=CBAM_AFTER_STAGE,
                  attention="cbam", activation="relu6", pretrained_path=None,
-                 dropout=DROPOUT, cosine_head=False, cosine_scale=COSINE_SCALE):
+                 dropout=DROPOUT, cosine_head=False, cosine_scale=COSINE_SCALE,
+                 binary_dim=BINARY_DIM):
         super().__init__()
         self.cosine_head = bool(cosine_head)
         self.cosine_scale = float(cosine_scale)
@@ -62,13 +63,13 @@ class BreedClassifier(nn.Module):
 
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.binary_head = nn.Sequential(
-            nn.Linear(feature_dim, BINARY_DIM),
-            nn.BatchNorm1d(BINARY_DIM),
+            nn.Linear(feature_dim, binary_dim),
+            nn.BatchNorm1d(binary_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout),
-            nn.Linear(BINARY_DIM, BINARY_DIM // 2),
+            nn.Linear(binary_dim, binary_dim // 2),
             nn.ReLU(inplace=True),
-            nn.Linear(BINARY_DIM // 2, 2),
+            nn.Linear(binary_dim // 2, 2),
         )
         self.cattle_head = _make_breed_head(feature_dim, num_cattle, dropout,
                                             self.cosine_head, self.cosine_scale)
@@ -118,6 +119,30 @@ class BreedClassifier(nn.Module):
         p_buffalo = F.softmax(out["buffalo"], dim=1)
         return torch.cat([p_species[:, 0:1] * p_cattle,
                           p_species[:, 1:2] * p_buffalo], dim=1)
+
+    @torch.no_grad()
+    def predict_safe(self, x, ood_detector=None):
+        """Like predict(), but returns zero-confidence result for OOD inputs."""
+        out = self.forward(x)
+        
+        if ood_detector is not None:
+            is_ood, score, details = ood_detector.is_ood(
+                out["binary"], out["cattle"], out["buffalo"]
+            )
+            if is_ood:
+                # Return zero distribution — "not a recognized animal"
+                n_total = out["cattle"].shape[1] + out["buffalo"].shape[1]
+                return torch.zeros(x.shape[0], n_total, device=x.device), {
+                    "ood": True, "ood_score": score, **details
+                }
+        
+        # Normal soft routing
+        p_species = F.softmax(out["binary"], dim=1)
+        p_cattle = F.softmax(out["cattle"], dim=1)
+        p_buffalo = F.softmax(out["buffalo"], dim=1)
+        combined = torch.cat([p_species[:, 0:1] * p_cattle,
+                              p_species[:, 1:2] * p_buffalo], dim=1)
+        return combined, {"ood": False}
 
     def freeze_backbone(self):
         for p in self.backbone.parameters():

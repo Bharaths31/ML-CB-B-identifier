@@ -1128,12 +1128,16 @@ def main():
             print(f"[train] teacher checkpoint not found: {args.teacher}")
             return 1
         teacher_attention = args.teacher_attention or args.attention
-        teacher_model = BreedClassifier(backbone=args.teacher_backbone,
-                                        attention=teacher_attention)
         tckpt = torch.load(args.teacher, map_location="cpu", weights_only=False)
-        teacher_model.load_state_dict(
-            tckpt["state_dict"] if isinstance(tckpt, dict) and "state_dict" in tckpt
-            else tckpt)
+        t_state = tckpt["state_dict"] if isinstance(tckpt, dict) and "state_dict" in tckpt else tckpt
+        
+        # Detect binary_dim from teacher checkpoint
+        t_binary_dim = t_state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in t_state else 512
+        
+        teacher_model = BreedClassifier(backbone=args.teacher_backbone,
+                                        attention=teacher_attention,
+                                        binary_dim=t_binary_dim)
+        teacher_model.load_state_dict(t_state)
         teacher_model.to(device)
         teacher_model.eval()
         for p in teacher_model.parameters():

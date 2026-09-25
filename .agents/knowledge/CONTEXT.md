@@ -815,6 +815,12 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 
 ## 16. Changelog
 
+### 2026-09-25 — OOD Security Harness & Breed Trait Auto-Population
+
+- **OOD Security Harness**: Added an energy-based Out-Of-Distribution detector (`src/ood_detector.py`) that scores raw logits and rejects non-bovine images post-hoc without retraining. Integrated directly into `test_model.py` GUI to show a clear `⚠️ Not a recognized cattle or buffalo` banner.
+- **OOD Calibration**: Added `scripts/calibrate_ood.py` to auto-calibrate OOD energy thresholds dynamically against the validation set. Portable exports (`src/export.py`) now bundle these thresholds in `model_info.json`.
+- **Breed Trait Auto-Population**: Added `scripts/populate_breed_traits.py` which uses the Gemini 2.5 Flash API to automatically fetch and standardize morphological descriptors (hump, horn, coat, ear, etc.) for all 75 breeds into `data/breed_traits.json`.
+
 ### 2026-09-24 — Execution logger, breed trait heads, group-aware splits, hard negatives
 
 - **Execution logger (`src/run_logger.py` + `sitecustomize.py`)**: every run

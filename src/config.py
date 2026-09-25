@@ -169,6 +169,12 @@ LOGIT_ADJUST = False
 LOGIT_ADJUST_TAU = 1.0
 LOGIT_ADJUST_PRIOR = "sampled"   # "sampled" (effective) or "raw"
 
+# --- OOD (Out-Of-Distribution) Detection ---
+OOD_ENABLED = True
+OOD_ENERGY_TEMPERATURE = 1.0
+OOD_ENERGY_THRESHOLD = -25.0
+OOD_MSP_THRESHOLD = 0.65
+
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
 KD_TEMPERATURE = 4.0
