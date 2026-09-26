@@ -1,0 +1,1799 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the ML-CB-B-identifier project">
+      
+      
+      
+        <link rel="canonical" href="https://docs.mr-ragnarok.tech/changelog/">
+      
+      
+        <link rel="prev" href="../constraints-gotchas/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Changelog - Cattle & Buffalo Breed Classifier</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#16-changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-header__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Cattle & Buffalo Breed Classifier
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation & Setup
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../local-training/" class="md-tabs__link">
+          
+  
+  
+  Training
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../model-tester/" class="md-tabs__link">
+          
+  
+  
+  Model & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../data-pipeline/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data & Processing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../export-deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Export & Deployment
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-nav__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Cattle & Buffalo Breed Classifier
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation & Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Training
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Training (Automated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model & Testing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Model & Testing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-tester/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Tester GUI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data & Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../constraints-gotchas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints & Gotchas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-breed-trait-heads-group-aware-splits-hard-negatives-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Breed trait heads, group-aware splits, hard negatives, tooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-unified-execution-logger-logsexec_id-ema_decay-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Unified execution logger (logs/&lt;exec_id&gt;/) + ema_decay fix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-blocking-bug-fixes-fliprrc-on-by-default-dataset-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Blocking bug fixes, flip+RRC on by default, dataset inventory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-23-tail-bias-regression-fix-single-imbalance-mechanism-safe-mixing-ema-soft-routing-timestamped-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-21-long-tail-accuracy-overhaul-logit-adjustment-feature-metric-learning-soft-routing-701515-splits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-21 — Long-Tail Accuracy Overhaul: Logit Adjustment, Feature Metric Learning, Soft Routing, 70/15/15 Splits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-20-accuracyefficiency-overhaul-distillation-ema-fix-mobile-int8-exports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-15-architecture-improvements-ema-imagenet-normalization-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-15 — Architecture Improvements, EMA, &amp; ImageNet Normalization Fix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-15-presenter-mode-logging-advanced-image-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-15 — Presenter Mode, Logging &amp; Advanced Image Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-13-colab-testing-notebook-large-scale-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-13 — Colab Testing Notebook &amp; Large-Scale Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-08-fix-torchcompile-on-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-08 — Fix: torch.compile on Windows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-07-unified-kaggle-dataset-colab-trainer-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-07 — Unified Kaggle Dataset &amp; Colab Trainer Update
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-06-hotfix-cuda-total_mem-attributeerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-06 — Hotfix: CUDA total_mem AttributeError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-06-colab-sota-hyperparameters-android-qat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-06 — Colab + SOTA Hyperparameters + Android QAT
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-05-major-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-05 — Major Update
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-breed-trait-heads-group-aware-splits-hard-negatives-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Breed trait heads, group-aware splits, hard negatives, tooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-unified-execution-logger-logsexec_id-ema_decay-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Unified execution logger (logs/&lt;exec_id&gt;/) + ema_decay fix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-24-blocking-bug-fixes-fliprrc-on-by-default-dataset-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-24 — Blocking bug fixes, flip+RRC on by default, dataset inventory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-23-tail-bias-regression-fix-single-imbalance-mechanism-safe-mixing-ema-soft-routing-timestamped-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-21-long-tail-accuracy-overhaul-logit-adjustment-feature-metric-learning-soft-routing-701515-splits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-21 — Long-Tail Accuracy Overhaul: Logit Adjustment, Feature Metric Learning, Soft Routing, 70/15/15 Splits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-20-accuracyefficiency-overhaul-distillation-ema-fix-mobile-int8-exports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-15-architecture-improvements-ema-imagenet-normalization-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-15 — Architecture Improvements, EMA, &amp; ImageNet Normalization Fix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-15-presenter-mode-logging-advanced-image-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-15 — Presenter Mode, Logging &amp; Advanced Image Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-13-colab-testing-notebook-large-scale-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-13 — Colab Testing Notebook &amp; Large-Scale Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-08-fix-torchcompile-on-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-08 — Fix: torch.compile on Windows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-07-unified-kaggle-dataset-colab-trainer-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-07 — Unified Kaggle Dataset &amp; Colab Trainer Update
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-06-hotfix-cuda-total_mem-attributeerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-06 — Hotfix: CUDA total_mem AttributeError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-06-colab-sota-hyperparameters-android-qat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-06 — Colab + SOTA Hyperparameters + Android QAT
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-09-05-major-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-05 — Major Update
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Bharaths31/ML-CB-B-identifier/edit/master/docs/changelog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="16-changelog">16. Changelog</h1>
+<h3 id="2026-09-24-breed-trait-heads-group-aware-splits-hard-negatives-tooling">2026-09-24 — Breed trait heads, group-aware splits, hard negatives, tooling</h3>
+<ul>
+<li><strong>Breed trait auxiliary heads (D2, opt-in <code>--trait-weight</code>, suggested 0.1)</strong>:
+  new <code>src/traits.py</code> + <code>scripts/make_trait_template.py</code> generating
+  <code>data/breed_traits.json</code> (75 breeds × <code>hump/horn/coat/ear/dewlap/face/size</code>,
+  all empty for you to fill). Trait classifiers run on the pooled 1280-d
+  features, masked loss ignores empty traits, and per-trait val accuracy is
+  logged each eval. Training-only; excluded from export (verified).</li>
+<li><strong>Group-aware splits (E1, <code>--dedup-splits</code>)</strong>: dHash (no external deps) groups
+  near-duplicates (Hamming ≤ <code>DEDUP_HAMMING=4</code>) within each breed so twins never
+  cross train/val/test; hashes cached in <code>data/splits/hashes.csv</code>; long-tail
+  minimums preserved.</li>
+<li><strong>Val-noise warning (E3)</strong>: <code>prepare_splits</code> prints min/median val images per
+  breed and warns when any breed has &lt; <code>VAL_MIN_WARN</code> (2).</li>
+<li><strong>SupCon hard negatives (D4)</strong>: <code>supervised_contrastive_loss</code> up-weights
+  confused-pair negatives (<code>CONTRASTIVE_HARD_NEG_WEIGHT=2.0</code>); <code>--hard-pairs</code>
+  loads <code>confusion_pairs.json</code> produced by the new <code>scripts/mine_confusions.py</code>.</li>
+<li><strong>Per-group LR logging (F4)</strong>: <code>train_phase</code> prints + logs each optimizer
+  group's LR and parameter count at phase start.</li>
+<li><strong>Tooling (G2/G4)</strong>: <code>scripts/mine_confusions.py</code> (top-30 confused breed pairs
+  as global ids), <code>scripts/run_ablations.sh</code> / <code>.ps1</code> (quarter-data sweep
+  R0→R7, <code>--dry-run</code> supported), plus <code>scripts/view_logs.py</code>.</li>
+<li><strong>Cosine/ArcFace breed heads (D3, <code>--cosine-head</code>)</strong>: <code>CosineHead</code> replaces the
+  final Linear on cattle/buffalo heads. Forward is margin-free scaled cosine
+  (<code>scale=30</code>), so inference/export are unchanged; the additive angular margin
+  (<code>COSINE_MARGIN=0.3</code>) is ramped over the first <code>COSINE_MARGIN_RAMP_EPOCHS=10</code>
+  phase-2 epochs and applied to the target class <strong>inside the loss</strong>. <code>export</code>
+  and <code>test_model.py</code> auto-detect cosine checkpoints (final head layer has no
+  bias) and build the matching model.</li>
+<li><strong>Tests</strong>: <code>scripts/test_master_cpu.py</code> now 61 checks (traits, dedup, hard
+  negatives, cosine head, logger, mixing, EMA, metrics, transforms, CBAM identity).</li>
+<li><strong>Still pending</strong>: the hard-pair <strong>batch sampler</strong> (D5); <code>--hard-pairs</code> only
+  up-weights SupCon negatives for now.</li>
+</ul>
+<h3 id="2026-09-24-unified-execution-logger-logsexec_id-ema_decay-fix">2026-09-24 — Unified execution logger (<code>logs/&lt;exec_id&gt;/</code>) + <code>ema_decay</code> fix</h3>
+<ul>
+<li><strong>Fixed <code>NameError: ema_decay</code></strong> in <code>train_phase</code> (the EMA-diagnostics block
+  referenced <code>ema_decay</code> without declaring it — crashed phase 2). Added the
+  parameter and forwarded it to <code>run_epoch</code>. Verified on CPU with an EMA model;
+  <code>pyflakes</code> now reports <strong>no undefined names</strong> across <code>src/</code>, <code>local_train.py</code>,
+  <code>test_model.py</code>.</li>
+<li><strong>New <code>src/run_logger.py</code></strong>: per-execution logger writing
+  <code>logs/&lt;exec_id&gt;/{manifest.json,config.json,run.log,events.jsonl,actions.jsonl,
+  training.jsonl,data.jsonl,test.jsonl,export.jsonl}</code>. <code>exec_id</code> =
+  <code>YYYYmmdd-HHMMSS-&lt;4hex&gt;</code>, override with <code>--exec-id</code> / <code>RUN_EXEC_ID</code>.</li>
+<li><strong>Auto-start</strong>: <code>sitecustomize.py</code> initialises the logger for any Python run
+  inside the project (use <code>PYTHONPATH=.</code>), and every entry point
+  (<code>src.train</code>, <code>local_train.py</code>, <code>test_model.py</code>, <code>src.export</code>,
+  <code>src.evaluate</code>, <code>src/parity_check</code>, <code>src.verify</code>) calls <code>init_run_logger()</code>.
+  Stdout/stderr are tee'd into <code>run.log</code> (tqdm <code>\r</code> frames collapsed).</li>
+<li><strong>Instrumentation</strong>: training logs the plan + per-epoch raw/EMA metrics +
+  checkpoint saves; <code>local_train.py</code> logs stages, subprocess commands and the
+  dataset inventory; <code>data_pipeline</code> logs split summaries; <code>test_model.py</code> logs
+  one record per prediction; export/evaluate/parity log artifacts and verdicts.</li>
+<li><strong>New <code>scripts/view_logs.py</code></strong>: <code>list</code> / <code>summary</code> / <code>metrics</code> / <code>events</code> /
+  <code>diff</code> over the log folders (read-only).</li>
+<li><code>logs/</code> added to <code>.gitignore</code>.</li>
+</ul>
+<h3 id="2026-09-24-blocking-bug-fixes-fliprrc-on-by-default-dataset-inventory">2026-09-24 — Blocking bug fixes, flip+RRC on by default, dataset inventory</h3>
+<ul>
+<li><strong>Missing <code>src/run_utils.py</code> crash fixed</strong>: the file is now present and
+  <code>local_train.py</code> preflights every required <code>src/</code> module, raising a clear
+  "sync these files" error instead of <code>ModuleNotFoundError</code>.</li>
+<li><strong><code>SAMPLER_BETA</code> import</strong> added to <code>src/train.py</code> (it was used in <code>main()</code>
+  but never imported → would crash).</li>
+<li><strong>Mixing gate fixed</strong>: <code>run_epoch</code> gated mixing on <code>desc.startswith("train")</code>,
+  which never matched <code>phase{n} e{i}/{N}</code>, so <code>--mix</code> was dead code. Replaced
+  with an explicit <code>training=True</code> flag and a <code>mix_stats</code> counter; the eval log
+  now prints <code>mix=on (n/N batches)</code> only when mixing actually ran.</li>
+<li><strong><code>find_latest_checkpoint</code> pattern fixed</strong> to match timestamped names
+  (<code>lite2_phase2_best_V3.pt</code>), and <code>resolve_checkpoint(path_or_tag)</code> added so
+  <code>--run-tag V3</code> works with <code>--checkpoint</code> in export/evaluate/parity_check.</li>
+<li><strong>Class-count fail-fast</strong>: <code>prepare_*</code> now raises with explicit extra/missing
+  breed names and prints names shared across species (<code>bargur</code>).</li>
+<li><strong>Flip + mild RRC ON by default</strong> (<code>AUG_HORIZONTAL_FLIP</code>,
+  <code>AUG_RANDOM_RESIZED_CROP</code>) — they don't mix content between breeds. Colour
+  jitter / RandAugment / mix stay off. <code>--no-augment</code> forces all off.</li>
+<li><strong>RRC ratio tightened</strong> to <code>(0.92, 1.08)</code> and <strong>hue capped at 0.02</strong>
+  (<code>--allow-hue</code> to raise) so body proportions and coat colour survive.</li>
+<li><strong>Breed-aware augmentation</strong>: <code>BREED_AUG_POLICY</code> / <code>COAT_COLOUR_BREEDS</code>
+  (coat-colour breeds skip colour jitter), applied per sample in the Dataset.</li>
+<li><strong>Pad-to-square</strong> (<code>--pad-to-square</code>): resize long side + pad to square,
+  keeping full-body side profiles.</li>
+<li><strong>CBAM/SE identity at init</strong> (<code>CBAM_IDENTITY_INIT</code>): zero-init final layers
+  with <code>x*(1+gate)</code>, so attention no longer distorts pretrained features during
+  phase-1 warmup.</li>
+<li><strong>Metrics</strong>: <code>combined_top3/5</code> are now species-aware over the soft-routed
+  75-way scores; the old true-species versions are <code>combined_top3_oracle</code> /
+  <code>combined_top5_oracle</code>. Added <code>val_min_per_breed</code> / <code>val_median_per_breed</code>
+  and fixed the <code>pred_hist_entropy</code> comment.</li>
+<li><strong>Dataset inventory</strong>: <code>build_dataset_inventory()</code> in <code>local_train.py</code> and the
+  Colab downloader writes <code>data/dataset_inventory/&lt;dataset&gt;.json</code> with breed,
+  species (cattle/buffalo), count, and per-image resolution for both datasets
+  and the merged tree.</li>
+<li><strong>Tests</strong>: <code>scripts/test_master_cpu.py</code> (40 CPU-only synthetic checks).</li>
+</ul>
+<h3 id="2026-09-23-tail-bias-regression-fix-single-imbalance-mechanism-safe-mixing-ema-soft-routing-timestamped-outputs">2026-09-23 — Tail-bias regression fix: single imbalance mechanism, safe mixing, EMA, soft routing, timestamped outputs</h3>
+<p>Diagnosed from a 10-photo ONNX batch test (0/10 correct; top-5 dominated by rare
+breeds; a Gir bull predicted as a rare breed) that regressed after the
+2026-09-21 overhaul.</p>
+<p><strong>Imbalance (<code>src/config.py</code>, <code>src/data_pipeline.py</code>, <code>src/train.py</code>):</strong>
+- <code>LOGIT_ADJUST</code> is now <strong>False by default</strong> — the effective-number sampler is
+  the single long-tail mechanism. Enabling both double-corrects and over-predicts
+  rare breeds at inference. <code>--logit-adjust</code> re-enables it; its prior is computed
+  from the effective <strong>sampled</strong> distribution (<code>--logit-adjust-prior sampled|raw</code>),
+  never raw counts. Startup prints the active mechanism and prior max/min ratio.
+- Fixed <code>_effective_num_weights</code> divide-by-zero for classes absent from train
+  (previously produced NaN logit-adjustment priors).</p>
+<p><strong>Mixing (<code>src/config.py</code>, <code>src/data_pipeline.py</code>, <code>src/train.py</code>):</strong>
+- CutMix/MixUp now pair <strong>within the same species</strong> (<code>_pairing_perm</code>), so binary
+  labels stay one-hot and breed targets stay proper distributions.
+- Strength reduced: <code>CUTMIX_MIXUP_PROB</code> 0.5→0.25, <code>CUTMIX_ALPHA</code> 1.0→0.4,
+  <code>MIXUP_ALPHA</code> 0.3→0.2. Rare-class guard kept.
+- <code>MIX_OFF_LAST_FRAC=0.15</code> disables mixing for the last 15% of phase 2.</p>
+<p><strong>Augmentation OFF by default (<code>src/config.py</code>, <code>src/data_pipeline.py</code>):</strong>
+- flip / ColorJitter / RandAugment / RandomResizedCrop / mixing are opt-in via
+  <code>--mix --flip --color-jitter --randaugment --rrc --augment-all</code>. With all off,
+  the train transform equals the eval transform.</p>
+<p><strong>EMA (<code>src/train.py</code>):</strong>
+- Updated once per <strong>optimizer</strong> step (was twice per micro-batch with
+  <code>grad_accum=2</code>), with warm-up <code>decay_t = min(0.999,(1+t)/(10+t))</code>.
+- Startup prints steps/epoch, total optimizer steps and the EMA time constant,
+  warning if it exceeds 25% of phase-2 steps. Every eval logs BOTH raw and EMA
+  metrics and saves whichever scores better.</p>
+<p><strong>Checkpoint selection (<code>src/config.py</code>, <code>src/metrics.py</code>):</strong>
+- <code>BEST_METRIC="blended_score"</code> = 0.5·macro-F1 + 0.5·soft-routed top-1.
+- Each eval also logs few/medium/many-shot accuracy and predicted-histogram
+  entropy.</p>
+<p><strong>Preprocessing (<code>test_model.py</code>, <code>src/config.py</code>):</strong>
+- <code>test_model.py</code> now uses the eval transform (shortest-side resize +
+  CenterCrop) instead of a square <code>Resize((260,260))</code>. New
+  <code>EVAL_MATCH_TRAIN_RESOLUTION</code> to test <code>Resize(288)+CenterCrop(260)</code> at eval.</p>
+<p><strong>Timestamped outputs (<code>src/run_utils.py</code>, new):</strong>
+- Checkpoints/exports/metrics carry a <code>run id</code> (<code>DD-MM-YYYY-HH-MM</code> or <code>--run-tag</code>)
+  and never overwrite previous runs. <code>src.export</code> / <code>src.evaluate</code> /
+  <code>src.parity_check</code> / <code>local_train.py</code> auto-discover the newest checkpoint.</p>
+<p><strong>Tooling (run-later):</strong> <code>scripts/audit_data.py</code>, <code>scripts/diagnose_model.py</code>,
+<code>scripts/onnx_parity_10.py</code>, <code>scripts/test_fixes_cpu.py</code>.</p>
+<hr />
+<h3 id="2026-09-21-long-tail-accuracy-overhaul-logit-adjustment-feature-metric-learning-soft-routing-701515-splits">2026-09-21 — Long-Tail Accuracy Overhaul: Logit Adjustment, Feature Metric Learning, Soft Routing, 70/15/15 Splits</h3>
+<p>Motivated by a graph-assisted gap analysis: phase-2 best val top-1 was 0.578
+(binary 0.95, cattle 0.59, buffalo 0.61), with 21+ indigenous cattle breeds
+carrying ≤14 images against <code>gir</code>=768, and the old 85/10/5 split leaving many
+rare breeds with <strong>zero</strong> test images.</p>
+<p><strong>Config (<code>src/config.py</code>):</strong>
+- <code>SAMPLER_BETA</code> 0.999 → <strong>0.99</strong> (softer effective-number oversampling).
+- Split ratios <strong>70/15/15</strong> (was 85/10/5); <code>PHASE2_EPOCHS</code> 60 → <strong>80</strong>.
+- New: <code>LOGIT_ADJUST</code>/<code>LOGIT_ADJUST_TAU</code>, <code>CONTRASTIVE_WEIGHT</code>/<code>CONTRASTIVE_TEMPERATURE</code>,
+  <code>RARE_CLASS_THRESHOLD</code>, <code>PROJECTION_DIM</code>, <code>BEST_METRIC="balanced_score"</code>,
+  and saturated-binary loss weights (<code>*_FINAL</code>, <code>BINARY_SATURATION_ACC</code>).</p>
+<p><strong>Imbalance (<code>src/data_pipeline.py</code>, <code>src/train.py</code>):</strong>
+- <strong>Logit adjustment</strong> (Menon et al., ICLR 2021): <code>tau·log(prior)</code> added to breed
+  logits during training only, from smoothed train priors (<code>compute_class_priors</code>).
+- <strong>Long-tail split minimums</strong>: every <code>(species, breed)</code> with ≥3 images now gets
+  ≥1 val and ≥1 test image; fixed grouping to key on <code>(species, breed)</code> because
+  <code>bargur</code> exists under both species.
+- <strong>Rare-class mixing guard</strong>: breeds below <code>RARE_CLASS_THRESHOLD</code> (30 train
+  images) are excluded from CutMix/MixUp (<code>compute_rare_classes</code> + <code>keep</code> mask).
+- <strong>Adaptive loss weights</strong>: once <code>binary_acc ≥ 0.95</code>, weights switch from
+  <code>0.15/0.50/0.35</code> to <code>0.05/0.55/0.40</code> to reallocate budget to the breed heads.
+- <code>--no-mix</code> now actually disables mixing (previously it only swapped the collate fn).</p>
+<p><strong>Feature learning (<code>src/model.py</code>, <code>src/train.py</code>):</strong>
+- New auxiliary <strong>projection head</strong> + <strong>supervised contrastive (SupCon)</strong> loss on
+  the previously-unused pooled features (<code>CONTRASTIVE_WEIGHT=0.2</code>); skipped on
+  mixed batches where labels are soft. Adds a dedicated optimizer param group.</p>
+<p><strong>Metrics &amp; selection (<code>src/metrics.py</code>):</strong>
+- <code>evaluate_epoch</code> now reports per-head <strong>macro-F1</strong>, <strong>balanced accuracy</strong>, and
+  <strong>soft-routed combined top-1</strong> (<code>p(species)·softmax(head)</code>).
+- Checkpoints are selected on <code>balanced_score = ½(cattle_macro_f1 + buffalo_macro_f1)</code>
+  instead of combined top-1, which was dominated by ~10 large breeds.</p>
+<p><strong>Soft routing:</strong> <code>BreedClassifier.predict()</code>, <code>test_model.py</code>, and both Flutter
+engines (<code>android_tflite_engine.dart</code>, <code>web_tfjs_engine.dart</code>) now mix
+<code>p(species)·softmax(head)</code> across all 75 breeds instead of hard binary argmax,
+removing two-stage routing error propagation.</p>
+<p><strong>Export (<code>src/export.py</code>, <code>local_train.py</code>):</strong>
+- <code>_sanitize_state_dict</code> strips <code>_orig_mod.</code>/<code>module.</code> prefixes and QAT
+  <code>fake_quant</code>/<code>activation_post_process</code>/fused-BN keys, so phase-3/QAT and
+  compiled checkpoints no longer crash ONNX/FP16/INT8 export.
+- <code>local_train.py</code> prefers the phase-2 (EMA) checkpoint and exports INT8 via the
+  converter-side PTQ path (<code>--mode onnx-int8</code>), not the removed <code>--mode int8</code>.</p>
+<hr />
+<h3 id="2026-09-20-accuracyefficiency-overhaul-distillation-ema-fix-mobile-int8-exports">2026-09-20 — Accuracy/Efficiency Overhaul: Distillation, EMA Fix, Mobile INT8 Exports</h3>
+<p><strong>Training (<code>src/train.py</code>):</strong>
+- <strong>Fixed a critical EMA bug</strong>: the EMA now updates BatchNorm buffers (running mean/var) in addition to parameters; <code>num_batches_tracked</code> is hard-copied. Previously every phase-2 checkpoint exported stale BN stats, silently degrading validation accuracy and the deployed model.
+- <strong>Knowledge distillation</strong>: new <code>--teacher</code>, <code>--teacher-backbone</code>, <code>--teacher-attention</code> flags. Loss = <code>(1-α)·masked_hard_CE + α·T²·masked_KL(teacher‖student)</code> on all three heads (α=0.7, T=4.0). Train a lite4 teacher, distill into the unchanged lite2 student — teacher accuracy at zero on-device cost.
+- <strong>QAT is now opt-in</strong> (<code>--include-qat</code>); default training is a clean 2-phase run. QAT uses <strong>per-tensor observers</strong> (fixes the <code>Unsupported qscheme: per_channel_affine</code> conversion failure) and starts from the <strong>best phase-2 EMA checkpoint</strong> instead of final-epoch weights.
+- <strong>Binary-head species balancing</strong>: per-batch re-weighting (<code>BALANCE_BINARY_HEAD=True</code>) neutralizes the 57:18 breed-count species prior.</p>
+<p><strong>Data (<code>src/data_pipeline.py</code>):</strong>
+- Sampler switched to <strong>effective-number-of-samples</strong> weighting (<code>SAMPLER_BETA=0.999</code>) — softens over-oversampling of 5-image breeds.
+- CutMix/MixUp probability raised 0.25 → 0.5 (<code>CUTMIX_MIXUP_PROB</code>).
+- All <code>prepare_*_splits()</code> create the split directory if missing.</p>
+<p><strong>Export (<code>src/export.py</code>):</strong>
+- New <code>--mode tflite</code>: ONNX → onnx2tf → TFLite FP32 + <strong>full-integer INT8 PTQ</strong> (float32 [0,1] I/O), emits <code>labels_*.txt</code>, auto-copies into <code>flutter_app/assets/models/</code>.
+- New <code>--mode onnx-int8</code>: QDQ static quantization for ONNX Runtime Mobile (per-channel weights, calibrated on real train images).
+- <strong>ImageNet normalization is baked into mobile graphs</strong> — the Flutter app's <code>pixel/255</code> preprocessing is now exactly correct with zero app changes.
+- Removed the broken x86 PTQ <code>--mode int8</code> path (guidance stub remains).</p>
+<p><strong>Verification (<code>src/parity_check.py</code>, new):</strong>
+- <code>python -m src.parity_check</code> compares fp32 PyTorch vs TFLite/ONNX INT8 on val/test (training-equivalent metrics) or <code>--synthetic N</code> for artifact-only parity. Gate: INT8 within 1 pt <code>combined_top1</code> of fp32.</p>
+<p><strong>Measured:</strong> ONNX INT8 = 7.10 MB (from 25.65 MB FP32); fp32 ONNX exact parity; INT8 max |Δlogit| ≈ 0.05–0.07 on random inputs; end-to-end smoke training (2-phase, distillation, QAT→INT8) verified on CPU.</p>
+<hr />
+<h3 id="2026-09-15-architecture-improvements-ema-imagenet-normalization-fix">2026-09-15 — Architecture Improvements, EMA, &amp; ImageNet Normalization Fix</h3>
+<p><strong>Architecture:</strong>
+- Deepened <code>cattle_head</code> and <code>buffalo_head</code> with an extra hidden layer (<code>BREED_DIM // 2</code>).
+- Integrated <code>BatchNorm1d</code> into both breed classification heads for better convergence and to prevent covariate shift.
+- Adjusted dropout values for the new layers (<code>0.3</code> for first, <code>0.2</code> for second).</p>
+<p><strong>Training Pipeline:</strong>
+- <strong>Phase 1 (Warmup):</strong> Now trains all three heads (binary, cattle, buffalo) to build robust initial representations, instead of just the binary head.
+- <strong>Differential Learning Rates (Phase 2):</strong> Applied fine-grained LR scaling (backbone: 0.1x, attention: 0.5x, heads: 1.0x).
+- <strong>EMA:</strong> Integrated Exponential Moving Average (EMA) with a decay of 0.999 for model weights during Phase 2 to drastically improve evaluation stability and generalization.
+- <strong>Bug Fix:</strong> Fixed critical bug where the training pipeline lacked <code>transforms.Normalize()</code> using ImageNet statistics, aligning it properly with inference logic.
+- Reconfigured default portable export to securely capture the best weights from Phase 2 instead of Phase 3, avoiding the massive accuracy drop previously caused by aggressive INT8 QAT, while maintaining a very lightweight model footprint (~27.3 MB) ready for Android deployment.</p>
+<p><strong>Metrics:</strong>
+- Added vectorized <strong>Top-5 combined accuracy</strong> tracking to <code>evaluate_epoch()</code> alongside Top-1 and Top-3.</p>
+<hr />
+<h3 id="2026-09-15-presenter-mode-logging-advanced-image-metadata">2026-09-15 — Presenter Mode, Logging &amp; Advanced Image Metadata</h3>
+<p><strong>Model Tester GUI (<code>test_model.py</code>):</strong>
+- Added <code>--dev</code> (default) and <code>--present</code> flag modes.
+- Developer Mode (<code>--dev</code>): Advanced view showing image metadata (EXIF, size, proportion), cattle/buffalo JSON data, model specifications, and options to edit the presenter's view settings.
+- Presenter Mode (<code>--present</code>): Clean, minimalist test page that hides detailed technical stats, diminishes confidence metrics, and removes the export option for a cleaner presentation.
+- Presenter configurations (like branding, section toggles, and confidence modes) are saved and loaded persistently via <code>outputs/logs/presenter_config.json</code>.
+- Comprehensive session logging captures all actions (start/stop, model/image selection, prediction results, reasoning) into a separate log file in <code>outputs/logs/</code>.</p>
+<hr />
+<h3 id="2026-09-13-colab-testing-notebook-large-scale-evaluation">2026-09-13 — Colab Testing Notebook &amp; Large-Scale Evaluation</h3>
+<p><strong>Testing &amp; Evaluation:</strong>
+- Added <code>colab/cattle_buffalo_tester.py</code> and <code>colab/cattle_buffalo_tester.ipynb</code> for automated evaluation of exported models on Google Colab.
+- Added comprehensive HTML report generation for single images and batch evaluations.
+- Added Large-Scale Kaggle Evaluation mode to automatically download the dataset and test all images.
+- Added <code>create_test_eval_zip.py</code> script to easily bundle test dataset splits for Colab.
+- Updated documentation and knowledge base (<code>CONTEXT.md</code>, <code>README.md</code>, <code>docs/</code>) with testing workflow details.</p>
+<hr />
+<h3 id="2026-09-08-fix-torchcompile-on-windows">2026-09-08 — Fix: <code>torch.compile</code> on Windows</h3>
+<p><strong>Bug Fix:</strong>
+- Fixed <code>BackendCompilerFailed: Cannot find a working triton installation</code> error that crashed phase 2 training on Windows.
+- Added OS detection in <code>src/train.py</code> to automatically disable <code>torch.compile</code> (fallback to eager mode) when running on Windows.</p>
+<hr />
+<h3 id="2026-09-07-unified-kaggle-dataset-colab-trainer-update">2026-09-07 — Unified Kaggle Dataset &amp; Colab Trainer Update</h3>
+<p><strong>Dataset Pipeline &amp; Colab Notebook:</strong>
+- Updated dataset download source to unified Kaggle dataset <code>algsoch/breed-cattle-buffalo</code> containing pre-structured <code>cattle/</code> (57 breeds) and <code>buffalo/</code> (18 breeds) subdirectories.
+- Simplified Kaggle download logic in <code>colab/cattle_buffalo_trainer.py</code> to extract directly into <code>data/raw/</code>, eliminating redundant file moving operations and outdated inline comments.
+- Regenerated <code>colab/cattle_buffalo_trainer.ipynb</code> from updated python script.
+- Updated project documentation across <code>README.md</code>, <code>docs/</code>, and knowledge base.</p>
+<hr />
+<h3 id="2026-09-06-hotfix-cuda-total_mem-attributeerror">2026-09-06 — Hotfix: CUDA <code>total_mem</code> AttributeError</h3>
+<p><strong>Bug Fix:</strong>
+- Fixed <code>AttributeError: 'torch._C._CudaDeviceProperties' object has no attribute 'total_mem'</code> that crashed §6 Training on Colab T4
+- Root cause: PyTorch uses <code>total_memory</code>, not <code>total_mem</code>
+- Fixed in <code>src/train.py</code> (<code>setup_device()</code>) and both occurrences in <code>colab/cattle_buffalo_trainer.py</code>
+- Regenerated <code>colab/cattle_buffalo_trainer.ipynb</code> from fixed <code>.py</code></p>
+<p><strong>Documentation:</strong>
+- Added Colab gotchas table to <code>CONTEXT.md</code> §14 covering: <code>total_mem</code> bug, GitHub clone cache issue, runtime restart behaviour
+- Added <code>rm -rf /content/project</code> before <code>git clone</code> in §14 best practices to ensure latest code is always used</p>
+<hr />
+<h3 id="2026-09-06-colab-sota-hyperparameters-android-qat">2026-09-06 — Colab + SOTA Hyperparameters + Android QAT</h3>
+<p><strong>Colab Training:</strong>
+- Created <code>colab/</code> directory with full training notebook
+- 3 project setup options: GitHub clone, zip upload, Google Drive
+- 3 dataset options: Kaggle API, archive upload, Google Drive
+- Hyperparameter configuration cell with all tunable parameters
+- Image prediction cell for testing with uploaded images
+- Export &amp; download: portable bundle + ONNX + INT8
+- GPU memory monitor cell</p>
+<p><strong>SOTA Hyperparameters:</strong>
+- Switched from Adam → AdamW (weight_decay=1e-2)
+- Added label smoothing (0.1) to soft cross-entropy
+- Added linear warmup scheduler (3 epochs) before cosine annealing
+- Added gradient accumulation (2 steps, effective batch=128)
+- Increased batch size 32 → 64
+- Optimized split ratio 80/10/10 → 85/10/5
+- Phase 2 epochs 30 → 40, LR 1e-4 → 2e-4
+- Phase 1 LR 1e-3 → 3e-3
+- Phase 3 LR 1e-5 → 5e-6
+- Dropout 0.3 → 0.4</p>
+<p><strong>Data Pipeline:</strong>
+- Train augmentation: added RandomResizedCrop, RandomHorizontalFlip, ColorJitter
+- Added prefetch_factor=4 to all DataLoaders</p>
+<p><strong>Android Deployment:</strong>
+- QAT (Phase 3) enabled by default (not skipped)
+- Auto INT8 conversion after QAT
+- ONNX export in Colab notebook for mobile deployment</p>
+<h3 id="2026-09-05-major-update">2026-09-05 — Major Update</h3>
+<p><strong>Training:</strong>
+- Added CUDA optimization: <code>cudnn.benchmark</code>, TF32, AMP (<code>torch.amp</code>), <code>GradScaler</code>
+- Added gradient clipping (<code>max_norm=1.0</code>)
+- Enabled <code>pin_memory</code>, <code>persistent_workers</code>, <code>non_blocking</code> transfers
+- Smoke test now uses real mini-dataset (5 imgs/breed) instead of 2-batch limit
+- Auto portable export after training completes
+- Better tqdm progress bars throughout</p>
+<p><strong>Export &amp; Standalone Packaging:</strong>
+- Added <code>portable</code> mode: self-contained folder with model + labels + metadata
+- Improved progress bars on INT8 calibration
+- Created <code>create_training_zip.py</code> script to generate a clean, standalone training zip package
+- Added <code>.gitignore</code> configured to track <code>memory/</code> while ignoring <code>.venv/</code>, <code>outputs/</code>, <code>data/splits/</code>, <code>*.zip</code>, cache files</p>
+<p><strong>Config:</strong>
+- Added <code>PORTABLE_EXPORT_DIR</code>, <code>SMOKE_SAMPLES_PER_BREED</code> constants</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
