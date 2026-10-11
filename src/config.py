@@ -1,3 +1,38 @@
+"""Configuration — the single source of truth for every constant.
+
+Change behaviour here (or via the matching CLI flag); never hardcode paths or
+hyperparameters in other modules. Every module and script imports from here.
+
+SECTION MAP
+  1. Model geometry & backbone paths
+  2. Augmentation (OFF by default except horizontal flip + mild RRC)
+  3. Breed-specific feature learning (SupCon, traits, cosine head, hard pairs)
+  4. Class imbalance (effective-number sampler / optional logit adjustment)
+  5. EMA (weights) settings
+  6. Data splits & loss weights (incl. adaptive saturation weights)
+  7. Training phases & learning rates
+  8. Model-selection metric
+  9. Optimizer / regularization
+ 10. Preprocessing (train/eval resize, pad-to-square)
+ 11. OOD (out-of-distribution) detection
+ 12. Paths, output naming & run logging
+ 13. Data modes & evaluation cadence
+
+REFERENCES (who reads what)
+  - src/model.py ........ IMAGE_SIZE, FEATURE_DIM, BREED_DIM, DROPOUT, COSINE_*,
+                          CBAM_*, PROJECTION_DIM, NUM_*_BREEDS
+  - src/data_pipeline.py  AUG_*, MIX_*, RRC_*, COLOR_JITTER_*, RARE_CLASS_THRESHOLD,
+                          SAMPLER_BETA, EVAL_*/TRAIN_* resize & pad, DEDUP_*,
+                          TRAIN/VAL/TEST_RATIO, VAL_MIN_WARN
+  - src/train.py ........ LOSS_WEIGHT_*, PHASE*_EPOCHS/LR, EMA_*, KD_*, CONTRASTIVE_*,
+                          COSINE_MARGIN*, TRAIT_*, HARD_*, BEST_METRIC*, LOGIT_ADJUST*,
+                          WARMUP_EPOCHS, GRADIENT_ACCUMULATION_STEPS, BATCH_SIZE, SEED
+  - src/metrics.py (now in src/train.py)  BEST_METRIC_*_WEIGHT, SHOT_*
+  - src/run_utils.py .... LOG_*, RUN_ID_FORMAT, TIMESTAMP_OUTPUTS
+  - src/export.py / evaluate.py / parity_check.py  output dirs, OOD_* metadata
+  - local_train.py / scripts/*  paths, dataset slugs, defaults
+"""
+
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,7 +101,10 @@ MIX_ENABLED = False              # CutMix/MixUp master switch
 # content between breeds and improve generalization. Colour jitter, RandAugment
 # and mixing stay OFF (they can erase breed-defining coat colour / features).
 AUG_HORIZONTAL_FLIP = True
-AUG_RANDOM_RESIZED_CROP = True
+# Random crops are OFF by default: RandomResizedCrop cuts body parts and can
+# hide breed-defining features (hump, dewlap, horns). Train uses the same
+# Resize+CenterCrop as eval; re-enable per run with --rrc.
+AUG_RANDOM_RESIZED_CROP = False
 AUG_COLOR_JITTER = False
 AUG_RANDAUGMENT = False
 
@@ -145,14 +183,27 @@ LOGIT_ADJUST_TAU = 1.0
 LOGIT_ADJUST_PRIOR = "sampled"   # "sampled" (effective) or "raw"
 
 # --- OOD (Out-Of-Distribution) Detection ---
-# IMPORTANT: OOD is disabled by default until thresholds are calibrated on
-# real training data (run `python scripts/calibrate_ood.py` after training).
-# The uncalibrated defaults below caused every image to be rejected because
-# the model's logit magnitudes produce energy ~-3.7 (not ~-30).
-OOD_ENABLED = False
+# Thresholds are per-model and auto-calibrated: after training, thresholds are
+# computed on the validation split and written to outputs/ood/<model_name>.json
+# (see OOD_DIR). OODDetector(model_name=...) loads that file so predictions,
+# exports and the GUI stay linked to the exact model. The constants below are
+# only permissive fallbacks used before calibration exists.
+OOD_ENABLED = True
+OOD_AUTO_CALIBRATE = True      # calibrate automatically after training
+OOD_PERCENTILE = 95.0          # in-distribution percentile used as threshold
 OOD_ENERGY_TEMPERATURE = 1.0
-OOD_ENERGY_THRESHOLD = -1.0    # permissive fallback; calibrate after training
-OOD_MSP_THRESHOLD = 0.35       # permissive fallback; calibrate after training
+OOD_ENERGY_THRESHOLD = -1.0    # permissive fallback; overwritten by calibration
+OOD_MSP_THRESHOLD = 0.35       # permissive fallback; overwritten by calibration
+OOD_DIR = os.path.join(PROJECT_ROOT, "outputs", "ood")   # one JSON per model name
+
+# --- Small-breed policy ---
+# Breeds with fewer total images than this are dropped before splitting so the
+# model does not waste capacity on untrainable classes (dynamic head sizing
+# handles the reduced class count end to end). Set DROP_SMALL_BREEDS=False or
+# --min-images-per-breed 0 to keep every breed.
+DROP_SMALL_BREEDS = True
+MIN_IMAGES_PER_BREED = 15
+DROPPED_BREEDS_FILE = "dropped_breeds.json"
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
@@ -269,5 +320,5 @@ CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 SPECIES_LABELS = {"cattle": 0, "buffalo": 1}
 
 for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR,
-           LOGS_DIR, LOG_ROOT):
+           LOGS_DIR, LOG_ROOT, OOD_DIR):
     os.makedirs(_d, exist_ok=True)

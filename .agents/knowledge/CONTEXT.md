@@ -98,18 +98,15 @@ head is ambiguous (removes two-stage routing error propagation).
 Mini Project/
 ├── src/                        # Core ML package (run as python -m src.<module>)
 │   ├── __init__.py
-│   ├── config.py               # All hyperparameters & paths
-│   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
-│   ├── cbam.py                 # CBAM & SE attention modules
-│   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 2-phase training (logit adj, SupCon, EMA, adaptive weights)
-│   ├── metrics.py              # evaluate_epoch() — per-head acc, F1, macro-F1, soft-routed top1, shot buckets
-│   ├── run_utils.py            # run ids, timestamped paths, unique_path, find_latest_checkpoint, resolve_checkpoint
-│   ├── run_logger.py           # per-execution logger -> logs/<exec_id>/ (manifest, config, events, training/data/test/export jsonl)
-│   ├── evaluate.py             # Full evaluation with confusion matrices (timestamped outputs)
-│   ├── export.py               # ONNX, INT8, float16, portable export
-│   └── verify.py               # Quick architecture sanity check
+│   ├── config.py               # SINGLE SOURCE OF TRUTH — all constants/paths
+│   ├── run_utils.py            # run ids/timestamped paths + execution logger (logs/<exec_id>/)
+│   ├── data_pipeline.py        # discovery, splits (+dHash dedup), transforms, mixing, sampler, loaders
+│   ├── model.py                # EfficientNet-Lite + CBAM/SE + heads + CosineHead + trait heads + OOD
+│   ├── train.py                # training loop, losses, EMA, CLI + evaluation metrics (evaluate_epoch)
+│   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
+│   ├── evaluate.py             # per-head eval + confusion matrices (timestamped)
+│   ├── parity_check.py         # fp32 vs INT8 parity gate
+│   └── verify.py               # architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
@@ -174,13 +171,13 @@ as missing keys when loading legacy checkpoints (`src/export._load_model`).
 - `freeze_all()` / `unfreeze_all()`: all parameters
 - `backbone_eval()` / `backbone_train()`: BatchNorm mode control
 
-### EfficientNet-Lite (`src/efficientnet_lite.py`)
+### EfficientNet-Lite (`src/model.py` §1 Backbone)
 
 - MBConv blocks with `relu6` activation (no SE in lite variant)
 - `forward_until(x, stage_idx)` / `forward_from(x, stage_idx)`: split forward for attention insertion
 - Weight loading: `load_backbone_weights()` — strict=False, allows missing `fc.*`
 
-### Attention (`src/cbam.py`)
+### Attention CBAM/SE (`src/model.py` §2)
 
 - **CBAM**: ChannelAttention(avg+max pool → MLP → sigmoid) → SpatialAttention(avg+max concat → conv → sigmoid)
 - **SE**: AdaptiveAvgPool → FC reduce → ReLU → FC expand → Sigmoid
@@ -660,7 +657,7 @@ python scripts/test_fixes_cpu.py                          # CPU-only, no data ne
 python scripts/test_master_cpu.py                         # CPU-only, no data needed
 ```
 
-### Execution logs (`src/run_logger.py`)
+### Execution logs (`src/run_utils.py` §2)
 Every entry point writes `logs/<exec_id>/` with `manifest.json`, `config.json`,
 `run.log` (tee'd stdout/stderr), `events.jsonl` and category streams
 (`training/data/test/export/actions.jsonl`). `exec_id` = `YYYYmmdd-HHMMSS-<4hex>`,
@@ -823,6 +820,20 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 - **OOD Security Harness**: Added an energy-based Out-Of-Distribution detector (`src/ood_detector.py`) that scores raw logits and rejects non-bovine images post-hoc without retraining. Integrated directly into `test_model.py` GUI to show a clear `⚠️ Not a recognized cattle or buffalo` banner.
 - **OOD Calibration**: Added `scripts/calibrate_ood.py` to auto-calibrate OOD energy thresholds dynamically against the validation set. Portable exports (`src/export.py`) now bundle these thresholds in `model_info.json`.
 - **Breed Trait Auto-Population**: Added `scripts/populate_breed_traits.py` which uses the Gemini 2.5 Flash API to automatically fetch and standardize morphological descriptors (hump, horn, coat, ear, etc.) for all 75 breeds into `data/breed_traits.json`.
+
+### 2026-10-06 — Source consolidation: `src/` reduced from 16 files to 10
+
+Merged same-purpose modules into cohesive homes (old import paths removed, all
+references updated in `src/`, `scripts/`, `server/`, `test_model.py`, `colab/`):
+`efficientnet_lite.py`+`cbam.py`+`traits.py`+`ood_detector.py` → **`model.py`**
+(§1 backbone, §2 attention, §5 traits, §6 OOD), `metrics.py` → **`train.py`** §7,
+`run_logger.py` → **`run_utils.py`** §2. `config.py` stays separate.
+
+Every module now opens with a **SECTION MAP** + **REFERENCES** header; merged
+modules carry inline section banners. Final `src/`: `config.py`, `run_utils.py`,
+`data_pipeline.py`, `model.py`, `train.py`, `export.py`, `evaluate.py`,
+`parity_check.py`, `verify.py`, `__init__.py`. Entry points unchanged
+(`python -m src.<module>`); tests (61 + 35) and `src.verify` pass.
 
 ### 2026-09-24 — Execution logger, breed trait heads, group-aware splits, hard negatives
 

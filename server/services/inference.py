@@ -157,7 +157,7 @@ def predict_image(manager, image_bytes, model_name, socketio=None):
     ]
 
     try:
-        from src.run_logger import log_event
+        from src.run_utils import log_event
         log_event("prediction", category="test", model=model_name,
                   species=result.get("species"),
                   species_confidence=result.get("species_confidence"),

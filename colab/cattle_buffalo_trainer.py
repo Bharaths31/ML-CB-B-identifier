@@ -698,7 +698,7 @@ from src.train import (
     _build_warmup_cosine_scheduler
 )
 from src.run_utils import make_run_id, timestamped, unique_path
-from src.run_logger import init_run_logger
+from src.run_utils import init_run_logger
 
 # Initialize run logger and run ID
 run_id = make_run_id(RUN_TAG)
@@ -965,7 +965,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from src.evaluate import full_evaluation
-from src.metrics import evaluate_epoch
+from src.train import evaluate_epoch
 
 print(f"[eval] Loading best checkpoint: {best_checkpoint}")
 eval_model = BreedClassifier(backbone=BACKBONE, attention=ATTENTION)

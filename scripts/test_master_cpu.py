@@ -27,7 +27,7 @@ os.environ.setdefault("RUN_LOG_DISABLE", "1")
 import src.config as C
 from src import data_pipeline as dp
 from src import train as T
-from src.cbam import CBAM, SEBlock
+from src.model import CBAM, SEBlock
 from src.run_utils import (make_run_id, resolve_checkpoint, sanitize_run_id,
                            timestamped, unique_path)
 
@@ -93,9 +93,8 @@ check("unique_path avoids overwrite", unique_path(f).endswith("x_2.pt"))
 
 # ---------------------------------------------------------------------------
 print("\n[A2] all modules import + every CLI parses --help")
-mods = ["config", "run_utils", "data_pipeline", "model", "cbam",
-        "efficientnet_lite", "train", "metrics", "export", "evaluate",
-        "parity_check", "verify"]
+mods = ["config", "run_utils", "data_pipeline", "model", "train",
+        "export", "evaluate", "parity_check", "verify"]
 import importlib
 imp_ok = True
 for m in mods:
@@ -190,8 +189,12 @@ check("binary one-hot + masks integral + targets sum to 1", ok)
 # ---------------------------------------------------------------------------
 print("\n[C] transforms: RRC ratio, pad-to-square, breed-aware selection")
 dt = dp.describe_transform(dp._train_transform({}))
-check("default train has flip + RRC", "RandomHorizontalFlip" in dt and "RandomResizedCrop" in dt)
-check("RRC ratio bounded (0.92, 1.08)", "0.92" in dt and "1.08" in dt)
+check("default train has flip, no random crop",
+      "RandomHorizontalFlip" in dt and "RandomResizedCrop" not in dt)
+dt_rrc = dp.describe_transform(dp._train_transform({"random_resized_crop": True,
+                                                    "horizontal_flip": False}))
+check("RRC ratio bounded (0.92, 1.08) when enabled",
+      "0.92" in dt_rrc and "1.08" in dt_rrc)
 wide = Image.new("RGB", (400, 300), (200, 100, 50))
 padded = dp._eval_transform(pad=True)(wide)
 check("pad-to-square output is square 260", tuple(padded.shape) == (3, 260, 260),
@@ -223,7 +226,7 @@ print("\n[F] EMA schedule + metrics species-aware top-k")
 check("EMA decay at step 0 = 0.1", abs(T._ema_decay_at(0, 0.999, True) - 0.1) < 1e-9)
 d = [T._ema_decay_at(t, 0.999, True) for t in (0, 10, 100, 1000, 100000)]
 check("EMA decay monotonic + capped", all(d[i] <= d[i + 1] for i in range(len(d) - 1)) and d[-1] <= 0.999)
-from src.metrics import evaluate_epoch
+from src.train import evaluate_epoch
 
 
 class _M(nn.Module):
@@ -265,7 +268,7 @@ check("local_train preflight lists run_utils.py",
 
 # ---------------------------------------------------------------------------
 print("\n[D2] breed trait heads: vocab, targets, masked loss, train integration")
-from src.traits import (TraitClassifier, breed_trait_targets, build_trait_vocab)
+from src.model import (TraitClassifier, breed_trait_targets, build_trait_vocab)
 spec = {"fields": ["hump", "coat"],
         "breeds": {"cattle": {"gir": {"hump": "prominent", "coat": "red"},
                               "sahiwal": {"hump": "moderate", "coat": ""}},
@@ -277,16 +280,21 @@ check("trait vocab built from non-empty values",
 cat_c = {"gir": 0, "sahiwal": 1}
 buf_c = {"murrah": 0}
 tg = breed_trait_targets(spec, vocab, cat_c, buf_c)
-check("empty trait -> -1 (ignored) and buffalo offset correct",
-      tg["coat"][1] == -1 and tg["hump"][C.NUM_CATTLE_BREEDS] == -1
-      and tg["coat"][C.NUM_CATTLE_BREEDS] == 0)
+check("empty trait -> -1 (ignored) and dynamic buffalo offset correct",
+      tg["coat"][1] == -1 and tg["hump"][len(cat_c)] == -1
+      and tg["coat"][len(cat_c)] == 0 and tg["hump"].numel() == len(cat_c) + len(buf_c))
 tm = TraitClassifier(C.FEATURE_DIM, vocab)
 tloss, taccs = tm.loss(torch.randn(4, C.FEATURE_DIM),
-                       torch.tensor([0, 1, 0, C.NUM_CATTLE_BREEDS]), tg)
+                       torch.tensor([0, 1, 0, len(cat_c)]), tg)
 check("trait masked loss finite", bool(torch.isfinite(tloss)))
 
-# integration: train_phase runs with trait heads attached
+# integration: train_phase runs with trait heads attached. Targets must cover
+# every global id the FakeModel can emit (NUM_CATTLE + NUM_BUFFALO).
 import copy as _copy
+_n_cls = C.NUM_CATTLE_BREEDS + C.NUM_BUFFALO_BREEDS
+tg_full = {f: torch.full((_n_cls,), -1, dtype=torch.long) for f in vocab}
+tg_full["hump"][0] = 1
+tg_full["coat"][0] = 1
 tm_model = _FakeModel()
 tm_model.trait_heads = TraitClassifier(C.FEATURE_DIM, vocab)
 tm_ema = _copy.deepcopy(tm_model); tm_ema.eval()
@@ -294,7 +302,7 @@ _ = T.train_phase(tm_model, loader, torch.utils.data.DataLoader(_DS(8), batch_si
                   torch.device("cpu"), 2, 1, 1e-3, (0.15, 0.5, 0.35),
                   lambda o: None, os.path.join(tempfile.mkdtemp(), "ck.pt"),
                   best_key="blended_score", ema_model=tm_ema, mix_prob=0.0,
-                  trait_module=tm_model.trait_heads, trait_targets=tg,
+                  trait_module=tm_model.trait_heads, trait_targets=tg_full,
                   trait_weight=0.1)
 check("train_phase runs with trait heads", True)
 
@@ -362,7 +370,7 @@ print("\n[Logger] per-execution folder, manifest, config, events, metrics")
 tmp_logs = tempfile.mkdtemp(prefix="logs_")
 code = (
     "import sys; sys.path.insert(0, %r)\n"
-    "from src.run_logger import init_run_logger, log_event, log_metrics, finish_run\n"
+    "from src.run_utils import init_run_logger, log_event, log_metrics, finish_run\n"
     "lg = init_run_logger(exec_id='TESTEXEC', module='unit', log_root=%r, capture_stdio=False)\n"
     "log_event('hello', category='actions', x=1)\n"
     "log_metrics({'blended_score':0.5,'combined_top1_soft':0.4}, epoch=1, tag='raw')\n"

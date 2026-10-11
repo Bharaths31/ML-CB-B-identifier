@@ -20,6 +20,18 @@ Two modes:
    differences vs the fp32 PyTorch reference under each artifact's input
    convention (fp32 ONNX expects caller-normalized input; mobile artifacts
    have normalization baked in).
+
+SECTION MAP
+  1. Runtime runners (PyTorch / ONNX / TFLite) with unified [0,1] input
+  2. Metric accumulation + synthetic max|Δlogit| comparison
+  3. CLI: accuracy mode or --synthetic
+
+REFERENCES
+  - src/export.py: _load_model (cosine/QAT-safe checkpoint loading).
+  - src/data_pipeline.py: get_dataloaders (val/test).
+  - src/run_utils.py: resolve_checkpoint, make_run_id, timestamped, logging.
+  - src/config.py: paths + IMAGENET_MEAN/STD (normalization convention).
+  - Run with: ``python -m src.parity_check ...``.
 """
 
 import argparse
@@ -251,7 +263,7 @@ def main():
                         help="run id for timestamped report filenames")
     args = parser.parse_args()
 
-    from .run_logger import init_run_logger, log_event
+    from .run_utils import init_run_logger, log_event
     init_run_logger(module="src.parity_check")
     log_event("cli_args", category="actions", **vars(args))
 

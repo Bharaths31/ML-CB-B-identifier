@@ -74,7 +74,7 @@ EXPORT_FORMATS = ["portable", "onnx", "int8", "float16"]
 def _log_event(event, **fields):
     """Best-effort structured logging (never raises if the logger is absent)."""
     try:
-        from src.run_logger import log_event
+        from src.run_utils import log_event
         return log_event(event, **fields)
     except Exception:
         return None
@@ -97,7 +97,7 @@ def _run(cmd, cwd=None, env=None, check=True, capture=False):
         merged_env.update(env)
     # Give child processes the SAME execution id so their logs correlate.
     try:
-        from src.run_logger import get_logger
+        from src.run_utils import get_logger
         lg = get_logger()
         if lg is not None:
             merged_env.setdefault("RUN_EXEC_ID", lg.exec_id)
@@ -1169,7 +1169,7 @@ Outputs are timestamped per run and never overwrite previous results.
 
     # --- execution logger (single folder logs/<exec_id>/) ---
     try:
-        from src.run_logger import init_run_logger, log_event
+        from src.run_utils import init_run_logger, log_event
         init_run_logger(exec_id=getattr(args, "exec_id", None), module="local_train")
         log_event("cli_args", category="actions", **vars(args))
     except Exception:

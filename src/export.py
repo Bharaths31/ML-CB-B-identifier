@@ -1,3 +1,21 @@
+"""Export trained checkpoints to portable / ONNX / TFLite / FP16 / mobile INT8.
+
+SECTION MAP
+  1. Export wrappers: _RawOutputs (caller-normalized) and _MobileOutputs
+     (ImageNet normalization baked into the graph)
+  2. Helpers: _sanitize_state_dict, guarded _load_model, label files, calibration
+  3. Quantization: ONNX INT8 (QDQ) and TFLite (fp32 + full-integer INT8 PTQ)
+  4. Portable self-contained bundle
+  5. CLI
+
+REFERENCES
+  - src/model.py: BreedClassifier — cosine/ArcFace heads are auto-detected from
+    the checkpoint (final head layer has no bias).
+  - src/run_utils.py: make_run_id, resolve_checkpoint, timestamped, unique_path.
+  - src/config.py: output dirs, IMAGE_SIZE, IMAGENET_MEAN/STD, OOD_* metadata.
+  - Artifacts consumed by test_model.py, server/, and the Flutter app.
+"""
+
 import argparse
 import glob
 import json
@@ -11,8 +29,9 @@ import torch
 import torch.nn as nn
 
 from .config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGENET_MEAN, IMAGENET_STD,
-                     IMAGE_SIZE, PORTABLE_EXPORT_DIR, SPLIT_DIR,
-                     SPECIES_LABELS, TFLITE_APP_ASSETS_DIR)
+                     IMAGE_SIZE, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                     PORTABLE_EXPORT_DIR, SPLIT_DIR, SPECIES_LABELS,
+                     TFLITE_APP_ASSETS_DIR)
 from .model import BreedClassifier
 from .run_utils import (find_latest_checkpoint, make_run_id,
                         resolve_checkpoint, timestamped, unique_path)
@@ -23,6 +42,12 @@ MOBILE_INPUT_RANGE = "[0, 1] RGB float32 (NCHW), normalization baked into the gr
 # ---------------------------------------------------------------------------
 # Export wrappers
 # ---------------------------------------------------------------------------
+
+# =======================================================================
+# SECTION 1 — Export wrappers
+# _RawOutputs = caller-normalized input; _MobileOutputs = normalization baked in.
+# Both emit only binary/cattle/buffalo; training-only heads are excluded.
+# =======================================================================
 
 class _RawOutputs(nn.Module):
     """Legacy convention: the CALLER normalizes with ImageNet mean/std.
@@ -62,6 +87,12 @@ class _MobileOutputs(nn.Module):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# =======================================================================
+# SECTION 2 — Helpers (sanitize/load, labels, calibration)
+# _sanitize_state_dict strips QAT/compile keys; _load_model is cosine/QAT-safe.
+# Refs: src/model.py (BreedClassifier); src/run_utils.py (output naming).
+# =======================================================================
 
 def _size(path):
     return os.path.getsize(path) / (1024 * 1024)
@@ -114,8 +145,15 @@ def _load_model(checkpoint_path, backbone, attention):
     if cosine:
         print("[export] detected cosine/ArcFace breed heads in checkpoint")
     binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
+    # Infer class counts from the checkpoint so dropped-small-breed models
+    # (dynamic head sizing) load correctly; fall back to the config defaults.
+    num_cattle = (state[f"cattle_head.{final_idx}.weight"].shape[0]
+                  if f"cattle_head.{final_idx}.weight" in state else NUM_CATTLE_BREEDS)
+    num_buffalo = (state[f"buffalo_head.{final_idx}.weight"].shape[0]
+                   if f"buffalo_head.{final_idx}.weight" in state else NUM_BUFFALO_BREEDS)
     model = BreedClassifier(backbone=backbone, attention=attention,
-                            cosine_head=cosine, binary_dim=binary_dim)
+                            cosine_head=cosine, binary_dim=binary_dim,
+                            num_cattle=num_cattle, num_buffalo=num_buffalo)
     missing, unexpected = model.load_state_dict(state, strict=False)
     # The projection head is training-only; ignore it. Anything else missing is
     # a real problem worth surfacing explicitly.
@@ -214,6 +252,12 @@ def _onnx_input_name(path):
 # ---------------------------------------------------------------------------
 # ONNX Runtime Mobile INT8 (QDQ static quantization)
 # ---------------------------------------------------------------------------
+
+# =======================================================================
+# SECTION 3 — Quantization (ONNX INT8 QDQ / TFLite fp32 + INT8 PTQ)
+# Converter-side PTQ; no PyTorch QAT required.
+# Refs: src/data_pipeline.py calibration lives in _calibration_images().
+# =======================================================================
 
 def export_onnx_int8(model, onnx_fp32_path, out_path, split_dir,
                      calibration_images=500):
@@ -357,6 +401,12 @@ def export_tflite(model, backbone, out_dir, split_dir, static_batch=True,
 # Portable export — self-contained model folder
 # ---------------------------------------------------------------------------
 
+# =======================================================================
+# SECTION 4 — Portable self-contained bundle
+# Copies the checkpoint + class maps + model_info.json into a unique folder.
+# Refs: src/run_utils.unique_path for non-overwriting output dirs.
+# =======================================================================
+
 def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
                            export_dir=PORTABLE_EXPORT_DIR):
     """Bundle the trained model + labels + metadata into a portable folder.
@@ -452,7 +502,7 @@ def main():
                              "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
-    from .run_logger import init_run_logger, log_event
+    from .run_utils import init_run_logger, log_event
     init_run_logger(module="src.export")
     log_event("cli_args", category="actions", **vars(args))
 

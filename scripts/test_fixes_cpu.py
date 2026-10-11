@@ -51,10 +51,10 @@ def make_labels(species, cat_idx, buf_idx, n_cattle=C.NUM_CATTLE_BREEDS,
 print("\n[1] Defaults: augmentation + logit adjustment OFF")
 check("LOGIT_ADJUST is False", C.LOGIT_ADJUST is False)
 check("MIX_ENABLED is False", C.MIX_ENABLED is False)
-# New defaults: flip + mild RRC ON (they don't mix content between breeds);
-# colour jitter / RandAugment / mix stay OFF.
-check("flip + rrc default ON",
-      C.AUG_HORIZONTAL_FLIP and C.AUG_RANDOM_RESIZED_CROP)
+# New defaults: flip ON; random crops OFF (they cut body parts / hide breed
+# features). Colour jitter / RandAugment / mix also OFF.
+check("flip default ON", C.AUG_HORIZONTAL_FLIP is True)
+check("random-crop default OFF", C.AUG_RANDOM_RESIZED_CROP is False)
 check("color-jitter + randaugment default OFF",
       not C.AUG_COLOR_JITTER and not C.AUG_RANDAUGMENT)
 check("mixing strength 0.25/0.4/0.2",
@@ -72,11 +72,15 @@ check("explicit no-aug train == eval tensor",
       torch.allclose(t_train(img), t_eval(img)))
 t_aug = dp._train_transform({"horizontal_flip": True})
 check("flip-enabled transform builds", t_aug is not None)
-# Default (config) transform now includes RRC with the tight aspect ratio.
+# Default (config) transform: flip ON, NO random crop.
 dt = dp.describe_transform(dp._train_transform({}))
-check("default train transform has flip + RRC", "RandomHorizontalFlip" in dt
-      and "RandomResizedCrop" in dt)
-check("RRC ratio is near-square (0.92, 1.08)", "0.92" in dt and "1.08" in dt)
+check("default train transform has flip and no RRC",
+      "RandomHorizontalFlip" in dt and "RandomResizedCrop" not in dt)
+# RRC (when explicitly enabled) keeps a near-square aspect ratio.
+dt_rrc = dp.describe_transform(dp._train_transform(
+    {"random_resized_crop": True, "horizontal_flip": False}))
+check("RRC ratio is near-square (0.92, 1.08)",
+      "0.92" in dt_rrc and "1.08" in dt_rrc)
 
 # ---------------------------------------------------------------------------
 print("\n[3] Same-species mixing keeps binary one-hot + masks integral")
@@ -237,11 +241,11 @@ check("masked_loss finite with logit adjustment", bool(torch.isfinite(tot3)))
 
 # ---------------------------------------------------------------------------
 print("\n[9] Timestamped outputs never overwrite")
-import re as _re
-from src.run_utils import make_run_id, timestamped, unique_path
-rid = make_run_id()
-check("run id format DD-MM-YYYY-HH-MM",
-      bool(_re.fullmatch(r"\d{2}-\d{2}-\d{4}-\d{2}-\d{2}", rid)), rid)
+from src.run_utils import make_run_id, sanitize_run_id, timestamped, unique_path
+# NOTE: make_run_id() with no args auto-increments VERSION.txt (v5, v6, ...),
+# so the test only exercises explicit tags / sanitization (no side effects).
+check("run id sanitized", sanitize_run_id("a/b:c") == "a-b-c", sanitize_run_id("a/b:c"))
+check("explicit run tag preserved", make_run_id("V3") == "V3")
 p1 = timestamped("outputs/checkpoints/lite2_phase2_best.pt", "01-01-2026-00-00")
 p2 = timestamped("outputs/checkpoints/lite2_phase2_best.pt", "02-01-2026-00-00")
 check("timestamped paths differ", p1 != p2 and "01-01-2026-00-00" in p1)

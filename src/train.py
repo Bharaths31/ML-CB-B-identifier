@@ -1,3 +1,26 @@
+"""Training pipeline: data -> optimizer -> loss -> EMA -> validation -> metrics.
+
+This file consolidates the training loop with its evaluation metrics so one
+module covers "train an epoch" and "measure an epoch". It replaces the former
+``src/metrics.py``.
+
+SECTION MAP
+  1. Device setup
+  2. Losses (soft_ce, SupCon, masked multi-task, KD, cosine margin)
+  3. Training core (run_epoch, EMA, LR schedule, train_phase, checkpointing)
+  4. Portable export helper
+  5. QAT (opt-in)
+  6. CLI (main)
+  7. Evaluation metrics (evaluate_epoch, _macro_scores) ... from former src/metrics.py
+
+REFERENCES
+  - ``src/config.py`` = all hyperparameters (loss weights, EMA, phases, BEST_METRIC).
+  - ``src/model.py`` = BreedClassifier + CosineHead + trait heads.
+  - ``src/data_pipeline.py`` = dataloaders, splits, priors, rare-class masks.
+  - ``src/run_utils.py`` = run ids / execution logging.
+  - Entry point: ``python -m src.train``; wrapped by ``local_train.py`` stage 6.
+"""
+
 import argparse
 import json
 import math
@@ -28,8 +51,10 @@ from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
                      GRADIENT_ACCUMULATION_STEPS, LABEL_SMOOTHING,
                      LOSS_WEIGHT_BINARY, LOSS_WEIGHT_BINARY_FINAL,
                      LOSS_WEIGHT_BUFFALO, LOSS_WEIGHT_BUFFALO_FINAL,
-                     LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_CATTLE_FINAL, NUM_WORKERS,
+                     LOSS_WEIGHT_CATTLE, LOSS_WEIGHT_CATTLE_FINAL,
+                     MIN_IMAGES_PER_BREED, NUM_WORKERS,
                      MIX_OFF_LAST_FRAC, MIX_SAME_SPECIES,
+                     OOD_AUTO_CALIBRATE, OOD_ENABLED, OOD_PERCENTILE,
                      PHASE1_EPOCHS, PHASE1_LR, PHASE2_EPOCHS, PHASE2_LR,
                      PHASE3_EPOCHS, PHASE3_LR, PORTABLE_EXPORT_DIR, RAW_DATA_DIR,
                      FEATURE_DIM, RARE_CLASS_THRESHOLD, SAMPLER_BETA, SEED,
@@ -40,9 +65,8 @@ from .data_pipeline import (compute_class_counts, compute_class_priors,
                             compute_rare_classes, get_dataloaders,
                             prepare_half_splits, prepare_quarter_splits,
                             prepare_smoke_splits, prepare_splits)
-from .metrics import evaluate_epoch
 from .model import BreedClassifier
-from .run_logger import finish_run, init_run_logger, log_event, log_metrics
+from .run_utils import finish_run, init_run_logger, log_event, log_metrics
 from .run_utils import make_run_id, timestamped, unique_path
 
 
@@ -660,7 +684,7 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 log_metrics(ema_metrics, epoch=epoch, tag="ema", phase=phase)
 
             if trait_module is not None and trait_weight > 0:
-                from .traits import evaluate_traits
+                from .model import evaluate_traits
                 val_traits = evaluate_traits(model, trait_module, val_loader,
                                              trait_targets, device, max_batches)
                 log_event("trait_accuracy", category="training", epoch=epoch,
@@ -933,6 +957,12 @@ def main():
     parser.add_argument("--dedup-splits", action="store_true",
                         help="group-aware splits: near-duplicate images "
                              "(dHash Hamming<=4) never cross train/val/test")
+    parser.add_argument("--min-images-per-breed", type=int,
+                        default=MIN_IMAGES_PER_BREED,
+                        help="drop breeds with fewer total images than this "
+                             "(0 keeps every breed; dynamic head sizing)")
+    parser.add_argument("--no-ood-calibrate", action="store_true",
+                        help="skip the automatic per-model OOD calibration")
     parser.add_argument("--grad-accum", type=int,
                         default=GRADIENT_ACCUMULATION_STEPS,
                         help="gradient accumulation steps (default: 2)")
@@ -1038,7 +1068,8 @@ def main():
                                          split_dir=args.split_dir)
     else:
         summary = prepare_splits(data_root=args.data, split_dir=args.split_dir,
-                                 dedup=args.dedup_splits)
+                                 dedup=args.dedup_splits,
+                                 min_images=args.min_images_per_breed)
 
     if summary is None:
         return 1
@@ -1111,11 +1142,20 @@ def main():
           + f", same_species={MIX_SAME_SPECIES}, "
           f"off_last_frac={MIX_OFF_LAST_FRAC}")
 
-    # --- Model ---
+    # --- Model (head sizes follow the surviving class maps, so dropped small
+    # breeds produce a smaller, fully-trained output layer) ---
     weights = args.weights or BACKBONE_WEIGHTS[args.backbone]
+    with open(os.path.join(args.split_dir, "cattle_classes.json")) as f:
+        _cattle_classes = json.load(f)
+    with open(os.path.join(args.split_dir, "buffalo_classes.json")) as f:
+        _buffalo_classes = json.load(f)
+    print(f"[train] classes: {len(_cattle_classes)} cattle + "
+          f"{len(_buffalo_classes)} buffalo (dynamic head sizing)")
     model = BreedClassifier(backbone=args.backbone, attention=args.attention,
                             pretrained_path=weights if os.path.exists(weights) else None,
-                            cosine_head=args.cosine_head)
+                            cosine_head=args.cosine_head,
+                            num_cattle=len(_cattle_classes),
+                            num_buffalo=len(_buffalo_classes))
     if not os.path.exists(weights):
         print(f"[train] WARNING: {weights} not found, training backbone from scratch")
     model.to(device)
@@ -1156,7 +1196,7 @@ def main():
     trait_module = None
     trait_targets = None
     if args.trait_weight and args.trait_weight > 0:
-        from .traits import (TraitClassifier, breed_trait_targets,
+        from .model import (TraitClassifier, breed_trait_targets,
                              build_trait_vocab, load_trait_spec)
         spec = load_trait_spec(args.trait_file)
         vocab = build_trait_vocab(spec) if spec else {}
@@ -1370,9 +1410,268 @@ def main():
                                args.split_dir, args.export_dir)
         log_event("portable_export", category="export", path=best_checkpoint)
 
+    # --- Automatic OOD calibration (per-model JSON, linked by run id/stem) ---
+    if (OOD_ENABLED and OOD_AUTO_CALIBRATE
+            and not getattr(args, "no_ood_calibrate", False)
+            and os.path.exists(best_checkpoint)):
+        try:
+            from .export import _load_model
+            from .model import OODDetector
+            _ood_model = _load_model(best_checkpoint, args.backbone,
+                                     args.attention).to(device)
+            thresholds = OODDetector.calibrate(_ood_model, val_loader, device,
+                                               percentile=OOD_PERCENTILE)
+            path = OODDetector.save(thresholds, run_id)
+            stem = os.path.splitext(os.path.basename(best_checkpoint))[0]
+            OODDetector.save(thresholds, stem)   # alias by checkpoint stem
+            print(f"[train] OOD calibrated -> {path} "
+                  f"(energy_thr={thresholds['energy_threshold']:.3f}, "
+                  f"msp_thr={thresholds['msp_threshold']:.3f}, "
+                  f"n={thresholds['n_samples']})")
+            log_event("ood_calibrated", category="training", path=path,
+                      **thresholds)
+        except Exception as exc:
+            print(f"[train] OOD calibration skipped ({exc})")
+
     finish_run(0)
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+# =======================================================================
+# SECTION 7 — Evaluation metrics
+# evaluate_epoch(): per-head acc, macro-F1, soft-routed top-k, shot buckets, predicted-histogram entropy, val support per breed.
+# Used by: train_phase() (this file); src/evaluate.py; scripts/diagnose_model.py
+# Formerly src/metrics.py. Checkpoint metric BEST_METRIC='blended_score'
+# is configured in src/config.py.
+# =======================================================================
+import math
+
+import torch
+import torch.nn.functional as F
+from tqdm import tqdm
+
+from .config import (BEST_METRIC_MACRO_WEIGHT, BEST_METRIC_TOP1_WEIGHT,
+                     SHOT_FEW_MAX, SHOT_MEDIUM_MAX)
+
+
+def _macro_scores(cm):
+    """Macro-F1 and macro-recall from a confusion matrix (true x pred).
+
+    Classes with zero support are excluded so that breeds missing from the
+    validation split do not dilute the average.
+    """
+    support = cm.sum(dim=1)
+    tp = cm.diag()
+    pred_pos = cm.sum(dim=0)
+    denom = support + pred_pos
+    f1 = torch.where(denom > 0, 2.0 * tp / denom.clamp(min=1),
+                     torch.zeros_like(tp))
+    recall = torch.where(support > 0, tp / support.clamp(min=1),
+                         torch.zeros_like(tp))
+    present = support > 0
+    if present.any():
+        macro_f1 = f1[present].mean().item()
+        balanced_acc = recall[present].mean().item()
+    else:
+        macro_f1 = balanced_acc = 0.0
+    return macro_f1, balanced_acc
+
+
+@torch.no_grad()
+def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
+                   few_max=SHOT_FEW_MAX, medium_max=SHOT_MEDIUM_MAX):
+    model.eval()
+    n_binary = correct_binary = 0
+    binary_tp = binary_fp = binary_fn = 0
+    n_cattle = correct_cattle = 0
+    n_buffalo = correct_buffalo = 0
+    n_combined = correct_combined = 0
+    n_combined_soft = correct_combined_soft = 0
+    n_top3 = correct_top3 = 0
+    n_top5 = correct_top5 = 0
+    n_top3_oracle = correct_top3_oracle = 0
+    n_top5_oracle = correct_top5_oracle = 0
+
+    n_cattle_classes = n_buffalo_classes = 0
+    cattle_cm = buffalo_cm = None
+
+    # Shot-bucket accuracy (soft-routed) + predicted-class histogram.
+    bucket_stats = {"few": [0, 0], "medium": [0, 0], "many": [0, 0]}
+    pred_hist = None
+    shot_counts = None
+
+    total = min(len(loader), max_batches) if max_batches is not None else len(loader)
+    for step, (images, labels) in enumerate(
+            tqdm(loader, desc="eval validation", total=total, leave=False,
+                 bar_format="{l_bar}{bar:30}{r_bar}")):
+        if max_batches is not None and step >= max_batches:
+            break
+        images = images.to(device, non_blocking=True)
+        labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
+        out = model(images)
+        bin_pred = out["binary"].argmax(1)
+        bin_true = labels["binary"].argmax(1)
+        cattle_pred = out["cattle"].argmax(1)
+        cattle_true = labels["cattle"].argmax(1)
+        buffalo_pred = out["buffalo"].argmax(1)
+        buffalo_true = labels["buffalo"].argmax(1)
+        cmask = labels["cattle_mask"] > 0.5
+        bmask = labels["buffalo_mask"] > 0.5
+
+        if cattle_cm is None:
+            n_cattle_classes = out["cattle"].size(1)
+            n_buffalo_classes = out["buffalo"].size(1)
+            cattle_cm = torch.zeros(n_cattle_classes, n_cattle_classes,
+                                    dtype=torch.long, device=device)
+            buffalo_cm = torch.zeros(n_buffalo_classes, n_buffalo_classes,
+                                     dtype=torch.long, device=device)
+
+        bs = images.size(0)
+        n_binary += bs
+        correct_binary += (bin_pred == bin_true).sum().item()
+        binary_tp += ((bin_pred == 1) & (bin_true == 1)).sum().item()
+        binary_fp += ((bin_pred == 1) & (bin_true == 0)).sum().item()
+        binary_fn += ((bin_pred == 0) & (bin_true == 1)).sum().item()
+
+        n_cattle += cmask.sum().item()
+        correct_cattle += (cattle_pred[cmask] == cattle_true[cmask]).sum().item()
+        n_buffalo += bmask.sum().item()
+        correct_buffalo += (buffalo_pred[bmask] == buffalo_true[bmask]).sum().item()
+
+        # --- Per-class confusion (for macro-F1 / balanced accuracy) ---
+        if cmask.any():
+            ct, cp = cattle_true[cmask], cattle_pred[cmask]
+            for t, p in zip(ct.tolist(), cp.tolist()):
+                cattle_cm[t, p] += 1
+        if bmask.any():
+            bt, bp = buffalo_true[bmask], buffalo_pred[bmask]
+            for t, p in zip(bt.tolist(), bp.tolist()):
+                buffalo_cm[t, p] += 1
+
+        # --- Hard-routing combined top-1 (legacy metric) ---
+        cattle_hit = (bin_pred == 0) & (bin_true == 0) & (cattle_pred == cattle_true)
+        buffalo_hit = (bin_pred == 1) & (bin_true == 1) & (buffalo_pred == buffalo_true)
+        correct_combined += (cattle_hit | buffalo_hit).sum().item()
+        n_combined += bs
+
+        is_cattle = (bin_true == 0)
+
+        # --- Oracle top-3/5: uses the TRUE species' head (cheating on routing,
+        #     kept for continuity with older reports) ---
+        cattle_top3 = out["cattle"].topk(3, dim=1).indices
+        buffalo_top3 = out["buffalo"].topk(3, dim=1).indices
+        cattle_in_top3 = (cattle_top3 == cattle_true.unsqueeze(1)).any(dim=1)
+        buffalo_in_top3 = (buffalo_top3 == buffalo_true.unsqueeze(1)).any(dim=1)
+        cattle_top5 = out["cattle"].topk(5, dim=1).indices
+        buffalo_top5 = out["buffalo"].topk(5, dim=1).indices
+        cattle_in_top5 = (cattle_top5 == cattle_true.unsqueeze(1)).any(dim=1)
+        buffalo_in_top5 = (buffalo_top5 == buffalo_true.unsqueeze(1)).any(dim=1)
+        correct_top3_oracle += torch.where(is_cattle, cattle_in_top3,
+                                           buffalo_in_top3).sum().item()
+        n_top3_oracle += bs
+        correct_top5_oracle += torch.where(is_cattle, cattle_in_top5,
+                                           buffalo_in_top5).sum().item()
+        n_top5_oracle += bs
+
+        # --- Soft-routing combined top-1/3/5 (species-aware over 75 classes) ---
+        # p(species) * softmax(breed head): a confident breed head can still
+        # win when the binary head is ambiguous, removing the hard two-stage
+        # error propagation. Top-k is taken over the combined 75-way scores.
+        p_species = F.softmax(out["binary"], dim=1)
+        p_cattle = F.softmax(out["cattle"], dim=1)
+        p_buffalo = F.softmax(out["buffalo"], dim=1)
+        soft_scores = torch.cat([p_species[:, 0:1] * p_cattle,
+                                 p_species[:, 1:2] * p_buffalo], dim=1)
+        soft_pred = soft_scores.argmax(1)
+        true_global = torch.where(is_cattle, cattle_true,
+                                  n_cattle_classes + buffalo_true)
+        correct_combined_soft += (soft_pred == true_global).sum().item()
+        n_combined_soft += bs
+
+        soft_top3 = soft_scores.topk(3, dim=1).indices
+        soft_top5 = soft_scores.topk(5, dim=1).indices
+        correct_top3 += (soft_top3 == true_global.unsqueeze(1)).any(dim=1).sum().item()
+        n_top3 += bs
+        correct_top5 += (soft_top5 == true_global.unsqueeze(1)).any(dim=1).sum().item()
+        n_top5 += bs
+
+        # --- Shot-bucket accuracy + predicted-class histogram ---
+        n_global = n_cattle_classes + n_buffalo_classes
+        if pred_hist is None:
+            pred_hist = torch.zeros(n_global, dtype=torch.long, device=device)
+        pred_hist += torch.bincount(soft_pred, minlength=n_global)[:n_global]
+        if train_counts is not None:
+            if shot_counts is None:
+                shot_counts = torch.cat([
+                    train_counts["cattle"].to(device),
+                    train_counts["buffalo"].to(device)])
+            sample_counts = shot_counts[true_global]
+            hit = (soft_pred == true_global)
+            for name, lo, hi in (("few", 0, few_max),
+                                 ("medium", few_max, medium_max),
+                                 ("many", medium_max, float("inf"))):
+                m = (sample_counts >= lo) & (sample_counts < hi)
+                bucket_stats[name][0] += hit[m].sum().item()
+                bucket_stats[name][1] += m.sum().item()
+
+    def acc(c, n):
+        return c / n if n else 0.0
+
+    if cattle_cm is None:
+        cattle_cm = torch.zeros(0, 0, dtype=torch.long)
+        buffalo_cm = torch.zeros(0, 0, dtype=torch.long)
+    cattle_macro_f1, cattle_balanced = _macro_scores(cattle_cm.cpu())
+    buffalo_macro_f1, buffalo_balanced = _macro_scores(buffalo_cm.cpu())
+
+    denom = 2 * binary_tp + binary_fp + binary_fn
+    metrics = {
+        "binary_acc": acc(correct_binary, n_binary),
+        "binary_f1": (2 * binary_tp / denom) if denom else 0.0,
+        "cattle_acc": acc(correct_cattle, n_cattle),
+        "buffalo_acc": acc(correct_buffalo, n_buffalo),
+        "cattle_macro_f1": cattle_macro_f1,
+        "buffalo_macro_f1": buffalo_macro_f1,
+        "cattle_balanced_acc": cattle_balanced,
+        "buffalo_balanced_acc": buffalo_balanced,
+        "combined_top1": acc(correct_combined, n_combined),
+        # Species-aware: top-k over the soft-routed 75-way scores.
+        "combined_top3": acc(correct_top3, n_top3),
+        "combined_top5": acc(correct_top5, n_top5),
+        # Oracle: top-k within the TRUE species head (legacy, routing-free).
+        "combined_top3_oracle": acc(correct_top3_oracle, n_top3_oracle),
+        "combined_top5_oracle": acc(correct_top5_oracle, n_top5_oracle),
+        "combined_top1_soft": acc(correct_combined_soft, n_combined_soft),
+    }
+    metrics["balanced_score"] = 0.5 * (cattle_macro_f1 + buffalo_macro_f1)
+    macro = 0.5 * (cattle_macro_f1 + buffalo_macro_f1)
+    metrics["blended_score"] = (BEST_METRIC_MACRO_WEIGHT * macro
+                                + BEST_METRIC_TOP1_WEIGHT
+                                * metrics["combined_top1_soft"])
+
+    # Per-shot-bucket accuracy (soft-routed).
+    for name, (c, n) in bucket_stats.items():
+        metrics[f"acc_{name}shot"] = acc(c, n)
+        metrics[f"n_{name}shot"] = n
+
+    # Validation support per breed (how many val images each class had).
+    support_cattle = cattle_cm.sum(dim=1)
+    support_buffalo = buffalo_cm.sum(dim=1)
+    present = torch.cat([support_cattle, support_buffalo])
+    present = present[present > 0]
+    metrics["val_min_per_breed"] = int(present.min().item()) if present.numel() else 0
+    metrics["val_median_per_breed"] = (
+        float(present.median().item()) if present.numel() else 0.0)
+
+    # Entropy of the predicted-class histogram, normalised to [0,1] by log(K).
+    # LOW entropy = predictions collapsed onto a few classes (possibly
+    # tail-biased); HIGH entropy = spread out / diffuse (uncertain).
+    if pred_hist is not None and pred_hist.sum() > 0:
+        p = pred_hist.float() / pred_hist.sum()
+        ent = -(p * torch.log(p.clamp(min=1e-12))).sum().item()
+        metrics["pred_hist_entropy"] = ent / math.log(pred_hist.numel())
+    else:
+        metrics["pred_hist_entropy"] = 0.0
+    return metrics

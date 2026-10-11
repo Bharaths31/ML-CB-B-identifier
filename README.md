@@ -70,16 +70,14 @@ outputs/export/portable/<backbone>_<...>_<runid>/
 ML-CB-B-identifier/
 ├── src/                        # Core ML package (run as python -m src.<module>)
 │   ├── config.py               # All hyperparameters & paths (single source of truth)
-│   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
-│   ├── cbam.py                 # CBAM & SE attention modules
-│   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 2-phase training (+opt-in QAT, distillation), AMP, auto-export
-│   ├── metrics.py              # Per-head accuracy + F1
-│   ├── evaluate.py             # Full evaluation + confusion matrices
-│   ├── export.py               # TFLite INT8, ONNX INT8, ONNX, float16, portable export
+│   ├── run_utils.py            # run ids/timestamped paths + execution logger (logs/<exec_id>/)
+│   ├── data_pipeline.py        # discovery, splits (+dHash dedup), transforms, mixing, sampler, loaders
+│   ├── model.py                # EfficientNet-Lite + CBAM/SE + heads + CosineHead + trait heads + OOD
+│   ├── train.py                # training loop, losses, EMA + evaluation metrics (evaluate_epoch)
+│   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
+│   ├── evaluate.py             # per-head eval + confusion matrices
 │   ├── parity_check.py         # fp32 vs mobile-artifact parity gate
-│   └── verify.py               # Architecture sanity check
+│   └── verify.py               # architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
 │   ├── cattle_buffalo_trainer.py     # Same as percent-format script
