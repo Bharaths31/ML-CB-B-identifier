@@ -35,8 +35,8 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
-                     AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_AUG_POLICY,
-                     CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
+                     AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_ALIASES,
+                     BREED_AUG_POLICY, CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
                      COLOR_JITTER_CONTRAST, COLOR_JITTER_HUE,
                      COLOR_JITTER_SATURATION, CUTMIX_ALPHA, DEDUP_HAMMING,
                      DEDUP_SPLITS, DROPPED_BREEDS_FILE, DROP_SMALL_BREEDS,
@@ -262,10 +262,11 @@ def _collect_rows(data_root):
             breed_dir = os.path.join(species_dir, breed)
             if not os.path.isdir(breed_dir):
                 continue
+            canonical_breed = BREED_ALIASES.get(breed.lower(), breed.lower())
             names = sorted(os.listdir(breed_dir))
             for name in names:
                 if name.lower().endswith(IMAGE_EXTS):
-                    rows.append((os.path.join(breed_dir, name), species, breed, binary))
+                    rows.append((os.path.join(breed_dir, name), species, canonical_breed, binary))
     return rows
 
 

@@ -93,7 +93,9 @@ class BreedClassifier(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout),
             nn.Linear(binary_dim, binary_dim // 2),
+            nn.BatchNorm1d(binary_dim // 2),
             nn.ReLU(inplace=True),
+            nn.Dropout(p=0.2),
             nn.Linear(binary_dim // 2, 2),
         )
         self.cattle_head = _make_breed_head(feature_dim, num_cattle, dropout,

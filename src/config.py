@@ -38,15 +38,27 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 IMAGE_SIZE = 260
-NUM_CATTLE_BREEDS = 57
-NUM_BUFFALO_BREEDS = 18
-NUM_BREEDS_TOTAL = 75
+NUM_CATTLE_BREEDS = 35
+NUM_BUFFALO_BREEDS = 10
+NUM_BREEDS_TOTAL = 45
 
-# Optional canonical breed-name lists. When set, prepare_* reports the exact
-# extra/missing names on a count mismatch instead of only a count. Leave None
-# to validate counts only.
-EXPECTED_CATTLE_BREEDS = None
-EXPECTED_BUFFALO_BREEDS = None
+# Canonical breed-name lists for the optimized 45-breed pool (35 cattle + 10 buffalo).
+# Low-distinction and heavily confused buffalo breeds (mehsana, surti, nagpuri, luit, etc.)
+# are consolidated under the general species banner 'other_buffalo'.
+EXPECTED_CATTLE_BREEDS = [
+    "amritmahal", "ayrshire", "bargur", "belahi", "brown_swiss",
+    "dangi", "deoni", "gir", "guernsey", "hallikar",
+    "holstein_friesian", "jersey", "kangayam", "kankrej", "khillar",
+    "konkan_kapila", "krishna_valley", "malnad_gidda", "mewati",
+    "nagori", "nari", "nimari", "ongole", "poda_thurpu",
+    "pulikulam", "punganur", "purnea", "rathi", "red_dane",
+    "red_sindhi", "sahiwal", "shweta_kapila", "tharparkar",
+    "umblachery", "vechur",
+]
+EXPECTED_BUFFALO_BREEDS = [
+    "alambadi", "banni", "bargur", "bhadawari", "jaffarabadi",
+    "marathwadi", "murrah", "nili_ravi", "other_buffalo", "toda",
+]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -65,10 +77,10 @@ BACKBONE_CHANNELS = {
 }
 
 FEATURE_DIM = 1280
-BINARY_DIM = 256
-BREED_DIM = 512
+BINARY_DIM = 512
+BREED_DIM = 384
 PROJECTION_DIM = 128
-DROPOUT = 0.3
+DROPOUT = 0.4
 
 RANDAUGMENT_OPS = 2
 RANDAUGMENT_MAGNITUDE = 5
@@ -101,10 +113,8 @@ MIX_ENABLED = False              # CutMix/MixUp master switch
 # content between breeds and improve generalization. Colour jitter, RandAugment
 # and mixing stay OFF (they can erase breed-defining coat colour / features).
 AUG_HORIZONTAL_FLIP = True
-# Random crops are OFF by default: RandomResizedCrop cuts body parts and can
-# hide breed-defining features (hump, dewlap, horns). Train uses the same
-# Resize+CenterCrop as eval; re-enable per run with --rrc.
-AUG_RANDOM_RESIZED_CROP = False
+# Random crops enable scale invariance without altering body proportions.
+AUG_RANDOM_RESIZED_CROP = True
 AUG_COLOR_JITTER = False
 AUG_RANDAUGMENT = False
 
@@ -136,9 +146,9 @@ BREED_AUG_POLICY = {b: {"color_jitter": False} for b in COAT_COLOUR_BREEDS}
 # --- Pad-to-square (opt-in) -----------------------------------------------
 # 4:3 phone photos lose ~25% of width to CenterCrop. Pad mode resizes the LONG
 # side to IMAGE_SIZE and pads to a square (ImageNet-mean fill -> 0 after
-# Normalize). Changes train + eval; Flutter/test_model.py/export must match.
-EVAL_PAD_TO_SQUARE = False
-TRAIN_PAD_TO_SQUARE = False
+# Normalize). Preserves full-body side profiles (hump, dewlap, horns visible).
+EVAL_PAD_TO_SQUARE = True
+TRAIN_PAD_TO_SQUARE = True
 PAD_FILL = "imagenet_mean"
 
 # --- Breed-specific feature learning (all opt-in) --------------------------
@@ -159,16 +169,28 @@ DEDUP_SPLITS = False             # group-aware splits by perceptual hash
 DEDUP_HAMMING = 4
 HASH_CACHE_NAME = "hashes.csv"
 VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
+
+# Consolidate spelling variants and low-distinction / heavily confused buffalo breeds
+# under a general species banner ('other_buffalo') to protect model accuracy.
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit"
+    "luit_(swamp)": "other_buffalo",
+    "luit": "other_buffalo",
+    "mehsana": "other_buffalo",
+    "surti": "other_buffalo",
+    "nagpuri": "other_buffalo",
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo",
 }
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---
 # The 1280-d pooled feature vector was previously unused. A projection head +
 # SupCon loss explicitly pulls same-breed embeddings together, which is what
 # separates visually near-identical indigenous breeds (Hariana/Sahiwal/etc.).
-CONTRASTIVE_WEIGHT = 0.2
+CONTRASTIVE_WEIGHT = 0.3
 CONTRASTIVE_TEMPERATURE = 0.1
 
 # --- Logit adjustment for class imbalance (Menon et al., ICLR 2021) ---
@@ -202,7 +224,7 @@ OOD_DIR = os.path.join(PROJECT_ROOT, "outputs", "ood")   # one JSON per model na
 # handles the reduced class count end to end). Set DROP_SMALL_BREEDS=False or
 # --min-images-per-breed 0 to keep every breed.
 DROP_SMALL_BREEDS = True
-MIN_IMAGES_PER_BREED = 15
+MIN_IMAGES_PER_BREED = 30
 DROPPED_BREEDS_FILE = "dropped_breeds.json"
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
@@ -216,7 +238,7 @@ BALANCE_BINARY_HEAD = True    # per-batch species re-weighting of binary CE
 # --- Exponential moving average of weights (phase 2) ---
 # Updated once per OPTIMIZER step (not per micro-batch). Warm-up decay is
 # decay_t = min(EMA_DECAY, (1+t)/(10+t)) so early steps track the raw model.
-EMA_DECAY = 0.999
+EMA_DECAY = 0.9995
 EMA_WARMUP = True
 EMA_WARN_FRAC = 0.25   # warn if the EMA time constant exceeds this frac of phase-2 steps
 
@@ -234,18 +256,18 @@ LOSS_WEIGHT_CATTLE = 0.50
 LOSS_WEIGHT_BUFFALO = 0.35
 
 # Once the binary head saturates (>= BINARY_SATURATION_ACC) it no longer needs
-# 15% of the loss budget; the breath heads are the bottleneck. These weights
+# 15% of the loss budget; the breed heads are the bottleneck. These weights
 # kick in automatically from the next epoch onward.
-LOSS_WEIGHT_BINARY_FINAL = 0.05
-LOSS_WEIGHT_CATTLE_FINAL = 0.55
-LOSS_WEIGHT_BUFFALO_FINAL = 0.40
-BINARY_SATURATION_ACC = 0.95
+LOSS_WEIGHT_BINARY_FINAL = 0.10
+LOSS_WEIGHT_CATTLE_FINAL = 0.52
+LOSS_WEIGHT_BUFFALO_FINAL = 0.38
+BINARY_SATURATION_ACC = 0.97
 
 PHASE1_EPOCHS = 8
 PHASE1_LR = 3e-3
 
-PHASE2_EPOCHS = 50
-PHASE2_LR = 2e-4
+PHASE2_EPOCHS = 80
+PHASE2_LR = 1e-4
 
 PHASE3_EPOCHS = 10
 PHASE3_LR = 5e-6
@@ -263,9 +285,9 @@ SHOT_MEDIUM_MAX = 100   # medium:    30..100; many-shot: > 100
 
 # --- SOTA additions ---
 WEIGHT_DECAY = 1e-2
-LABEL_SMOOTHING = 0.05
-WARMUP_EPOCHS = 3
-GRADIENT_ACCUMULATION_STEPS = 2
+LABEL_SMOOTHING = 0.1
+WARMUP_EPOCHS = 5
+GRADIENT_ACCUMULATION_STEPS = 4
 
 # --- Preprocessing / resolution ---
 TRAIN_RESIZE = IMAGE_SIZE + 28   # 288: shortest side before RandomResizedCrop
@@ -313,7 +335,7 @@ QUARTER_DATA_RATIO = 0.25  # Fraction of images per breed for --quarter-data mod
 
 # --- Training speed optimizations ---
 EVAL_EVERY_PHASE1 = 1   # Evaluate every epoch (short phase, keep all checks)
-EVAL_EVERY_PHASE2 = 2   # Evaluate every 2 epochs in the long fine-tune phase
+EVAL_EVERY_PHASE2 = 3   # Evaluate every 3 epochs in the long fine-tune phase
 EVAL_EVERY_PHASE3 = 2   # Evaluate every 2 epochs in QAT
 CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 

@@ -171,7 +171,7 @@ except ImportError as e:
 # ============================================================
 #  CONFIGURATION — Pick your dataset mode & Kaggle credentials
 # ============================================================
-DATASET_MODE = "both"  # ← "both", "algsoch", or "atharvadarpude"
+DATASET_MODE = "atharvadarpude"  # ← "atharvadarpude" (recommended), "algsoch", or "both"
 
 # Kaggle credentials (required for API download)
 KAGGLE_USERNAME = ""   # ← Fill in your Kaggle username
@@ -209,31 +209,19 @@ def find_breed_dirs(base_dir):
             breed_dirs.append(root)
     return breed_dirs
 
-# Spelling-variant merge map (empty by default; confirm with audit_data.py first)
+# Spelling-variant merge map and general species banner consolidation for buffalo
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit",
-    "gangatiri": "light_draught",
-    "kenkatha": "light_draught",
-    "hariana": "light_draught",
-    "malvi": "light_draught",
-    "bachaur": "light_draught",
-    "gaolao": "light_draught",
-    "ponwar": "dark_draught",
-    "siri": "dark_draught",
-    "ladakhi": "dark_draught",
-    "himachali_pahari": "dark_draught",
-    "belahi": "dark_draught",
-    "dagri": "dark_draught",
-    "thutho": "dark_draught",
-    "red_kandhari": "red_draught",
-    "poda_thurpu": "red_draught",
+    "luit_(swamp)": "other_buffalo",
+    "luit": "other_buffalo",
+    "mehsana": "other_buffalo",
+    "surti": "other_buffalo",
+    "nagpuri": "other_buffalo",
     "chhattisgarhi": "other_buffalo",
     "chilika": "other_buffalo",
     "kalahandi": "other_buffalo",
-    "marathwadi": "other_buffalo",
     "pandharpuri": "other_buffalo",
-    "gojri": "other_buffalo"
+    "gojri": "other_buffalo",
 }
 
 def normalize_breed_name(name):
@@ -461,8 +449,9 @@ ATTENTION = "cbam"              # "cbam" (CBAM attention) or "se" (Squeeze-and-E
 DATA_MODE = "full"
 
 # --- Training & Hardware ---
+# --- Training & Hardware ---
 BATCH_SIZE = 64                 # Auto-scaled dynamically if VRAM < 16GB
-GRAD_ACCUM = 2                  # Auto-scaled to keep effective batch = 128
+GRAD_ACCUM = 4                  # Effective batch = 256 (or 128 if BATCH_SIZE=32)
 NUM_WORKERS = 2                 # Colab 2 CPU cores
 SEED = 42
 
@@ -470,8 +459,8 @@ SEED = 42
 PHASE1_EPOCHS = 8               # All-heads warmup (frozen backbone + attention)
 PHASE1_LR = 3e-3
 PHASE2_EPOCHS = 80              # Multi-task fine-tuning (warmup + cosine decay)
-PHASE2_LR = 2e-4
-WARMUP_EPOCHS = 3               # Linear LR warmup epochs for phase 2
+PHASE2_LR = 1e-4
+WARMUP_EPOCHS = 5               # Linear LR warmup epochs for phase 2
 
 # --- Optional Phase 3: QAT ---
 # Mobile INT8 is normally produced via converter-side PTQ (see §9). QAT is opt-in.
@@ -481,7 +470,7 @@ PHASE3_LR = 5e-6
 
 # --- Regularization & Optimizer ---
 WEIGHT_DECAY = 1e-2             # AdamW decoupled weight decay
-LABEL_SMOOTHING = 0.05          # Label smoothing for generalization
+LABEL_SMOOTHING = 0.1           # Label smoothing for generalization
 
 # --- Loss Weights & Dynamic Adaptation ---
 # Loss = w_bin*CE_bin + w_cat*CE_cat + w_buf*CE_buf + w_supcon*SupCon
@@ -489,21 +478,21 @@ LOSS_WEIGHT_BINARY = 0.15
 LOSS_WEIGHT_CATTLE = 0.50
 LOSS_WEIGHT_BUFFALO = 0.35
 
-# Automatically switch to final weights once binary_acc >= 0.95
-BINARY_SATURATION_ACC = 0.95
-LOSS_WEIGHT_BINARY_FINAL = 0.05
-LOSS_WEIGHT_CATTLE_FINAL = 0.55
-LOSS_WEIGHT_BUFFALO_FINAL = 0.40
+# Automatically switch to final weights once binary_acc >= 0.97
+BINARY_SATURATION_ACC = 0.97
+LOSS_WEIGHT_BINARY_FINAL = 0.10
+LOSS_WEIGHT_CATTLE_FINAL = 0.52
+LOSS_WEIGHT_BUFFALO_FINAL = 0.38
 
 # --- Long-Tail Handling (Single Mechanism) ---
 SAMPLER_BETA = 0.99             # Effective-number-of-samples weighting (softened oversampling)
 LOGIT_ADJUST = False            # OFF by default: sampler already rebalances every batch
 LOGIT_ADJUST_TAU = 1.0
 LOGIT_ADJUST_PRIOR = "sampled"  # Effective sampled prior if logit adjustment is turned on
-RARE_CLASS_THRESHOLD = 30       # Breeds with <30 train images excluded from CutMix/MixUp
+RARE_CLASS_THRESHOLD = 20       # Breeds with <20 train images excluded from CutMix/MixUp
 
 # --- Feature Learning (SupCon) ---
-CONTRASTIVE_WEIGHT = 0.2        # Supervised Contrastive loss on auxiliary 128-d projection head
+CONTRASTIVE_WEIGHT = 0.3        # Supervised Contrastive loss on auxiliary 128-d projection head
 CONTRASTIVE_TEMPERATURE = 0.1
 
 # --- Augmentation & Batch Mixing ---
@@ -511,7 +500,7 @@ AUG_HORIZONTAL_FLIP = True      # ON by default (safe spatial invariance)
 AUG_RANDOM_RESIZED_CROP = True  # ON by default (mild crop: scale=(0.8, 1.0), ratio=(0.92, 1.08))
 AUG_COLOR_JITTER = False        # OFF by default (coat colour is crucial for breed identity)
 AUG_RANDAUGMENT = False         # OFF by default
-PAD_TO_SQUARE = False           # Resize long side + pad (preserves full-body side profiles)
+PAD_TO_SQUARE = True            # Resize long side + pad (preserves full-body side profiles)
 BREED_AUG = False               # Breed-aware policies (e.g. coat-colour breeds skip jitter)
 MIX_ENABLED = False             # CutMix/MixUp batch mixing (opt-in; OFF by default)
 CUTMIX_ALPHA = 0.4
@@ -522,7 +511,7 @@ MIX_OFF_LAST_FRAC = 0.15        # Disable mixing for the last 15% of phase 2
 
 # --- Checkpoint Selection & EMA ---
 BEST_METRIC = "blended_score"   # 0.5 * macro-F1 + 0.5 * soft top-1
-EMA_DECAY = 0.999
+EMA_DECAY = 0.9995
 EMA_WARMUP = True
 
 # --- Split Configuration ---
