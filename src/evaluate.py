@@ -26,9 +26,10 @@ def full_evaluation(model, loader, device, num_cattle=NUM_CATTLE_BREEDS,
     cattle_total = torch.zeros(num_cattle, dtype=torch.long)
     buffalo_total = torch.zeros(num_buffalo, dtype=torch.long)
     for images, labels in tqdm(loader, desc="eval detail", leave=False):
-        images = images.to(device)
-        labels = {k: v.to(device) for k, v in labels.items()}
-        out = model(images)
+        images = images.to(device, non_blocking=True)
+        is_cuda = (getattr(device, "type", str(device)) == "cuda" or str(device).startswith("cuda"))
+        with torch.amp.autocast(device_type="cuda", enabled=is_cuda):
+            out = model(images)
         bin_true = labels["binary"].argmax(1)
         cattle_true = labels["cattle"].argmax(1)
         buffalo_true = labels["buffalo"].argmax(1)
@@ -106,7 +107,7 @@ def main():
     log_event("cli_args", category="actions", **vars(args))
 
     run_id = make_run_id(args.run_tag)
-    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
     loaders = get_dataloaders(split_dir=args.split_dir,
                               batch_size=args.batch_size,
                               num_workers=args.num_workers)

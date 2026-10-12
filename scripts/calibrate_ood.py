@@ -64,9 +64,10 @@ def main():
     model.eval()
 
     # Load validation data
-    prepare_splits()
     split_dir = os.path.join(PROJECT_ROOT, "data", "splits")
     val_csv = os.path.join(split_dir, "val.csv")
+    if not os.path.exists(val_csv):
+        prepare_splits()
     if not os.path.exists(val_csv):
         print(f"[calibrate_ood] Error: {val_csv} not found.")
         return
@@ -76,49 +77,21 @@ def main():
         
     dataset = CattleBuffaloDataset(manifest, cattle_classes, buffalo_classes, transform=_eval_transform())
     loader = torch.utils.data.DataLoader(
-        dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
+        dataset, batch_size=args.batch_size, shuffle=False, num_workers=0 if os.name == "nt" else 2
     )
     print(f"[calibrate_ood] Validating on {len(dataset)} in-distribution images...")
+    thresholds = OODDetector.calibrate(model, loader, device, percentile=args.percentile)
 
-    detector = OODDetector(temperature=OOD_ENERGY_TEMPERATURE)
-    energies = []
-    msps = []
+    ckpt_stem = os.path.splitext(os.path.basename(ckpt_path))[0]
+    out_file = OODDetector.save(thresholds, ckpt_stem)
 
-    with torch.no_grad():
-        for images, _ in tqdm(loader, desc="Calibrating"):
-            images = images.to(device)
-            out = model(images)
-            
-            # Compute energy
-            energy_batch = detector.compute_energy(out["binary"], out["cattle"], out["buffalo"])
-            msp_batch = detector.compute_msp(out["binary"])
-            
-            energies.extend(energy_batch.cpu().tolist())
-            msps.extend(msp_batch.cpu().tolist())
-
-    energies_t = torch.tensor(energies)
-    msps_t = torch.tensor(msps)
-    
-    energy_threshold = torch.quantile(energies_t, args.percentile / 100.0).item()
-    msp_threshold = torch.quantile(msps_t, (100.0 - args.percentile) / 100.0).item()
-    
     print("\n[calibrate_ood] Calibration Results:")
-    print(f"  Target percentile: {args.percentile}%")
-    print(f"  Calibrated Energy Threshold: {energy_threshold:.4f}")
-    print(f"  Calibrated MSP Threshold: {msp_threshold:.4f}")
-    
-    out_file = os.path.join(PROJECT_ROOT, "outputs", "ood_thresholds.json")
-    os.makedirs(os.path.dirname(out_file), exist_ok=True)
-    with open(out_file, "w") as f:
-        json.dump({
-            "energy_temperature": OOD_ENERGY_TEMPERATURE,
-            "energy_threshold": energy_threshold,
-            "msp_threshold": msp_threshold,
-            "percentile": args.percentile,
-            "calibrated_on": len(dataset)
-        }, f, indent=2)
-    print(f"[calibrate_ood] Saved thresholds to {out_file}")
-    print("\nAction required: Please update src/config.py with these values if you want them to be the new defaults.")
+    print(f"  Target percentile: {thresholds['percentile']}%")
+    print(f"  Calibrated Energy Threshold: {thresholds['energy_threshold']:.4f}")
+    print(f"  Calibrated MSP Threshold: {thresholds['msp_threshold']:.4f}")
+    print(f"  Binary Confidence Floor: {thresholds['binary_confidence_floor']:.2f}")
+    print(f"[calibrate_ood] Saved thresholds to: {out_file}")
+    print(f"[calibrate_ood] Also updated global fallback: outputs/ood_thresholds.json")
 
 if __name__ == "__main__":
     main()

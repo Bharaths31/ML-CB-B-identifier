@@ -35,13 +35,17 @@ from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
                      FEATURE_DIM, RARE_CLASS_THRESHOLD, SAMPLER_BETA, SEED,
                      SHOT_FEW_MAX, SHOT_MEDIUM_MAX, SPLIT_DIR, TRAIT_FILE,
                      TRAIT_WEIGHT, WARMUP_EPOCHS,
-                     WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB)
+                     WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB,
+                     BINARY_DIM, NUM_CATTLE_BREEDS, NUM_BUFFALO_BREEDS,
+                     OOD_DIR, OOD_ENABLED, OOD_AUTO_CALIBRATE, OOD_PERCENTILE,
+                     OOD_ENERGY_TEMPERATURE, OOD_BINARY_CONFIDENCE_FLOOR)
 from .data_pipeline import (compute_class_counts, compute_class_priors,
                             compute_rare_classes, get_dataloaders,
                             prepare_half_splits, prepare_quarter_splits,
                             prepare_smoke_splits, prepare_splits)
 from .metrics import evaluate_epoch
 from .model import BreedClassifier
+from .ood_detector import OODDetector
 from .run_logger import finish_run, init_run_logger, log_event, log_metrics
 from .run_utils import make_run_id, timestamped, unique_path
 
@@ -642,12 +646,16 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             scheduler.step()
 
         if epoch % eval_every == 0 or epoch == epochs:
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
             raw_metrics = evaluate_epoch(
                 model, val_loader, device, max_batches=max_batches,
                 train_counts=train_counts, few_max=few_max,
                 medium_max=medium_max)
             ema_metrics = None
             if ema_model is not None:
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
                 ema_metrics = evaluate_epoch(
                     ema_model, val_loader, device, max_batches=max_batches,
                     train_counts=train_counts, few_max=few_max,
@@ -660,9 +668,13 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 log_metrics(ema_metrics, epoch=epoch, tag="ema", phase=phase)
 
             if trait_module is not None and trait_weight > 0:
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
                 from .traits import evaluate_traits
                 val_traits = evaluate_traits(model, trait_module, val_loader,
                                              trait_targets, device, max_batches)
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
                 log_event("trait_accuracy", category="training", epoch=epoch,
                           phase=phase,
                           train={k: v for k, v in trait_stats.items()},
@@ -891,6 +903,10 @@ def main():
                         help="directory for portable model export")
     parser.add_argument("--no-export", action="store_true",
                         help="skip automatic portable export after training")
+    parser.add_argument("--no-ood-calibrate", action="store_true",
+                        help="skip automatic OOD calibration after training")
+    parser.add_argument("--ood-percentile", type=float, default=OOD_PERCENTILE,
+                        help="percentile of in-distribution energy for OOD threshold (default: 95.0)")
     # --- SOTA hyperparameter args ---
     parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY,
                         help="AdamW weight decay (default: 1e-2)")
@@ -1364,11 +1380,71 @@ def main():
     print(f"{'=' * 60}")
 
     # --- Portable export ---
+    portable_out = None
     if not args.no_export and os.path.exists(best_checkpoint):
         print(f"\n[train] creating portable export...")
-        create_portable_export(best_checkpoint, args.backbone,
-                               args.split_dir, args.export_dir)
+        portable_out = create_portable_export(best_checkpoint, args.backbone,
+                                              args.split_dir, args.export_dir)
         log_event("portable_export", category="export", path=best_checkpoint)
+
+    # --- Post-training OOD Calibration ---
+    if OOD_ENABLED and OOD_AUTO_CALIBRATE and not args.no_ood_calibrate and os.path.exists(best_checkpoint):
+        print(f"\n{'=' * 60}")
+        print(f"  CALIBRATING OUT-OF-DISTRIBUTION (OOD) DETECTOR")
+        print(f"{'=' * 60}")
+        try:
+            bckpt = torch.load(best_checkpoint, map_location=device, weights_only=False)
+            state = bckpt.get("state_dict", bckpt)
+            state = {k.replace("_orig_mod.", ""): v for k, v in state.items()}
+
+            binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else BINARY_DIM
+            num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else NUM_CATTLE_BREEDS
+            num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else NUM_BUFFALO_BREEDS
+
+            eval_model = BreedClassifier(
+                backbone=args.backbone,
+                binary_dim=binary_dim,
+                num_cattle=num_cattle,
+                num_buffalo=num_buffalo,
+                cosine_head=args.cosine_head
+            )
+            eval_model.load_state_dict(state, strict=False)
+            eval_model.to(device)
+            eval_model.eval()
+
+            print(f"[train] Calibrating OOD detector on {len(val_loader.dataset)} validation images...")
+            thresholds = OODDetector.calibrate(
+                eval_model, val_loader, device,
+                percentile=args.ood_percentile,
+                temperature=OOD_ENERGY_TEMPERATURE,
+                binary_floor=OOD_BINARY_CONFIDENCE_FLOOR
+            )
+
+            ckpt_stem = os.path.splitext(os.path.basename(best_checkpoint))[0]
+            saved_ood_path = OODDetector.save(thresholds, ckpt_stem)
+            print(f"[train] Saved model OOD thresholds to: {saved_ood_path}")
+
+            if run_id and run_id != ckpt_stem:
+                run_ood_path = OODDetector.save(thresholds, run_id)
+                print(f"[train] Saved run OOD thresholds to: {run_ood_path}")
+
+            # If portable export was created, also write ood_thresholds.json into it
+            if portable_out and os.path.exists(portable_out):
+                with open(os.path.join(portable_out, "ood_thresholds.json"), "w", encoding="utf-8") as f:
+                    json.dump(thresholds, f, indent=2)
+                print(f"[train] Bundled OOD thresholds into portable export: {portable_out}")
+
+            print(f"[train]   Energy Threshold ({args.ood_percentile}%): {thresholds['energy_threshold']:.4f}")
+            print(f"[train]   MSP Threshold: {thresholds['msp_threshold']:.4f}")
+            print(f"[train]   Binary Confidence Floor: {thresholds['binary_confidence_floor']:.2f}")
+
+            log_event("ood_calibrated", category="ood",
+                      path=saved_ood_path,
+                      energy_threshold=thresholds["energy_threshold"],
+                      msp_threshold=thresholds["msp_threshold"])
+        except Exception as exc:
+            print(f"[train] Warning: Post-training OOD calibration failed ({exc})")
+            log_event("ood_calibration_failed", category="ood", level="warning", error=str(exc))
 
     finish_run(0)
     return 0

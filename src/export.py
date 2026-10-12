@@ -383,14 +383,15 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
             print(f"[export]   {name}")
 
     from .config import OOD_ENABLED, OOD_ENERGY_TEMPERATURE, OOD_ENERGY_THRESHOLD, OOD_MSP_THRESHOLD
+    from .config import NUM_CATTLE_BREEDS, NUM_BUFFALO_BREEDS
 
     # Write model info
     info = {
         "backbone": backbone,
         "checkpoint_source": os.path.basename(checkpoint_path),
         "image_size": 260,
-        "num_cattle_breeds": 57,
-        "num_buffalo_breeds": 18,
+        "num_cattle_breeds": NUM_CATTLE_BREEDS,
+        "num_buffalo_breeds": NUM_BUFFALO_BREEDS,
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "ood": {
             "enabled": OOD_ENABLED,

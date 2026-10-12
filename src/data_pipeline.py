@@ -1034,14 +1034,16 @@ def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
         num_workers=num_workers, collate_fn=mixed_collate, drop_last=True,
         pin_memory=pin_memory, persistent_workers=num_workers > 0,
         prefetch_factor=prefetch)
+    eval_workers = 0 if os.name == "nt" else min(num_workers, 2)
+    eval_prefetch = 2 if eval_workers > 0 else None
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False,
-                            num_workers=num_workers, pin_memory=pin_memory,
-                            persistent_workers=num_workers > 0,
-                            prefetch_factor=prefetch)
+                            num_workers=eval_workers, pin_memory=pin_memory,
+                            persistent_workers=False,
+                            prefetch_factor=eval_prefetch)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False,
-                             num_workers=num_workers, pin_memory=pin_memory,
-                             persistent_workers=num_workers > 0,
-                             prefetch_factor=prefetch)
+                             num_workers=eval_workers, pin_memory=pin_memory,
+                             persistent_workers=False,
+                             prefetch_factor=eval_prefetch)
     return train_loader, val_loader, test_loader
 
 

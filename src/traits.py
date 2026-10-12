@@ -113,11 +113,13 @@ def evaluate_traits(model, trait_module, loader, targets, device,
     for step, (images, labels) in enumerate(loader):
         if max_batches is not None and step >= max_batches:
             break
-        images = images.to(device)
-        labels = {k: v.to(device) for k, v in labels.items()}
-        feats = model(images)["features"]
-        ids = _combined_class_ids(labels)
-        logits = trait_module(feats)
+        images = images.to(device, non_blocking=True)
+        labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
+        is_cuda = (getattr(device, "type", str(device)) == "cuda" or str(device).startswith("cuda"))
+        with torch.amp.autocast(device_type="cuda", enabled=is_cuda):
+            feats = model(images)["features"]
+            ids = _combined_class_ids(labels)
+            logits = trait_module(feats)
         for field in trait_module.fields:
             tgt = targets[field].to(device)[ids]
             valid = tgt >= 0

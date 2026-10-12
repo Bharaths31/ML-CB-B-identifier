@@ -1,0 +1,257 @@
+Microsoft Windows [Version 10.0.26200.9445]
+(c) Microsoft Corporation. All rights reserved.
+
+E:\ML-CB-B-identifier>python -m venv .venv
+
+E:\ML-CB-B-identifier>.venv\Scripts\activate
+
+(.venv) E:\ML-CB-B-identifier>python local_train.py --dataset-mode both --include-qat --backbone lite4
+
+╔══════════════════════════════════════════════════════════╗
+║  🐄 Cattle & Buffalo Breed Classifier                    ║
+║  Fully Automated Local Training Pipeline                 ║
+╚══════════════════════════════════════════════════════════╝
+
+  Training mode: full data
+  Backbone: lite4, Attention: cbam
+  QAT: enabled
+
+
+============================================================
+  §0 — Prerequisites Check
+============================================================
+
+  Python: 3.13.3
+  ✅ Python version OK
+  ✅ git version 2.49.0.windows.1
+  ✅ pip available
+  ✅ Visual Studio / Build Tools found: Visual Studio Build Tools 2026
+  ℹ️  Note: If a pip install fails, try running from the 'x64 Native Tools Command Prompt'
+  ✅ Project structure verified
+
+============================================================
+  §1 — Environment Setup (venv + dependencies)
+============================================================
+
+  ✅ Virtual environment already exists: E:\ML-CB-B-identifier\.venv
+  Upgrading pip...
+  🎮 NVIDIA GPU detected: NVIDIA GeForce RTX 3050 Laptop GPU
+  🔧 CUDA driver version: 12.7
+  Installing training dependencies...
+  Installing PyTorch with CUDA (cu124) for NVIDIA GeForce RTX 3050 Laptop GPU...
+  Index: https://download.pytorch.org/whl/cu124
+Found existing installation: torch 2.6.0+cu124
+Uninstalling torch-2.6.0+cu124:
+  Successfully uninstalled torch-2.6.0+cu124
+Found existing installation: torchvision 0.21.0+cu124
+Uninstalling torchvision-0.21.0+cu124:
+  Successfully uninstalled torchvision-0.21.0+cu124
+  ✅ Installed PyTorch with CUDA (cu124)
+  ✅ Installed 10 other training packages
+  Ensuring kaggle CLI is available...
+  ✅ kaggle CLI ready
+  ✅ PyTorch 2.6.0+cu124, CUDA=True GPU=NVIDIA GeForce RTX 3050 Laptop GPU
+
+============================================================
+  §2 — Kaggle Dataset Download
+============================================================
+
+  ✅ Dataset already present: 57 cattle breeds, 18 buffalo breeds
+
+============================================================
+  §3 — Unzip & Organize Dataset
+============================================================
+
+  ✅ Dataset already organized: 57 cattle, 18 buffalo breeds
+
+============================================================
+  §4 — Architecture Verification
+============================================================
+
+  Running src.verify (backbone loading + forward pass shapes)...
+Python: 3.13.3
+torch: 2.6.0+cu124
+torchvision: 0.21.0+cu124
+  [lite2] loaded 386 tensors from E:\ML-CB-B-identifier\efficientnet_lite2.pth, 4,811,072 backbone params
+[model] loaded 386 tensors from E:\ML-CB-B-identifier\efficientnet_lite2.pth
+  [lite2] CBAM stage feature map 17x17 (expect ~16x16)
+  [lite2] heads -> binary(1, 2) cattle(1, 57) buffalo(1, 18) features(1, 1280) -> OK
+  [lite4] loaded 548 tensors from E:\ML-CB-B-identifier\efficientnet_lite4.pth, 11,725,568 backbone params
+[model] loaded 548 tensors from E:\ML-CB-B-identifier\efficientnet_lite4.pth
+  [lite4] CBAM stage feature map 17x17 (expect ~16x16)
+  [lite4] heads -> binary(1, 2) cattle(1, 57) buffalo(1, 18) features(1, 1280) -> OK
+
+VERIFICATION PASSED
+  ✅ Architecture verification passed
+
+============================================================
+  §5 — Data Splitting & Preprocessing
+============================================================
+
+  Validating dataset structure...
+  cattle: 57 breeds, 7077 images, smallest=limousin (5 imgs)
+  buffalo: 18 breeds, 1608 images, smallest=chhattisgarhi (10 imgs)
+
+  Training will use: full mode
+  ✅ Dataset validated (splits generated during training)
+
+============================================================
+  §6 — Model Training
+============================================================
+
+  Mode: FULL DATA (all images, all phases)
+  QAT: ENABLED (Phase 3)
+  Backbone: lite4
+  Attention: cbam
+
+  Command: E:\ML-CB-B-identifier\.venv\Scripts\python.exe -m src.train --backbone lite4 --attention cbam
+
+[train] GPU: NVIDIA GeForce RTX 3050 Laptop GPU (4.0 GB)
+[train] CUDA optimizations: cudnn.benchmark=True, TF32=True, AMP=True
+[train] device: cuda
+[train] Detected GPU with 4.0 GB VRAM
+[train] Auto-scaled: batch_size=16, grad_accum=8
+
+[data] images=8686 train=7374 val=867 test=445 cattle_breeds=57 buffalo_breeds=18
+[model] loaded 548 tensors from E:\ML-CB-B-identifier\efficientnet_lite4.pth
+[train] params: trainable=13,405,903 total=13,405,903
+[train] mixed-precision: GradScaler enabled
+
+============================================================
+  TRAINING PLAN: 3 phases, epochs=5/40/10
+  Dataset: 7374 train / 867 val images
+  Batch size: 16, Workers: 4
+  Optimizer: AdamW (wd=0.01), Label smoothing: 0.1
+  Gradient accumulation: 8 steps (effective batch=128)
+  Warmup: 3 epochs (phase 2)
+============================================================
+
+[train] phase 1: backbone frozen, binary head only, lr=3e-03, 5 epochs
+Phase 1:   0%|                    | 0/5 [00:00<?, ?epoch/s]                                    E:\ML-CB-B-identifier\.venv\Lib\site-packages\PIL\Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+                                                                                    E:\ML-CB-B-identifier\.venv\Lib\site-packages\PIL\Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+                                                                                    [train] phase1 epoch 1/5: loss=0.6438 ce_b=0.6438 ce_c=4.0677 ce_buf=2.8918 | val binary=0.8074 cattle=0.0057 buffalo=0.0932 top1=0.0046
+Phase 1:  20%|████                | 1/5 [02:02<08:11, 122.85s/epoch, best=0.8074, va[train] phase1 epoch 2/5: loss=0.5340 ce_b=0.5340 ce_c=4.0703 ce_buf=2.8523 | val binary=0.7463 cattle=0.0057 buffalo=0.0932 top1=0.0138
+Phase 1:  40%|████████            | 2/5 [03:25<04:58, 99.41s/epoch, best=0.8074, val=0.7463]  E:\ML-CB-B-identifier\.venv\Lib\site-packages\PIL\Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+                                                                                    [train] phase1 epoch 3/5: loss=0.5196 ce_b=0.5196 ce_c=4.0702 ce_buf=2.8353 | val binary=0.8085 cattle=0.0057 buffalo=0.0932 top1=0.0058
+Phase 1:  60%|████████████        | 3/5 [04:45<03:01, 90.51s/epoch, best=0.8085, val[train] phase1 epoch 4/5: loss=0.5048 ce_b=0.5048 ce_c=4.0706 ce_buf=2.8297 | val binary=0.7728 cattle=0.0057 buffalo=0.0932 top1=0.0115
+Phase 1:  80%|████████████████    | 4/5 [05:59<01:23, 83.89s/epoch, best=0.8085, val[train] phase1 epoch 5/5: loss=0.5007 ce_b=0.5007 ce_c=4.0689 ce_buf=2.8618 | val binary=0.8166 cattle=0.0057 buffalo=0.0932 top1=0.0104
+Phase 1: 100%|████████████████████| 5/5 [07:11<00:00, 86.26s/epoch, best=0.8166, val=0.8166]
+[train] phase1 best val top1: 0.8166 -> E:\ML-CB-B-identifier\outputs\checkpoints\lite4_phase1_best.pt
+[train] Windows detected: disabling torch.compile (falling back to eager)
+
+[train] phase 2: multi-task fine-tune, lr=2e-04 (warmup=3ep + cosine), 40 epochs, weights (0.5/0.25/0.25)
+Phase 2:   0%|                    | 0/40 [00:00<?, ?epoch/s]                                    [train] phase2 epoch 1/40: loss=1.9729 ce_b=0.5198 ce_c=4.0299 ce_buf=2.8220 | val=skipped
+Phase 2:   2%|▌                   | 1/40 [10:59<7:08:25, 659.11s/epoch, loss=1.9729]            E:\ML-CB-B-identifier\.venv\Lib\site-packages\PIL\Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+                                                                                                [train] phase2 epoch 2/40: loss=1.7782 ce_b=0.3931 ce_c=3.8900 ce_buf=2.4367 | val=skipped
+Phase 2:   5%|█                   | 2/40 [21:47<6:53:15, 652.52s/epoch, loss=1.7782]            E:\ML-CB-B-identifier\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:243: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  warnings.warn(EPOCH_DEPRECATION_WARNING, UserWarning)
+[train] phase2 epoch 3/40: loss=1.4156 ce_b=0.3475 ce_c=3.1345 ce_buf=1.8328 | val=skipped
+Phase 2:   8%|█▌                  | 3/40 [32:32<6:40:17, 649.13s/epoch, loss=1.4156]            [train] phase2 epoch 4/40: loss=1.1224 ce_b=0.3160 ce_c=2.2961 ce_buf=1.5617 | val=skipped
+Phase 2:  10%|██                  | 4/40 [43:06<6:26:03, 643.44s/epoch, loss=1.1224][train] phase2 epoch 5/40: loss=1.0065 ce_b=0.2978 ce_c=2.0044 ce_buf=1.4262 | val binary=0.9077 cattle=0.3442 buffalo=0.4907 top1=0.3310
+Phase 2:  12%|██▌                 | 5/40 [53:45<6:14:17, 641.65s/epoch, best=0.3310, val=0.3310][train] phase2 epoch 6/40: loss=0.9321 ce_b=0.2863 ce_c=1.8773 ce_buf=1.2786 | val=skipped
+Phase 2:  15%|███                 | 6/40 [1:04:20<6:02:17, 639.33s/epoch, loss=0.9321]          [train] phase2 epoch 7/40: loss=0.8866 ce_b=0.2789 ce_c=1.7765 ce_buf=1.2123 | val=skipped
+Phase 2:  18%|███▌                | 7/40 [1:14:55<5:50:50, 637.89s/epoch, loss=0.8866]          [train] phase2 epoch 8/40: loss=0.8428 ce_b=0.2690 ce_c=1.7115 ce_buf=1.1217 | val=skipped
+Phase 2:  20%|████                | 8/40 [1:25:29<5:39:38, 636.83s/epoch, loss=0.8428]          E:\ML-CB-B-identifier\.venv\Lib\site-packages\PIL\Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+                                                                                                [train] phase2 epoch 9/40: loss=0.7999 ce_b=0.2611 ce_c=1.6217 ce_buf=1.0557 | val=skipped
+Phase 2:  22%|████▌               | 9/40 [1:36:04<5:28:39, 636.13s/epoch, loss=0.799[train] phase2 epoch 10/40: loss=0.7754 ce_b=0.2617 ce_c=1.5869 ce_buf=0.9913 | val binary=0.9273 cattle=0.5198 buffalo=0.5652 top1=0.4925
+Phase 2:  25%|█████               | 10/40 [1:46:42<5:18:26, 636.90s/epoch, best=0.4925, val=0.492[train] phase2 epoch 11/40: loss=0.7490 ce_b=0.2515 ce_c=1.5269 ce_buf=0.9661 | val=skipped
+Phase 2:  28%|█████▌              | 11/40 [1:57:17<5:07:29, 636.18s/epoch, loss=0.7490]          [train] phase2 epoch 12/40: loss=0.7334 ce_b=0.2511 ce_c=1.4763 ce_buf=0.9551 | val=skipped
+Phase 2:  30%|██████              | 12/40 [2:07:52<4:56:45, 635.92s/epoch, loss=0.7334]            [train] phase2 epoch 13/40: loss=0.7059 ce_b=0.2491 ce_c=1.4398 ce_buf=0.8855 | val=skipped
+Phase 2:  32%|██████▌             | 13/40 [10:51:22<74:41:17, 9958.42s/epoch, loss=0.7059]       [train] phase2 epoch 14/40: loss=0.7003 ce_b=0.2435 ce_c=1.4139 ce_buf=0.9002 | val=skipped
+Phase 2:  35%|███████             | 14/40 [10:59:40<51:17:02, 7100.85s/epoch, loss=0[train] phase2 epoch 15/40: loss=0.6767 ce_b=0.2422 ce_c=1.3645 ce_buf=0.8578 | val binary=0.9331 cattle=0.5538 buffalo=0.6211 top1=0.5306
+Phase 2:  38%|███████▌            | 15/40 [11:08:01<35:29:50, 5111.61s/epoch, best=0.5306, val=0.[train] phase2 epoch 16/40: loss=0.6536 ce_b=0.2390 ce_c=1.2900 ce_buf=0.8465 | val=skipped
+Phase 2:  40%|████████            | 16/40 [11:16:20<24:49:13, 3723.05s/epoch, loss=0.6536]       [train] phase2 epoch 17/40: loss=0.6481 ce_b=0.2378 ce_c=1.2953 ce_buf=0.8215 | val=skipped
+Phase 2:  42%|████████▌           | 17/40 [11:24:39<17:35:30, 2753.50s/epoch, loss=0.6481]       [train] phase2 epoch 18/40: loss=0.6430 ce_b=0.2321 ce_c=1.2854 ce_buf=0.8227 | val=skipped
+Phase 2:  45%|█████████           | 18/40 [11:53:30<14:57:01, 2446.44s/epoch, loss=0.6430]       [train] phase2 epoch 19/40: loss=0.6298 ce_b=0.2368 ce_c=1.2679 ce_buf=0.7778 | val=skipped
+Phase 2:  48%|█████████▌          | 19/40 [12:04:21<11:07:28, 1907.07s/epoch, loss=0[train] phase2 epoch 20/40: loss=0.6185 ce_b=0.2341 ce_c=1.2337 ce_buf=0.7723 | val binary=0.9585 cattle=0.6289 buffalo=0.6335 top1=0.6113
+Phase 2:  50%|██████████          | 20/40 [12:15:59<8:34:40, 1544.04s/epoch, best=0.6113, val=0.6[train] phase2 epoch 21/40: loss=0.6106 ce_b=0.2341 ce_c=1.2113 ce_buf=0.7630 | val=skipped
+Phase 2:  52%|██████████▌         | 21/40 [12:25:02<6:33:50, 1243.72s/epoch, loss=0.6106]        [train] phase2 epoch 22/40: loss=0.6035 ce_b=0.2282 ce_c=1.1891 ce_buf=0.7686 | val=skipped
+Phase 2:  55%|███████████         | 22/40 [12:33:27<5:06:33, 1021.85s/epoch, loss=0.6035]        [train] phase2 epoch 23/40: loss=0.5923 ce_b=0.2267 ce_c=1.1725 ce_buf=0.7432 | val=skipped
+Phase 2:  57%|███████████▌        | 23/40 [12:41:46<4:05:04, 864.98s/epoch, loss=0.5923]         [train] phase2 epoch 24/40: loss=0.5848 ce_b=0.2230 ce_c=1.1608 ce_buf=0.7323 | val=skipped
+Phase 2:  60%|████████████        | 24/40 [12:51:25<3:27:49, 779.35s/epoch, loss=0.5[train] phase2 epoch 25/40: loss=0.5750 ce_b=0.2244 ce_c=1.1258 ce_buf=0.7254 | val binary=0.9666 cattle=0.6105 buffalo=0.6398 top1=0.5986
+Phase 2:  62%|████████████▌       | 25/40 [12:59:47<2:54:01, 696.10s/epoch, best=0.6113, val=0.59[train] phase2 epoch 26/40: loss=0.5762 ce_b=0.2238 ce_c=1.1235 ce_buf=0.7335 | val=skipped
+Phase 2:  65%|█████████████       | 26/40 [13:08:05<2:28:30, 636.45s/epoch, loss=0.5762]         [train] phase2 epoch 27/40: loss=0.5727 ce_b=0.2257 ce_c=1.1158 ce_buf=0.7237 | val=skipped
+Phase 2:  68%|█████████████▌      | 27/40 [13:16:22<2:08:52, 594.84s/epoch, loss=0.5727]         [train] phase2 epoch 28/40: loss=0.5661 ce_b=0.2226 ce_c=1.0933 ce_buf=0.7260 | val=skipped
+Phase 2:  70%|██████████████      | 28/40 [13:24:40<1:53:07, 565.67s/epoch, loss=0.5661]         [train] phase2 epoch 29/40: loss=0.5611 ce_b=0.2225 ce_c=1.0822 ce_buf=0.7173 | val=skipped
+Phase 2:  72%|██████████████▌     | 29/40 [13:32:57<1:39:56, 545.11s/epoch, loss=0.5[train] phase2 epoch 30/40: loss=0.5610 ce_b=0.2212 ce_c=1.0923 ce_buf=0.7093 | val binary=0.9631 cattle=0.6303 buffalo=0.6708 top1=0.6194
+Phase 2:  75%|███████████████     | 30/40 [13:43:47<1:36:06, 576.68s/epoch, best=0.6194, val=0.61[train] phase2 epoch 31/40: loss=0.5584 ce_b=0.2202 ce_c=1.0932 ce_buf=0.6999 | val=skipped
+Phase 2:  78%|███████████████▌    | 31/40 [13:55:15<1:31:29, 609.97s/epoch, loss=0.5584]         [train] phase2 epoch 32/40: loss=0.5586 ce_b=0.2209 ce_c=1.0686 ce_buf=0.7240 | val=skipped
+Phase 2:  80%|████████████████    | 32/40 [14:06:43<1:24:26, 633.35s/epoch, loss=0.5586]         [train] phase2 epoch 33/40: loss=0.5556 ce_b=0.2225 ce_c=1.0730 ce_buf=0.7047 | val=skipped
+Phase 2:  82%|████████████████▌   | 33/40 [14:18:11<1:15:47, 649.64s/epoch, loss=0.5556]         [train] phase2 epoch 34/40: loss=0.5454 ce_b=0.2192 ce_c=1.0507 ce_buf=0.6924 | val=skipped
+Phase 2:  85%|█████████████████   | 34/40 [14:31:48<1:09:59, 699.88s/epoch, loss=0.5[train] phase2 epoch 35/40: loss=0.5503 ce_b=0.2205 ce_c=1.0563 ce_buf=0.7038 | val binary=0.9596 cattle=0.6459 buffalo=0.6894 top1=0.6344
+Phase 2:  88%|█████████████████▌  | 35/40 [14:40:08<53:20, 640.09s/epoch, best=0.6344, val=0.6344] [train] phase2 epoch 36/40: loss=0.5526 ce_b=0.2192 ce_c=1.0694 ce_buf=0.7028 | val=skipped
+Phase 2:  90%|██████████████████  | 36/40 [22:14:29<9:35:04, 8626.17s/epoch, loss=0.5526]        [train] phase2 epoch 37/40: loss=0.5486 ce_b=0.2217 ce_c=1.0628 ce_buf=0.6883 | val=skipped
+Phase 2:  92%|██████████████████▌ | 37/40 [22:22:47<5:09:23, 6187.74s/epoch, loss=0.5486]        [train] phase2 epoch 38/40: loss=0.5469 ce_b=0.2199 ce_c=1.0510 ce_buf=0.6969 | val=skipped
+Phase 2:  95%|███████████████████ | 38/40 [22:31:05<2:29:21, 4480.81s/epoch, loss=0.5469]        [train] phase2 epoch 39/40: loss=0.5485 ce_b=0.2207 ce_c=1.0609 ce_buf=0.6918 | val=skipped
+Phase 2:  98%|███████████████████▌| 39/40 [22:39:23<54:46, 3286.10s/epoch, loss=0.54[train] phase2 epoch 40/40: loss=0.5538 ce_b=0.2193 ce_c=1.0610 ce_buf=0.7155 | val binary=0.9689 cattle=0.6360 buffalo=0.6770 top1=0.6240
+Phase 2: 100%|████████████████████| 40/40 [22:47:45<00:00, 2051.64s/epoch, best=0.6344, val=0.6240]
+[train] phase2 best val top1: 0.6344 -> E:\ML-CB-B-identifier\outputs\checkpoints\lite4_phase2_best.pt
+[train] QAT: fused 91 conv-bn pairs
+E:\ML-CB-B-identifier\.venv\Lib\site-packages\torch\ao\quantization\observer.py:229: UserWarning: Please use quant_min and quant_max to specify the range for observers.                     reduce_range will be deprecated in a future release of PyTorch.
+  warnings.warn(
+[train] QAT: prepare_qat applied
+
+[train] phase 3: quantization-aware training, lr=5e-06, 10 epochs
+Phase 3:   0%|                    | 0/10 [00:00<?, ?epoch/s]                                    [train] phase3 epoch 1/10: loss=5.1280 ce_b=0.2381 ce_c=1.2371 ce_buf=0.8507 | val=skipped
+Phase 3:  10%|██                  | 1/10 [33:24<5:00:44, 2004.96s/epoch, loss=5.1280[train] phase3 epoch 2/10: loss=5.0259 ce_b=0.2372 ce_c=1.2341 ce_buf=0.8045 | val binary=0.9366 cattle=0.6048 buffalo=0.5963 top1=0.5675
+Phase 3:  20%|████                | 2/10 [2:25:20<10:36:45, 4775.66s/epoch, best=0.5675, val=0.5675[train] phase3 epoch 3/10: loss=4.9883 ce_b=0.2340 ce_c=1.2265 ce_buf=0.7997 | val=skipped
+Phase 3:  30%|██████              | 3/10 [13:34:25<40:41:23, 20926.26s/epoch, loss=4[train] phase3 epoch 4/10: loss=4.9628 ce_b=0.2317 ce_c=1.2226 ce_buf=0.7953 | val binary=0.9458 cattle=0.6091 buffalo=0.5963 top1=0.5732
+Phase 3:  40%|████████            | 4/10 [15:38:43<26:00:55, 15609.21s/epoch, best=0.5732, val=0.5[train] phase3 epoch 5/10: loss=4.9355 ce_b=0.2381 ce_c=1.1919 ce_buf=0.7996 | val=skipped
+Phase 3:  50%|██████████          | 5/10 [18:32:19<19:04:42, 13736.43s/epoch, loss=4.9355]        Unhandled exception caught in c10/util/AbortHandler.h
+00007FFB637ACBE400007FFB637897A0 torch_python.dll!THPGenerator_initDefaultGenerator [<unknown file> @ <unknown line number>]
+00007FFBF89C218700007FFBF89C2170 ucrtbase.dll!terminate [<unknown file> @ <unknown line number>]
+00007FFBF4DE1911 <unknown symbol address> VCRUNTIME140_1.dll!<unknown symbol> [<unknown file> @ <unknown line number>]
+00007FFBF4DE218F <unknown symbol address> VCRUNTIME140_1.dll!<unknown symbol> [<unknown file> @ <unknown line number>]
+00007FFBF4DE21E9 <unknown symbol address> VCRUNTIME140_1.dll!<unknown symbol> [<unknown file> @ <unknown line number>]
+00007FFBF4DE401900007FFBF4DE3F70 VCRUNTIME140_1.dll!_CxxFrameHandler4 [<unknown file> @ <unknown line number>]
+00007FFBFB1854FF00007FFBFB185460 ntdll.dll!_chkstk [<unknown file> @ <unknown line number>]
+00007FFBFB0EBD2500007FFBFB0EB6D0 ntdll.dll!RtlWow64GetCurrentMachine [<unknown file> @ <unknown line number>]
+00007FFBFB02F88D00007FFBFB02F700 ntdll.dll!RtlRaiseException [<unknown file> @ <unknown line number>]
+00007FFBF84741CA00007FFBF8474140 KERNELBASE.dll!RaiseException [<unknown file> @ <unknown line number>]
+00007FFBF4E0526700007FFBF4E051D0 VCRUNTIME140.dll!CxxThrowException [<unknown file> @ <unknown line number>]
+00007FFB91CF7A7E00007FFB91CF7A10 c10.dll!c10::detail::torchCheckFail [<unknown file> @ <unknown line number>]
+00007FFBD07B4E3F00007FFBD07B4B40 c10_cuda.dll!c10::cuda::c10_cuda_check_implementation [<unknown file> @ <unknown line number>]
+00007FFA38D4515C00007FFA38D45050 torch_cuda.dll!at::cuda::CUDAEvent::record [<unknown file> @ <unknown line number>]
+00007FFA38D5332900007FFA38D521A0 torch_cuda.dll!at::cuda::getCachingHostAllocator [<unknown file> @ <unknown line number>]
+00007FFA38D51B7900007FFA38D50240 torch_cuda.dll!torch::cuda::CUDAPluggableAllocator::CUDAPluggableAllocator::enable [<unknown file> @ <unknown line number>]
+00007FFB91CBB5F400007FFB91CBB5A0 c10.dll!c10::StorageImpl::~StorageImpl [<unknown file> @ <unknown line number>]
+00007FFB91CBC1F700007FFB91CBC040 c10.dll!c10::SymBool::operator| [<unknown file> @ <unknown line number>]
+00007FFB91CAF30200007FFB91CAF290 c10.dll!c10::SymNodeImpl::~SymNodeImpl [<unknown file> @ <unknown line number>]
+00007FFB91CE04C500007FFB91CE0450 c10.dll!c10::TensorImpl::~TensorImpl [<unknown file> @ <unknown line number>]
+00007FFA2D856B6500007FFA2D855340 torch_cpu.dll!at::DynamicLibrary::sym [<unknown file> @ <unknown line number>]
+00007FFA2D7FCE9800007FFA2D7FCE10 torch_cpu.dll!at::TensorBase::reset [<unknown file> @ <unknown line number>]
+00007FFB637BB94500007FFB637AD6D0 torch_python.dll!initModule [<unknown file> @ <unknown line number>]
+00007FFB6385BFF600007FFB63859A80 torch_python.dll!THPVariable_Wrap [<unknown file> @ <unknown line number>]
+00007FFB6385C27200007FFB63859A80 torch_python.dll!THPVariable_Wrap [<unknown file> @ <unknown line number>]
+00007FFB9DD6B53700007FFB9DD69840 python313.dll!PyDict_FromItems [<unknown file> @ <unknown line number>]
+00007FFB9DD4992900007FFB9DD48B3C python313.dll!PyFunction_SetVersion [<unknown file> @ <unknown line number>]
+00007FFB9DD4825E00007FFB9DD47F8C python313.dll!PySys_Audit [<unknown file> @ <unknown line number>]
+00007FFB9DE1670800007FFB9DE15C68 python313.dll!PyDict_Update [<unknown file> @ <unknown line number>]
+00007FFB9DD5B98600007FFB9DD53CF0 python313.dll!PyEval_EvalFrameDefault [<unknown file> @ <unknown line number>]
+00007FFB9DD88E2000007FFB9DD88938 python313.dll!PyUnicode_Append [<unknown file> @ <unknown line number>]
+00007FFB9DE2E74600007FFB9DE2E690 python313.dll!PyEval_EvalCode [<unknown file> @ <unknown line number>]
+00007FFB9DE2EFB800007FFB9DE2E9F4 python313.dll!PyDict_ContainsString [<unknown file> @ <unknown line number>]
+00007FFB9DE2EE4E00007FFB9DE2E9F4 python313.dll!PyDict_ContainsString [<unknown file> @ <unknown line number>]
+00007FFB9DD5260400007FFB9DD51F50 python313.dll!PyObject_Vectorcall [<unknown file> @ <unknown line number>]
+00007FFB9DD51F8500007FFB9DD51F50 python313.dll!PyObject_Vectorcall [<unknown file> @ <unknown line number>]
+00007FFB9DD5708100007FFB9DD53CF0 python313.dll!PyEval_EvalFrameDefault [<unknown file> @ <unknown line number>]
+00007FFB9DD52CB700007FFB9DD51F50 python313.dll!PyObject_Vectorcall [<unknown file> @ <unknown line number>]
+00007FFB9DDA414500007FFB9DDA4020 python313.dll!PyObject_Call [<unknown file> @ <unknown line number>]
+00007FFB9DDA408F00007FFB9DDA4020 python313.dll!PyObject_Call [<unknown file> @ <unknown line number>]
+00007FFB9DDB73AC00007FFB9DDB6D6C python313.dll!PyRun_SimpleStringFlags [<unknown file> @ <unknown line number>]
+00007FFB9DDB78C700007FFB9DDB76C8 python313.dll!Py_RunMain [<unknown file> @ <unknown line number>]
+00007FFB9DDB76E000007FFB9DDB76C8 python313.dll!Py_RunMain [<unknown file> @ <unknown line number>]
+00007FFB9DDB768700007FFB9DDB765C python313.dll!Py_Main [<unknown file> @ <unknown line number>]
+00007FF693301230 <unknown symbol address> python.exe!<unknown symbol> [<unknown file> @ <unknown line number>]
+00007FFBF96BCD8700007FFBF96BCD70 KERNEL32.DLL!BaseThreadInitThunk [<unknown file> @ <unknown line number>]
+00007FFBFB0CCAEC00007FFBFB0CCAC0 ntdll.dll!RtlUserThreadStart [<unknown file> @ <unknown line number>]
+
+
+  ❌ Error: Command failed (exit 3221226505): E:\ML-CB-B-identifier\.venv\Scripts\python.exe -m src.train --backbone lite4 --attention cbam
+
+(.venv) E:\ML-CB-B-identifier>python local_train.py --dataset-mode both --include-qat --backbone lite 

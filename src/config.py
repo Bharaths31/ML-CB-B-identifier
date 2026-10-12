@@ -3,15 +3,28 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 IMAGE_SIZE = 260
-NUM_CATTLE_BREEDS = 57
-NUM_BUFFALO_BREEDS = 18
-NUM_BREEDS_TOTAL = 75
+NUM_CATTLE_BREEDS = 50
+NUM_BUFFALO_BREEDS = 17
+NUM_BREEDS_TOTAL = 67
 
 # Optional canonical breed-name lists. When set, prepare_* reports the exact
 # extra/missing names on a count mismatch instead of only a count. Leave None
 # to validate counts only.
-EXPECTED_CATTLE_BREEDS = None
-EXPECTED_BUFFALO_BREEDS = None
+EXPECTED_CATTLE_BREEDS = (
+    'amritmahal', 'ayrshire', 'bachaur', 'badri', 'bargur', 'bhelai', 'dagri',
+    'dangi', 'deoni', 'gangatari', 'gaolao', 'ghumsari', 'gir', 'hallikar',
+    'hariana', 'himachali_pahari', 'kangayam', 'kankrej', 'kenkatha', 'khariar',
+    'kherigarh', 'khillari', 'konkan_kapila', 'kosali', 'krishna_valley',
+    'ladakhi', 'lakhimi', 'malnad_gidda', 'malvi', 'mewati', 'motu', 'nagori',
+    'nari', 'nimari', 'ongole', 'poda_thirupu', 'ponwar', 'pulikulam',
+    'punganur', 'purnea', 'rathi', 'red_kandhari', 'red_sindhi', 'sahiwal',
+    'shweta_kapila', 'siri', 'tharparkar', 'thutho', 'umblachery', 'vechur'
+)
+EXPECTED_BUFFALO_BREEDS = (
+    'banni', 'bargur', 'bhadwari', 'chhattisgarhi', 'chilika', 'gojri',
+    'jaffarabadi', 'kalahandi', 'luit', 'marathwada', 'mehsana', 'murrah',
+    'nagpuri', 'nili_ravi', 'pandharpuri', 'surti', 'toda'
+)
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -145,14 +158,17 @@ LOGIT_ADJUST_TAU = 1.0
 LOGIT_ADJUST_PRIOR = "sampled"   # "sampled" (effective) or "raw"
 
 # --- OOD (Out-Of-Distribution) Detection ---
-# IMPORTANT: OOD is disabled by default until thresholds are calibrated on
-# real training data (run `python scripts/calibrate_ood.py` after training).
-# The uncalibrated defaults below caused every image to be rejected because
-# the model's logit magnitudes produce energy ~-3.7 (not ~-30).
-OOD_ENABLED = False
+# Post-hoc energy-based OOD detector calibrated on validation in-distribution data.
+OOD_ENABLED = True
+OOD_AUTO_CALIBRATE = True         # Automatically run OOD calibration after training
+OOD_PERCENTILE = 95.0             # Percentile of energy scores used as threshold
 OOD_ENERGY_TEMPERATURE = 1.0
-OOD_ENERGY_THRESHOLD = -1.0    # permissive fallback; calibrate after training
-OOD_MSP_THRESHOLD = 0.35       # permissive fallback; calibrate after training
+OOD_ENERGY_THRESHOLD = -3.2004    # fallback default (calibrated at 95th percentile)
+OOD_MSP_THRESHOLD = 0.5863       # fallback default (calibrated at 95th percentile)
+# Binary confidence floor: reject if max(P(cattle), P(buffalo)) < this.
+# Catches non-cattle/buffalo images (chickens, goats, etc.) that produce
+# low binary confidence but still pass energy/MSP thresholds.
+OOD_BINARY_CONFIDENCE_FLOOR = 0.60
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
@@ -170,7 +186,7 @@ EMA_WARMUP = True
 EMA_WARN_FRAC = 0.25   # warn if the EMA time constant exceeds this frac of phase-2 steps
 
 BATCH_SIZE = 64
-NUM_WORKERS = 4
+NUM_WORKERS = 0 if os.name == "nt" else 4
 
 # 70/15/15 gives rare breeds at least one (usually two) val/test image, so
 # macro metrics and checkpoint selection can actually see the long tail.
@@ -245,6 +261,7 @@ EXPORT_DIR = os.path.join(OUTPUT_DIR, "export")
 PORTABLE_EXPORT_DIR = os.path.join(OUTPUT_DIR, "export", "portable")
 METRICS_DIR = os.path.join(OUTPUT_DIR, "metrics")
 LOGS_DIR = os.path.join(OUTPUT_DIR, "logs")
+OOD_DIR = os.path.join(OUTPUT_DIR, "ood")
 
 # --- Execution logging (src/run_logger.py) --------------------------------
 # Every python entry point writes a per-execution folder under LOG_ROOT:
@@ -269,5 +286,5 @@ CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 SPECIES_LABELS = {"cattle": 0, "buffalo": 1}
 
 for _d in (SPLIT_DIR, CHECKPOINT_DIR, EXPORT_DIR, PORTABLE_EXPORT_DIR, METRICS_DIR,
-           LOGS_DIR, LOG_ROOT):
+           LOGS_DIR, OOD_DIR, LOG_ROOT):
     os.makedirs(_d, exist_ok=True)

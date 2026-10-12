@@ -1066,7 +1066,7 @@ def stage_summary(args, total_start):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🐄 Cattle & Buffalo Breed Classifier — "
+        description="Cattle & Buffalo Breed Classifier — "
                     "Fully Automated Local Training Pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""

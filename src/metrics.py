@@ -62,7 +62,9 @@ def evaluate_epoch(model, loader, device, max_batches=None, train_counts=None,
             break
         images = images.to(device, non_blocking=True)
         labels = {k: v.to(device, non_blocking=True) for k, v in labels.items()}
-        out = model(images)
+        is_cuda = (getattr(device, "type", str(device)) == "cuda" or str(device).startswith("cuda"))
+        with torch.amp.autocast(device_type="cuda", enabled=is_cuda):
+            out = model(images)
         bin_pred = out["binary"].argmax(1)
         bin_true = labels["binary"].argmax(1)
         cattle_pred = out["cattle"].argmax(1)

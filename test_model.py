@@ -58,7 +58,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
                         IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
-                        TRAIN_RESIZE, OOD_ENABLED)
+                        TRAIN_RESIZE, OOD_ENABLED, OOD_DIR)
 from src.model import BreedClassifier
 from src.ood_detector import OODDetector
 
@@ -372,20 +372,64 @@ class ModelManager:
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.ood_detector = OODDetector() if OOD_ENABLED else None
+        self.ood_detectors = {}   # cache: key -> OODDetector
         self._load_class_maps()
         self._discover_models()
 
+    def list_ood_profiles(self):
+        """List all available OOD calibration files."""
+        return OODDetector.list_available_profiles()
+
+    def get_ood_detector(self, model_name=None, ood_profile="auto"):
+        """Resolve and cache an OOD detector for a given model or custom profile."""
+        if ood_profile == "disabled" or (not ood_profile and not OOD_ENABLED):
+            return None
+
+        # Custom profile requested
+        if ood_profile and ood_profile != "auto":
+            key = f"profile:{ood_profile}"
+            if key not in self.ood_detectors:
+                cand = ood_profile if os.path.isabs(ood_profile) else os.path.join(OOD_DIR, ood_profile)
+                if not os.path.exists(cand):
+                    cand = os.path.join(PROJECT_ROOT, "outputs", ood_profile)
+                self.ood_detectors[key] = OODDetector(config_path=cand if os.path.exists(cand) else None)
+            return self.ood_detectors[key]
+
+        # Auto: bind to the specific model
+        key = f"model:{model_name}"
+        if key not in self.ood_detectors:
+            self.ood_detectors[key] = OODDetector(model_name=model_name)
+        return self.ood_detectors[key]
+
     def _load_class_maps(self):
-        """Load breed label maps, prioritizing portable exports to avoid mismatch."""
-        # 1. Try portable export directories first
-        for portable_dir in glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*")):
+        """Load breed label maps, prioritizing the NEWEST portable export."""
+        # 1. Try portable export directories — prefer the newest by timestamp
+        portable_dirs = glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*"))
+        # Sort by model_info.json exported_at (newest first), falling back to
+        # filesystem mtime if no model_info.json exists.
+        def _export_time(d):
+            info_path = os.path.join(d, "model_info.json")
+            if os.path.exists(info_path):
+                try:
+                    with open(info_path) as f:
+                        info = json.load(f)
+                    return info.get("exported_at", "")
+                except Exception:
+                    pass
+            return ""
+        portable_dirs.sort(key=_export_time, reverse=True)
+
+        for portable_dir in portable_dirs:
+            maps_found = {}
             for species in ("cattle", "buffalo"):
                 path = os.path.join(portable_dir, f"{species}_classes.json")
                 if os.path.exists(path):
                     with open(path) as f:
-                        self.class_maps[species] = json.load(f)
-            if len(self.class_maps) == 2:
+                        maps_found[species] = json.load(f)
+            if len(maps_found) == 2:
+                self.class_maps = maps_found
+                if logger:
+                    logger.info(f"Using class maps from {os.path.basename(portable_dir)}")
                 break
                 
         # 2. Fallback to data/splits/ if no portable exports found
@@ -513,7 +557,7 @@ class ModelManager:
         return model
 
     @torch.no_grad()
-    def predict(self, image_bytes, model_name):
+    def predict(self, image_bytes, model_name, ood_profile="auto"):
         """Run prediction on raw image bytes. Returns result dict."""
         predict_start = time.time()
 
@@ -523,7 +567,7 @@ class ModelManager:
             return {"error": f"Model '{model_name}' not found"}
 
         if logger:
-            logger.info(f"Image received ({len(image_bytes) / 1024:.1f} KB), model='{model_name}'")
+            logger.info(f"Image received ({len(image_bytes) / 1024:.1f} KB), model='{model_name}', ood_profile='{ood_profile}'")
 
         # Load and preprocess image
         try:
@@ -572,11 +616,13 @@ class ModelManager:
 
         inference_time = time.time() - inference_start
 
+        # Out-Of-Distribution (OOD) check
+        detector = self.get_ood_detector(model_name=model_name, ood_profile=ood_profile)
         is_ood = False
         ood_score = 0.0
         ood_details = {}
-        if self.ood_detector is not None:
-            is_ood, ood_score, ood_details = self.ood_detector.is_ood(
+        if detector is not None:
+            is_ood, ood_score, ood_details = detector.is_ood(
                 binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
             )
 
@@ -644,7 +690,13 @@ class ModelManager:
             "total_time_ms": round(total_time * 1000, 1),
             "routing": "soft",
             "ood": is_ood,
-            "ood_score": round(ood_score, 2) if is_ood else None,
+            "ood_score": round(ood_score, 4) if (is_ood or ood_score != 0.0) else None,
+            "ood_profile": detector.profile_name if detector else "Disabled",
+            "ood_thresholds": {
+                "energy": detector.energy_threshold,
+                "msp": detector.msp_threshold,
+                "binary_confidence_floor": detector.binary_confidence_floor
+            } if detector else None,
             "ood_details": ood_details
         }
 
@@ -1336,6 +1388,15 @@ def build_html(mode="dev"):
         <input type="file" id="model-upload" accept=".pt,.onnx" hidden>
         <div class="model-meta" id="model-meta"></div>
       </div>
+      <div class="model-selector" id="single-ood-selector" style="{model_sel_display}; margin-top:10px;">
+        <label for="ood-select" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🛡️ OOD Calibration Profile</span>
+          <span style="font-size: 0.7rem; cursor:pointer; color:var(--accent); text-transform:none;" onclick="document.getElementById('ood-upload').click()">+ Upload Custom JSON</span>
+        </label>
+        <select id="ood-select"></select>
+        <input type="file" id="ood-upload" accept=".json" hidden>
+        <div class="model-meta" id="ood-meta"></div>
+      </div>
       <button class="predict-btn" id="predict-btn" disabled>🔍 Analyze Breed</button>
     </div>
   </div>
@@ -1381,6 +1442,11 @@ def build_html(mode="dev"):
         <label for="batch-model-select">Select Model</label>
         <select id="batch-model-select"></select>
         <div class="model-meta" id="batch-model-meta"></div>
+      </div>
+      <div class="model-selector" id="batch-ood-selector" style="{model_sel_display}; margin-top:10px;">
+        <label for="batch-ood-select">🛡️ OOD Calibration Profile</label>
+        <select id="batch-ood-select"></select>
+        <div class="model-meta" id="batch-ood-meta"></div>
       </div>
       <button class="predict-btn" id="batch-predict-btn" disabled>🔍 Analyze All Images</button>
       <div class="progress-wrap hidden" id="batch-progress-wrap"><div class="progress-bar" id="batch-progress-bar" style="width:0%"></div></div>
@@ -1565,6 +1631,96 @@ function syncPresenterConfig() {
 }
 syncPresenterConfig();
 
+let oodProfilesData = [];
+function loadOODProfiles() {
+  fetch('/api/ood-profiles').then(r => r.json()).then(data => {
+    oodProfilesData = data.profiles || [];
+    const sels = ['#ood-select', '#batch-ood-select'];
+    sels.forEach(selId => {
+      const sel = document.querySelector(selId);
+      if (!sel) return;
+      const currentVal = sel.value || 'auto';
+      sel.innerHTML = '';
+
+      const optAuto = document.createElement('option');
+      optAuto.value = 'auto';
+      optAuto.textContent = '⚡ Auto (Matched to Model Checkpoint)';
+      sel.appendChild(optAuto);
+
+      oodProfilesData.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.filename;
+        const eStr = p.energy_threshold != null ? 'Energy ≤ ' + p.energy_threshold : '';
+        const mStr = p.msp_threshold != null ? 'MSP ≥ ' + p.msp_threshold : '';
+        const detail = [eStr, mStr].filter(Boolean).join(', ');
+        opt.textContent = p.filename + (detail ? ' (' + detail + ')' : '');
+        sel.appendChild(opt);
+      });
+
+      const optOff = document.createElement('option');
+      optOff.value = 'disabled';
+      optOff.textContent = '🚫 Disabled (Bypass OOD Checks)';
+      sel.appendChild(optOff);
+
+      sel.value = currentVal;
+      if (!sel.value) sel.value = 'auto';
+    });
+
+    function updateOODMeta(selId, metaId) {
+      const sel = document.querySelector(selId);
+      const meta = document.querySelector(metaId);
+      if (!sel || !meta) return;
+      sel.addEventListener('change', () => {
+        if (sel.value === 'disabled') {
+          meta.textContent = 'OOD filter is disabled. All images will be classified.';
+        } else if (sel.value === 'auto') {
+          meta.textContent = 'Automatically selects the calibrated OOD profile for the active model.';
+        } else {
+          const p = oodProfilesData.find(x => x.filename === sel.value);
+          if (p) {
+            meta.textContent = '⚡ Energy: ' + p.energy_threshold + ' | 🎯 MSP: ' + p.msp_threshold + ' | 🛡️ Floor: ' + p.binary_confidence_floor;
+          } else {
+            meta.textContent = '';
+          }
+        }
+      });
+      sel.dispatchEvent(new Event('change'));
+    }
+    updateOODMeta('#ood-select', '#ood-meta');
+    updateOODMeta('#batch-ood-select', '#batch-ood-meta');
+  }).catch(() => {});
+}
+loadOODProfiles();
+
+const oodUpload = $('#ood-upload');
+if (oodUpload) {
+  oodUpload.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('ood_file', file);
+    form.append('filename', file.name);
+    try {
+      const res = await fetch('/api/upload-ood', { method: 'POST', body: form });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        alert('OOD profile uploaded successfully: ' + data.filename);
+        loadOODProfiles();
+        setTimeout(() => {
+          const os = $('#ood-select');
+          if (os) { os.value = data.filename; os.dispatchEvent(new Event('change')); }
+        }, 300);
+      } else {
+        alert('Upload failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Upload error: ' + err);
+    } finally {
+      oodUpload.value = '';
+    }
+  });
+}
+
 const mu = $('#model-upload');
 if (mu) {
   mu.addEventListener('change', async (e) => {
@@ -1615,7 +1771,10 @@ pb.addEventListener('click', async () => {
   if (!currentFile) return;
   pb.disabled = true; pb.classList.add('loading'); pb.textContent = '⏳ Analyzing...';
   const form = new FormData();
-  form.append('image', currentFile); form.append('model', $('#model-select').value); form.append('filename', currentFileName);
+  form.append('image', currentFile);
+  form.append('model', $('#model-select').value);
+  form.append('ood_profile', $('#ood-select') ? $('#ood-select').value : 'auto');
+  form.append('filename', currentFileName);
   try {
     const res = await fetch('/api/predict', { method: 'POST', body: form });
     const data = await res.json();
@@ -1632,8 +1791,14 @@ function showResults(data) {
 
   const oodBanner = $('#ood-banner');
   if (oodBanner) {
-    if (data.ood) oodBanner.classList.remove('hidden');
-    else oodBanner.classList.add('hidden');
+    if (data.ood) {
+      oodBanner.classList.remove('hidden');
+      const pInfo = data.ood_profile ? ' [Profile: ' + data.ood_profile + ']' : '';
+      const sInfo = data.ood_score != null ? ' (Score: ' + data.ood_score + ')' : '';
+      oodBanner.textContent = '⚠️ Out-of-Distribution: Not a recognized cattle or buffalo' + sInfo + pInfo;
+    } else {
+      oodBanner.classList.add('hidden');
+    }
   }
 
   // Species badge
@@ -1701,6 +1866,9 @@ function showResults(data) {
     if (!effectivePresent) {
       fh += '<span>📄 File: ' + (data.filename || 'unknown') + '</span>';
       fh += '<span>🐄 Species: ' + data.species + ' (' + data.species_confidence.toFixed(1) + '%)</span>';
+      if (data.ood_profile) {
+        fh += '<span>🛡️ OOD: ' + (data.ood ? '⚠️ Rejected' : '✅ In-Dist') + ' (' + data.ood_profile + ')</span>';
+      }
       fh += '<span>⏱️ ' + (data.total_time_ms || 0) + 'ms total</span>';
     } else {
       fh += '<span>🐄 ' + data.species + '</span>';
@@ -1762,11 +1930,15 @@ bpb.addEventListener('click', async () => {
   const bpw = $('#batch-progress-wrap'), bpbar = $('#batch-progress-bar'), bptxt = $('#batch-progress-text');
   bpw.classList.remove('hidden'); bptxt.classList.remove('hidden');
   const model = $('#batch-model-select').value;
+  const oodProfile = $('#batch-ood-select') ? $('#batch-ood-select').value : 'auto';
   for (let i = 0; i < batchFiles.length; i++) {
     bpbar.style.width = ((i) / batchFiles.length * 100).toFixed(0) + '%';
     bptxt.textContent = 'Processing ' + (i+1) + ' / ' + batchFiles.length + ': ' + batchFiles[i].name;
     const form = new FormData();
-    form.append('image', batchFiles[i]); form.append('model', model); form.append('filename', batchFiles[i].name);
+    form.append('image', batchFiles[i]);
+    form.append('model', model);
+    form.append('ood_profile', oodProfile);
+    form.append('filename', batchFiles[i].name);
     try { const res = await fetch('/api/predict', { method: 'POST', body: form }); const data = await res.json(); data.filename = batchFiles[i].name; batchResults.push(data); }
     catch (e) { batchResults.push({ error: e.message, filename: batchFiles[i].name }); }
   }
@@ -1778,12 +1950,23 @@ bpb.addEventListener('click', async () => {
 function showBatchResults() {
   $('#batch-placeholder').classList.add('hidden'); $('#batch-results').classList.remove('hidden');
   const valid = batchResults.filter(r => !r.error);
-  const cattle = valid.filter(r => r.species === 'Cattle').length;
-  const buffalo = valid.filter(r => r.species === 'Buffalo').length;
-  const avgConf = valid.length ? (valid.reduce((s, r) => s + r.top_breed_confidence, 0) / valid.length).toFixed(1) : '0';
+  const cattle = valid.filter(r => r.species === 'Cattle' && !r.ood).length;
+  const buffalo = valid.filter(r => r.species === 'Buffalo' && !r.ood).length;
+  const oodCount = valid.filter(r => r.ood).length;
+  const inDist = valid.filter(r => !r.ood);
+  const avgConf = inDist.length ? (inDist.reduce((s, r) => s + r.top_breed_confidence, 0) / inDist.length).toFixed(1) : '0';
   const bs = $('#batch-summary');
   if (effectivePresent && presenterConfig.hide_batch_summary_stats) { bs.style.display = 'none'; }
-  else { bs.style.display = ''; bs.innerHTML = '<div><div class="stat-val">' + valid.length + '</div><div class="stat-label">Images</div></div><div><div class="stat-val">' + cattle + ' / ' + buffalo + '</div><div class="stat-label">Cattle / Buffalo</div></div><div><div class="stat-val">' + avgConf + '%</div><div class="stat-label">Avg Confidence</div></div>'; }
+  else {
+    bs.style.display = '';
+    let statsHtml = '<div><div class="stat-val">' + valid.length + '</div><div class="stat-label">Images</div></div>' +
+                    '<div><div class="stat-val">' + cattle + ' / ' + buffalo + '</div><div class="stat-label">Cattle / Buffalo</div></div>' +
+                    '<div><div class="stat-val">' + avgConf + '%</div><div class="stat-label">Avg Confidence</div></div>';
+    if (oodCount > 0) {
+      statsHtml += '<div><div class="stat-val" style="color:var(--red)">' + oodCount + '</div><div class="stat-label">OOD Rejected</div></div>';
+    }
+    bs.innerHTML = statsHtml;
+  }
   const list = $('#batch-results-list'); list.innerHTML = '';
   const minC = effectivePresent ? (presenterConfig.min_breed_confidence_pct || 10) : 0;
   const maxItems = effectivePresent ? (presenterConfig.top5_count || 3) : 5;
@@ -2139,6 +2322,11 @@ def run_server(manager, port=8501, mode="dev"):
                 cfg = load_presenter_config()
                 self._respond(200, "application/json", json.dumps(cfg).encode())
 
+            elif self.path == "/api/ood-profiles":
+                profiles = manager.list_ood_profiles()
+                body = json.dumps({"profiles": profiles, "ood_enabled": OOD_ENABLED})
+                self._respond(200, "application/json", body.encode())
+
             elif self.path == "/api/logs":
                 if logger:
                     content = logger.get_log_contents()
@@ -2160,6 +2348,7 @@ def run_server(manager, port=8501, mode="dev"):
                 parts_data, parts_text = _parse_multipart(self)
                 image_bytes = parts_data.get("image")
                 model_name = parts_text.get("model", "")
+                ood_profile = parts_text.get("ood_profile", "auto")
                 filename = parts_text.get("filename", "unknown")
 
                 if not image_bytes:
@@ -2168,9 +2357,9 @@ def run_server(manager, port=8501, mode="dev"):
                     return
 
                 if logger:
-                    logger.info(f"Model selected: {model_name}")
+                    logger.info(f"Model selected: {model_name}, OOD profile: {ood_profile}")
 
-                result = manager.predict(image_bytes, model_name)
+                result = manager.predict(image_bytes, model_name, ood_profile=ood_profile)
                 result["filename"] = filename
 
                 # In present mode, strip dev-only fields
@@ -2202,6 +2391,28 @@ def run_server(manager, port=8501, mode="dev"):
                 
                 manager._discover_models()
                 self._respond(200, "application/json", json.dumps({"status": "success"}).encode())
+
+            elif self.path == "/api/upload-ood":
+                content_type = self.headers.get("Content-Type", "")
+                if "multipart/form-data" not in content_type:
+                    self._respond(400, "application/json", json.dumps({"error": "Expected multipart/form-data"}).encode())
+                    return
+                parts_data, parts_text = _parse_multipart(self)
+                ood_bytes = parts_data.get("ood_file")
+                filename = parts_text.get("filename", "custom_ood.json")
+                if not ood_bytes:
+                    self._respond(400, "application/json", json.dumps({"error": "No OOD file provided"}).encode())
+                    return
+                try:
+                    cal_data = json.loads(ood_bytes.decode("utf-8"))
+                    if not filename.endswith(".json"):
+                        filename += ".json"
+                    save_path = os.path.join(OOD_DIR, filename)
+                    with open(save_path, "w", encoding="utf-8") as f:
+                        json.dump(cal_data, f, indent=2)
+                    self._respond(200, "application/json", json.dumps({"status": "success", "filename": filename}).encode())
+                except Exception as e:
+                    self._respond(400, "application/json", json.dumps({"error": f"Invalid OOD JSON: {e}"}).encode())
 
             elif self.path == "/api/export-odt":
                 if mode == "present":
