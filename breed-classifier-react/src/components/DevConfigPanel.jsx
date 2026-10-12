@@ -42,25 +42,167 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
     }
   };
 
+  const dataset = config?.dataset || {};
+
+  const handleDatasetChange = async (key, val) => {
+    try {
+      await onUpdateConfig({ [`dataset.${key}`]: val });
+    } catch (err) {
+      alert("Failed to update dataset config: " + err.message);
+    }
+  };
+
+  const applyBreedPreset = async (minB, maxB, minConf) => {
+    try {
+      await onUpdateConfig({
+        "display.min_breeds": minB,
+        "display.max_breeds": maxB,
+        "display.top_k": maxB,
+        "display.min_breed_confidence_pct": minConf,
+      });
+    } catch (err) {
+      alert("Failed to apply preset: " + err.message);
+    }
+  };
+
   return (
     <div className="dev-panel-content">
       <div className="panel-header-block">
         <h2 className="panel-title">Display & Application Preferences</h2>
         <p className="panel-description">
-          Adjust visual thresholds, confidence scaling, and presentation toggles.
-          All changes are saved to <code>outputs/app_config.json</code> and synced across browser sessions.
+          Adjust visual thresholds, min/max candidate breed counts, confidence filtering, and dataset parameters.
+          All changes are saved to <code>outputs/app_config.json</code> and synced across browser sessions in real time.
         </p>
       </div>
 
       <div className="dev-grid-2col">
-        {/* Left Column: UI Presentation Controls */}
+        {/* Left Column: UI Presentation & Breed Display Controls */}
         <div className="dev-card">
           <div className="dev-card-header">
-            <h3 className="card-heading">User Interface Display Rules</h3>
+            <h3 className="card-heading">Candidate Breed Display Limits</h3>
             <span className="badge badge-neutral">Shared Config</span>
           </div>
 
-          <div className="form-group">
+          {/* Quick Presets */}
+          <div className="form-group" style={{ marginBottom: 12 }}>
+            <label className="form-label" style={{ marginBottom: 4 }}>Quick Range Presets</label>
+            <div className="preset-chip-row">
+              <button
+                type="button"
+                className={`preset-chip ${(display.min_breeds === 1 && display.max_breeds === 1) ? "active" : ""}`}
+                onClick={() => applyBreedPreset(1, 1, 10)}
+              >
+                Top 1 Strict
+              </button>
+              <button
+                type="button"
+                className={`preset-chip ${(display.min_breeds === 1 && display.max_breeds === 3) ? "active" : ""}`}
+                onClick={() => applyBreedPreset(1, 3, 5)}
+              >
+                Standard (1–3)
+              </button>
+              <button
+                type="button"
+                className={`preset-chip ${(display.min_breeds === 2 && display.max_breeds === 5) ? "active" : ""}`}
+                onClick={() => applyBreedPreset(2, 5, 5)}
+              >
+                Extended (2–5)
+              </button>
+              <button
+                type="button"
+                className={`preset-chip ${(display.min_breeds === 1 && (display.max_breeds === 10 || display.top_k === 10)) ? "active" : ""}`}
+                onClick={() => applyBreedPreset(1, 10, 0)}
+              >
+                All (Up to 10)
+              </button>
+            </div>
+          </div>
+
+          {/* Min Breeds */}
+          <div className="slider-group">
+            <div className="slider-header">
+              <label className="slider-label" htmlFor="min-breeds-slider">Min Candidate Breeds</label>
+              <span className="slider-number-badge">{display.min_breeds ?? 1}</span>
+            </div>
+            <input
+              id="min-breeds-slider"
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              className="range-input"
+              value={display.min_breeds ?? 1}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                const currentMax = display.max_breeds ?? (display.top_k ?? 3);
+                const updates = { "display.min_breeds": val };
+                if (val > currentMax) {
+                  updates["display.max_breeds"] = val;
+                  updates["display.top_k"] = val;
+                }
+                onUpdateConfig(updates);
+              }}
+            />
+            <p className="slider-hint">
+              Minimum number of breed candidates guaranteed to display (even if alternative probabilities are low).
+            </p>
+          </div>
+
+          {/* Max Breeds / Top-K */}
+          <div className="slider-group">
+            <div className="slider-header">
+              <label className="slider-label" htmlFor="max-breeds-slider">Max Candidate Breeds (Top-K)</label>
+              <span className="slider-number-badge">{display.max_breeds ?? (display.top_k ?? 3)}</span>
+            </div>
+            <input
+              id="max-breeds-slider"
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              className="range-input"
+              value={display.max_breeds ?? (display.top_k ?? 3)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                const currentMin = display.min_breeds ?? 1;
+                const updates = {
+                  "display.max_breeds": val,
+                  "display.top_k": val,
+                };
+                if (val < currentMin) {
+                  updates["display.min_breeds"] = val;
+                }
+                onUpdateConfig(updates);
+              }}
+            />
+            <p className="slider-hint">
+              Maximum upper bound on alternative candidate breed predictions shown to the user.
+            </p>
+          </div>
+
+          {/* Min Breed Confidence % Cutoff */}
+          <div className="slider-group">
+            <div className="slider-header">
+              <label className="slider-label" htmlFor="min-confidence-slider">Min Breed Confidence Cutoff (%)</label>
+              <span className="slider-number-badge">{display.min_breed_confidence_pct ?? 5}%</span>
+            </div>
+            <input
+              id="min-confidence-slider"
+              type="range"
+              min="0"
+              max="30"
+              step="1"
+              className="range-input"
+              value={display.min_breed_confidence_pct ?? 5}
+              onChange={(e) => handleDisplayChange("min_breed_confidence_pct", parseFloat(e.target.value))}
+            />
+            <p className="slider-hint">
+              Omit alternative breed predictions whose confidence falls below this threshold (unless needed to satisfy Min Breeds).
+            </p>
+          </div>
+
+          {/* Presentation & Formatting Settings */}
+          <div className="form-group" style={{ marginTop: 16 }}>
             <label className="form-label" htmlFor="confidence-display-mode">Confidence Display Mode</label>
             <select
               id="confidence-display-mode"
@@ -76,10 +218,11 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
 
           <div className="slider-group">
             <div className="slider-header">
-              <label className="slider-label">Confidence Floor (%)</label>
+              <label className="slider-label" htmlFor="floor-slider">Confidence Floor (%)</label>
               <span className="slider-number-badge">{display.confidence_floor_pct ?? 80}%</span>
             </div>
             <input
+              id="floor-slider"
               type="range"
               min="50"
               max="95"
@@ -93,25 +236,7 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
             </p>
           </div>
 
-          <div className="slider-group">
-            <div className="slider-header">
-              <label className="slider-label">Top-K Ranked Breeds</label>
-              <span className="slider-number-badge">{display.top_k ?? 3}</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              className="range-input"
-              value={display.top_k ?? 3}
-              onChange={(e) => handleDisplayChange("top_k", parseInt(e.target.value, 10))}
-            />
-            <p className="slider-hint">
-              Maximum number of candidate breed predictions displayed to the user.
-            </p>
-          </div>
-
+          {/* Toggles */}
           <div className="control-setting-row">
             <div className="setting-info">
               <span className="setting-label">Show Species Confidence Tag</span>
@@ -140,6 +265,34 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
               />
               <span className="toggle-slider" />
             </label>
+          </div>
+
+          {/* Dataset Thresholds */}
+          <div className="dev-subcard" style={{ marginTop: 16 }}>
+            <div className="dev-card-header" style={{ marginBottom: 12 }}>
+              <h4 className="card-heading" style={{ fontSize: "0.92rem" }}>Dataset & Training Breed Thresholds</h4>
+              <span className="badge badge-neutral">data/splits</span>
+            </div>
+
+            <div className="slider-group">
+              <div className="slider-header">
+                <label className="slider-label" htmlFor="min-imgs-slider">Min Images / Breed Cutoff</label>
+                <span className="slider-number-badge">{dataset.min_images_per_breed ?? 15} imgs</span>
+              </div>
+              <input
+                id="min-imgs-slider"
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                className="range-input"
+                value={dataset.min_images_per_breed ?? 15}
+                onChange={(e) => handleDatasetChange("min_images_per_breed", parseInt(e.target.value, 10))}
+              />
+              <p className="slider-hint">
+                Breeds with fewer total images than this threshold are dropped during dataset splitting to avoid severely under-supported classes.
+              </p>
+            </div>
           </div>
         </div>
 

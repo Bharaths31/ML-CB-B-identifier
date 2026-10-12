@@ -16,8 +16,19 @@ export default function ResultCard({ result, config, onReset }) {
   // Format percentage
   const confidencePct = Math.round(rawConfidence * 100);
   const topBreeds = result.top_k || result.top_breeds || [];
-  const topKCount = config?.display?.top_k ?? 3;
-  const displayedTop = topBreeds.slice(0, topKCount);
+  const minBreeds = config?.display?.min_breeds ?? 1;
+  const maxBreeds = config?.display?.max_breeds ?? (config?.display?.top_k ?? 3);
+  const minConf = config?.display?.min_breed_confidence_pct ?? 0;
+
+  // Filter candidates by min confidence, guaranteeing at least minBreeds
+  let candidateList = topBreeds.filter((b) => {
+    const val = typeof b.confidence === "number" ? b.confidence : (b.prob ? b.prob * 100 : 0);
+    return val >= minConf;
+  });
+  if (candidateList.length < minBreeds) {
+    candidateList = topBreeds.slice(0, minBreeds);
+  }
+  const displayedTop = candidateList.slice(0, maxBreeds);
 
   return (
     <div className="result-card-container">

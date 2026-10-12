@@ -129,21 +129,32 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
         species_name = "Unknown"
         species_conf = 0.0
     else:
-        k = min(5, combined.numel())
-        top5_probs, top5_idxs = combined.topk(k)
-        top5 = []
-        for prob, idx in zip(top5_probs.tolist(), top5_idxs.tolist()):
+        # Retrieve configurable breed display limits
+        min_c = float(db.get("display.min_breed_confidence_pct", 5.0))
+        min_b = int(db.get("display.min_breeds", 1))
+        max_b = int(db.get("display.max_breeds", db.get("display.top_k", 5)))
+        fetch_k = min(max(max_b, 5), combined.numel())
+
+        top_probs, top_idxs = combined.topk(fetch_k)
+        candidates = []
+        for prob, idx in zip(top_probs.tolist(), top_idxs.tolist()):
             if idx < n_cattle:
                 breed = cattle_inv.get(idx, f"cattle_{idx}")
             else:
                 breed = buffalo_inv.get(idx - n_cattle, f"buffalo_{idx - n_cattle}")
             display_name = breed.replace("_", " ").title()
-            top5.append({
+            candidates.append({
                 "breed": display_name,
                 "confidence": round(prob * 100, 2),
             })
 
-        species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
+        # Apply minimum confidence cutoff while guaranteeing at least min_b breeds
+        filtered = [c for c in candidates if c["confidence"] >= min_c]
+        if len(filtered) < min_b:
+            filtered = candidates[:min_b]
+        top5 = filtered[:max_b]
+
+        species_idx = 0 if int(top_idxs[0]) < n_cattle else 1
         species_name = species_map_inv.get(species_idx, "cattle").title()
         species_conf = binary_probs[species_idx].item() * 100
 

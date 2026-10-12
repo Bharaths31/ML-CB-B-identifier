@@ -20,10 +20,17 @@ DEFAULT_APP_CONFIG = {
         "confidence_mode": "percentage",  # "percentage", "scaled", "badge_only"
         "confidence_floor_pct": 80.0,
         "top_k": 3,
+        "min_breeds": 1,
+        "max_breeds": 5,
+        "min_breed_confidence_pct": 5.0,
         "show_species_confidence": True,
         "show_species_badge": True,
         "show_technical_details": False,
         "theme": "dark",  # "dark" or "light"
+    },
+    "dataset": {
+        "min_images_per_breed": 15,
+        "max_images_per_breed": 500,
     },
     "inference": {
         "device_override": None,  # None, "cuda", "cpu"
@@ -119,6 +126,14 @@ class SharedConfigDB:
                     curr[k] = {}
                 curr = curr[k]
             curr[keys[-1]] = value
+            # Cleanup any root-level dotted key if present
+            if "." in dotted_key and dotted_key in self._config:
+                del self._config[dotted_key]
+            # Synchronize max_breeds and top_k
+            if dotted_key == "display.max_breeds":
+                self._config.setdefault("display", {})["top_k"] = value
+            elif dotted_key == "display.top_k":
+                self._config.setdefault("display", {})["max_breeds"] = value
             self._save_unlocked()
             snapshot = json.loads(json.dumps(self._config))
 
@@ -135,7 +150,31 @@ class SharedConfigDB:
     def update(self, updates: Dict[str, Any], notify: bool = True):
         """Update multiple keys from a dictionary and save atomically."""
         with self.lock:
-            self._config = _deep_merge(updates, self._config)
+            for k, v in updates.items():
+                if "." in k:
+                    keys = k.split(".")
+                    curr = self._config
+                    for part in keys[:-1]:
+                        if part not in curr or not isinstance(curr[part], dict):
+                            curr[part] = {}
+                        curr = curr[part]
+                    curr[keys[-1]] = v
+                    if k in self._config:
+                        del self._config[k]
+                else:
+                    if isinstance(v, dict) and k in self._config and isinstance(self._config[k], dict):
+                        self._config[k] = _deep_merge(v, self._config[k].copy())
+                    else:
+                        self._config[k] = v
+
+            # Synchronize max_breeds and top_k
+            disp = self._config.get("display", {})
+            if isinstance(disp, dict):
+                if "max_breeds" in updates or "display.max_breeds" in updates:
+                    disp["top_k"] = disp["max_breeds"]
+                elif "top_k" in updates or "display.top_k" in updates:
+                    disp["max_breeds"] = disp["top_k"]
+
             self._save_unlocked()
             snapshot = json.loads(json.dumps(self._config))
 
