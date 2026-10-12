@@ -26,13 +26,17 @@ export default function DevOODPanel({ config, onConfigChanged }) {
   const refreshData = async () => {
     try {
       setLoading(true);
-      const [pData, aData] = await Promise.all([getOODProfiles(), getActiveOOD()]);
-      setProfiles(pData.profiles || []);
-      setActiveInfo(aData);
-      if (aData?.config) {
-        setEnergyThresh(aData.config.energy_threshold ?? -5.0);
-        setMspThresh(aData.config.msp_threshold ?? 0.5);
-        setTemp(aData.config.temperature ?? 1.0);
+      const [pRes, aRes] = await Promise.allSettled([getOODProfiles(), getActiveOOD()]);
+      if (pRes.status === "fulfilled") {
+        setProfiles(pRes.value.profiles || []);
+      }
+      if (aRes.status === "fulfilled") {
+        setActiveInfo(aRes.value);
+        if (aRes.value?.config) {
+          setEnergyThresh(aRes.value.config.energy_threshold ?? -5.0);
+          setMspThresh(aRes.value.config.msp_threshold ?? 0.5);
+          setTemp(aRes.value.config.temperature ?? 1.0);
+        }
       }
     } catch (err) {
       console.error("Failed to load OOD data:", err);

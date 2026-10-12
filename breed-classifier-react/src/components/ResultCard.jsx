@@ -50,62 +50,79 @@ export default function ResultCard({ result, config, onReset }) {
       <div className="prediction-main-card">
         <div className="prediction-header">
           <div className="species-badge-row">
-            <span className={`species-pill species-${species.toLowerCase()}`}>
-              {species.toUpperCase()}
+            <span className={`species-pill species-${isOod ? "unknown" : species.toLowerCase()}`}>
+              {isOod ? "OUT-OF-DISTRIBUTION" : species.toUpperCase()}
             </span>
             <span className="confidence-pill">
-              {confidencePct}% Confidence
+              {isOod ? "Uncertain Sample" : `${confidencePct}% Confidence`}
             </span>
           </div>
 
           <h2 className="predicted-breed-title">
-            {breed.replace(/_/g, " ")}
+            {isOod ? "Unrecognized Breed / Subject" : breed.replace(/_/g, " ")}
           </h2>
 
           <div className="confidence-meter-container">
             <div className="confidence-bar-bg">
               <div
                 className={`confidence-bar-fill ${isOod ? "bar-warning" : "bar-success"}`}
-                style={{ width: `${Math.min(100, Math.max(0, confidencePct))}%` }}
+                style={{ width: `${isOod ? 15 : Math.min(100, Math.max(0, confidencePct))}%` }}
               />
             </div>
             <div className="confidence-scale-labels">
-              <span>0%</span>
-              <span>50%</span>
-              <span>100%</span>
+              <span>{isOod ? "Below Threshold" : "0%"}</span>
+              <span>{isOod ? "Outlier Detected" : "50%"}</span>
+              <span>{isOod ? "Rejected" : "100%"}</span>
             </div>
           </div>
         </div>
 
         {/* Top Matches Breakdown */}
-        {displayedTop.length > 0 && (
+        {isOod ? (
           <div className="top-matches-section">
-            <h3 className="section-subtitle">Ranked Breed Probabilities</h3>
-            <div className="breed-list">
-              {displayedTop.map((item, idx) => {
-                const bName = (item.breed || item[0] || "").replace(/_/g, " ");
-                const bProb = typeof item.prob === "number" ? item.prob : (typeof item[1] === "number" ? item[1] : 0);
-                const bPct = Math.round(bProb * 100);
-                const isTop = idx === 0;
-
-                return (
-                  <div key={idx} className={`breed-row ${isTop ? "breed-row-top" : ""}`}>
-                    <div className="breed-row-header">
-                      <span className="breed-rank">#{idx + 1}</span>
-                      <span className="breed-name">{bName}</span>
-                      <span className="breed-pct">{bPct}%</span>
-                    </div>
-                    <div className="breed-mini-bar-bg">
-                      <div
-                        className="breed-mini-bar-fill"
-                        style={{ width: `${bPct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <h3 className="section-subtitle">Breed Classification Withheld</h3>
+            <div className="ood-advisory-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>
+                To prevent false identifications, breed predictions are not shown for images that fail safety energy validation.
+                Ensure the livestock subject is clearly centered and well-lit.
+              </span>
             </div>
           </div>
+        ) : (
+          displayedTop.length > 0 && (
+            <div className="top-matches-section">
+              <h3 className="section-subtitle">Ranked Breed Probabilities</h3>
+              <div className="breed-list">
+                {displayedTop.map((item, idx) => {
+                  const bName = (item.breed || item[0] || "").replace(/_/g, " ");
+                  const bProb = typeof item.prob === "number" ? item.prob : (typeof item[1] === "number" ? item[1] : 0);
+                  const bPct = Math.round(bProb * 100);
+                  const isTop = idx === 0;
+
+                  return (
+                    <div key={idx} className={`breed-row ${isTop ? "breed-row-top" : ""}`}>
+                      <div className="breed-row-header">
+                        <span className="breed-rank">#{idx + 1}</span>
+                        <span className="breed-name">{bName}</span>
+                        <span className="breed-pct">{bPct}%</span>
+                      </div>
+                      <div className="breed-mini-bar-bg">
+                        <div
+                          className="breed-mini-bar-fill"
+                          style={{ width: `${bPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )
         )}
 
         {/* Technical Diagnostics Collapsible */}

@@ -79,13 +79,15 @@ def get_active_ood():
 
     if manager and manager.ood_detector:
         det = manager.ood_detector
+        source_val = getattr(det, "source_file", getattr(det, "source", None))
+        prof_name = getattr(det, "profile_name", (os.path.basename(source_val) if source_val else "default"))
         detector_status = {
             "initialized": True,
-            "profile_name": det.profile_name,
-            "source_file": det.source_file,
-            "energy_threshold": det.energy_threshold,
-            "msp_threshold": det.msp_threshold,
-            "temperature": det.T,
+            "profile_name": prof_name,
+            "source_file": source_val,
+            "energy_threshold": getattr(det, "energy_threshold", -5.0),
+            "msp_threshold": getattr(det, "msp_threshold", 0.5),
+            "temperature": getattr(det, "T", 1.0),
         }
     else:
         detector_status = {

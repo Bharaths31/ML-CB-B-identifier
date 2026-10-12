@@ -10,6 +10,13 @@ import os
 import sys
 import argparse
 import time
+import torch
+
+if hasattr(torch.backends, 'nnpack'):
+    try:
+        torch.backends.nnpack.set_flags(False)
+    except Exception:
+        pass
 
 # Ensure project root is in pythonpath
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

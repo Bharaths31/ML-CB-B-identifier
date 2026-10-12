@@ -630,6 +630,9 @@ class OODDetector:
                  msp_threshold=OOD_MSP_THRESHOLD):
         self.model_name = model_name
         self.source = "defaults"
+        self.source_file = None
+        self.profile_name = "defaults"
+        self.metadata = {}
         self.calibrated_at = None
         self.percentile = None
         payload = None
@@ -639,6 +642,9 @@ class OODDetector:
                     with open(candidate) as f:
                         payload = json.load(f)
                     self.source = candidate
+                    self.source_file = candidate
+                    self.profile_name = os.path.basename(candidate)
+                    self.metadata = payload
                     break
                 except Exception:
                     payload = None

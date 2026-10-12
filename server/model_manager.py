@@ -5,12 +5,19 @@ import time
 import torch
 import torch.nn.functional as F
 
-from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, IMAGE_SIZE
+from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, IMAGE_SIZE, OOD_DIR
 from src.model import BreedClassifier
-from src.model import OODDetector
+from src.ood_detector import OODDetector
 from src.config import OOD_ENABLED
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config
+
+# Disable NNPACK warnings on CPU
+if hasattr(torch.backends, 'nnpack'):
+    try:
+        torch.backends.nnpack.set_flags(False)
+    except Exception:
+        pass
 
 class ModelManager:
     """Discovers, loads, and caches models for prediction."""
@@ -21,7 +28,18 @@ class ModelManager:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         db = get_shared_config()
         ood_enabled = db.get("ood.enabled", OOD_ENABLED)
-        self.ood_detector = OODDetector() if ood_enabled else None
+        selected_prof = db.get("ood.selected_profile", "auto")
+        prof_path = None
+        if selected_prof != "auto":
+            candidates = [
+                os.path.join(OOD_DIR, selected_prof),
+                os.path.join(PROJECT_ROOT, "outputs", selected_prof)
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    prof_path = c
+                    break
+        self.ood_detector = OODDetector(config_path=prof_path) if ood_enabled else None
         self._load_class_maps()
         self._discover_models()
 
