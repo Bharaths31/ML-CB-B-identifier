@@ -42,16 +42,30 @@ def _find_project_root() -> str:
       3. PYTHONPATH and sys.path entries
       4. Any parent directories up to filesystem root
     """
-    candidates = []
+    # Prioritize script directory and current working directory
+    priority_candidates = []
     if "__file__" in globals() and __file__:
         try:
-            candidates.append(os.path.dirname(os.path.abspath(__file__)))
+            priority_candidates.append(os.path.dirname(os.path.abspath(__file__)))
         except Exception:
             pass
     try:
-        candidates.append(os.path.abspath(os.getcwd()))
+        priority_candidates.append(os.path.abspath(os.getcwd()))
     except Exception:
         pass
+
+    for start in priority_candidates:
+        cur = start
+        while cur:
+            if os.path.isfile(os.path.join(cur, "src", "config.py")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+
+    # Secondary check: sys.path
+    candidates = []
     for p in sys.path:
         if p and os.path.isdir(p):
             candidates.append(os.path.abspath(p))

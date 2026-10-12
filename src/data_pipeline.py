@@ -1028,9 +1028,8 @@ def compute_class_priors(split_dir=SPLIT_DIR, source="sampled"):
         return None
     cattle_classes, buffalo_classes = _load_class_maps(split_dir)
     priors = {}
-    for species, class_map, num_classes in (
-            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
-            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+    for species, class_map in (("cattle", cattle_classes), ("buffalo", buffalo_classes)):
+        num_classes = len(class_map)
         counts = _count_per_class(train_df, class_map, num_classes,
                                   species=species)
         if source == "sampled":
@@ -1058,9 +1057,8 @@ def compute_class_counts(split_dir=SPLIT_DIR):
         return None
     cattle_classes, buffalo_classes = _load_class_maps(split_dir)
     out = {}
-    for species, class_map, num_classes in (
-            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
-            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+    for species, class_map in (("cattle", cattle_classes), ("buffalo", buffalo_classes)):
+        num_classes = len(class_map)
         counts = _count_per_class(train_df, class_map, num_classes,
                                   species=species)
         out[species] = torch.as_tensor(counts, dtype=torch.float32)
@@ -1074,9 +1072,8 @@ def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
         return None
     cattle_classes, buffalo_classes = _load_class_maps(split_dir)
     rare = {}
-    for species, class_map, num_classes in (
-            ("cattle", cattle_classes, NUM_CATTLE_BREEDS),
-            ("buffalo", buffalo_classes, NUM_BUFFALO_BREEDS)):
+    for species, class_map in (("cattle", cattle_classes), ("buffalo", buffalo_classes)):
+        num_classes = len(class_map)
         counts = _count_per_class(train_df, class_map, num_classes,
                                   species=species)
         rare[species] = torch.as_tensor(counts < threshold, dtype=torch.bool)
