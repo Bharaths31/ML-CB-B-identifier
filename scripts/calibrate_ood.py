@@ -5,8 +5,25 @@ import json
 import torch
 from tqdm import tqdm
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, PROJECT_ROOT)
+def _find_project_root() -> str:
+    for start in (os.path.dirname(os.path.dirname(os.path.abspath(__file__))), os.getcwd()):
+        cur = os.path.abspath(start)
+        while cur:
+            if os.path.isfile(os.path.join(cur, "src", "config.py")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+PROJECT_ROOT = _find_project_root()
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+try:
+    os.chdir(PROJECT_ROOT)
+except Exception:
+    pass
 
 import pandas as pd
 from src.data_pipeline import CattleBuffaloDataset, prepare_splits, _eval_transform, _load_class_maps
@@ -31,9 +48,9 @@ def main():
     ckpt_path = resolve_checkpoint(args.checkpoint, args.backbone, CHECKPOINT_DIR)
     if ckpt_path is None:
         import glob
-        pt_files = sorted(glob.glob("outputs/export/portable/*/model.pt", recursive=True))
+        pt_files = sorted(glob.glob(os.path.join(PROJECT_ROOT, "outputs", "export", "portable", "*", "model.pt"), recursive=True))
         if not pt_files:
-            pt_files = sorted(glob.glob("outputs/checkpoints/*.pt"))
+            pt_files = sorted(glob.glob(os.path.join(PROJECT_ROOT, "outputs", "checkpoints", "*.pt")))
         if pt_files:
             ckpt_path = pt_files[-1]
             print(f"[calibrate_ood] Fallback to checkpoint: {ckpt_path}")

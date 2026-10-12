@@ -37,10 +37,64 @@ import sys
 import time
 from typing import Dict, List, Optional
 
-# Ensure project root is at the front of sys.path
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+def _find_project_root() -> str:
+    """Robustly find the project root directory containing src/config.py.
+    
+    Walks up from:
+      1. SCRIPT_DIR (the directory of the script file)
+      2. Current working directory (os.getcwd())
+      3. PYTHONPATH and sys.path entries
+      4. Any parent directories up to filesystem root
+    """
+    candidates = []
+    if "__file__" in globals() and __file__:
+        try:
+            candidates.append(os.path.dirname(os.path.abspath(__file__)))
+        except Exception:
+            pass
+    try:
+        candidates.append(os.path.abspath(os.getcwd()))
+    except Exception:
+        pass
+    for p in sys.path:
+        if p and os.path.isdir(p):
+            candidates.append(os.path.abspath(p))
+
+    # 1. Walk up looking for src/config.py
+    for start in candidates:
+        cur = start
+        while cur:
+            if os.path.isfile(os.path.join(cur, "src", "config.py")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+
+    # 2. Check 1-level down from candidates
+    for start in candidates:
+        if os.path.isdir(start):
+            try:
+                for entry in os.listdir(start):
+                    child = os.path.join(start, entry)
+                    if os.path.isdir(child) and os.path.isfile(os.path.join(child, "src", "config.py")):
+                        return child
+            except Exception:
+                pass
+
+    # 3. Fallback
+    if "__file__" in globals() and __file__:
+        return os.path.dirname(os.path.abspath(__file__))
+    return os.getcwd()
+
+
+PROJECT_ROOT = _find_project_root()
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+try:
+    os.chdir(PROJECT_ROOT)
+except Exception:
+    pass
 
 from src.config import (
     BACKBONE_WEIGHTS, BATCH_SIZE, BREED_DIM, CHECKPOINT_DIR,
@@ -53,10 +107,12 @@ from src.config import (
 #  Preflight & Helpers
 # ============================================================
 
+# All standalone src modules required for training.
+# Note: cbam, efficientnet_lite, traits, and ood_detector are integrated into model.py.
 REQUIRED_SRC_MODULES = [
     "__init__.py", "config.py", "run_utils.py", "data_pipeline.py",
-    "model.py", "cbam.py", "efficientnet_lite.py", "train.py",
-    "export.py", "evaluate.py", "parity_check.py", "verify.py"
+    "model.py", "train.py", "metrics.py", "export.py",
+    "evaluate.py", "parity_check.py", "verify.py"
 ]
 
 

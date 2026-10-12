@@ -23,8 +23,26 @@ import subprocess
 from urllib.request import urlopen
 from urllib.error import URLError
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+def _find_project_root() -> str:
+    for start in (os.path.dirname(os.path.abspath(__file__)), os.getcwd()):
+        cur = os.path.abspath(start)
+        while cur:
+            if os.path.isfile(os.path.join(cur, "src", "config.py")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+    return os.path.dirname(os.path.abspath(__file__))
+
+PROJECT_ROOT = _find_project_root()
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "breed-classifier-react")
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+try:
+    os.chdir(PROJECT_ROOT)
+except Exception:
+    pass
 
 def is_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
     """Check if a network port is already bound."""

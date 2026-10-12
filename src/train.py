@@ -68,8 +68,7 @@ from .data_pipeline import (compute_class_counts, compute_class_priors,
                             compute_rare_classes, get_dataloaders,
                             prepare_half_splits, prepare_quarter_splits,
                             prepare_smoke_splits, prepare_splits)
-from .model import BreedClassifier
-from .ood_detector import OODDetector
+from .model import BreedClassifier, OODDetector
 from .run_utils import (finish_run, init_run_logger, log_event, log_metrics,
                         make_run_id, timestamped, unique_path)
 

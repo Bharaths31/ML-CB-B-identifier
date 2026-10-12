@@ -30,11 +30,68 @@ import time
 import zipfile
 
 # ============================================================
-#  Constants
+#  Constants & Root Discovery
 # ============================================================
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = SCRIPT_DIR  # This script lives at project root
+def _find_project_root() -> str:
+    """Robustly find the project root directory containing src/config.py.
+    
+    Walks up from:
+      1. SCRIPT_DIR (the directory of the script file)
+      2. Current working directory (os.getcwd())
+      3. PYTHONPATH and sys.path entries
+      4. Any parent directories up to filesystem root
+    """
+    candidates = []
+    if "__file__" in globals() and __file__:
+        try:
+            candidates.append(os.path.dirname(os.path.abspath(__file__)))
+        except Exception:
+            pass
+    try:
+        candidates.append(os.path.abspath(os.getcwd()))
+    except Exception:
+        pass
+    for p in sys.path:
+        if p and os.path.isdir(p):
+            candidates.append(os.path.abspath(p))
+
+    # 1. Walk up from each candidate looking for src/config.py
+    for start in candidates:
+        cur = start
+        while cur:
+            if os.path.isfile(os.path.join(cur, "src", "config.py")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+
+    # 2. Check 1-level down from candidates
+    for start in candidates:
+        if os.path.isdir(start):
+            try:
+                for entry in os.listdir(start):
+                    child = os.path.join(start, entry)
+                    if os.path.isdir(child) and os.path.isfile(os.path.join(child, "src", "config.py")):
+                        return child
+            except Exception:
+                pass
+
+    # 3. Fallback
+    if "__file__" in globals() and __file__:
+        return os.path.dirname(os.path.abspath(__file__))
+    return os.getcwd()
+
+
+PROJECT_ROOT = _find_project_root()
+SCRIPT_DIR = PROJECT_ROOT
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+try:
+    os.chdir(PROJECT_ROOT)
+except Exception:
+    pass
 
 KAGGLE_DATASET_ALGSOCH = "algsoch/breed-cattle-buffalo"
 KAGGLE_DATASET_CATTLE = "atharvadarpude/indian-cattle-image-dataset"
@@ -63,12 +120,11 @@ DATA_RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
 REQUIREMENTS = os.path.join(PROJECT_ROOT, "requirements.txt")
 
-# Every src module the training run imports. If any is missing the run crashes
-# with "No module named 'src.X'" — usually a stale checkout that never got the
-# new files (e.g. src/run_utils.py). Checked up front with a clear message.
+# Every standalone src module the training run imports.
+# Note: cbam, efficientnet_lite, traits, and ood_detector are integrated into model.py.
 REQUIRED_SRC_MODULES = (
     "__init__.py", "config.py", "run_utils.py", "data_pipeline.py", "model.py",
-    "cbam.py", "efficientnet_lite.py", "train.py", "metrics.py", "export.py",
+    "train.py", "metrics.py", "export.py",
     "evaluate.py", "parity_check.py", "verify.py",
 )
 
@@ -104,6 +160,11 @@ def _run(cmd, cwd=None, env=None, check=True, capture=False):
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
+    # Ensure child processes always have PROJECT_ROOT on PYTHONPATH
+    if "PYTHONPATH" in merged_env:
+        merged_env["PYTHONPATH"] = f"{PROJECT_ROOT}{os.pathsep}{merged_env['PYTHONPATH']}"
+    else:
+        merged_env["PYTHONPATH"] = PROJECT_ROOT
     # Give child processes the SAME execution id so their logs correlate.
     try:
         from src.run_utils import get_logger
@@ -256,10 +317,21 @@ def stage_prerequisites(args):
         _check_windows_build_tools()
 
     # Check project structure
-    if not os.path.exists(os.path.join(PROJECT_ROOT, "src", "config.py")):
+    config_file = os.path.join(PROJECT_ROOT, "src", "config.py")
+    if not os.path.exists(config_file):
+        recovered = _find_project_root()
+        if os.path.exists(os.path.join(recovered, "src", "config.py")):
+            globals()["PROJECT_ROOT"] = recovered
+            try:
+                os.chdir(recovered)
+            except Exception:
+                pass
+            config_file = os.path.join(recovered, "src", "config.py")
+
+    if not os.path.exists(config_file):
         raise RuntimeError(
-            f"src/config.py not found. Run this script from the project root "
-            f"(ML-CB-B-identifier/)")
+            f"src/config.py not found in {PROJECT_ROOT} or any parent directories. "
+            f"Please run from within the ML-CB-B-identifier project repository.")
     print("  ✅ Project structure verified")
 
 
@@ -865,10 +937,16 @@ def stage_train(args):
             + "\n  These are new/updated files that must be synced (git pull / "
               "copy the whole src/ folder). Training cannot start without them.")
 
-    # Build training command
     cmd = [_python(), "-m", "src.train",
            "--backbone", args.backbone,
            "--attention", args.attention]
+
+    if getattr(args, "breed_dim", None) is not None:
+        cmd.extend(["--breed-dim", str(args.breed_dim)])
+    if getattr(args, "cosine_head", False):
+        cmd.append("--cosine-head")
+    if getattr(args, "min_images_per_breed", None) is not None:
+        cmd.extend(["--min-images-per-breed", str(args.min_images_per_breed)])
 
     if args.smoke_test:
         cmd.append("--smoke-test")
@@ -1025,14 +1103,87 @@ def stage_export(args):
 
 
 # ============================================================
-#  §7.5 — OOD Calibration
+#  §7.5 — OOD Calibration & Shared Config Sync
 # ============================================================
 
+def sync_shared_config(model_tag: str, model_path: str = None, ood_profile_path: str = None, set_active: bool = False):
+    """Synchronize training output with outputs/app_config.json shared database."""
+    config_file = os.path.join(PROJECT_ROOT, "outputs", "app_config.json")
+    if not os.path.exists(config_file):
+        return
+
+    try:
+        with open(config_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return
+
+    ood_section = data.setdefault("ood", {
+        "enabled": True,
+        "selected_profile": "auto",
+        "energy_threshold": -5.0,
+        "msp_threshold": 0.5,
+        "temperature": 1.0,
+    })
+
+    ood_prof_name = None
+    if ood_profile_path and os.path.exists(ood_profile_path):
+        try:
+            with open(ood_profile_path, "r", encoding="utf-8") as f:
+                ood_meta = json.load(f)
+            ood_prof_name = os.path.basename(ood_profile_path)
+            if set_active:
+                ood_section["selected_profile"] = ood_prof_name
+                if "energy_threshold" in ood_meta:
+                    ood_section["energy_threshold"] = round(float(ood_meta["energy_threshold"]), 4)
+                if "msp_threshold" in ood_meta:
+                    ood_section["msp_threshold"] = round(float(ood_meta["msp_threshold"]), 4)
+                if "temperature" in ood_meta:
+                    ood_section["temperature"] = float(ood_meta["temperature"])
+        except Exception:
+            pass
+
+    if set_active and model_tag:
+        data["active_model"] = model_tag
+        print(f"  [Config] Set active model -> {model_tag}")
+        if ood_prof_name:
+            print(f"  [Config] Set active OOD profile -> {ood_prof_name}")
+
+    tmp = config_file + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp, config_file)
+        print(f"  [Config] Updated {os.path.relpath(config_file, PROJECT_ROOT)}")
+    except Exception:
+        pass
+
+
 def stage_calibrate_ood(args):
-    _banner(7.5, "OOD Calibration")
+    _banner(7.5, "OOD Calibration & App Config Sync")
     print("  Running OOD calibration on the validation set...")
     _run([_python(), "scripts/calibrate_ood.py", "--backbone", args.backbone], check=False)
     print("  ✅ OOD calibration completed (thresholds saved)")
+
+    # Find the newly exported / trained model
+    ckpt_dir = os.path.join(PROJECT_ROOT, "outputs", "checkpoints")
+    candidates = sorted(glob.glob(os.path.join(ckpt_dir, f"{args.backbone}_*.pt")))
+    best_stem = None
+    if candidates:
+        best_stem = os.path.splitext(os.path.basename(candidates[-1]))[0]
+
+    ood_dir = os.path.join(PROJECT_ROOT, "outputs", "ood")
+    calibrated_json = None
+    if best_stem:
+        cand_json = os.path.join(ood_dir, f"{best_stem}.json")
+        if os.path.exists(cand_json):
+            calibrated_json = cand_json
+
+    sync_shared_config(
+        model_tag=best_stem or args.backbone,
+        ood_profile_path=calibrated_json,
+        set_active=getattr(args, "set_active", False)
+    )
 
 
 # ============================================================
@@ -1132,6 +1283,14 @@ Outputs are timestamped per run and never overwrite previous results.
                         help="backbone architecture (default: lite2)")
     parser.add_argument("--attention", choices=["cbam", "se"], default="cbam",
                         help="attention module (default: cbam)")
+    parser.add_argument("--breed-dim", type=int, default=384, choices=[384, 512],
+                        help="breed head feature dimension (default: 384)")
+    parser.add_argument("--cosine-head", action="store_true",
+                        help="use ArcFace normalized scaled-cosine breed heads")
+    parser.add_argument("--min-images-per-breed", type=int, default=None,
+                        help="minimum required images per breed (filters small classes)")
+    parser.add_argument("--set-active", action="store_true",
+                        help="automatically set newly trained model active in web app")
 
     # Training overrides & preset hyperparameters
     parser.add_argument("--include-qat", action="store_true",

@@ -6,8 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, IMAGE_SIZE, OOD_DIR
-from src.model import BreedClassifier
-from src.ood_detector import OODDetector
+from src.model import BreedClassifier, OODDetector
 from src.config import OOD_ENABLED
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config

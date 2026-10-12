@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
 
 from src.config import PROJECT_ROOT, OOD_DIR
-from src.ood_detector import OODDetector
+from src.model import OODDetector
 from server.model_manager import get_manager
 from server.shared_config import get_shared_config
 from server.utils.logger import get_logger
