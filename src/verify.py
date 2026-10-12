@@ -1,10 +1,21 @@
+"""Architecture sanity check: load backbone weights and run a forward pass.
+
+Verifies that EfficientNet-Lite{2,4} weights load and the BreedClassifier heads
+produce the expected shapes (binary=2, cattle=57, buffalo=18, features=1280).
+
+REFERENCES
+  - src/model.py: EfficientNetLite, load_backbone_weights, BreedClassifier.
+  - src/config.py: BACKBONE_WEIGHTS, CBAM_AFTER_STAGE, IMAGE_SIZE, NUM_*_BREEDS.
+  - Run with: ``python -m src.verify``.
+"""
+
 import sys
 
 import torch
 
 from .config import (BACKBONE_WEIGHTS, CBAM_AFTER_STAGE, IMAGE_SIZE,
                      NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS)
-from .efficientnet_lite import EfficientNetLite, load_backbone_weights
+from .model import EfficientNetLite, load_backbone_weights
 from .model import BreedClassifier
 
 
@@ -40,7 +51,7 @@ def check_full_model(name):
 
 
 def main():
-    from .run_logger import init_run_logger
+    from .run_utils import init_run_logger
     init_run_logger(module="src.verify")
     print(f"Python: {sys.version.split()[0]}")
     print(f"torch: {torch.__version__}")

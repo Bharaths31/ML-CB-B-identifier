@@ -13,7 +13,7 @@ from src.data_pipeline import CattleBuffaloDataset, prepare_splits, _eval_transf
 from src.model import BreedClassifier
 from src.run_utils import find_latest_checkpoint, resolve_checkpoint
 from src.config import OOD_ENERGY_TEMPERATURE, CHECKPOINT_DIR
-from src.ood_detector import OODDetector
+from src.model import OODDetector
 
 
 def main():

@@ -46,7 +46,16 @@ KAGGLE_DATASET_BUFFALO = "atharvadarpude/indian-buffalo-dataset"
 #                    "malenadu_gidda": "malnad_gidda"}
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit"
+    "luit_(swamp)": "other_buffalo",
+    "luit": "other_buffalo",
+    "mehsana": "other_buffalo",
+    "surti": "other_buffalo",
+    "nagpuri": "other_buffalo",
+    "chhattisgarhi": "other_buffalo",
+    "chilika": "other_buffalo",
+    "kalahandi": "other_buffalo",
+    "pandharpuri": "other_buffalo",
+    "gojri": "other_buffalo",
 }
 
 
@@ -74,7 +83,7 @@ EXPORT_FORMATS = ["portable", "onnx", "int8", "float16"]
 def _log_event(event, **fields):
     """Best-effort structured logging (never raises if the logger is absent)."""
     try:
-        from src.run_logger import log_event
+        from src.run_utils import log_event
         return log_event(event, **fields)
     except Exception:
         return None
@@ -97,7 +106,7 @@ def _run(cmd, cwd=None, env=None, check=True, capture=False):
         merged_env.update(env)
     # Give child processes the SAME execution id so their logs correlate.
     try:
-        from src.run_logger import get_logger
+        from src.run_utils import get_logger
         lg = get_logger()
         if lg is not None:
             merged_env.setdefault("RUN_EXEC_ID", lg.exec_id)
@@ -674,7 +683,7 @@ def build_dataset_inventory(source_base, dataset_name, out_dir=None,
     out_path = os.path.join(out_dir, f"{dataset_name}.json")
     with open(out_path, "w") as f:
         json.dump(inventory, f, indent=2)
-    print(f"  📋 Inventory: {dataset_name} -> {out_path} "
+    print(f"  [inventory] {dataset_name} -> {out_path} "
           f"({inventory['totals']['breeds']} breeds, "
           f"{inventory['totals']['images']} images"
           + (f", {len(errors)} unreadable" if errors else "") + ")")
@@ -894,8 +903,10 @@ def stage_train(args):
         cmd.extend(["--phase3-epochs", str(args.phase3_epochs)])
     if args.num_workers is not None:
         cmd.extend(["--num-workers", str(args.num_workers)])
+    if getattr(args, "batch_size", None) is not None:
+        cmd.extend(["--batch-size", str(args.batch_size)])
 
-    # Augmentation is OFF unless explicitly requested.
+    # Augmentation options & preset flags
     if args.augment_all:
         cmd.append("--augment-all")
     else:
@@ -905,8 +916,27 @@ def stage_train(args):
             if getattr(args, attr, False):
                 cmd.append(flag)
     
-    if getattr(args, "augment_preset", None):
-        cmd.extend(["--augment-preset", args.augment_preset])
+    aug_preset = getattr(args, "augment_preset", None)
+    if aug_preset and aug_preset != "none":
+        cmd.extend(["--augment-preset", aug_preset])
+    elif aug_preset == "none":
+        cmd.extend(["--augment-preset", "none"])
+
+    # Hyperparameter overrides from preset or CLI
+    if getattr(args, "contrastive_weight", None) is not None:
+        cmd.extend(["--contrastive-weight", str(args.contrastive_weight)])
+    if getattr(args, "label_smoothing", None) is not None:
+        cmd.extend(["--label-smoothing", str(args.label_smoothing)])
+    if getattr(args, "warmup_epochs", None) is not None:
+        cmd.extend(["--warmup-epochs", str(args.warmup_epochs)])
+    if getattr(args, "grad_accum", None) is not None:
+        cmd.extend(["--grad-accum", str(args.grad_accum)])
+    if getattr(args, "weight_decay", None) is not None:
+        cmd.extend(["--weight-decay", str(args.weight_decay)])
+    if getattr(args, "rare_threshold", None) is not None:
+        cmd.extend(["--rare-threshold", str(args.rare_threshold)])
+    if getattr(args, "seed", None) is not None:
+        cmd.extend(["--seed", str(args.seed)])
 
     aug_on = [a for a in ("mix", "flip", "color_jitter", "randaugment", "rrc")
               if args.augment_all or getattr(args, a, False)]
@@ -1103,20 +1133,36 @@ Outputs are timestamped per run and never overwrite previous results.
     parser.add_argument("--attention", choices=["cbam", "se"], default="cbam",
                         help="attention module (default: cbam)")
 
-    # Training overrides
+    # Training overrides & preset hyperparameters
     parser.add_argument("--include-qat", action="store_true",
                         help="include QAT phase 3 (default: skipped)")
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help="override training batch size")
     parser.add_argument("--phase1-epochs", type=int, default=None,
-                        help="override phase 1 epoch count")
+                        help="override phase 1 epoch count (default: 8)")
     parser.add_argument("--phase2-epochs", type=int, default=None,
-                        help="override phase 2 epoch count")
+                        help="override phase 2 epoch count (default: 80)")
     parser.add_argument("--phase3-epochs", type=int, default=None,
-                        help="override phase 3 epoch count")
+                        help="override phase 3 epoch count (default: 10)")
+    parser.add_argument("--contrastive-weight", type=float, default=None,
+                        help="Supervised Contrastive loss weight (default: 0.3)")
+    parser.add_argument("--label-smoothing", type=float, default=None,
+                        help="label smoothing factor (default: 0.1)")
+    parser.add_argument("--warmup-epochs", type=int, default=None,
+                        help="warmup epochs for LR scheduler (default: 5)")
+    parser.add_argument("--grad-accum", type=int, default=None,
+                        help="gradient accumulation steps (default: 4)")
+    parser.add_argument("--weight-decay", type=float, default=None,
+                        help="weight decay for AdamW (default: 0.01)")
+    parser.add_argument("--rare-threshold", type=int, default=None,
+                        help="rare class threshold (default: 20)")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="random seed (default: 42)")
     parser.add_argument("--num-workers", type=int, default=None,
                         help="dataloader worker count")
 
-    # Augmentation (ALL OFF by default — opt-in per run)
-    aug = parser.add_argument_group("augmentation (off by default)")
+    # Augmentation (preset light enabled by default for optimal generalization)
+    aug = parser.add_argument_group("augmentation")
     aug.add_argument("--mix", action="store_true",
                      help="enable CutMix/MixUp batch mixing")
     aug.add_argument("--flip", action="store_true",
@@ -1129,8 +1175,8 @@ Outputs are timestamped per run and never overwrite previous results.
                      help="enable RandomResizedCrop")
     aug.add_argument("--augment-all", action="store_true",
                      help="enable flip + color-jitter + randaugment + rrc + mix")
-    aug.add_argument("--augment-preset", choices=["none", "light"],
-                     help="apply pre-defined augmentation preset (e.g. light)")
+    aug.add_argument("--augment-preset", choices=["none", "light"], default="light",
+                     help="apply pre-defined augmentation preset (default: light)")
 
     # Imbalance mechanism (single mechanism by default)
     imb = parser.add_argument_group("imbalance")
@@ -1161,15 +1207,15 @@ Outputs are timestamped per run and never overwrite previous results.
                         help="skip writing data/dataset_inventory/*.json "
                              "(per-dataset breed/image/resolution logs)")
     
-    # Dataset mode
-    parser.add_argument("--dataset-mode", choices=["algsoch", "atharvadarpude", "both"], default="both",
-                        help="select the dataset sources to use for training (default: both)")
+    # Dataset mode (atharvadarpude default avoids phantom/corrupt breed names)
+    parser.add_argument("--dataset-mode", choices=["algsoch", "atharvadarpude", "both"], default="atharvadarpude",
+                        help="select the dataset sources to use for training (default: atharvadarpude)")
 
     args = parser.parse_args()
 
     # --- execution logger (single folder logs/<exec_id>/) ---
     try:
-        from src.run_logger import init_run_logger, log_event
+        from src.run_utils import init_run_logger, log_event
         init_run_logger(exec_id=getattr(args, "exec_id", None), module="local_train")
         log_event("cli_args", category="actions", **vars(args))
     except Exception:

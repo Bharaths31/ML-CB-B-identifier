@@ -60,7 +60,7 @@ from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
                         IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
                         TRAIN_RESIZE, OOD_ENABLED, OOD_DIR)
 from src.model import BreedClassifier
-from src.ood_detector import OODDetector
+from src.model import OODDetector
 
 # ---------------------------------------------------------------------------
 #  Constants
@@ -556,6 +556,94 @@ class ModelManager:
 
         return model
 
+    # -- OOD linkage (per model) -----------------------------------------
+    def _ood_for(self, model_name):
+        """Return (and cache) the OODDetector linked to THIS model's JSON."""
+        if not OOD_ENABLED:
+            return None
+        if not hasattr(self, "_ood_cache"):
+            self._ood_cache = {}
+        if model_name not in self._ood_cache:
+            self._ood_cache[model_name] = OODDetector(model_name=model_name)
+        return self._ood_cache[model_name]
+
+    def ood_info(self, model_name):
+        det = self._ood_for(model_name)
+        if det is None:
+            return {"enabled": False}
+        return {"enabled": True, "model_name": model_name, "source": det.source,
+                "calibrated_at": det.calibrated_at, "percentile": det.percentile,
+                "energy_threshold": det.energy_threshold,
+                "msp_threshold": det.msp_threshold, "temperature": det.T}
+
+    def recalibrate_ood(self, model_name, split="val", percentile=None,
+                        max_batches=None):
+        """Calibrate OOD thresholds for one model and save outputs/ood/<name>.json."""
+        if not OOD_ENABLED:
+            return {"error": "OOD is disabled (OOD_ENABLED=False)"}
+        from src.config import OOD_PERCENTILE
+        from src.data_pipeline import get_dataloaders
+        if percentile is None:
+            percentile = OOD_PERCENTILE
+        model = self._load_model(model_name)
+        if not isinstance(model, torch.nn.Module):
+            return {"error": "OOD calibration needs a PyTorch .pt checkpoint (not ONNX)"}
+        loaders = get_dataloaders(batch_size=32, num_workers=0)
+        if loaders is None:
+            return {"error": "no data/splits found for calibration"}
+        _, val_loader, test_loader = loaders
+        loader = val_loader if split == "val" else test_loader
+        thresholds = OODDetector.calibrate(model, loader, self.device,
+                                           percentile=float(percentile),
+                                           max_batches=max_batches)
+        path = OODDetector.save(thresholds, model_name)
+        if hasattr(self, "_ood_cache"):
+            self._ood_cache.pop(model_name, None)   # reload from the new JSON
+        thresholds["path"] = path
+        if logger:
+            logger.info(f"OOD recalibrated for '{model_name}' -> {path}")
+        return thresholds
+
+    def dataset_info(self):
+        """Dataset overview: inventory (if any), split counts and class-map sizes."""
+        info = {"project_root": PROJECT_ROOT, "inventory": None, "totals": None,
+                "class_maps": {k: len(v) for k, v in self.class_maps.items()},
+                "splits": {}, "dropped_breeds": None, "breeds": None}
+        inv = os.path.join(PROJECT_ROOT, "data", "dataset_inventory", "merged.json")
+        if os.path.exists(inv):
+            info["inventory"] = inv
+            try:
+                with open(inv) as f:
+                    d = json.load(f)
+                info["totals"] = d.get("totals")
+                info["breeds"] = d.get("breeds")
+            except Exception:
+                pass
+        drop = os.path.join(SPLIT_DIR, "dropped_breeds.json")
+        if os.path.exists(drop):
+            try:
+                with open(drop) as f:
+                    info["dropped_breeds"] = json.load(f)
+            except Exception:
+                pass
+        for split in ("train", "val", "test"):
+            p = os.path.join(SPLIT_DIR, f"{split}.csv")
+            if not os.path.exists(p):
+                continue
+            try:
+                import pandas as pd
+                df = pd.read_csv(p)
+                counts = df.groupby(["species", "breed"])["path"].count()
+                info["splits"][split] = {
+                    "images": int(len(df)),
+                    "breeds": int(df["breed"].nunique()) if "breed" in df else None,
+                    "per_breed_min": int(counts.min()) if len(counts) else 0,
+                    "per_breed": {f"{sp}/{br}": int(n) for (sp, br), n in counts.items()},
+                }
+            except Exception:
+                pass
+        return info
+
     @torch.no_grad()
     def predict(self, image_bytes, model_name, ood_profile="auto"):
         """Run prediction on raw image bytes. Returns result dict."""
@@ -719,7 +807,7 @@ class ModelManager:
 
         # --- execution log: one record per prediction ---
         try:
-            from src.run_logger import log_event
+            from src.run_utils import log_event
             log_event("prediction", category="test", model=model_name,
                       species=result.get("species"),
                       species_confidence=result.get("species_confidence"),
@@ -1034,6 +1122,25 @@ def build_html(mode="dev"):
     <h2>📚 Class Maps (Breed Data)</h2>
     <div id="class-maps-content" class="dev-panel">
       <div class="dev-placeholder">Loading class maps...</div>
+    </div>
+  </div>
+
+  <!-- OOD Calibration & Dataset Tools -->
+  <div class="card" id="ood-tools-card">
+    <h2>🧪 OOD Calibration &amp; Dataset</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px">
+      OOD thresholds are <strong>per-model</strong> and stored in
+      <code>outputs/ood/&lt;model_name&gt;.json</code>. Pick a model in
+      <em>Inspect Model</em> above, then recalibrate on the validation split or
+      inspect the dataset here.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="predict-btn" id="ood-info-btn" style="width:auto;padding:8px 16px;font-size:0.85rem;background:var(--surface2);color:var(--text)">🔗 OOD Linkage</button>
+      <button class="predict-btn" id="ood-recal-btn" style="width:auto;padding:8px 16px;font-size:0.85rem">🔄 Recalibrate OOD</button>
+      <button class="predict-btn" id="dataset-view-btn" style="width:auto;padding:8px 16px;font-size:0.85rem;background:var(--surface2);color:var(--text)">📊 View Dataset</button>
+    </div>
+    <div id="ood-tools-content" class="dev-panel">
+      <div class="dev-placeholder">Select a model, then use the tools above.</div>
     </div>
   </div>
 
@@ -1599,6 +1706,92 @@ fetch('/api/models').then(r => r.json()).then(data => {
     sb.innerHTML = dc + ' <span class="chip">' + data.models.length + ' models</span> ' + sb.innerHTML;
   }
 });
+
+// ---- OOD calibration & dataset tools (per-model) --------------------------
+function _inspectedModel() {
+  const d = $('#dev-model-select');
+  if (d && d.value) return d.value;
+  const m = $('#model-select');
+  return m ? m.value : '';
+}
+function _oodRender(html) {
+  const el = $('#ood-tools-content');
+  if (el) el.innerHTML = html;
+}
+function _oodTable(obj) {
+  let rows = '';
+  for (const [k, v] of Object.entries(obj)) {
+    rows += '<tr><td style="color:var(--text-muted);padding:3px 10px 3px 0">' + k +
+            '</td><td><code>' + (v === null || v === undefined ? '—' : v) + '</code></td></tr>';
+  }
+  return '<table style="width:100%;font-size:0.82rem"><tbody>' + rows + '</tbody></table>';
+}
+async function loadOodInfo() {
+  const model = _inspectedModel();
+  if (!model) { _oodRender('<div class="dev-placeholder">Select a model first.</div>'); return; }
+  _oodRender('<div class="dev-placeholder">Loading OOD linkage…</div>');
+  try {
+    const d = await (await fetch('/api/ood-info?model=' + encodeURIComponent(model))).json();
+    if (!d.enabled) { _oodRender('<div class="dev-placeholder">OOD disabled (OOD_ENABLED=False in src/config.py).</div>'); return; }
+    _oodRender('<h3 style="font-size:0.9rem;color:var(--accent-light);margin-bottom:8px">🔗 ' + model + '</h3>' +
+      _oodTable({ 'threshold file': d.source, 'calibrated_at': d.calibrated_at,
+                  'percentile': d.percentile, 'energy_threshold': d.energy_threshold,
+                  'msp_threshold': d.msp_threshold, 'temperature': d.temperature }));
+  } catch (e) { _oodRender('<div class="dev-placeholder">Error: ' + e + '</div>'); }
+}
+async function recalibrateOod() {
+  const model = _inspectedModel();
+  if (!model) { _oodRender('<div class="dev-placeholder">Select a model first.</div>'); return; }
+  _oodRender('<div class="dev-placeholder">Calibrating OOD on the validation split… (may take a moment)</div>');
+  try {
+    const r = await fetch('/api/recalibrate-ood', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model, split: 'val' }) });
+    const d = await r.json();
+    if (d.error) { _oodRender('<div class="dev-placeholder">⚠️ ' + d.error + '</div>'); return; }
+    _oodRender('<h3 style="font-size:0.9rem;color:var(--green);margin-bottom:8px">✅ Recalibrated ' + model + '</h3>' +
+      _oodTable({ 'saved to': d.path, 'energy_threshold': d.energy_threshold,
+                  'msp_threshold': d.msp_threshold, 'percentile': d.percentile,
+                  'samples': d.n_samples, 'energy_mean': d.energy_mean,
+                  'msp_mean': d.msp_mean }));
+    setTimeout(loadOodInfo, 400);
+  } catch (e) { _oodRender('<div class="dev-placeholder">Error: ' + e + '</div>'); }
+}
+async function loadDatasetInfo() {
+  _oodRender('<div class="dev-placeholder">Loading dataset…</div>');
+  try {
+    const d = await (await fetch('/api/dataset-info')).json();
+    let html = '';
+    if (d.class_maps) html += '<p style="font-size:0.85rem"><strong>Classes:</strong> cattle=' +
+      (d.class_maps.cattle || 0) + ', buffalo=' + (d.class_maps.buffalo || 0) + '</p>';
+    if (d.totals) html += '<p style="font-size:0.85rem"><strong>Inventory:</strong> ' +
+      (d.totals.images || '?') + ' images, ' + (d.totals.breeds || '?') + ' breeds</p>';
+    if (d.dropped_breeds && d.dropped_breeds.dropped) {
+      const dl = d.dropped_breeds.dropped;
+      html += '<p style="font-size:0.85rem"><strong>Dropped small breeds (&lt;' +
+        d.dropped_breeds.min_images + '):</strong> ' + Object.keys(dl).length + '</p>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">' +
+        Object.entries(dl).map(([k, v]) => k + ' (' + v + ')').join(', ') + '</div>';
+    }
+    if (d.splits && Object.keys(d.splits).length) {
+      html += '<table style="width:100%;font-size:0.82rem"><tr>' +
+        '<th style="text-align:left">split</th><th style="text-align:left">images</th>' +
+        '<th style="text-align:left">breeds</th><th style="text-align:left">min/breed</th></tr>';
+      for (const [k, v] of Object.entries(d.splits)) {
+        html += '<tr><td>' + k + '</td><td>' + v.images + '</td><td>' + v.breeds +
+                '</td><td>' + v.per_breed_min + '</td></tr>';
+      }
+      html += '</table>';
+    }
+    _oodRender(html || '<div class="dev-placeholder">No dataset information found.</div>');
+  } catch (e) { _oodRender('<div class="dev-placeholder">Error: ' + e + '</div>'); }
+}
+(function wireOodTools() {
+  const b1 = $('#ood-info-btn'); if (b1) b1.addEventListener('click', loadOodInfo);
+  const b2 = $('#ood-recal-btn'); if (b2) b2.addEventListener('click', recalibrateOod);
+  const b3 = $('#dataset-view-btn'); if (b3) b3.addEventListener('click', loadDatasetInfo);
+  const dev = $('#dev-model-select'); if (dev) dev.addEventListener('change', loadOodInfo);
+})();
 
 // Sync presenter config from API and populate Dev Tools controls
 function syncPresenterConfig() {
@@ -2334,6 +2527,21 @@ def run_server(manager, port=8501, mode="dev"):
                     content = "(logger not initialized)"
                 self._respond(200, "text/plain", content.encode())
 
+            elif self.path == "/api/dataset-info":
+                try:
+                    info = manager.dataset_info()
+                    self._respond(200, "application/json", json.dumps(info).encode())
+                except Exception as e:
+                    self._respond(500, "application/json",
+                                  json.dumps({"error": str(e)}).encode())
+
+            elif self.path.startswith("/api/ood-info"):
+                from urllib.parse import urlparse, parse_qs
+                qs = parse_qs(urlparse(self.path).query)
+                model_name = qs.get("model", [""])[0]
+                self._respond(200, "application/json",
+                              json.dumps(manager.ood_info(model_name)).encode())
+
             else:
                 self._respond(404, "text/plain", b"Not Found")
 
@@ -2474,6 +2682,28 @@ def run_server(manager, port=8501, mode="dev"):
                     self._respond(500, "application/json",
                                   json.dumps({"error": str(e)}).encode())
 
+            elif self.path == "/api/recalibrate-ood":
+                content_length = int(self.headers.get("Content-Length", 0))
+                raw = self.rfile.read(content_length)
+                try:
+                    payload = json.loads(raw.decode("utf-8")) if raw else {}
+                    model_name = payload.get("model", "")
+                    split = payload.get("split", "val")
+                    percentile = payload.get("percentile")
+                    max_batches = payload.get("max_batches")
+                    if model_name not in manager.models:
+                        self._respond(404, "application/json",
+                                      json.dumps({"error": "Model not found"}).encode())
+                        return
+                    thresholds = manager.recalibrate_ood(
+                        model_name, split=split, percentile=percentile,
+                        max_batches=max_batches)
+                    self._respond(200, "application/json",
+                                  json.dumps(thresholds).encode())
+                except Exception as e:
+                    self._respond(500, "application/json",
+                                  json.dumps({"error": str(e)}).encode())
+
             else:
                 self._respond(404, "text/plain", b"Not Found")
 
@@ -2517,7 +2747,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        from src.run_logger import init_run_logger, log_event
+        from src.run_utils import init_run_logger, log_event
         init_run_logger(module="test_model")
         log_event("cli_args", category="actions", **vars(args))
     except Exception:

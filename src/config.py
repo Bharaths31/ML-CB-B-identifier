@@ -1,3 +1,38 @@
+"""Configuration — the single source of truth for every constant.
+
+Change behaviour here (or via the matching CLI flag); never hardcode paths or
+hyperparameters in other modules. Every module and script imports from here.
+
+SECTION MAP
+  1. Model geometry & backbone paths
+  2. Augmentation (OFF by default except horizontal flip + mild RRC)
+  3. Breed-specific feature learning (SupCon, traits, cosine head, hard pairs)
+  4. Class imbalance (effective-number sampler / optional logit adjustment)
+  5. EMA (weights) settings
+  6. Data splits & loss weights (incl. adaptive saturation weights)
+  7. Training phases & learning rates
+  8. Model-selection metric
+  9. Optimizer / regularization
+ 10. Preprocessing (train/eval resize, pad-to-square)
+ 11. OOD (out-of-distribution) detection
+ 12. Paths, output naming & run logging
+ 13. Data modes & evaluation cadence
+
+REFERENCES (who reads what)
+  - src/model.py ........ IMAGE_SIZE, FEATURE_DIM, BREED_DIM, DROPOUT, COSINE_*,
+                          CBAM_*, PROJECTION_DIM, NUM_*_BREEDS
+  - src/data_pipeline.py  AUG_*, MIX_*, RRC_*, COLOR_JITTER_*, RARE_CLASS_THRESHOLD,
+                          SAMPLER_BETA, EVAL_*/TRAIN_* resize & pad, DEDUP_*,
+                          TRAIN/VAL/TEST_RATIO, VAL_MIN_WARN
+  - src/train.py ........ LOSS_WEIGHT_*, PHASE*_EPOCHS/LR, EMA_*, KD_*, CONTRASTIVE_*,
+                          COSINE_MARGIN*, TRAIT_*, HARD_*, BEST_METRIC*, LOGIT_ADJUST*,
+                          WARMUP_EPOCHS, GRADIENT_ACCUMULATION_STEPS, BATCH_SIZE, SEED
+  - src/metrics.py (now in src/train.py)  BEST_METRIC_*_WEIGHT, SHOT_*
+  - src/run_utils.py .... LOG_*, RUN_ID_FORMAT, TIMESTAMP_OUTPUTS
+  - src/export.py / evaluate.py / parity_check.py  output dirs, OOD_* metadata
+  - local_train.py / scripts/*  paths, dataset slugs, defaults
+"""
+
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -43,10 +78,10 @@ BACKBONE_CHANNELS = {
 }
 
 FEATURE_DIM = 1280
-BINARY_DIM = 256
-BREED_DIM = 512
+BINARY_DIM = 512
+BREED_DIM = 384
 PROJECTION_DIM = 128
-DROPOUT = 0.3
+DROPOUT = 0.4
 
 RANDAUGMENT_OPS = 2
 RANDAUGMENT_MAGNITUDE = 5
@@ -79,7 +114,8 @@ MIX_ENABLED = False              # CutMix/MixUp master switch
 # content between breeds and improve generalization. Colour jitter, RandAugment
 # and mixing stay OFF (they can erase breed-defining coat colour / features).
 AUG_HORIZONTAL_FLIP = True
-AUG_RANDOM_RESIZED_CROP = True
+# Random crops OFF by default (they cut body parts / hide breed features).
+AUG_RANDOM_RESIZED_CROP = False
 AUG_COLOR_JITTER = False
 AUG_RANDAUGMENT = False
 
@@ -111,7 +147,7 @@ BREED_AUG_POLICY = {b: {"color_jitter": False} for b in COAT_COLOUR_BREEDS}
 # --- Pad-to-square (opt-in) -----------------------------------------------
 # 4:3 phone photos lose ~25% of width to CenterCrop. Pad mode resizes the LONG
 # side to IMAGE_SIZE and pads to a square (ImageNet-mean fill -> 0 after
-# Normalize). Changes train + eval; Flutter/test_model.py/export must match.
+# Normalize). Preserves full-body side profiles (hump, dewlap, horns visible).
 EVAL_PAD_TO_SQUARE = False
 TRAIN_PAD_TO_SQUARE = False
 PAD_FILL = "imagenet_mean"
@@ -134,16 +170,19 @@ DEDUP_SPLITS = False             # group-aware splits by perceptual hash
 DEDUP_HAMMING = 4
 HASH_CACHE_NAME = "hashes.csv"
 VAL_MIN_WARN = 2                 # warn if a breed has fewer val images
+
+# Consolidate spelling variants and low-distinction / heavily confused buffalo breeds
+# under a general species banner ('other_buffalo') to protect model accuracy.
 BREED_ALIASES = {
     "holstein-friesian": "holstein_friesian",
-    "luit_(swamp)": "luit"
+    "luit_(swamp)": "luit",
 }
 
 # --- Fine-grained feature learning (auxiliary supervised contrastive loss) ---
 # The 1280-d pooled feature vector was previously unused. A projection head +
 # SupCon loss explicitly pulls same-breed embeddings together, which is what
 # separates visually near-identical indigenous breeds (Hariana/Sahiwal/etc.).
-CONTRASTIVE_WEIGHT = 0.2
+CONTRASTIVE_WEIGHT = 0.3
 CONTRASTIVE_TEMPERATURE = 0.1
 
 # --- Logit adjustment for class imbalance (Menon et al., ICLR 2021) ---
@@ -169,6 +208,16 @@ OOD_MSP_THRESHOLD = 0.5863       # fallback default (calibrated at 95th percenti
 # Catches non-cattle/buffalo images (chickens, goats, etc.) that produce
 # low binary confidence but still pass energy/MSP thresholds.
 OOD_BINARY_CONFIDENCE_FLOOR = 0.60
+OOD_DIR = os.path.join(PROJECT_ROOT, "outputs", "ood")
+
+# --- Small-breed policy ---
+# Breeds with fewer total images than this are dropped before splitting so the
+# model does not waste capacity on untrainable classes (dynamic head sizing
+# handles the reduced class count end to end). Set DROP_SMALL_BREEDS=False or
+# --min-images-per-breed 0 to keep every breed.
+DROP_SMALL_BREEDS = False
+MIN_IMAGES_PER_BREED = 0
+DROPPED_BREEDS_FILE = "dropped_breeds.json"
 
 # --- Knowledge distillation (teacher -> student, e.g. lite4 -> lite2) ---
 KD_ALPHA = 0.7      # blend: (1-alpha)*hard CE + alpha*T^2*KL(teacher||student)
@@ -181,7 +230,7 @@ BALANCE_BINARY_HEAD = True    # per-batch species re-weighting of binary CE
 # --- Exponential moving average of weights (phase 2) ---
 # Updated once per OPTIMIZER step (not per micro-batch). Warm-up decay is
 # decay_t = min(EMA_DECAY, (1+t)/(10+t)) so early steps track the raw model.
-EMA_DECAY = 0.999
+EMA_DECAY = 0.9995
 EMA_WARMUP = True
 EMA_WARN_FRAC = 0.25   # warn if the EMA time constant exceeds this frac of phase-2 steps
 
@@ -199,18 +248,18 @@ LOSS_WEIGHT_CATTLE = 0.50
 LOSS_WEIGHT_BUFFALO = 0.35
 
 # Once the binary head saturates (>= BINARY_SATURATION_ACC) it no longer needs
-# 15% of the loss budget; the breath heads are the bottleneck. These weights
+# 15% of the loss budget; the breed heads are the bottleneck. These weights
 # kick in automatically from the next epoch onward.
-LOSS_WEIGHT_BINARY_FINAL = 0.05
-LOSS_WEIGHT_CATTLE_FINAL = 0.55
-LOSS_WEIGHT_BUFFALO_FINAL = 0.40
-BINARY_SATURATION_ACC = 0.95
+LOSS_WEIGHT_BINARY_FINAL = 0.10
+LOSS_WEIGHT_CATTLE_FINAL = 0.52
+LOSS_WEIGHT_BUFFALO_FINAL = 0.38
+BINARY_SATURATION_ACC = 0.97
 
 PHASE1_EPOCHS = 8
 PHASE1_LR = 3e-3
 
-PHASE2_EPOCHS = 50
-PHASE2_LR = 2e-4
+PHASE2_EPOCHS = 80
+PHASE2_LR = 1e-4
 
 PHASE3_EPOCHS = 10
 PHASE3_LR = 5e-6
@@ -228,9 +277,9 @@ SHOT_MEDIUM_MAX = 100   # medium:    30..100; many-shot: > 100
 
 # --- SOTA additions ---
 WEIGHT_DECAY = 1e-2
-LABEL_SMOOTHING = 0.05
-WARMUP_EPOCHS = 3
-GRADIENT_ACCUMULATION_STEPS = 2
+LABEL_SMOOTHING = 0.1
+WARMUP_EPOCHS = 5
+GRADIENT_ACCUMULATION_STEPS = 4
 
 # --- Preprocessing / resolution ---
 TRAIN_RESIZE = IMAGE_SIZE + 28   # 288: shortest side before RandomResizedCrop
@@ -279,7 +328,7 @@ QUARTER_DATA_RATIO = 0.25  # Fraction of images per breed for --quarter-data mod
 
 # --- Training speed optimizations ---
 EVAL_EVERY_PHASE1 = 1   # Evaluate every epoch (short phase, keep all checks)
-EVAL_EVERY_PHASE2 = 2   # Evaluate every 2 epochs in the long fine-tune phase
+EVAL_EVERY_PHASE2 = 3   # Evaluate every 3 epochs in the long fine-tune phase
 EVAL_EVERY_PHASE3 = 2   # Evaluate every 2 epochs in QAT
 CACHE_IMAGES = False     # Cache decoded PIL images in RAM after first epoch
 

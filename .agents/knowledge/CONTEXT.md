@@ -25,18 +25,18 @@
 
 | Field | Value |
 |---|---|
-| **Goal** | Classify images of Indian cattle (57 breeds) and buffalo (18 breeds) using a lightweight, mobile-deployable CNN |
-| **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + 3-head classifier (binary + cattle + buffalo) + training-only projection head for SupCon |
+| **Goal** | Classify images of Indian cattle (35 breeds) and buffalo (10 breeds, 45 total) using a lightweight, mobile-deployable CNN |
+| **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + deeper binary head (1280→512→256→2) + 2 breed heads + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
-| **Training** | 2-phase default: all-heads warmup → multi-task fine-tune (+ optional QAT phase 3). Augmentation/mixing **OFF by default** |
+| **Training** | 2-phase default: all-heads warmup (8 epochs) → multi-task fine-tune (80 epochs, AdamW lr=1e-4, warmup=5, EMA decay=0.9995) |
 | **Deployment** | ONNX, INT8 (converter-side PTQ), float16, or portable self-contained folder |
 | **Outputs** | Timestamped per run (`DD-MM-YYYY-HH-MM`) — never overwrites previous results |
-| **Dataset** | Multi-source Kaggle datasets: `algsoch` & `atharvadarpude` merged into `data/raw/cattle/<breed>/*.jpg` + `data/raw/buffalo/<breed>/*.jpg` |
+| **Dataset** | Primary: `atharvadarpude` (clean, no phantom breeds) with `other_buffalo` general species banner for indistinct buffalo breeds |
 
 ### Key Numbers
 
-- **75 total breeds**: 57 cattle + 18 buffalo
-- **Input size**: 260×260 RGB
+- **45 total breeds**: 35 cattle + 10 buffalo (consolidated pool)
+- **Input size**: 260×260 RGB (pad-to-square enabled)
 - **Feature dim**: 1280 (from EfficientNet head)
 - **Backbone params**: ~6M (lite2), ~13M (lite4)
 
@@ -62,7 +62,7 @@
 │  ┌─────┼─────────┬──────────────┬───────────────────┬──────────────┐
 │  ↓     ↓         ↓              ↓                   ↓              │
 │ binary_head  cattle_head  buffalo_head   projection_head  trait_heads│
-│  (→2)        (→57)        (→18)          (→128)           (→75)      │
+│  (→2)        (→35)        (→10)          (→128)           (→45)      │
 │        ↓                                                           │
 │  masked_loss: w_bin*CE + w_cat*CE + w_buf*CE + w_trait*BCE         │
 │               (+ τ·log(prior) logit adjustment on breed CE)        │
@@ -82,10 +82,10 @@
 Image → Resize(260) → CenterCrop(260) → ToTensor()
      → model.forward() → {binary, cattle, buffalo, features, embedding, traits}
      → Energy OOD check (abort if non-bovine detected)
-     → soft routing: p(species)·softmax(head) over all 75 breeds → top-k
+     → soft routing: p(species)·softmax(head) over all 45 breeds → top-k
 ```
 
-`model.predict(x)` returns the soft-routed 75-class distribution. `test_model.py`
+`model.predict(x)` returns the soft-routed 45-class distribution. `test_model.py`
 and both Flutter engines use the same `p(species)·softmax(head)` mixture instead
 of a hard binary argmax, so a confident breed head can still win when the binary
 head is ambiguous (removes two-stage routing error propagation).
@@ -98,18 +98,15 @@ head is ambiguous (removes two-stage routing error propagation).
 Mini Project/
 ├── src/                        # Core ML package (run as python -m src.<module>)
 │   ├── __init__.py
-│   ├── config.py               # All hyperparameters & paths
-│   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
-│   ├── cbam.py                 # CBAM & SE attention modules
-│   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 2-phase training (logit adj, SupCon, EMA, adaptive weights)
-│   ├── metrics.py              # evaluate_epoch() — per-head acc, F1, macro-F1, soft-routed top1, shot buckets
-│   ├── run_utils.py            # run ids, timestamped paths, unique_path, find_latest_checkpoint, resolve_checkpoint
-│   ├── run_logger.py           # per-execution logger -> logs/<exec_id>/ (manifest, config, events, training/data/test/export jsonl)
-│   ├── evaluate.py             # Full evaluation with confusion matrices (timestamped outputs)
-│   ├── export.py               # ONNX, INT8, float16, portable export
-│   └── verify.py               # Quick architecture sanity check
+│   ├── config.py               # SINGLE SOURCE OF TRUTH — all constants/paths
+│   ├── run_utils.py            # run ids/timestamped paths + execution logger (logs/<exec_id>/)
+│   ├── data_pipeline.py        # discovery, splits (+dHash dedup), transforms, mixing, sampler, loaders
+│   ├── model.py                # EfficientNet-Lite + CBAM/SE + heads + CosineHead + trait heads + OOD
+│   ├── train.py                # training loop, losses, EMA, CLI + evaluation metrics (evaluate_epoch)
+│   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
+│   ├── evaluate.py             # per-head eval + confusion matrices (timestamped)
+│   ├── parity_check.py         # fp32 vs INT8 parity gate
+│   └── verify.py               # architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
@@ -174,13 +171,13 @@ as missing keys when loading legacy checkpoints (`src/export._load_model`).
 - `freeze_all()` / `unfreeze_all()`: all parameters
 - `backbone_eval()` / `backbone_train()`: BatchNorm mode control
 
-### EfficientNet-Lite (`src/efficientnet_lite.py`)
+### EfficientNet-Lite (`src/model.py` §1 Backbone)
 
 - MBConv blocks with `relu6` activation (no SE in lite variant)
 - `forward_until(x, stage_idx)` / `forward_from(x, stage_idx)`: split forward for attention insertion
 - Weight loading: `load_backbone_weights()` — strict=False, allows missing `fc.*`
 
-### Attention (`src/cbam.py`)
+### Attention CBAM/SE (`src/model.py` §2)
 
 - **CBAM**: ChannelAttention(avg+max pool → MLP → sigmoid) → SpatialAttention(avg+max concat → conv → sigmoid)
 - **SE**: AdaptiveAvgPool → FC reduce → ReLU → FC expand → Sigmoid
@@ -433,29 +430,29 @@ outputs/export/portable/<backbone>_phase2_best/
 | `NUM_WORKERS` | 4 | DataLoader workers |
 | `TRAIN/VAL/TEST_RATIO` | 0.70/0.15/0.15 | Split ratios (≥1 val/test per breed) |
 | `PHASE{1,2,3}_EPOCHS` | 8/80/10 | Training epochs (phase 3 is opt-in) |
-| `PHASE{1,2,3}_LR` | 3e-3/2e-4/5e-6 | Learning rates |
-| `LOSS_WEIGHT_*` | 0.15/0.50/0.35 → 0.05/0.55/0.40 | Auto-switch after the binary head saturates |
+| `PHASE{1,2,3}_LR` | 3e-3/1e-4/5e-6 | Learning rates |
+| `LOSS_WEIGHT_*` | 0.15/0.50/0.35 → 0.10/0.52/0.38 | Auto-switch after the binary head saturates |
 | `WEIGHT_DECAY` | 1e-2 | AdamW weight decay |
-| `LABEL_SMOOTHING` | 0.05 | Label smoothing factor |
-| `WARMUP_EPOCHS` | 3 | Linear warmup epochs (phase 2) |
-| `GRADIENT_ACCUMULATION_STEPS` | 2 | Grad accum steps |
+| `LABEL_SMOOTHING` | 0.1 | Label smoothing factor |
+| `WARMUP_EPOCHS` | 5 | Linear warmup epochs (phase 2) |
+| `GRADIENT_ACCUMULATION_STEPS` | 4 | Grad accum steps |
 | `KD_ALPHA` | 0.7 | Distillation blend: (1-α)·hard CE + α·T²·KL(teacher‖student) |
 | `KD_TEMPERATURE` | 4.0 | Distillation temperature |
 | `SAMPLER_BETA` | 0.99 | Effective-number-of-samples sampler β (softened) |
 | `LOGIT_ADJUST` / `LOGIT_ADJUST_TAU` / `LOGIT_ADJUST_PRIOR` | False / 1.0 / `sampled` | Logit adjustment — **OFF by default** (sampler is the single mechanism); prior from the effective sampled distribution |
-| `CONTRASTIVE_WEIGHT` / `CONTRASTIVE_TEMPERATURE` | 0.2 / 0.1 | SupCon loss on the projection embedding |
+| `CONTRASTIVE_WEIGHT` / `CONTRASTIVE_TEMPERATURE` | 0.3 / 0.1 | SupCon loss on the projection embedding |
 | `PROJECTION_DIM` | 128 | Projection-head output dim (training-only) |
-| `RARE_CLASS_THRESHOLD` | 30 | Breeds below this many train images are excluded from CutMix/MixUp |
-| `BINARY_SATURATION_ACC` | 0.95 | Switch to `LOSS_WEIGHT_*_FINAL` when reached |
-| `LOSS_WEIGHT_BINARY_FINAL` / `LOSS_WEIGHT_CATTLE_FINAL` / `LOSS_WEIGHT_BUFFALO_FINAL` | 0.05 / 0.55 / 0.40 | Post-saturation loss weights |
+| `RARE_CLASS_THRESHOLD` | 20 | Breeds below this many train images are excluded from CutMix/MixUp |
+| `BINARY_SATURATION_ACC` | 0.97 | Switch to `LOSS_WEIGHT_*_FINAL` when reached |
+| `LOSS_WEIGHT_BINARY_FINAL` / `LOSS_WEIGHT_CATTLE_FINAL` / `LOSS_WEIGHT_BUFFALO_FINAL` | 0.10 / 0.52 / 0.38 | Post-saturation loss weights |
 | `BEST_METRIC` / `BEST_METRIC_MACRO_WEIGHT` / `BEST_METRIC_TOP1_WEIGHT` | `blended_score` / 0.5 / 0.5 | Checkpoint selection = 0.5·macro-F1 + 0.5·soft top-1 |
 | `SHOT_FEW_MAX` / `SHOT_MEDIUM_MAX` | 30 / 100 | few/medium/many-shot diagnostic buckets |
 | `BALANCE_BINARY_HEAD` | True | Per-batch species re-weighting of binary CE |
-| `EMA_DECAY` / `EMA_WARMUP` / `EMA_WARN_FRAC` | 0.999 / True / 0.25 | EMA once per optimizer step, warm-up `(1+t)/(10+t)` |
+| `EMA_DECAY` / `EMA_WARMUP` / `EMA_WARN_FRAC` | 0.9995 / True / 0.25 | EMA once per optimizer step, warm-up `(1+t)/(10+t)` |
 | `SMOKE_SAMPLES_PER_BREED` | 5 | Images per breed in smoke test |
 | `HALF_DATA_RATIO` | 0.5 | Fraction of images/breed for half-data mode |
 | `QUARTER_DATA_RATIO` | 0.25 | Fraction of images/breed for quarter-data mode |
-| `EVAL_EVERY_PHASE{1,2,3}` | 1 / 2 / 2 | Evaluation frequencies (epochs) |
+| `EVAL_EVERY_PHASE{1,2,3}` | 1 / 3 / 2 | Evaluation frequencies (epochs) |
 | `CACHE_IMAGES` | False | RAM image caching toggle |
 | `SPECIES_LABELS` | `{"cattle": 0, "buffalo": 1}` | Species integer mapping |
 | `MIX_ENABLED` | False | CutMix/MixUp master switch (opt-in) |
@@ -468,7 +465,7 @@ outputs/export/portable/<backbone>_phase2_best/
 | `RRC_SCALE` / `RRC_RATIO` | (0.8,1.0) / (0.92,1.08) | Near-square crop preserves body proportions |
 | `COLOR_JITTER_*` / `ALLOW_HUE` | 0.15/0.15/0.1/0.02 / False | Hue capped unless `--allow-hue` |
 | `BREED_AUG_POLICY` / `COAT_COLOUR_BREEDS` | coat breeds skip jitter | Per-breed augmentation |
-| `EVAL_PAD_TO_SQUARE` / `TRAIN_PAD_TO_SQUARE` | False | Pad-to-square (keeps full frame) |
+| `EVAL_PAD_TO_SQUARE` / `TRAIN_PAD_TO_SQUARE` | **True** | Pad-to-square (preserves full frame) |
 | `CBAM_IDENTITY_INIT` | True | Attention identity at init (bug fix) |
 | `TRAIT_WEIGHT` / `COSINE_HEAD` / `HARD_PAIRS` / `DEDUP_SPLITS` | 0.0 / False / None / False | New opt-in features (see Phase D/E) |
 | `RANDAUGMENT_OPS` / `RANDAUGMENT_MAGNITUDE` | 2 / 5 | RandAugment settings (when enabled) |
@@ -511,8 +508,8 @@ outputs/export/portable/<backbone>_phase2_best/
 | Flag | Default | Description |
 |---|---|---|
 | `--include-qat` | off | Enable Phase 3 QAT |
-| `--phase1-epochs N` | 5 | Phase 1 epoch count |
-| `--phase2-epochs N` | 40 | Phase 2 epoch count |
+| `--phase1-epochs N` | 8 | Phase 1 epoch count |
+| `--phase2-epochs N` | 80 | Phase 2 epoch count |
 | `--phase3-epochs N` | 10 | Phase 3 epoch count |
 | `--num-workers N` | 4 | DataLoader workers |
 
@@ -660,7 +657,7 @@ python scripts/test_fixes_cpu.py                          # CPU-only, no data ne
 python scripts/test_master_cpu.py                         # CPU-only, no data needed
 ```
 
-### Execution logs (`src/run_logger.py`)
+### Execution logs (`src/run_utils.py` §2)
 Every entry point writes `logs/<exec_id>/` with `manifest.json`, `config.json`,
 `run.log` (tee'd stdout/stderr), `events.jsonl` and category streams
 (`training/data/test/export/actions.jsonl`). `exec_id` = `YYYYmmdd-HHMMSS-<4hex>`,
@@ -823,6 +820,20 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 - **OOD Security Harness**: Added an energy-based Out-Of-Distribution detector (`src/ood_detector.py`) that scores raw logits and rejects non-bovine images post-hoc without retraining. Integrated directly into `test_model.py` GUI to show a clear `⚠️ Not a recognized cattle or buffalo` banner.
 - **OOD Calibration**: Added `scripts/calibrate_ood.py` to auto-calibrate OOD energy thresholds dynamically against the validation set. Portable exports (`src/export.py`) now bundle these thresholds in `model_info.json`.
 - **Breed Trait Auto-Population**: Added `scripts/populate_breed_traits.py` which uses the Gemini 2.5 Flash API to automatically fetch and standardize morphological descriptors (hump, horn, coat, ear, etc.) for all 75 breeds into `data/breed_traits.json`.
+
+### 2026-10-06 — Source consolidation: `src/` reduced from 16 files to 10
+
+Merged same-purpose modules into cohesive homes (old import paths removed, all
+references updated in `src/`, `scripts/`, `server/`, `test_model.py`, `colab/`):
+`efficientnet_lite.py`+`cbam.py`+`traits.py`+`ood_detector.py` → **`model.py`**
+(§1 backbone, §2 attention, §5 traits, §6 OOD), `metrics.py` → **`train.py`** §7,
+`run_logger.py` → **`run_utils.py`** §2. `config.py` stays separate.
+
+Every module now opens with a **SECTION MAP** + **REFERENCES** header; merged
+modules carry inline section banners. Final `src/`: `config.py`, `run_utils.py`,
+`data_pipeline.py`, `model.py`, `train.py`, `export.py`, `evaluate.py`,
+`parity_check.py`, `verify.py`, `__init__.py`. Entry points unchanged
+(`python -m src.<module>`); tests (61 + 35) and `src.verify` pass.
 
 ### 2026-09-24 — Execution logger, breed trait heads, group-aware splits, hard negatives
 

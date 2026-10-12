@@ -1,5 +1,27 @@
 # 16. Changelog
 
+### 2026-10-06 — Source consolidation: `src/` reduced from 16 files to 10
+
+Modules performing the same job were merged into cohesive homes (old import
+paths removed and all references updated across `src/`, `scripts/`, `server/`,
+`test_model.py`, `colab/`). `config.py` stays separate as the single source of
+truth. Every consolidated/kept module now opens with a **SECTION MAP** and
+**REFERENCES** header, and the large merged modules carry inline section banners.
+
+| Former | Now | Section |
+|---|---|---|
+| `efficientnet_lite.py` | `model.py` | §1 Backbone |
+| `cbam.py` | `model.py` | §2 Attention |
+| `traits.py` | `model.py` | §5 Trait aux heads |
+| `ood_detector.py` | `model.py` | §6 OOD detector |
+| `metrics.py` | `train.py` | §7 Evaluation metrics |
+| `run_logger.py` | `run_utils.py` | §2 Execution logger |
+
+Final `src/`: `config.py`, `run_utils.py`, `data_pipeline.py`, `model.py`,
+`train.py`, `export.py`, `evaluate.py`, `parity_check.py`, `verify.py`,
+`__init__.py`. All `python -m src.<module>` entry points are unchanged; the
+CPU suites (61 + 35 checks) and `python -m src.verify` still pass.
+
 ### 2026-09-24 — Breed trait heads, group-aware splits, hard negatives, tooling
 
 - **Breed trait auxiliary heads (D2, opt-in `--trait-weight`, suggested 0.1)**:

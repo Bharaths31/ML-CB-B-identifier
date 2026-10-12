@@ -1,3 +1,18 @@
+"""Per-head evaluation with confusion matrices (timestamped outputs).
+
+SECTION MAP
+  1. full_evaluation() — confusion matrices + per-class precision/recall
+  2. Confusion-matrix plotting helper
+  3. CLI: load a checkpoint, evaluate val/test, write timestamped metrics
+
+REFERENCES
+  - src/data_pipeline.py: get_dataloaders, compute_class_counts.
+  - src/train.py: evaluate_epoch (metrics live with the training code).
+  - src/export.py: _load_model (cosine/QAT-safe checkpoint loading).
+  - src/run_utils.py: resolve_checkpoint, make_run_id, timestamped, logging.
+  - Run with: ``python -m src.evaluate --backbone lite2``.
+"""
+
 import argparse
 import json
 import os
@@ -102,7 +117,7 @@ def main():
                              "(default: current time DD-MM-YYYY-HH-MM)")
     args = parser.parse_args()
 
-    from .run_logger import init_run_logger, log_event, log_metrics
+    from .run_utils import init_run_logger, log_event, log_metrics
     init_run_logger(module="src.evaluate")
     log_event("cli_args", category="actions", **vars(args))
 
@@ -128,14 +143,24 @@ def main():
     model.to(device)
     print(f"[evaluate] loaded {checkpoint_path} (run id {run_id})")
 
-    from .metrics import evaluate_epoch
+    from .train import evaluate_epoch
 
     train_counts = compute_class_counts(args.split_dir)
     val_metrics = evaluate_epoch(model, val_loader, device,
                                  train_counts=train_counts)
     test_metrics = evaluate_epoch(model, test_loader, device,
                                   train_counts=train_counts)
-    full = full_evaluation(model, test_loader, device)
+    # Size the confusion matrices to the SURVIVING class maps (dynamic heads).
+    try:
+        with open(os.path.join(args.split_dir, "cattle_classes.json")) as f:
+            _cc = json.load(f)
+        with open(os.path.join(args.split_dir, "buffalo_classes.json")) as f:
+            _bc = json.load(f)
+    except Exception:
+        _cc, _bc = {}, {}
+    full = full_evaluation(model, test_loader, device,
+                           num_cattle=len(_cc) or NUM_CATTLE_BREEDS,
+                           num_buffalo=len(_bc) or NUM_BUFFALO_BREEDS)
 
     log_metrics(val_metrics, tag="val", category="test", checkpoint=checkpoint_path)
     log_metrics(test_metrics, tag="test", category="test", checkpoint=checkpoint_path)

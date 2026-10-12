@@ -1,3 +1,25 @@
+"""Data pipeline: discovery, splits, transforms, mixing, sampling, priors.
+
+SECTION MAP
+  1. Class-map validation & split logic (incl. group-aware dHash dedup)
+  2. Image discovery (folder tree -> rows)
+  3. Split builders: full / half / quarter / smoke
+  4. Transforms (train/eval, pad-to-square, breed-aware augmentation) + describer
+  5. Dataset + collate
+  6. CutMix / MixUp (same-species pairing, rare-class guard)
+  7. Effective-number sampler, class priors and rare-class masks
+  8. DataLoaders
+  9. CLI
+
+REFERENCES
+  - src/config.py: AUG_*, MIX_*, RRC_*, COLOR_JITTER_*, ALLOW_HUE, SAMPLER_BETA,
+    RARE_CLASS_THRESHOLD, EVAL_*/TRAIN_* resize & pad, DEDUP_*, TRAIN/VAL/TEST_RATIO,
+    VAL_MIN_WARN, IMAGENET_MEAN/STD.
+  - Consumed by src/train.py, src/evaluate.py, src/parity_check.py.
+  - Side artifacts: data/splits/{train,val,test}.csv, *_classes.json, hashes.csv;
+    data/dataset_inventory/ (written by local_train.py / Colab).
+"""
+
 import argparse
 import json
 import os
@@ -13,12 +35,13 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
-                     AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_AUG_POLICY,
-                     CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
+                     AUG_RANDAUGMENT, AUG_RANDOM_RESIZED_CROP, BREED_ALIASES,
+                     BREED_AUG_POLICY, CACHE_IMAGES, COLOR_JITTER_BRIGHTNESS,
                      COLOR_JITTER_CONTRAST, COLOR_JITTER_HUE,
                      COLOR_JITTER_SATURATION, CUTMIX_ALPHA, DEDUP_HAMMING,
-                     DEDUP_SPLITS, EVAL_MATCH_TRAIN_RESOLUTION,
-                     EVAL_PAD_TO_SQUARE, HASH_CACHE_NAME,
+                     DEDUP_SPLITS, DROPPED_BREEDS_FILE, DROP_SMALL_BREEDS,
+                     EVAL_MATCH_TRAIN_RESOLUTION, EVAL_PAD_TO_SQUARE,
+                     HASH_CACHE_NAME, MIN_IMAGES_PER_BREED,
                      EXPECTED_BUFFALO_BREEDS, EXPECTED_CATTLE_BREEDS,
                      HALF_DATA_RATIO, IMAGE_SIZE, MIX_SAME_SPECIES, MIXUP_ALPHA,
                      NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, QUARTER_DATA_RATIO,
@@ -34,7 +57,7 @@ IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 def _log_event(event, **fields):
     """Best-effort structured logging (never raises if the logger is absent)."""
     try:
-        from .run_logger import log_event
+        from .run_utils import log_event
         return log_event(event, **fields)
     except Exception:
         return None
@@ -239,15 +262,26 @@ def _collect_rows(data_root):
             breed_dir = os.path.join(species_dir, breed)
             if not os.path.isdir(breed_dir):
                 continue
+            canonical_breed = BREED_ALIASES.get(breed.lower(), breed.lower())
             names = sorted(os.listdir(breed_dir))
             for name in names:
                 if name.lower().endswith(IMAGE_EXTS):
-                    rows.append((os.path.join(breed_dir, name), species, breed, binary))
+                    rows.append((os.path.join(breed_dir, name), species, canonical_breed, binary))
     return rows
 
 
-def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None):
+# =======================================================================
+# SECTION 3 — Split builders (full / half / quarter / smoke)
+# prepare_splits() = 70/15/15 with long-tail minimums; dedup via dHash.
+# Refs: src/config.py (TRAIN/VAL/TEST_RATIO, DEDUP_*, VAL_MIN_WARN);
+# writes data/splits/*.csv + *_classes.json.
+# =======================================================================
+
+def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None,
+                   min_images=None):
     os.makedirs(split_dir, exist_ok=True)
+    if min_images is None:
+        min_images = MIN_IMAGES_PER_BREED
     rows = _collect_rows(data_root)
     if not rows:
         print(f"[data] no images found under {data_root}")
@@ -258,14 +292,27 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None):
     df = pd.DataFrame(rows, columns=["path", "species", "breed", "binary_label"])
     df = df[df["path"].apply(os.path.exists)].reset_index(drop=True)
 
-    # Fix 1 Option A: Drop ultra-rare breeds (< 20 images) to prevent metrics inflation
-    # and to stop wasting model capacity.
-    counts = df.groupby("breed").size()
-    keep_breeds = counts[counts >= 20].index
-    dropped = len(counts) - len(keep_breeds)
-    if dropped > 0:
-        print(f"[data] dropping {dropped} ultra-rare breeds (< 20 images)")
-        df = df[df["breed"].isin(keep_breeds)].reset_index(drop=True)
+    # --- Small-breed policy: drop breeds with too few images (config-driven).
+    # Keyed on (species, breed) so the shared name "bargur" is handled correctly.
+    # The model heads are sized to the survived class count downstream, so the
+    # reduced class set is consistent end to end (train/export/GUI).
+    dropped_breeds = {}
+    if DROP_SMALL_BREEDS and min_images > 0:
+        counts = df.groupby(["species", "breed"])["path"].count()
+        small = counts[counts < min_images]
+        if len(small):
+            dropped_breeds = {f"{sp}/{br}": int(n) for (sp, br), n in small.items()}
+            print(f"[data] dropping {len(small)} small breed(s) "
+                  f"(<{min_images} imgs): "
+                  + ", ".join(f"{k}={v}" for k, v in list(dropped_breeds.items())[:12])
+                  + (" ..." if len(dropped_breeds) > 12 else ""))
+            keep = counts[counts >= min_images].index
+            df = df.set_index(["species", "breed"]).loc[keep].reset_index()
+            with open(os.path.join(split_dir, DROPPED_BREEDS_FILE), "w") as f:
+                json.dump({"min_images": min_images,
+                           "dropped": dropped_breeds}, f, indent=2)
+            _log_event("breeds_dropped", category="data",
+                       min_images=min_images, dropped=dropped_breeds)
 
     rng = random.Random(42)
     if dedup is None:
@@ -306,7 +353,12 @@ def prepare_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR, dedup=None):
     }
     print(f"[data] images={len(df)} train={n_train} val={n_val} test={n_test} "
           f"cattle_breeds={len(cattle_breeds)} buffalo_breeds={len(buffalo_breeds)}")
-    _validate_class_counts(cattle_breeds, buffalo_breeds)
+    _validate_class_counts(cattle_breeds, buffalo_breeds,
+                           allow_fewer=bool(dropped_breeds))
+    summary["cattle_breeds_kept"] = len(cattle_breeds)
+    summary["buffalo_breeds_kept"] = len(buffalo_breeds)
+    if dropped_breeds:
+        summary["dropped_breeds"] = dropped_breeds
 
     # Validation-noise check: a breed with < VAL_MIN_WARN val images makes
     # checkpoint selection noisy.
@@ -548,6 +600,13 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
     return summary
 
 
+# =======================================================================
+# SECTION 4 — Transforms (train/eval, pad-to-square, breed-aware augmentation)
+# Builds the exact train/eval transform chains and documents them.
+# Refs: src/config.py (AUG_*, RRC_*, COLOR_JITTER_*, EVAL_*/TRAIN_*).
+# Eval chain must stay in sync with test_model.py + Flutter preprocessor.
+# =======================================================================
+
 class _PadToSquare:
     """Resize the LONG side to ``size`` and pad the short side to a square.
 
@@ -653,6 +712,12 @@ def describe_transform(transform):
     return " -> ".join(repr(op) for op in ops)
 
 
+# =======================================================================
+# SECTION 5 — Dataset & collate
+# Per-sample labels (binary one-hot + species-masked breed one-hot + masks) and per-breed transform selection.
+# Refs: src/config.py (NUM_*_BREEDS); built by get_dataloaders().
+# =======================================================================
+
 class CattleBuffaloDataset(Dataset):
     def __init__(self, manifest, cattle_classes, buffalo_classes, transform=None,
                  cache_images=False, augment=None, breed_augment=False, pad=None,
@@ -712,16 +777,19 @@ class CattleBuffaloDataset(Dataset):
         transform = self._transform_for(row["breed"])
         if transform is not None:
             image = transform(image)
+        # One-hot sizes follow the SURVIVING class maps (dynamic head sizing),
+        # not the static NUM_*_BREEDS constants, so dropped small breeds do not
+        # leave untrained output units.
         is_cattle = row["binary_label"] == 0
         if is_cattle:
-            cattle_onehot = torch.zeros(NUM_CATTLE_BREEDS)
+            cattle_onehot = torch.zeros(len(self.cattle_classes))
             cattle_onehot[self.cattle_classes[row["breed"]]] = 1.0
-            buffalo_onehot = torch.zeros(NUM_BUFFALO_BREEDS)
+            buffalo_onehot = torch.zeros(len(self.buffalo_classes))
             cattle_mask = torch.tensor(1.0)
             buffalo_mask = torch.tensor(0.0)
         else:
-            cattle_onehot = torch.zeros(NUM_CATTLE_BREEDS)
-            buffalo_onehot = torch.zeros(NUM_BUFFALO_BREEDS)
+            cattle_onehot = torch.zeros(len(self.cattle_classes))
+            buffalo_onehot = torch.zeros(len(self.buffalo_classes))
             buffalo_onehot[self.buffalo_classes[row["breed"]]] = 1.0
             cattle_mask = torch.tensor(0.0)
             buffalo_mask = torch.tensor(1.0)
@@ -736,6 +804,13 @@ class CattleBuffaloDataset(Dataset):
         }
         return image, labels
 
+
+# =======================================================================
+# SECTION 6 — CutMix / MixUp (same-species pairing, rare-class guard)
+# Mixes only WITHIN a species so binary labels stay one-hot; rare breeds excluded.
+# Refs: src/config.py (CUTMIX_*, MIXUP_*, MIX_SAME_SPECIES);
+# called from src/train.py run_epoch when --mix is set.
+# =======================================================================
 
 def _rand_bbox(size, lam):
     _, _, h, w = size
@@ -821,6 +896,13 @@ def mixed_collate(batch):
     return images.to(memory_format=torch.channels_last), labels
 
 
+# =======================================================================
+# SECTION 7 — Effective-number sampler, priors, rare-class masks
+# Class-balanced sampling and the optional logit-adjustment priors.
+# Refs: src/config.py (SAMPLER_BETA, RARE_CLASS_THRESHOLD, LOGIT_ADJUST*);
+# consumed by src/train.py (--logit-adjust, rare-class mixing guard).
+# =======================================================================
+
 def _make_weighted_sampler(df, beta=SAMPLER_BETA):
     """Effective-number-of-samples class balancing.
 
@@ -858,12 +940,16 @@ def _load_class_maps(split_dir):
     return cattle_classes, buffalo_classes
 
 
-def _validate_class_counts(cattle_breeds, buffalo_breeds):
+def _validate_class_counts(cattle_breeds, buffalo_breeds, allow_fewer=False):
     """Fail fast when breed counts differ from the model's head sizes.
 
     A mismatch would otherwise surface much later as an index error when the
     dataset builds a one-hot vector. Also prints any breed name that appears
     under BOTH species (e.g. ``bargur``).
+
+    ``allow_fewer=True`` permits fewer breeds than ``NUM_*_BREEDS`` (used when
+    small breeds were deliberately dropped) while still rejecting EXTRA unknown
+    breeds. The model heads are sized to the surviving class count downstream.
     """
     shared = sorted(set(cattle_breeds) & set(buffalo_breeds))
     if shared:
@@ -874,6 +960,11 @@ def _validate_class_counts(cattle_breeds, buffalo_breeds):
             ("cattle", cattle_breeds, NUM_CATTLE_BREEDS, EXPECTED_CATTLE_BREEDS),
             ("buffalo", buffalo_breeds, NUM_BUFFALO_BREEDS, EXPECTED_BUFFALO_BREEDS)):
         if len(found) == expected_n:
+            continue
+        if len(found) < expected_n and allow_fewer:
+            print(f"[data] {species}: {len(found)} breeds kept "
+                  f"(< {expected_n}; small breeds dropped, heads sized "
+                  f"dynamically)")
             continue
         msg = f"{species}: found {len(found)} breeds, expected {expected_n}"
         if expected_list:
@@ -991,6 +1082,13 @@ def compute_rare_classes(split_dir=SPLIT_DIR, threshold=RARE_CLASS_THRESHOLD):
         rare[species] = torch.as_tensor(counts < threshold, dtype=torch.bool)
     return rare
 
+
+# =======================================================================
+# SECTION 8 — DataLoaders
+# Builds train (weighted sampler + mixing collate) / val / test loaders.
+# Refs: src/config.py (BATCH_SIZE, NUM_WORKERS, CACHE_IMAGES);
+# used by src/train.py, src/evaluate.py, src/parity_check.py.
+# =======================================================================
 
 def get_dataloaders(split_dir=SPLIT_DIR, batch_size=32, num_workers=4,
                     pin_memory=None, augment=None, breed_augment=False, pad=None,

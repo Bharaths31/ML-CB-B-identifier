@@ -2,16 +2,16 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/) [![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-orange)](https://pytorch.org/) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Bharaths31/ML-CB-B-identifier)
 
-A **lightweight, mobile-deployable image classifier** for **57 Indian cattle breeds** and **18 Indian buffalo breeds**, built on EfficientNet-Lite with CBAM/SE attention and a 3-head multi-task training pipeline.
+A **lightweight, mobile-deployable image classifier** for **35 Indian cattle breeds** and **10 Indian buffalo breeds** (45 breeds total, with unrecognizable/confused buffalo breeds consolidated under a general species banner `other_buffalo`), built on EfficientNet-Lite with CBAM/SE attention and an optimized multi-task training pipeline.
 
 | Field | Value |
 |---|---|
-| **Breeds** | 57 cattle + 18 buffalo = 75 total |
+| **Breeds** | 35 cattle + 10 buffalo = 45 total (consolidated pool) |
 | **Backbone** | EfficientNet-Lite2 (~6M params) or Lite4 (~13M params) |
-| **Input** | 260 × 260 RGB |
-| **Training** | 2-phase: head warm-up → multi-task fine-tune (EMA + optional teacher distillation; QAT opt-in) |
+| **Input** | 260 × 260 RGB (pad-to-square enabled) |
+| **Training** | 2-phase: head warm-up → multi-task fine-tune (EMA, SupCon, adaptive loss weights) |
 | **Export** | TFLite INT8, ONNX Runtime INT8, ONNX, FP16, Portable bundle |
-| **Dataset** | Kaggle: `algsoch` & `atharvadarpude` (Multi-dataset support) |
+| **Dataset** | Kaggle: `atharvadarpude` (clean primary) & `algsoch` (multi-dataset support) |
 
 ---
 
@@ -70,16 +70,14 @@ outputs/export/portable/<backbone>_<...>_<runid>/
 ML-CB-B-identifier/
 ├── src/                        # Core ML package (run as python -m src.<module>)
 │   ├── config.py               # All hyperparameters & paths (single source of truth)
-│   ├── data_pipeline.py        # Dataset, splits, augmentation, DataLoaders
-│   ├── model.py                # BreedClassifier (backbone + attention + heads + projection head)
-│   ├── cbam.py                 # CBAM & SE attention modules
-│   ├── efficientnet_lite.py    # EfficientNet-Lite{2,4} architecture
-│   ├── train.py                # 2-phase training (+opt-in QAT, distillation), AMP, auto-export
-│   ├── metrics.py              # Per-head accuracy + F1
-│   ├── evaluate.py             # Full evaluation + confusion matrices
-│   ├── export.py               # TFLite INT8, ONNX INT8, ONNX, float16, portable export
+│   ├── run_utils.py            # run ids/timestamped paths + execution logger (logs/<exec_id>/)
+│   ├── data_pipeline.py        # discovery, splits (+dHash dedup), transforms, mixing, sampler, loaders
+│   ├── model.py                # EfficientNet-Lite + CBAM/SE + heads + CosineHead + trait heads + OOD
+│   ├── train.py                # training loop, losses, EMA + evaluation metrics (evaluate_epoch)
+│   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
+│   ├── evaluate.py             # per-head eval + confusion matrices
 │   ├── parity_check.py         # fp32 vs mobile-artifact parity gate
-│   └── verify.py               # Architecture sanity check
+│   └── verify.py               # architecture sanity check
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
 │   ├── cattle_buffalo_trainer.py     # Same as percent-format script
@@ -253,37 +251,33 @@ The **`local_train.py`** script is the recommended entry point. It runs a fully 
 
 **Quick Start:**
 ```bash
-# Fastest local test (25% data, ~4× speedup)
+# Automated pipeline with V12 optimized preset flags (recommended)
+python local_train.py
+
+# Fastest local iteration (25% data, ~4× speedup)
 python local_train.py --quarter-data
 
 # Balanced speed/accuracy (50% data)
 python local_train.py --half-data
-
-# Multi-dataset training
-python local_train.py --dataset-mode both
 ```
-   *Note: `--dataset-mode` supports `algsoch`, `atharvadarpude`, or `both`.*
+   *Note: `--dataset-mode` defaults to `atharvadarpude` (cleanest source without phantom draught classes). `algsoch` or `both` are also supported.*
 
 ---
 
-### Dataset Mode
+### Dataset Mode & Consolidations
 
 The `--dataset-mode` flag controls which Kaggle datasets are downloaded and merged for training.
 
 | Flag Value | Datasets Used | Best For |
 |---|---|---|
-| `--dataset-mode algsoch` | Kaggle: `algsoch/breed-cattle-buffalo` | Replicating original baseline metrics |
-| `--dataset-mode atharvadarpude` | Kaggle: `atharvadarpude/indian-cattle-image-dataset` + `buffalo` | Evaluating against the secondary OOD dataset |
-| `--dataset-mode both` **(Default)** | Both of the above merged together | **Highest performance** and maximum generalization |
+| `--dataset-mode atharvadarpude` **(Default)** | Kaggle: `atharvadarpude/indian-cattle-image-dataset` + `buffalo` | **Highest accuracy & clean breed identities** (eliminates phantom draught classes) |
+| `--dataset-mode algsoch` | Kaggle: `algsoch/breed-cattle-buffalo` | Replicating legacy baseline metrics |
+| `--dataset-mode both` | Both of the above merged together | Maximum total image volume |
 
-**Data Preprocessing & Breed Mapping:**
-When `both` is selected, the pipeline automatically strips dataset-specific suffixes (e.g., `_cattle`, `_buffalo`, `_breed`) from the folder names. This ensures that the same breed from different datasets is correctly mapped to the exact same folder (e.g., `Punganur_Cattle` and `Punganur` both become `punganur`).
-
-**Handling Imbalance (Optimal Image Usage):**
-Merging multiple datasets introduces class imbalance (some breeds have 50 images, others have 500). To ensure each image is optimally used:
-1. **WeightedRandomSampler:** The dataloader samples breeds inversely proportional to their image count (effective-number weighting, β=0.99). Rare breeds are oversampled per epoch, ensuring the model doesn't just memorize the majority classes.
-2. **Exactly one long-tail mechanism:** Logit adjustment is **OFF by default** because the sampler already rebalances every batch — enabling both double-corrects and over-predicts rare breeds at inference (the 2026-09-21 regression). Enable it only explicitly with `--logit-adjust`.
-3. **Augmentation is OFF by default.** Heavy `RandAugment`, `ColorJitter`, `CutMix` and `MixUp` measurably hurt fine-grained breed identification on a long tail, so every stochastic transform is opt-in per run (`--mix`, `--flip`, `--color-jitter`, `--randaugment`, `--rrc`, or `--augment-all`). With everything off, the train transform equals the eval transform.
+**Consolidated Breed Pool (45 Breeds Total):**
+Analysis of confusion matrices shows that subtle phenotypic dark buffalo breeds (`mehsana`, `surti`, `nagpuri`, `luit`) and rare regional varieties suffer from severe cross-confusion (11–29% standalone accuracy). These are consolidated under a general species banner: `other_buffalo`.
+- **Cattle (35 breeds)**: `amritmahal`, `ayrshire`, `bargur`, `belahi`, `brown_swiss`, `dangi`, `deoni`, `gir`, `guernsey`, `hallikar`, `holstein_friesian`, `jersey`, `kangayam`, `kankrej`, `khillar`, `konkan_kapila`, `krishna_valley`, `malnad_gidda`, `mewati`, `nagori`, `nari`, `nimari`, `ongole`, `poda_thurpu`, `pulikulam`, `punganur`, `purnea`, `rathi`, `red_dane`, `red_sindhi`, `sahiwal`, `shweta_kapila`, `tharparkar`, `umblachery`, `vechur`.
+- **Buffalo (10 breeds)**: `alambadi`, `banni`, `bargur`, `bhadawari`, `jaffarabadi`, `marathwadi`, `murrah`, `nili_ravi`, `toda`, plus `other_buffalo` (general banner for `mehsana`, `surti`, `nagpuri`, `luit`, `pandharpuri`, `chhattisgarhi`, `chilika`, etc.).
 
 ---
 
@@ -298,7 +292,7 @@ These flags are **mutually exclusive** — pick exactly one (or none for full da
 | `--quarter-data` | 25% per breed (seed=42) | ~4× faster | Quick local iteration |
 | `--smoke-test` | 5 imgs/breed, 1 epoch | Seconds | CI / sanity check |
 
-All subset modes use **deterministic sampling** (`seed=42`) and maintain the full 57/18 class map — the model architecture is identical across all modes.
+All subset modes use **deterministic sampling** (`seed=42`) and maintain the 35/10 class map — the model architecture is identical across all modes.
 
 ---
 
@@ -312,7 +306,7 @@ python local_train.py [OPTIONS]
 
 | Flag | Description |
 |---|---|
-| `--dataset-mode` | `algsoch` \| `atharvadarpude` \| `both` (Default). Which datasets to download and merge. |
+| `--dataset-mode` | `atharvadarpude` (Default) \| `algsoch` \| `both`. Which datasets to download and merge. |
 
 #### Data Volume (mutually exclusive, pick at most one)
 
@@ -330,34 +324,31 @@ python local_train.py [OPTIONS]
 | `--backbone` | `lite2` \| `lite4` | `lite2` | Backbone architecture (~6M vs ~13M params) |
 | `--attention` | `cbam` \| `se` | `cbam` | Attention module type |
 
-#### Training Overrides & QAT
+#### Training Presets & Hyperparameter Overrides
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--include-qat` | flag | off | **Optional:** enables Phase 3 (Quantization-Aware Training) as an accuracy-recovery tool. Mobile INT8 now comes from converter-side PTQ (`src.export --mode tflite / onnx-int8`), so this is **not** required for Android deployment. |
-| `--phase1-epochs` | int | `8` | Override Phase 1 (all-heads warmup) epoch count |
-| `--phase2-epochs` | int | `80` | Override Phase 2 (multi-task) epoch count |
-| `--phase3-epochs` | int | `10` | Override Phase 3 (QAT) epoch count |
+| `--augment-preset` | `light` \| `none` | `light` | Augmentation preset (`light`: flip + color jitter + mild RRC) |
+| `--phase1-epochs` | int | `8` | Phase 1 (all-heads warmup) epoch count |
+| `--phase2-epochs` | int | `80` | Phase 2 (multi-task fine-tuning) epoch count |
+| `--phase3-epochs` | int | `10` | Phase 3 (QAT) epoch count (if `--include-qat`) |
+| `--contrastive-weight`| float | `0.3` | SupCon auxiliary feature loss weight |
+| `--label-smoothing` | float | `0.1` | Cross-entropy label smoothing factor |
+| `--warmup-epochs` | int | `5` | Learning rate warmup epochs |
+| `--grad-accum` | int | `4` | Gradient accumulation steps |
+| `--weight-decay` | float | `0.01` | AdamW weight decay |
+| `--rare-threshold` | int | `20` | Threshold for rare classes |
+| `--batch-size` | int | `64` | Training batch size (or 32 for low VRAM) |
+| `--include-qat` | flag | off | Enables Phase 3 (Quantization-Aware Training) |
 | `--num-workers` | int | `4` | DataLoader worker processes |
-
-#### Augmentation (ALL OFF by default — opt-in per run)
-
-| Flag | Description |
-|---|---|
-| `--mix` | Enable CutMix/MixUp (same-species pairing, α=0.4/0.2, p=0.25) |
-| `--flip` | Enable RandomHorizontalFlip |
-| `--color-jitter` | Enable ColorJitter |
-| `--randaugment` | Enable RandAugment(ops=2, mag=5) |
-| `--rrc` | Enable RandomResizedCrop(260, scale=0.8–1.0) |
-| `--augment-all` | Enable flip + color-jitter + randaugment + rrc + mix |
 
 #### Imbalance & Output
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `--logit-adjust` | flag | off | Add logit adjustment **on top of** the sampler (off by default; double-corrects) |
+| `--logit-adjust` | flag | off | Add logit adjustment on top of sampler |
 | `--logit-adjust-prior` | `sampled` \| `raw` | `sampled` | Prior source when logit adjustment is enabled |
-| `--run-tag` | str | auto-increment tag (e.g. v5) | Name this run's outputs and sub-folder |
+| `--run-tag` | str | auto-increment tag (e.g. v12) | Name this run's outputs and sub-folder |
 
 #### Skip Stages
 
@@ -373,30 +364,34 @@ python local_train.py [OPTIONS]
 ### Example Commands (`local_train.py`)
 
 ```bash
-# One-command full pipeline — quarter data, NO augmentation (default)
+# Automated full training pipeline with recommended V12 preset flags
+python local_train.py --run-tag v12_optimized
+
+# Fast local test with quarter data
 python local_train.py --quarter-data
 
-# Half data with QAT (for Android INT8 deployment)
-python local_train.py --half-data --include-qat
-
-# Full training with lite4 backbone
-python local_train.py --backbone lite4
-
-# Enable specific augmentation only (opt-in)
-python local_train.py --mix --flip
-python local_train.py --augment-all
-
-# Re-run training only (data already downloaded, venv ready)
+# Fast training without re-downloading or reinstalling
 python local_train.py --half-data --skip-download --skip-setup
 
-# Custom epoch counts + named timestamped outputs
-python local_train.py --half-data --phase2-epochs 20 --run-tag exp1
+# Production Colab / Low-VRAM command
+python local_train.py --batch-size 32 --num-workers 2 --run-tag v12_colab
 
-# Skip export (just train, examine checkpoint manually)
-python local_train.py --quarter-data --skip-export
-
-# Verify pipeline works end-to-end in seconds
-python local_train.py --smoke-test
+# Full manual engine CLI command (direct src.train call):
+python -m src.train \
+    --backbone lite2 \
+    --attention cbam \
+    --skip-qat \
+    --phase1-epochs 8 \
+    --phase2-epochs 80 \
+    --augment-preset light \
+    --contrastive-weight 0.3 \
+    --label-smoothing 0.1 \
+    --warmup-epochs 5 \
+    --grad-accum 4 \
+    --weight-decay 0.01 \
+    --rare-threshold 20 \
+    --run-tag v12_optimized \
+    --seed 42
 ```
 
 ---
