@@ -87,7 +87,24 @@ def list_models():
     manager = get_manager()
     models = manager.list_models()
     device = "cuda" if manager.device.type == "cuda" else "cpu"
-    return jsonify({"models": models, "device": device})
+    active_model = manager.get_active_model_name()
+    return jsonify({"models": models, "device": device, "active_model": active_model})
+
+@models_bp.route('/api/select-model', methods=['POST'])
+def select_model():
+    manager = get_manager()
+    socketio = request.environ.get('flask.app', None)
+    from flask import current_app
+    socketio = current_app.extensions.get('socketio')
+    data = request.get_json() or {}
+    model_name = data.get("model")
+    if not model_name:
+        return jsonify({"error": "Missing 'model' field"}), 400
+    try:
+        manager.set_active_model(model_name, socketio=socketio)
+        return jsonify({"status": "ok", "active_model": model_name})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
 
 @models_bp.route('/api/model-spec', methods=['GET'])
 def model_spec():

@@ -6,6 +6,7 @@ from PIL import Image
 from torchvision import transforms
 from src.config import EVAL_MATCH_TRAIN_RESOLUTION, TRAIN_RESIZE, IMAGE_SIZE, SPECIES_LABELS
 from server.utils.logger import get_logger
+from server.shared_config import get_shared_config
 
 _EVAL_RESIZE = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
 TRANSFORM = transforms.Compose([
@@ -16,12 +17,15 @@ TRANSFORM = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
-def predict_image(manager, image_bytes, model_name, socketio=None):
+def predict_image(manager, image_bytes, model_name=None, socketio=None):
     """Run prediction on raw image bytes. Returns result dict."""
     logger = get_logger()
     predict_start = time.time()
 
-    if model_name not in manager.models:
+    if not model_name:
+        model_name = manager.get_active_model_name()
+
+    if not model_name or model_name not in manager.models:
         if logger:
             logger.error(f"Model '{model_name}' not found")
         return {"error": f"Model '{model_name}' not found"}
@@ -84,7 +88,9 @@ def predict_image(manager, image_bytes, model_name, socketio=None):
     is_ood = False
     ood_score = 0.0
     ood_details = {}
-    if manager.ood_detector is not None:
+    db = get_shared_config(socketio)
+    ood_active = db.get("ood.enabled", True)
+    if ood_active and manager.ood_detector is not None:
         is_ood, ood_score, ood_details = manager.ood_detector.is_ood(
             binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
         )

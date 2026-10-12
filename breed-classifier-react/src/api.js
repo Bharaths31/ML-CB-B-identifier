@@ -48,6 +48,94 @@ export async function savePresenterConfig(cfg) {
   return r.json();
 }
 
+// --- Shared Configuration DB API ---
+export async function getSharedConfig() {
+  const r = await fetch("/api/config");
+  if (!r.ok) throw new Error("Failed to load configuration");
+  return r.json();
+}
+
+export async function updateSharedConfig(patchOrKeyVal) {
+  const r = await fetch("/api/config", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patchOrKeyVal),
+  });
+  if (!r.ok) throw new Error("Failed to update configuration");
+  return r.json();
+}
+
+export async function resetSharedConfig() {
+  const r = await fetch("/api/config/reset", { method: "POST" });
+  if (!r.ok) throw new Error("Failed to reset configuration");
+  return r.json();
+}
+
+// --- OOD Management API ---
+export async function getOODProfiles() {
+  const r = await fetch("/api/ood/profiles");
+  if (!r.ok) throw new Error("Failed to load OOD profiles");
+  return r.json();
+}
+
+export async function getActiveOOD() {
+  const r = await fetch("/api/ood/active");
+  if (!r.ok) throw new Error("Failed to get active OOD");
+  return r.json();
+}
+
+export async function selectOODProfile(profile) {
+  const r = await fetch("/api/ood/select", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile }),
+  });
+  return r.json();
+}
+
+export async function toggleOOD(enabled) {
+  const r = await fetch("/api/ood/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  return r.json();
+}
+
+export async function updateOODThresholds(thresholds) {
+  const r = await fetch("/api/ood/thresholds", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(thresholds),
+  });
+  return r.json();
+}
+
+export async function uploadOODProfile(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const r = await fetch("/api/ood/upload", { method: "POST", body: form });
+  return r.json();
+}
+
+// --- Model Selection & Upload ---
+export async function selectModel(modelName) {
+  const r = await fetch("/api/select-model", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: modelName }),
+  });
+  return r.json();
+}
+
+export async function uploadModel(file, filename) {
+  const form = new FormData();
+  form.append("model_file", file);
+  form.append("filename", filename || file.name);
+  const r = await fetch("/api/upload-model", { method: "POST", body: form });
+  return r.json();
+}
+
 export async function getLogs() {
   const r = await fetch("/api/logs");
   return r.text();

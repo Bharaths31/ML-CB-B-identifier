@@ -10,6 +10,7 @@ from src.model import BreedClassifier
 from src.model import OODDetector
 from src.config import OOD_ENABLED
 from server.utils.logger import get_logger
+from server.shared_config import get_shared_config
 
 class ModelManager:
     """Discovers, loads, and caches models for prediction."""
@@ -18,9 +19,37 @@ class ModelManager:
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.ood_detector = OODDetector() if OOD_ENABLED else None
+        db = get_shared_config()
+        ood_enabled = db.get("ood.enabled", OOD_ENABLED)
+        self.ood_detector = OODDetector() if ood_enabled else None
         self._load_class_maps()
         self._discover_models()
+
+    def get_active_model_name(self):
+        """Return currently configured active model name or sensible default."""
+        db = get_shared_config()
+        active = db.get("active_model")
+        if active and active in self.models:
+            return active
+        for name in self.models:
+            if "portable" in name:
+                return name
+        if self.models:
+            return next(iter(self.models.keys()))
+        return None
+
+    def set_active_model(self, name, socketio=None):
+        """Set the active model across the entire application."""
+        if name not in self.models:
+            raise ValueError(f"Model '{name}' not found")
+        db = get_shared_config(socketio)
+        db.set("active_model", name, notify=True)
+        if socketio:
+            try:
+                socketio.emit("model_switched", {"active_model": name}, namespace="/ws")
+            except Exception:
+                pass
+        return name
 
     def _load_class_maps(self):
         """Load breed label maps, prioritizing portable exports to avoid mismatch."""

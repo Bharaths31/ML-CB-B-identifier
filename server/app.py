@@ -29,6 +29,9 @@ from server.routes.predict import predict_bp
 from server.routes.dev import dev_bp
 from server.routes.export import export_bp
 from server.routes.config_api import config_bp
+from server.routes.shared_config_api import shared_config_bp
+from server.routes.ood_api import ood_bp
+from server.shared_config import get_shared_config
 
 # Import websocket events
 from server.websocket.events import SystemEventsNamespace
@@ -50,6 +53,7 @@ def create_app():
     
     # Store socketio in app extensions so routes can access it
     app.extensions['socketio'] = socketio
+    get_shared_config(socketio)
 
     # Register blueprints
     app.register_blueprint(models_bp)
@@ -57,6 +61,8 @@ def create_app():
     app.register_blueprint(dev_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(config_bp)
+    app.register_blueprint(shared_config_bp)
+    app.register_blueprint(ood_bp)
     
     # Register websocket namespace
     socketio.on_namespace(SystemEventsNamespace('/ws'))
