@@ -39,8 +39,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 IMAGE_SIZE = 260
 NUM_CATTLE_BREEDS = 50
-NUM_BUFFALO_BREEDS = 17
-NUM_BREEDS_TOTAL = 67
+NUM_BUFFALO_BREEDS = 18
+NUM_BREEDS_TOTAL = 68
 
 # Optional canonical breed-name lists. When set, prepare_* reports the exact
 # extra/missing names on a count mismatch instead of only a count. Leave None
@@ -58,7 +58,7 @@ EXPECTED_CATTLE_BREEDS = (
 EXPECTED_BUFFALO_BREEDS = (
     'banni', 'bargur', 'bhadwari', 'chhattisgarhi', 'chilika', 'gojri',
     'jaffarabadi', 'kalahandi', 'luit', 'marathwada', 'mehsana', 'murrah',
-    'nagpuri', 'nili_ravi', 'pandharpuri', 'surti', 'toda'
+    'nagpuri', 'nili_ravi', 'other_buffalo', 'pandharpuri', 'surti', 'toda'
 )
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
