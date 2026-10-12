@@ -31,7 +31,7 @@ import torch.nn as nn
 from .config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      IMAGE_SIZE, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
                      PORTABLE_EXPORT_DIR, SPLIT_DIR, SPECIES_LABELS,
-                     TFLITE_APP_ASSETS_DIR)
+                     TFLITE_APP_ASSETS_DIR, BREED_DIM)
 from .model import BreedClassifier
 from .run_utils import (find_latest_checkpoint, make_run_id,
                         resolve_checkpoint, timestamped, unique_path)
@@ -145,6 +145,7 @@ def _load_model(checkpoint_path, backbone, attention):
     if cosine:
         print("[export] detected cosine/ArcFace breed heads in checkpoint")
     binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
+    breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else BREED_DIM
     # Infer class counts from the checkpoint so dropped-small-breed models
     # (dynamic head sizing) load correctly; fall back to the config defaults.
     num_cattle = (state[f"cattle_head.{final_idx}.weight"].shape[0]
@@ -153,6 +154,7 @@ def _load_model(checkpoint_path, backbone, attention):
                    if f"buffalo_head.{final_idx}.weight" in state else NUM_BUFFALO_BREEDS)
     model = BreedClassifier(backbone=backbone, attention=attention,
                             cosine_head=cosine, binary_dim=binary_dim,
+                            breed_dim=breed_dim,
                             num_cattle=num_cattle, num_buffalo=num_buffalo)
     missing, unexpected = model.load_state_dict(state, strict=False)
     # The projection head is training-only; ignore it. Anything else missing is

@@ -46,18 +46,41 @@ def main():
     state_dict = ckpt["state_dict"] if "state_dict" in ckpt else ckpt
     state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
 
-    binary_dim = 256
-    num_cattle = 57
-    num_buffalo = 18
-    for k, v in state_dict.items():
-        if k == "binary_head.0.weight":
-            binary_dim = v.shape[0]
-        elif k == "cattle_head.8.weight":
-            num_cattle = v.shape[0]
-        elif k == "buffalo_head.8.weight":
-            num_buffalo = v.shape[0]
+    binary_dim = state_dict["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state_dict else 512
+    breed_dim = state_dict["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state_dict else 384
 
-    model = BreedClassifier(backbone=args.backbone, binary_dim=binary_dim, num_cattle=num_cattle, num_buffalo=num_buffalo)
+    cattle_weights = [k for k in state_dict if k.startswith("cattle_head.") and k.endswith(".weight")]
+    buffalo_weights = [k for k in state_dict if k.startswith("buffalo_head.") and k.endswith(".weight")]
+
+    def _layer_num(k):
+        try:
+            return int(k.split(".")[1])
+        except (IndexError, ValueError):
+            return -1
+
+    cattle_weights.sort(key=_layer_num)
+    buffalo_weights.sort(key=_layer_num)
+
+    last_cattle = cattle_weights[-1] if cattle_weights else "cattle_head.8.weight"
+    last_buffalo = buffalo_weights[-1] if buffalo_weights else "buffalo_head.8.weight"
+
+    num_cattle = state_dict[last_cattle].shape[0] if last_cattle in state_dict else 46
+    num_buffalo = state_dict[last_buffalo].shape[0] if last_buffalo in state_dict else 11
+
+    cosine = False
+    if last_cattle in state_dict:
+        bias_key = last_cattle[:-7] + ".bias"
+        if bias_key not in state_dict:
+            cosine = True
+
+    model = BreedClassifier(
+        backbone=args.backbone,
+        binary_dim=binary_dim,
+        breed_dim=breed_dim,
+        num_cattle=num_cattle,
+        num_buffalo=num_buffalo,
+        cosine_head=cosine
+    )
     model.load_state_dict(state_dict, strict=False)
     
     model.to(device)

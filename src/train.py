@@ -61,7 +61,7 @@ from .config import (AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP, AUG_RANDAUGMENT,
                      SHOT_FEW_MAX, SHOT_MEDIUM_MAX, SPLIT_DIR, TRAIT_FILE,
                      TRAIT_WEIGHT, WARMUP_EPOCHS,
                      WEIGHT_DECAY, BACKBONE_LR_MULT, CUTMIX_MIXUP_PROB,
-                     BINARY_DIM, NUM_CATTLE_BREEDS, NUM_BUFFALO_BREEDS,
+                     BINARY_DIM, BREED_DIM, NUM_CATTLE_BREEDS, NUM_BUFFALO_BREEDS,
                      OOD_DIR, OOD_ENABLED, OOD_AUTO_CALIBRATE, OOD_PERCENTILE,
                      OOD_ENERGY_TEMPERATURE, OOD_BINARY_CONFIDENCE_FLOOR)
 from .data_pipeline import (compute_class_counts, compute_class_priors,
@@ -853,6 +853,8 @@ def main():
         description="Two-phase training: all-heads warmup -> multi-task "
                     "fine-tune (optional QAT phase 3 via --include-qat)")
     parser.add_argument("--backbone", choices=["lite2", "lite4"], default="lite2")
+    parser.add_argument("--breed-dim", type=int, default=BREED_DIM,
+                        help="intermediate dimension in breed heads (default: 384)")
     parser.add_argument("--weights", default=None,
                         help="pretrained .pth (default: project checkpoint)")
     parser.add_argument("--attention", choices=["cbam", "se"], default="cbam")
@@ -1168,6 +1170,7 @@ def main():
     model = BreedClassifier(backbone=args.backbone, attention=args.attention,
                             pretrained_path=weights if os.path.exists(weights) else None,
                             cosine_head=args.cosine_head,
+                            breed_dim=args.breed_dim,
                             num_cattle=len(_cattle_classes),
                             num_buffalo=len(_buffalo_classes))
     if not os.path.exists(weights):
@@ -1436,12 +1439,23 @@ def main():
             state = {k.replace("_orig_mod.", ""): v for k, v in state.items()}
 
             binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else BINARY_DIM
-            num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else NUM_CATTLE_BREEDS
-            num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else NUM_BUFFALO_BREEDS
+            breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else getattr(args, "breed_dim", BREED_DIM)
+            cattle_weights = [k for k in state if k.startswith("cattle_head.") and k.endswith(".weight")]
+            buffalo_weights = [k for k in state if k.startswith("buffalo_head.") and k.endswith(".weight")]
+            def _ln(k):
+                try: return int(k.split(".")[1])
+                except (IndexError, ValueError): return -1
+            cattle_weights.sort(key=_ln)
+            buffalo_weights.sort(key=_ln)
+            last_cattle = cattle_weights[-1] if cattle_weights else "cattle_head.8.weight"
+            last_buffalo = buffalo_weights[-1] if buffalo_weights else "buffalo_head.8.weight"
+            num_cattle = state[last_cattle].shape[0] if last_cattle in state else NUM_CATTLE_BREEDS
+            num_buffalo = state[last_buffalo].shape[0] if last_buffalo in state else NUM_BUFFALO_BREEDS
 
             eval_model = BreedClassifier(
                 backbone=args.backbone,
                 binary_dim=binary_dim,
+                breed_dim=breed_dim,
                 num_cattle=num_cattle,
                 num_buffalo=num_buffalo,
                 cosine_head=args.cosine_head
