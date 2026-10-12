@@ -55,19 +55,19 @@ class CosineHead(nn.Module):
 
 
 def _make_breed_head(feature_dim, num_classes, dropout, cosine=False,
-                     scale=COSINE_SCALE):
+                     scale=COSINE_SCALE, breed_dim=BREED_DIM):
     layers = [
-        nn.Linear(feature_dim, BREED_DIM),
-        nn.BatchNorm1d(BREED_DIM),
+        nn.Linear(feature_dim, breed_dim),
+        nn.BatchNorm1d(breed_dim),
         nn.ReLU(inplace=True),
         nn.Dropout(dropout),
-        nn.Linear(BREED_DIM, BREED_DIM // 2),
-        nn.BatchNorm1d(BREED_DIM // 2),
+        nn.Linear(breed_dim, breed_dim // 2),
+        nn.BatchNorm1d(breed_dim // 2),
         nn.ReLU(inplace=True),
         nn.Dropout(0.2),
     ]
-    layers.append(CosineHead(BREED_DIM // 2, num_classes, scale) if cosine
-                  else nn.Linear(BREED_DIM // 2, num_classes))
+    layers.append(CosineHead(breed_dim // 2, num_classes, scale) if cosine
+                  else nn.Linear(breed_dim // 2, num_classes))
     return nn.Sequential(*layers)
 
 
@@ -76,7 +76,7 @@ class BreedClassifier(nn.Module):
                  num_buffalo=NUM_BUFFALO_BREEDS, cbam_stage=CBAM_AFTER_STAGE,
                  attention="cbam", activation="relu6", pretrained_path=None,
                  dropout=DROPOUT, cosine_head=False, cosine_scale=COSINE_SCALE,
-                 binary_dim=BINARY_DIM):
+                 binary_dim=BINARY_DIM, breed_dim=BREED_DIM):
         super().__init__()
         self.cosine_head = bool(cosine_head)
         self.cosine_scale = float(cosine_scale)
@@ -99,9 +99,11 @@ class BreedClassifier(nn.Module):
             nn.Linear(binary_dim // 2, 2),
         )
         self.cattle_head = _make_breed_head(feature_dim, num_cattle, dropout,
-                                            self.cosine_head, self.cosine_scale)
+                                            self.cosine_head, self.cosine_scale,
+                                            breed_dim=breed_dim)
         self.buffalo_head = _make_breed_head(feature_dim, num_buffalo, dropout,
-                                             self.cosine_head, self.cosine_scale)
+                                             self.cosine_head, self.cosine_scale,
+                                             breed_dim=breed_dim)
 
         # Auxiliary projection head used only by the supervised-contrastive
         # loss (never exported). The 1280-d pooled features were previously

@@ -160,26 +160,79 @@ class ModelManager:
                 raise RuntimeError("onnxruntime is not installed. Please `pip install onnxruntime` to test ONNX models.")
 
         backbone = info["backbone"]
-        ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
+        try:
+            ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
+        except Exception:
+            try:
+                ckpt = torch.jit.load(info["path"], map_location="cpu")
+            except Exception as e:
+                raise RuntimeError(f"Failed to load checkpoint '{info['path']}': {e}")
+
+        # If the loaded object is already a TorchScript or PyTorch Module
+        if isinstance(ckpt, torch.nn.Module):
+            model = ckpt
+            model.to(self.device)
+            model.eval()
+            info["model"] = model
+            elapsed = time.time() - load_start
+            n_params = sum(p.numel() for p in model.parameters()) if hasattr(model, "parameters") else 0
+            if logger:
+                logger.info(f"Model loaded in {elapsed:.3f}s ({self._human_number(n_params)} params, backbone={backbone})")
+            if socketio:
+                socketio.emit("model_loaded", {
+                    "model_name": name,
+                    "load_time_ms": round(elapsed * 1000, 1),
+                    "params": self._human_number(n_params)
+                }, namespace="/ws")
+            return model
 
         # Handle different checkpoint formats
-        if "state_dict" in ckpt:
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
             state = ckpt["state_dict"]
-        elif "model_state_dict" in ckpt:
+        elif isinstance(ckpt, dict) and "model_state_dict" in ckpt:
             state = ckpt["model_state_dict"]
-        else:
+        elif isinstance(ckpt, dict):
             state = ckpt
+        else:
+            raise ValueError(f"Unsupported checkpoint format in {info['path']}: {type(ckpt)}")
 
-        # Detect cosine/ArcFace heads
-        _probe = BreedClassifier(backbone=backbone)
-        _fi = len(_probe.cattle_head) - 1
-        del _probe
-        cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
-                     for h in ("cattle_head", "buffalo_head"))
-        
+        # Detect architecture dimensions dynamically from checkpoint weights
         binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
-        
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim)
+        breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else 384
+
+        cattle_weights = [k for k in state if k.startswith("cattle_head.") and k.endswith(".weight")]
+        buffalo_weights = [k for k in state if k.startswith("buffalo_head.") and k.endswith(".weight")]
+
+        def _layer_num(k):
+            try:
+                return int(k.split(".")[1])
+            except (IndexError, ValueError):
+                return -1
+
+        cattle_weights.sort(key=_layer_num)
+        buffalo_weights.sort(key=_layer_num)
+
+        last_cattle = cattle_weights[-1] if cattle_weights else "cattle_head.8.weight"
+        last_buffalo = buffalo_weights[-1] if buffalo_weights else "buffalo_head.8.weight"
+
+        num_cattle = state[last_cattle].shape[0] if last_cattle in state else 46
+        num_buffalo = state[last_buffalo].shape[0] if last_buffalo in state else 11
+
+        # Detect cosine/ArcFace heads (final layer has weight but no bias)
+        cosine = False
+        if last_cattle in state:
+            bias_key = last_cattle[:-7] + ".bias"
+            if bias_key not in state:
+                cosine = True
+
+        model = BreedClassifier(
+            backbone=backbone,
+            cosine_head=cosine,
+            binary_dim=binary_dim,
+            breed_dim=breed_dim,
+            num_cattle=num_cattle,
+            num_buffalo=num_buffalo,
+        )
 
         model_keys = set(model.state_dict().keys())
         filtered = {k: v for k, v in state.items() if k in model_keys}

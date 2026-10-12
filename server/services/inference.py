@@ -74,11 +74,25 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
         buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
     else:
         with torch.no_grad():
+            first_param = next(model.parameters(), None)
+            if first_param is not None and first_param.dtype == torch.float16:
+                tensor = tensor.half()
+            else:
+                tensor = tensor.float()
+
             tensor = tensor.to(manager.device)
             out = model(tensor)
-            binary_logits = out["binary"][0]
-            cattle_logits = out["cattle"][0]
-            buffalo_logits = out["buffalo"][0]
+
+            if isinstance(out, (tuple, list)):
+                binary_logits = out[0][0].float()
+                cattle_logits = out[1][0].float()
+                buffalo_logits = out[2][0].float()
+            elif isinstance(out, dict):
+                binary_logits = out["binary"][0].float()
+                cattle_logits = out["cattle"][0].float()
+                buffalo_logits = out["buffalo"][0].float()
+            else:
+                raise ValueError(f"Unexpected model output structure: {type(out)}")
 
     inference_time = time.time() - inference_start
 
@@ -106,6 +120,10 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
     combined = torch.cat([binary_probs[0] * cattle_probs,
                           binary_probs[1] * buffalo_probs])
 
+    species_map_inv = {v: k for k, v in SPECIES_LABELS.items()}
+    primary_species_idx = int(torch.argmax(binary_probs).item())
+    species_prob = round(binary_probs[primary_species_idx].item(), 4)
+
     if is_ood:
         top5 = [{"breed": "Not a recognized animal", "confidence": 0.0}]
         species_name = "Unknown"
@@ -126,22 +144,32 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
             })
 
         species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
-        species_name = SPECIES_LABELS[species_idx]
+        species_name = species_map_inv.get(species_idx, "cattle").title()
         species_conf = binary_probs[species_idx].item() * 100
 
     total_time = time.time() - predict_start
 
+    top_breed_name = top5[0]["breed"] if top5 else "Unknown"
+    top_breed_conf = (top5[0]["confidence"] / 100.0) if top5 else 0.0
+
     result = {
         "species": species_name,
+        "predicted_species": species_name,
         "species_confidence": round(species_conf, 2),
-        "top_breed": top5[0]["breed"] if top5 else "Unknown",
+        "species_prob": species_prob,
+        "top_breed": top_breed_name,
+        "predicted_breed": top_breed_name,
+        "confidence": top_breed_conf,
         "top_breed_confidence": top5[0]["confidence"] if top5 else 0,
         "top5_breeds": top5,
+        "top_k": [{"breed": b["breed"], "prob": b["confidence"] / 100.0} for b in top5],
         "model_used": model_name,
+        "model_name": model_name,
         "inference_time_ms": round(inference_time * 1000, 1),
         "total_time_ms": round(total_time * 1000, 1),
         "routing": "soft",
         "ood": is_ood,
+        "is_ood": is_ood,
         "ood_score": round(ood_score, 2) if is_ood else None,
         "ood_details": ood_details
     }
