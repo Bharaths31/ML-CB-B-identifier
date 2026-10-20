@@ -49,7 +49,7 @@ export default function CameraCapture({ onCapture, onClose }) {
   const [torchOn, setTorchOn] = useState(false);
   const [flash, setFlash] = useState(false);
   const [captured, setCaptured] = useState(null);
-  const [fitMode, setFitMode] = useState("pad");
+  const [fitMode, setFitMode] = useState("stretch");
   const [busy, setBusy] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
 
@@ -225,6 +225,7 @@ export default function CameraCapture({ onCapture, onClose }) {
       const optimized = await optimizeCanvas(best.canvas, fitMode, rawUrl);
       setCaptured({
         rawUrl,
+        originalRawUrl: rawUrl,
         optimized,
         quality: best.quality,
         fitMode,
@@ -270,15 +271,18 @@ export default function CameraCapture({ onCapture, onClose }) {
     setBusy(true);
     try {
       let optimized;
-      if (rawCanvasRef.current) {
-        optimized = await optimizeCanvas(rawCanvasRef.current, mode, captured.rawUrl);
-      } else if (rawFileRef.current) {
+      const originalRawUrl = captured.originalRawUrl || captured.rawUrl;
+      // A manual crop wins for the current model input, but the cropper itself
+      // always re-opens the original frame.
+      if (rawFileRef.current) {
         optimized = await optimizeImageTo260(rawFileRef.current, {
           fitMode: mode,
           padStyle: "imagenet_mean",
           allowUpscale: false,
-          originalDataUrl: captured.rawUrl,
+          originalDataUrl: originalRawUrl,
         });
+      } else if (rawCanvasRef.current) {
+        optimized = await optimizeCanvas(rawCanvasRef.current, mode, originalRawUrl);
       }
       if (optimized) {
         setCaptured((current) => (current ? { ...current, optimized, fitMode: mode } : current));
@@ -301,15 +305,16 @@ export default function CameraCapture({ onCapture, onClose }) {
         originalDataUrl: dataUrl,
       });
       optimized.meta.manuallyCropped = true;
-      rawCanvasRef.current = null;
       rawFileRef.current = file;
-      setCaptured({
-        rawUrl: dataUrl,
+      setCaptured((current) => ({
+        ...(current || {}),
+        rawUrl: current?.rawUrl || dataUrl,
+        originalRawUrl: current?.originalRawUrl || dataUrl,
         optimized,
-        quality: report || captured?.quality || null,
+        quality: report || current?.quality || null,
         fitMode,
         manuallyCropped: true,
-      });
+      }));
     } catch (err) {
       setError(err?.message || "Optimization failed");
     } finally {
@@ -372,7 +377,7 @@ export default function CameraCapture({ onCapture, onClose }) {
           adjusting ? (
             <div className="camera-crop-body">
               <ImageCropper
-                imageUrl={captured.rawUrl}
+                imageUrl={captured.originalRawUrl || captured.rawUrl}
                 fileName="camera_frame.jpg"
                 onConfirm={handleAdjustConfirm}
                 onCancel={() => setAdjusting(false)}

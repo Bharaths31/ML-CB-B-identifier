@@ -264,6 +264,12 @@ export default function ResultCard({
                 </span>
               </div>
               <div className="diag-item">
+                <span className="diag-label">{t("result.filename")}</span>
+                <span className="diag-value text-truncate" title={result.filename || ""}>
+                  {result.filename || t("result.notAvailable")}
+                </span>
+              </div>
+              <div className="diag-item">
                 <span className="diag-label">{t("result.oodEval")}</span>
                 <span className="diag-value">
                   {config?.ood?.enabled

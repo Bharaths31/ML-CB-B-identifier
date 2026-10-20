@@ -17,7 +17,7 @@ TRANSFORM = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
-def predict_image(manager, image_bytes, model_name=None, socketio=None):
+def predict_image(manager, image_bytes, model_name=None, socketio=None, filename="unknown"):
     """Run prediction on raw image bytes. Returns result dict."""
     logger = get_logger()
     predict_start = time.time()
@@ -31,7 +31,7 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
         return {"error": f"Model '{model_name}' not found"}
 
     if logger:
-        logger.info(f"Image received ({len(image_bytes) / 1024:.1f} KB), model='{model_name}'")
+        logger.info(f"Image received ({len(image_bytes) / 1024:.1f} KB), filename='{filename}', model='{model_name}'")
 
     if socketio:
         socketio.emit('prediction_progress', {'stage': 'preprocessing', 'detail': 'Decoding image'}, namespace='/ws')
@@ -204,6 +204,7 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None):
     try:
         from src.run_utils import log_event
         log_event("prediction", category="test", model=model_name,
+                  filename=filename,
                   species=result.get("species"),
                   species_confidence=result.get("species_confidence"),
                   top_breed=result.get("top_breed"),

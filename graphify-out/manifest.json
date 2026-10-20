@@ -216,9 +216,9 @@
     "semantic_hash": "bc23808a19618d6b2ed13a1bf14db796"
   },
   "test_model.py": {
-    "mtime": 1792491068.8859463,
-    "seen": 1792491188.5594723,
-    "ast_hash": "612d3724c0e2d46a4b284d63811b18bf",
+    "mtime": 1792494509.3607905,
+    "seen": 1792495679.3580444,
+    "ast_hash": "a824275661ea575f4ecb467968dce773",
     "semantic_hash": ""
   },
   ".agents/AGENTS.md": {
@@ -618,9 +618,9 @@
     "semantic_hash": "ead2047ff15c0c5e2b958599381b8269"
   },
   "breed-classifier-react/src/api.js": {
-    "mtime": 1791820732.6472657,
-    "seen": 1791873693.3147235,
-    "ast_hash": "5d71a370327129799b8f958020f6ba13",
+    "mtime": 1792494976.7170281,
+    "seen": 1792495679.3574913,
+    "ast_hash": "df67126f285127b47a13b5b4c7c18b21",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/Batch.jsx": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/CameraCapture.jsx": {
-    "mtime": 1792492671.001796,
-    "seen": 1792493038.46583,
-    "ast_hash": "34dff6cde2c97057c2476b94a0cbd57c",
+    "mtime": 1792494367.3383732,
+    "seen": 1792495679.3575141,
+    "ast_hash": "731a805459d8c10e5fcc75ea222ee725",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevTools.jsx": {
@@ -660,9 +660,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/SingleImage.jsx": {
-    "mtime": 1792492680.2369719,
-    "seen": 1792493038.4658675,
-    "ast_hash": "20a6559835eea50aa475b517d3d2ad20",
+    "mtime": 1792494474.4415739,
+    "seen": 1792495679.3575811,
+    "ast_hash": "25357de2755db111fd0b6a05bd747527",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ThemeToggle.jsx": {
@@ -702,9 +702,9 @@
     "semantic_hash": "db0916ce56a12357fafdae39b0e722e5"
   },
   "server/model_manager.py": {
-    "mtime": 1791824744.4864323,
-    "seen": 1791873693.3153145,
-    "ast_hash": "6378c78b4ee951570eb97cfd76a4f0ae",
+    "mtime": 1792493781.199044,
+    "seen": 1792495679.3578603,
+    "ast_hash": "e8186a77659c885e0ae067eb5b00d693",
     "semantic_hash": ""
   },
   "server/routes/config_api.py": {
@@ -732,15 +732,15 @@
     "semantic_hash": ""
   },
   "server/routes/predict.py": {
-    "mtime": 1791269467.1987987,
-    "seen": 1791270111.1155019,
-    "ast_hash": "5ea1f61070a182516ca7f880c3b70a0c",
-    "semantic_hash": "5ea1f61070a182516ca7f880c3b70a0c"
+    "mtime": 1792494521.4011536,
+    "seen": 1792495679.3578868,
+    "ast_hash": "430fb5d19b5dd3662ff1dab83bfff367",
+    "semantic_hash": ""
   },
   "server/services/inference.py": {
-    "mtime": 1791823914.5829756,
-    "seen": 1791873693.3154025,
-    "ast_hash": "810f4a98753216e83730646cdedf3ef5",
+    "mtime": 1792494521.3989205,
+    "seen": 1792495679.3579183,
+    "ast_hash": "6a889d4ba162c2bba9b83455d565f70f",
     "semantic_hash": ""
   },
   "server/services/metadata.py": {
@@ -786,8 +786,8 @@
     "semantic_hash": ""
   },
   "VERSION.txt": {
-    "mtime": 1792491068.838944,
-    "seen": 1792491188.5595133,
+    "mtime": 1792493406.511335,
+    "seen": 1792495679.3581405,
     "ast_hash": "65bfd2deb567d4f0affc206e90a4255d",
     "semantic_hash": ""
   },
@@ -852,21 +852,21 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevOODPanel.jsx": {
-    "mtime": 1791822400.7432427,
-    "seen": 1791873693.3147807,
-    "ast_hash": "6efd44c2572807616b21bc334cb70215",
+    "mtime": 1792494005.701338,
+    "seen": 1792495679.3575299,
+    "ast_hash": "0cce6ffdc8c0614f4c47b953b4a84681",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ImageUpload.jsx": {
-    "mtime": 1792492680.2169714,
-    "seen": 1792493038.4658473,
-    "ast_hash": "1e7c14c1b774566d85bc32a65b0bfbdf",
+    "mtime": 1792495567.8367596,
+    "seen": 1792495679.3575482,
+    "ast_hash": "12267750d421ec075d4a82a0f855bc6a",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ResultCard.jsx": {
-    "mtime": 1792491703.3967056,
-    "seen": 1792493038.4658597,
-    "ast_hash": "c8ec44929b99776cb583fc83f2cba6b8",
+    "mtime": 1792494577.311407,
+    "seen": 1792495679.3575716,
+    "ast_hash": "6b83c26233002e4712a9d6317a4190c5",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/hooks/useSharedConfig.js": {
@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/pages/UserPage.jsx": {
-    "mtime": 1792491697.6345506,
-    "seen": 1792493038.4659066,
-    "ast_hash": "87ce7dbcbd9113547509f2bb56b3a392",
+    "mtime": 1792494699.2941117,
+    "seen": 1792495679.3576362,
+    "ast_hash": "5c111c40af4eb7942c0df80be5b55b81",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/router.jsx": {
@@ -900,9 +900,9 @@
     "semantic_hash": ""
   },
   "server/routes/ood_api.py": {
-    "mtime": 1791824757.316615,
-    "seen": 1791873693.3153677,
-    "ast_hash": "e2bb7b663f79cc7e1ded3d8d47a04531",
+    "mtime": 1792495352.6062217,
+    "seen": 1792495679.3578827,
+    "ast_hash": "9d788cd4c8a38bdf62fc2207cef52e1d",
     "semantic_hash": ""
   },
   "server/routes/shared_config_api.py": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/translations.js": {
-    "mtime": 1792492671.0317965,
-    "seen": 1792493038.4658904,
-    "ast_hash": "e9021c4363c9cdc6c6e686777003ea3b",
+    "mtime": 1792494561.165468,
+    "seen": 1792495679.357618,
+    "ast_hash": "9e4d168c4d290fd784277a99c3bceede",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/cropAndQuality.test.js": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/cropAndQuality.js": {
-    "mtime": 1792491473.268969,
-    "seen": 1792493038.4659183,
-    "ast_hash": "9218dd44276f949d854303b09637cb5c",
+    "mtime": 1792495225.6214125,
+    "seen": 1792495679.3576658,
+    "ast_hash": "1545cd57574dc9a7a8adb32b662b6030",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/sessionStore.js": {
@@ -1044,9 +1044,9 @@
     "semantic_hash": ""
   },
   "PLAN_REACT_CAMERA_AND_FEATURES.md": {
-    "mtime": 1792492989.6477559,
-    "seen": 1792493038.4661045,
-    "ast_hash": "82c5068e34c392bc68ff4bdfab391497",
+    "mtime": 1792495516.6416023,
+    "seen": 1792495679.3581195,
+    "ast_hash": "e89b3a0c2d0c98c7fca6971ac5acd2dc",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/sessionStore.test.js": {
@@ -1071,6 +1071,30 @@
     "mtime": 1792492498.7174673,
     "seen": 1792493038.4659202,
     "ast_hash": "401c36ca45da4e9117b7e57bbc632351",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/components/AdvancedBatchTester.jsx": {
+    "mtime": 1792494197.588448,
+    "seen": 1792495679.3574986,
+    "ast_hash": "3f953694f223b7ad0500072a617eec89",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/components/AdvancedPanel.jsx": {
+    "mtime": 1792494601.6338391,
+    "seen": 1792495679.3575032,
+    "ast_hash": "66e63c9edb763259590f1c5f549df2ad",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/hooks/useImageOptimizer.js": {
+    "mtime": 1792495575.7677853,
+    "seen": 1792495679.3576,
+    "ast_hash": "4457c0d0fb8cded9aabca2a6870f5549",
+    "semantic_hash": ""
+  },
+  "src/ood_calibration.py": {
+    "mtime": 1792495319.222176,
+    "seen": 1792495679.358008,
+    "ast_hash": "42134fa8fd1ab6bd5517963605c59632",
     "semantic_hash": ""
   }
 }

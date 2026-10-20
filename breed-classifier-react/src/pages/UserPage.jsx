@@ -6,9 +6,11 @@ import ResultCard from "../components/ResultCard.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
 import HerdSessionDrawer from "../components/HerdSessionDrawer.jsx";
+import AdvancedPanel from "../components/AdvancedPanel.jsx";
 import { predict } from "../api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { useSharedConfig } from "../hooks/useSharedConfig.js";
+import { useImageOptimizer } from "../hooks/useImageOptimizer.js";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import {
   addSessionEntry,
@@ -28,43 +30,39 @@ export default function UserPage() {
       return "upload";
     }
   });
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const optimizer = useImageOptimizer();
+  const selectedFile = optimizer.result?.file || null;
+  const previewUrl = optimizer.original?.dataUrl || null;
+  const optimizerMeta = optimizer.result?.meta || null;
+
   const [quality, setQuality] = useState(null);
-  const [optimizerMeta, setOptimizerMeta] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [predictionResult, setPredictionResult] = useState(null);
   const [session, setSession] = useState(() => readSession());
   const [sessionOpen, setSessionOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const { connected, serverStatus, predictionEvent, socket } = useSocket();
   const { config } = useSharedConfig(socket);
 
-  const selectImage = (file, dataUrl, meta = null, report = null) => {
-    setSelectedFile(file);
-    setPreviewUrl(dataUrl);
-    setOptimizerMeta(meta);
-    setQuality(report);
+  const handleImageSelected = (file) => {
     setPredictionResult(null);
     setError(null);
-  };
-
-  // ImageUpload passes the optimized 260x260 File and its optimizer meta.
-  const handleImageSelected = (file, dataUrl, meta) => {
-    selectImage(file, dataUrl, meta, null);
+    optimizer.loadFile(file);
   };
 
   // CameraCapture passes (File, 260x260 dataUrl, optimizer meta, quality report).
   const handleCameraCapture = (file, dataUrl, meta, report) => {
-    selectImage(file, dataUrl, meta, report);
+    optimizer.adoptResult(file, dataUrl, meta);
+    setQuality(report);
+    setPredictionResult(null);
+    setError(null);
     setInputMode("upload");
   };
 
   const handleClear = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setOptimizerMeta(null);
+    optimizer.reset();
     setQuality(null);
     setPredictionResult(null);
     setError(null);
@@ -75,6 +73,9 @@ export default function UserPage() {
     setInputMode("camera");
   };
 
+  const activeModelId = config?.active_model || serverStatus?.active_model || "";
+  const activeModelDisplay = activeModelId || t("header.defaultModel");
+
   const handleRunPrediction = async () => {
     if (!selectedFile) return;
 
@@ -82,9 +83,11 @@ export default function UserPage() {
     setError(null);
 
     try {
-      const activeModel = config?.active_model || serverStatus?.active_model || "";
-      const filename = selectedFile.name || "capture.jpg";
-      const res = await predict(selectedFile, activeModel, filename);
+      // Always log/export the original upload name, even though the file sent
+      // to the model is the optimized 260x260 copy.
+      const filename =
+        optimizer.original?.name || selectedFile.name || "capture.jpg";
+      const res = await predict(selectedFile, activeModelId, filename);
 
       if (res.error) throw new Error(res.error);
       setPredictionResult(res);
@@ -100,7 +103,6 @@ export default function UserPage() {
     }
   };
 
-  const activeModelDisplay = config?.active_model || serverStatus?.active_model || t("header.defaultModel");
   const stats = sessionStats(session);
 
   return (
@@ -123,6 +125,15 @@ export default function UserPage() {
             <span className={`status-dot ${connected ? "status-online" : "status-offline"}`} />
             <span className="status-text">{connected ? t("header.connected") : t("header.reconnecting")}</span>
           </div>
+
+          <button
+            type="button"
+            className="advanced-trigger"
+            onClick={() => setAdvancedOpen(true)}
+            title={t("advanced.title")}
+          >
+            ⚙ {t("advanced.open")}
+          </button>
 
           <div className="model-chip" title={`${t("header.model")}: ${activeModelDisplay}`}>
             <span className="chip-label">{t("header.model")}:</span>
@@ -185,9 +196,11 @@ export default function UserPage() {
             <div className="tab-pane-content">
               {inputMode === "upload" && (
                 <ImageUpload
-                  onImageSelected={handleImageSelected}
-                  currentPreview={previewUrl}
-                  optimizerMeta={optimizerMeta}
+                  original={optimizer.original}
+                  busy={optimizer.busy}
+                  error={optimizer.error}
+                  onFileSelected={handleImageSelected}
+                  onApplyCrop={optimizer.applyCrop}
                   onClear={handleClear}
                 />
               )}
@@ -203,7 +216,7 @@ export default function UserPage() {
                   <button
                     type="button"
                     className="btn btn-primary btn-large btn-full"
-                    disabled={analyzing}
+                    disabled={analyzing || optimizer.busy}
                     onClick={handleRunPrediction}
                   >
                     {analyzing ? (
@@ -269,6 +282,13 @@ export default function UserPage() {
         entries={session}
         onClose={() => setSessionOpen(false)}
         onCleared={() => setSession([])}
+      />
+
+      <AdvancedPanel
+        open={advancedOpen}
+        onClose={() => setAdvancedOpen(false)}
+        optimizer={optimizer}
+        model={activeModelId}
       />
     </div>
   );

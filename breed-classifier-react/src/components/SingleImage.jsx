@@ -14,6 +14,7 @@ const ACCEPT = ".png,.jpg,.jpeg,.bmp,.webp";
 
 export default function SingleImage({ models, model, setModel, devMode, predictionEvent }) {
   const [file, setFile] = useState(null);
+  const [originalName, setOriginalName] = useState("");
   const [preview, setPreview] = useState(null);
   const [sourceType, setSourceType] = useState(null); // 'camera' | 'upload' | 'sample'
   const [result, setResult] = useState(null);
@@ -54,6 +55,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
       if (resultRef.current) releaseOptimizerResult(resultRef.current);
       resultRef.current = optimized;
       setFile(optimized.file);
+      setOriginalName(f.name || "image.jpg");
       setSourceType(source);
       setPreview(optimized.dataUrl);
       setOptimizerMeta(optimized.meta);
@@ -73,6 +75,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
       resultRef.current = null;
     }
     setFile(null);
+    setOriginalName("");
     setSourceType(null);
     setPreview(null);
     setOptimizerMeta(null);
@@ -84,7 +87,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
     if (!file) return;
     setBusy(true);
     try {
-      const data = await predict(file, model, file.name);
+      const data = await predict(file, model, originalName || file.name);
       setResult(data);
     } catch (e) {
       setResult({ error: "Prediction failed: " + e.message });
@@ -296,7 +299,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
 
             <div className="filename-label">
               <span className="fname-label-text">File:</span>
-              <span className="fname">{file.name}</span>
+              <span className="fname">{originalName || file.name}</span>
             </div>
 
             {/* Change / Retake options */}
@@ -380,6 +383,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
             if (resultRef.current) releaseOptimizerResult(resultRef.current);
             resultRef.current = null;
             setFile(capturedFile);
+            setOriginalName(capturedFile.name || `live_capture_${Date.now()}.jpg`);
             setSourceType("camera");
             setPreview(capturedDataUrl);
             setOptimizerMeta(capturedMeta || null);

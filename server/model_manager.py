@@ -148,6 +148,76 @@ class ModelManager:
             return f"{n / 1_000:.1f}K"
         return str(n)
 
+    def recalibrate_ood(self, model_name, data_dir=None, split="val",
+                        percentile=None, max_batches=None, max_images=None,
+                        temperature=None, binary_floor=None):
+        """Recalibrate OOD thresholds for the selected model.
+
+        With ``data_dir`` the folder is walked for breed-named images; without
+        it the validation/test split is used. Returns the saved threshold dict.
+        """
+        from src.config import (
+            OOD_BINARY_CONFIDENCE_FLOOR,
+            OOD_ENERGY_TEMPERATURE,
+            OOD_PERCENTILE,
+        )
+
+        model = self._load_model(model_name)
+        if not isinstance(model, torch.nn.Module):
+            return {"error": "OOD calibration needs a PyTorch .pt checkpoint (not ONNX)"}
+
+        percentile = OOD_PERCENTILE if percentile is None else float(percentile)
+        temperature = OOD_ENERGY_TEMPERATURE if temperature is None else float(temperature)
+        binary_floor = (
+            OOD_BINARY_CONFIDENCE_FLOOR if binary_floor is None else float(binary_floor)
+        )
+
+        if data_dir:
+            from src.ood_calibration import calibrate_from_folder, resolve_data_dir
+
+            thresholds = calibrate_from_folder(
+                model,
+                resolve_data_dir(data_dir),
+                self.class_maps,
+                self.device,
+                percentile=percentile,
+                max_images=max_images,
+                temperature=temperature,
+                binary_floor=binary_floor,
+            )
+        else:
+            from src.data_pipeline import get_dataloaders
+
+            loaders = get_dataloaders(batch_size=32, num_workers=0)
+            if loaders is None:
+                return {"error": "no data/splits found for calibration"}
+            _, val_loader, test_loader = loaders
+            loader = val_loader if split == "val" else test_loader
+            thresholds = OODDetector.calibrate(
+                model,
+                loader,
+                self.device,
+                percentile=percentile,
+                temperature=temperature,
+                binary_floor=binary_floor,
+            )
+            # The split path uses the full split; max_batches is accepted for
+            # API compatibility but not needed for manual recalibration.
+            thresholds["n_samples"] = thresholds.get("calibrated_on_samples")
+            thresholds["energy_mean"] = thresholds.get("energy_stats", {}).get("mean")
+            thresholds["msp_mean"] = thresholds.get("msp_stats", {}).get("mean")
+
+        thresholds["model_name"] = model_name
+        path = OODDetector.save(thresholds, model_name)
+        thresholds["path"] = path
+
+        db = get_shared_config()
+        if db.get("ood.enabled", OOD_ENABLED):
+            self.ood_detector = OODDetector(model_name=model_name)
+        else:
+            self.ood_detector = None
+        return thresholds
+
     def _load_model(self, name, socketio=None):
         """Load a model checkpoint into memory."""
         info = self.models[name]

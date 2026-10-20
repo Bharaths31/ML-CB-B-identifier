@@ -19,6 +19,8 @@ Out of scope: Flutter/Dart.
 - The user-specified coordinate formula omitted `zoom` from the centring offset; the implementation computes the offset at `coverScale × zoom` so zoom is anchored at the viewport centre, matching CSS `transform: scale()`.
 - Verification: `npm test` → 30/30 geometry, optimizer, quality, session, and trait tests pass; `npm run build` → production bundle succeeds; headless Chromium smoke tests cover upload → optimize → predict, fit-mode switching, original/model preview toggle, both-axis framing, full-frame camera → optimize → handoff, tier 1/2/3, traits, session persistence, and EN/TA switching.
 - Added a **zero-crop 260×260 optimizer** (`src/utils/imageOptimizer.js`) and converted the live camera to a full-frame viewfinder; the existing cropper remains as the optional manual framing tool.
+- Added a minimal user view (original image only), a header-level **Advanced** panel (model input, metadata, fit modes, batch tester), and **manual folder-based OOD recalibration** in both React and `test_model.py`.
+- Original filenames now flow through predictions, exports (CSV/JSON/ODT/share card), and server logs.
 
 ---
 
@@ -378,3 +380,29 @@ None of these block the implementation; each has a shipped default so there is n
 **Tests.** `src/utils/__tests__/imageOptimizer.test.js` covers `1920×1080 → 260×146, padY=57`, `1080×1920 → 146×260, padX=57`, identity, no-upscale, `allowUpscale`, stretch, aspect ratios, and byte formatting. `cropAndQuality.test.js` covers both-axis pan.
 
 **Model-distribution note.** Training used `Resize(260) -> CenterCrop(260)`, so letterbox bars are a small distribution shift; `Stretch` is provided as the no-bar alternative. Both modes are one click apart in the UI. Validate Pad vs Stretch on the validation split before choosing a field default; `EVAL_PAD_TO_SQUARE` in `src/config.py` is the server-side counterpart if the training/eval contract is changed later.
+
+---
+
+## 12. Minimal User View, Header Advanced Panel, and Manual OOD Recalibration
+
+**Normal user view.**
+- The upload card shows only the **original uploaded image** and three actions: Adjust framing, Remove, Choose another. The optimizer bar, model-input preview, metadata grid, and fit controls are no longer in the normal flow.
+- Uploads default to `fitMode: "stretch"`, so the model input is `260×260` with no bars; the viewer still sees the original photograph.
+- The cropper always opens `original.dataUrl`. Repeating “Adjust framing” never crops an already-cropped image. The optimized result is used only for `/api/predict`.
+
+**Header Advanced panel.**
+- A compact `⚙ Advanced` button sits next to the Connected/status badge. It opens a right-side top-layer panel.
+- The panel contains: model-input vs original preview toggle, `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME`, and the four fit modes (`Stretch`, `Pad · ImageNet mean`, `Pad · Ambient blur`, `Pad · Black`).
+- `AdvancedBatchTester` runs multi-image predictions with the selected model and the current fit config, reports cattle/buffalo/OOD counts, average confidence, payload saved, and can append results to the herd session.
+
+**Manual OOD recalibration.**
+- `src/ood_calibration.py` walks a folder of breed-named images (flat `Deoni_01.jpg` or nested `cattle/deoni/…`), matches names against the selected model's class maps (with spelling aliases/fuzzy fallback), and calibrates energy/MSP thresholds on the matched images.
+- It reports matched/unmatched/unreadable counts, per-breed coverage, thresholds, sample count, and the saved profile path. Unmatched files are excluded from calibration and surfaced in the UI.
+- Endpoints: `GET /api/ood/data-dirs` and `POST /api/ood/recalibrate` in both `test_model.py` and the Flask backend (`server/routes/ood_api.py`). The legacy `POST /api/recalibrate-ood` remains as an alias in `test_model.py`.
+- React: `DevOODPanel` has a model selector, folder picker/datalist, percentile, max-images, and a “Recalibrate OOD from Folder” action. `test_model.py`’s OOD tools card has the same controls and shows coverage.
+- Fixed `test_model.py::ModelManager.ood_info` to read `OODDetector.source_file` and `metadata` (`source`, `calibrated_at`, `percentile` were previously accessed as missing attributes).
+
+**Original filename everywhere.**
+- `predict()` now receives the original upload/capture name, not `zero_crop_260_*.jpg`.
+- Session CSV/JSON/ODT, batch ODT, share-card footer, `ResultCard` diagnostics, and server stdout/JSONL logs all carry `filename`.
+- Verified in Flask JSONL: `{"event":"prediction", "filename":"Deoni_01.jpg", ...}` and `Hallikaru_02.jpg` for batch.

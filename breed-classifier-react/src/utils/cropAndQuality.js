@@ -419,6 +419,24 @@ function drawCover(ctx, image, x, y, w, h) {
   ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
 }
 
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const value = String(text || "");
+  if (ctx.measureText(value).width <= maxWidth) {
+    ctx.fillText(value, x, y);
+    return;
+  }
+  let line = "";
+  for (const char of value) {
+    const test = line + char;
+    if (ctx.measureText(`${test}…`).width > maxWidth && line) {
+      ctx.fillText(`${line}…`, x, y);
+      return;
+    }
+    line = test;
+  }
+  ctx.fillText(line, x, y);
+}
+
 /**
  * Render a branded 1080x1350 result card.
  * @param {HTMLCanvasElement} canvas
@@ -544,14 +562,14 @@ export function renderShareCard(canvas, { image, result, quality, traits } = {})
   ctx.fillStyle = "#94a3b8";
   ctx.font = "500 20px Inter, system-ui, sans-serif";
   ctx.fillText(`Model: ${result?.model_name || result?.model_used || "unknown"}`, 64, 1290);
-  ctx.fillText(new Date().toLocaleString(), 64, 1322);
+  wrapText(ctx, `File: ${result?.filename || "unknown"}`, 64, 1322, W - 360, 20);
   ctx.textAlign = "right";
   ctx.fillStyle = "#6366f1";
   ctx.font = "700 20px Inter, system-ui, sans-serif";
   ctx.fillText("Soft-routed 3-head EfficientNet-Lite", W - 64, 1290);
   ctx.fillStyle = "#94a3b8";
   ctx.font = "500 20px Inter, system-ui, sans-serif";
-  ctx.fillText("On-device ready · OOD-aware", W - 64, 1322);
+  ctx.fillText(new Date().toLocaleString(), W - 64, 1322);
   ctx.textAlign = "left";
 
   return canvas;
