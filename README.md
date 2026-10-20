@@ -2,11 +2,11 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/) [![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-orange)](https://pytorch.org/) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Bharaths31/ML-CB-B-identifier)
 
-A **lightweight, mobile-deployable image classifier** for **35 Indian cattle breeds** and **10 Indian buffalo breeds** (45 breeds total, with unrecognizable/confused buffalo breeds consolidated under a general species banner `other_buffalo`), built on EfficientNet-Lite with CBAM/SE attention and an optimized multi-task training pipeline.
+A **lightweight, mobile-deployable image classifier** for **50 Indian cattle breeds** and **18 Indian buffalo breeds** (68 breeds total, with unrecognizable/confused buffalo breeds consolidated under a general species banner `other_buffalo`), built on EfficientNet-Lite with CBAM/SE attention and an optimized multi-task training pipeline.
 
 | Field | Value |
 |---|---|
-| **Breeds** | 35 cattle + 10 buffalo = 45 total (consolidated pool) |
+| **Breeds** | 50 cattle + 18 buffalo = 68 total (consolidated pool) |
 | **Backbone** | EfficientNet-Lite2 (~6M params) or Lite4 (~13M params) |
 | **Input** | 260 × 260 RGB (pad-to-square enabled) |
 | **Training** | 2-phase: head warm-up → multi-task fine-tune (EMA, SupCon, adaptive loss weights) |

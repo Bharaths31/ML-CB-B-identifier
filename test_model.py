@@ -73,9 +73,11 @@ try:
 except Exception:
     pass
 
-from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
-                        IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
-                        TRAIN_RESIZE, OOD_ENABLED, OOD_DIR)
+from src.config import (BINARY_DIM, BREED_DIM, CHECKPOINT_DIR,
+                        EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR, IMAGE_SIZE,
+                        LOGS_DIR, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                        PORTABLE_EXPORT_DIR, SPLIT_DIR, TRAIN_RESIZE,
+                        OOD_ENABLED, OOD_DIR)
 from src.model import BreedClassifier
 from src.model import OODDetector
 
@@ -551,17 +553,37 @@ class ModelManager:
         cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
                      for h in ("cattle_head", "buffalo_head"))
         
-        # Detect binary_dim, num_cattle, num_buffalo from checkpoint to support loading older models
-        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
-        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else 57
-        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else 18
-        
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim, num_cattle=num_cattle, num_buffalo=num_buffalo)
+        # Detect architecture dims from the checkpoint so models trained with a
+        # different head width still load cleanly. BREED_DIM changed over time
+        # (e.g. v25 checkpoints use 512 while the current default is 384), which
+        # otherwise triggers a size-mismatch error in load_state_dict.
+        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else BINARY_DIM
+        breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else BREED_DIM
+        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else NUM_CATTLE_BREEDS
+        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else NUM_BUFFALO_BREEDS
 
-        # Filter out QAT observer keys that don't exist in the base model
-        model_keys = set(model.state_dict().keys())
-        filtered = {k: v for k, v in state.items() if k in model_keys}
+        model = BreedClassifier(backbone=backbone, cosine_head=cosine,
+                                binary_dim=binary_dim, breed_dim=breed_dim,
+                                num_cattle=num_cattle, num_buffalo=num_buffalo)
+
+        # Filter out QAT observer keys that don't exist in the base model, and
+        # skip any tensor whose shape doesn't match the freshly-built model so a
+        # stray architecture drift can't crash the whole load.
+        model_state = model.state_dict()
+        filtered, skipped = {}, []
+        for k, v in state.items():
+            if k not in model_state:
+                continue
+            if tuple(v.shape) != tuple(model_state[k].shape):
+                skipped.append(k)
+                continue
+            filtered[k] = v
         model.load_state_dict(filtered, strict=False)
+        if skipped and logger:
+            logger.warning(
+                f"Ignored {len(skipped)} checkpoint tensor(s) with mismatched shapes "
+                f"(breed_dim={breed_dim}, binary_dim={binary_dim}): {skipped[:5]}"
+            )
         model.to(self.device)
         model.eval()
         info["model"] = model
@@ -588,34 +610,90 @@ class ModelManager:
         det = self._ood_for(model_name)
         if det is None:
             return {"enabled": False}
-        return {"enabled": True, "model_name": model_name, "source": det.source,
-                "calibrated_at": det.calibrated_at, "percentile": det.percentile,
-                "energy_threshold": det.energy_threshold,
-                "msp_threshold": det.msp_threshold, "temperature": det.T}
+        meta = getattr(det, "metadata", {}) or {}
+        return {
+            "enabled": True,
+            "model_name": model_name,
+            "source": getattr(det, "source_file", None),
+            "profile_name": getattr(det, "profile_name", None),
+            "calibrated_at": meta.get("calibrated_at"),
+            "percentile": meta.get("percentile"),
+            "energy_threshold": det.energy_threshold,
+            "msp_threshold": det.msp_threshold,
+            "temperature": det.T,
+            "binary_confidence_floor": det.binary_confidence_floor,
+            "samples": meta.get("calibrated_on_samples"),
+        }
 
     def recalibrate_ood(self, model_name, split="val", percentile=None,
-                        max_batches=None):
-        """Calibrate OOD thresholds for one model and save outputs/ood/<name>.json."""
+                        max_batches=None, data_dir=None, max_images=None,
+                        temperature=None, binary_floor=None):
+        """Calibrate OOD thresholds for one model and save outputs/ood/<name>.json.
+
+        When ``data_dir`` is supplied, the folder is walked for breed-named
+        images and only matched classes are used. Otherwise the existing
+        validation/test split is used.
+        """
         if not OOD_ENABLED:
             return {"error": "OOD is disabled (OOD_ENABLED=False)"}
-        from src.config import OOD_PERCENTILE
-        from src.data_pipeline import get_dataloaders
-        if percentile is None:
-            percentile = OOD_PERCENTILE
+
+        from src.config import (
+            OOD_BINARY_CONFIDENCE_FLOOR,
+            OOD_ENERGY_TEMPERATURE,
+            OOD_PERCENTILE,
+        )
+
+        percentile = OOD_PERCENTILE if percentile is None else float(percentile)
+        temperature = OOD_ENERGY_TEMPERATURE if temperature is None else float(temperature)
+        binary_floor = (
+            OOD_BINARY_CONFIDENCE_FLOOR if binary_floor is None else float(binary_floor)
+        )
+
         model = self._load_model(model_name)
         if not isinstance(model, torch.nn.Module):
             return {"error": "OOD calibration needs a PyTorch .pt checkpoint (not ONNX)"}
-        loaders = get_dataloaders(batch_size=32, num_workers=0)
-        if loaders is None:
-            return {"error": "no data/splits found for calibration"}
-        _, val_loader, test_loader = loaders
-        loader = val_loader if split == "val" else test_loader
-        thresholds = OODDetector.calibrate(model, loader, self.device,
-                                           percentile=float(percentile),
-                                           max_batches=max_batches)
+
+        if data_dir:
+            from src.ood_calibration import calibrate_from_folder, resolve_data_dir
+
+            resolved = resolve_data_dir(data_dir)
+            thresholds = calibrate_from_folder(
+                model,
+                resolved,
+                self.class_maps,
+                self.device,
+                percentile=percentile,
+                max_images=max_images,
+                temperature=temperature,
+                binary_floor=binary_floor,
+            )
+        else:
+            from src.data_pipeline import get_dataloaders
+
+            loaders = get_dataloaders(batch_size=32, num_workers=0)
+            if loaders is None:
+                return {"error": "no data/splits found for calibration"}
+            _, val_loader, test_loader = loaders
+            loader = val_loader if split == "val" else test_loader
+            thresholds = OODDetector.calibrate(
+                model,
+                loader,
+                self.device,
+                percentile=percentile,
+                temperature=temperature,
+                binary_floor=binary_floor,
+            )
+            thresholds["n_samples"] = thresholds.get("calibrated_on_samples")
+            thresholds["energy_mean"] = thresholds.get("energy_stats", {}).get("mean")
+            thresholds["msp_mean"] = thresholds.get("msp_stats", {}).get("mean")
+
+        thresholds["model_name"] = model_name
         path = OODDetector.save(thresholds, model_name)
+
+        # Drop cached detectors so the next prediction reloads the new JSON.
         if hasattr(self, "_ood_cache"):
-            self._ood_cache.pop(model_name, None)   # reload from the new JSON
+            self._ood_cache.pop(model_name, None)
+        self.ood_detectors.clear()
         thresholds["path"] = path
         if logger:
             logger.info(f"OOD recalibrated for '{model_name}' -> {path}")
@@ -662,7 +740,7 @@ class ModelManager:
         return info
 
     @torch.no_grad()
-    def predict(self, image_bytes, model_name, ood_profile="auto"):
+    def predict(self, image_bytes, model_name, ood_profile="auto", filename="unknown"):
         """Run prediction on raw image bytes. Returns result dict."""
         predict_start = time.time()
 
@@ -672,7 +750,10 @@ class ModelManager:
             return {"error": f"Model '{model_name}' not found"}
 
         if logger:
-            logger.info(f"Image received ({len(image_bytes) / 1024:.1f} KB), model='{model_name}', ood_profile='{ood_profile}'")
+            logger.info(
+                f"Image received ({len(image_bytes) / 1024:.1f} KB), "
+                f"filename='{filename}', model='{model_name}', ood_profile='{ood_profile}'"
+            )
 
         # Load and preprocess image
         try:
@@ -781,7 +862,7 @@ class ModelManager:
             top5_str = ", ".join(f"{b['breed']} ({b['confidence']:.1f}%)" for b in top5)
             logger.debug(f"Top-5 breeds: {top5_str}")
             logger.info(f"Prediction: {species_name} → {top5[0]['breed'] if top5 else 'Unknown'} "
-                        f"({top5[0]['confidence']:.1f}%) in {total_time:.3f}s "
+                        f"({top5[0]['confidence']:.1f}%) for '{filename}' in {total_time:.3f}s "
                         f"(inference: {inference_time:.3f}s)")
 
         result = {
@@ -1156,6 +1237,25 @@ def build_html(mode="dev"):
       <button class="predict-btn" id="ood-recal-btn" style="width:auto;padding:8px 16px;font-size:0.85rem">🔄 Recalibrate OOD</button>
       <button class="predict-btn" id="dataset-view-btn" style="width:auto;padding:8px 16px;font-size:0.85rem;background:var(--surface2);color:var(--text)">📊 View Dataset</button>
     </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <label style="font-size:0.78rem;color:var(--text-muted)">Breed-named image folder
+        <input id="ood-data-dir" list="ood-data-dir-list" placeholder="data/raw or Testing data"
+               style="width:100%;margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+        <datalist id="ood-data-dir-list"></datalist>
+      </label>
+      <label style="font-size:0.78rem;color:var(--text-muted)">Percentile
+        <input id="ood-percentile" type="number" min="50" max="99.9" step="0.5" value="95"
+               style="width:100%;margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+      </label>
+      <label style="font-size:0.78rem;color:var(--text-muted)">Max images
+        <input id="ood-max-images" type="number" min="1" value="500"
+               style="width:100%;margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text)">
+      </label>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.76rem;margin:0 0 12px">
+      Images may be flat (<code>Deoni_01.jpg</code>) or nested (<code>cattle/deoni/…</code>).
+      Only names matching the selected model's class maps are calibrated.
+    </p>
     <div id="ood-tools-content" class="dev-panel">
       <div class="dev-placeholder">Select a model, then use the tools above.</div>
     </div>
@@ -1759,18 +1859,40 @@ async function loadOodInfo() {
 async function recalibrateOod() {
   const model = _inspectedModel();
   if (!model) { _oodRender('<div class="dev-placeholder">Select a model first.</div>'); return; }
-  _oodRender('<div class="dev-placeholder">Calibrating OOD on the validation split… (may take a moment)</div>');
+  const el = id => document.getElementById(id);
+  const dataDir = (el('ood-data-dir')?.value || '').trim();
+  const percentile = parseFloat(el('ood-percentile')?.value || '95');
+  const maxImages = parseInt(el('ood-max-images')?.value || '500', 10);
+  _oodRender('<div class="dev-placeholder">Calibrating OOD from ' +
+    (dataDir ? dataDir : 'the validation split') + '… (may take a moment)</div>');
   try {
-    const r = await fetch('/api/recalibrate-ood', { method: 'POST',
+    const payload = { model: model, percentile: percentile };
+    if (dataDir) { payload.data_dir = dataDir; payload.max_images = maxImages; }
+    else { payload.split = 'val'; }
+    const r = await fetch('/api/ood/recalibrate', { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, split: 'val' }) });
+      body: JSON.stringify(payload) });
     const d = await r.json();
     if (d.error) { _oodRender('<div class="dev-placeholder">⚠️ ' + d.error + '</div>'); return; }
-    _oodRender('<h3 style="font-size:0.9rem;color:var(--green);margin-bottom:8px">✅ Recalibrated ' + model + '</h3>' +
-      _oodTable({ 'saved to': d.path, 'energy_threshold': d.energy_threshold,
+    const stats = d.energy_stats || {};
+    const mspStats = d.msp_stats || {};
+    let html = '<h3 style="font-size:0.9rem;color:var(--green);margin-bottom:8px">✅ Recalibrated ' + model + '</h3>' +
+      _oodTable({ 'saved to': d.path, 'data folder': d.data_dir,
+                  'energy_threshold': d.energy_threshold,
                   'msp_threshold': d.msp_threshold, 'percentile': d.percentile,
-                  'samples': d.n_samples, 'energy_mean': d.energy_mean,
-                  'msp_mean': d.msp_mean }));
+                  'samples': d.calibrated_on_samples || d.n_samples,
+                  'matched images': d.matched_images,
+                  'unmatched images': d.unmatched_images,
+                  'energy_mean': stats.mean, 'msp_mean': mspStats.mean });
+    if (d.breed_counts && Object.keys(d.breed_counts).length) {
+      html += '<h4 style="font-size:0.82rem;margin:12px 0 6px">Breed coverage</h4>' +
+        _oodTable(d.breed_counts);
+    }
+    if (d.unknown_breeds && d.unknown_breeds.length) {
+      const names = d.unknown_breeds.map(x => x.name + ' (' + x.count + ')').join(', ');
+      html += '<p style="font-size:0.76rem;color:var(--amber)">Unmatched names: ' + names + '</p>';
+    }
+    _oodRender(html);
     setTimeout(loadOodInfo, 400);
   } catch (e) { _oodRender('<div class="dev-placeholder">Error: ' + e + '</div>'); }
 }
@@ -1808,6 +1930,11 @@ async function loadDatasetInfo() {
   const b2 = $('#ood-recal-btn'); if (b2) b2.addEventListener('click', recalibrateOod);
   const b3 = $('#dataset-view-btn'); if (b3) b3.addEventListener('click', loadDatasetInfo);
   const dev = $('#dev-model-select'); if (dev) dev.addEventListener('change', loadOodInfo);
+  fetch('/api/ood-data-dirs').then(r => r.json()).then(d => {
+    const list = document.getElementById('ood-data-dir-list');
+    if (!list || !d.dirs) return;
+    list.innerHTML = d.dirs.map(x => '<option value="' + x.path + '">' + x.label + '</option>').join('');
+  }).catch(() => {});
 })();
 
 // Sync presenter config from API and populate Dev Tools controls
@@ -2537,6 +2664,11 @@ def run_server(manager, port=8501, mode="dev"):
                 body = json.dumps({"profiles": profiles, "ood_enabled": OOD_ENABLED})
                 self._respond(200, "application/json", body.encode())
 
+            elif self.path == "/api/ood-data-dirs":
+                from src.ood_calibration import list_calibration_dirs
+                body = json.dumps({"dirs": list_calibration_dirs()})
+                self._respond(200, "application/json", body.encode())
+
             elif self.path == "/api/logs":
                 if logger:
                     content = logger.get_log_contents()
@@ -2582,9 +2714,11 @@ def run_server(manager, port=8501, mode="dev"):
                     return
 
                 if logger:
-                    logger.info(f"Model selected: {model_name}, OOD profile: {ood_profile}")
+                    logger.info(f"Model selected: {model_name}, OOD profile: {ood_profile}, filename: {filename}")
 
-                result = manager.predict(image_bytes, model_name, ood_profile=ood_profile)
+                result = manager.predict(
+                    image_bytes, model_name, ood_profile=ood_profile, filename=filename
+                )
                 result["filename"] = filename
 
                 # In present mode, strip dev-only fields
@@ -2699,7 +2833,7 @@ def run_server(manager, port=8501, mode="dev"):
                     self._respond(500, "application/json",
                                   json.dumps({"error": str(e)}).encode())
 
-            elif self.path == "/api/recalibrate-ood":
+            elif self.path in ("/api/recalibrate-ood", "/api/ood/recalibrate"):
                 content_length = int(self.headers.get("Content-Length", 0))
                 raw = self.rfile.read(content_length)
                 try:
@@ -2708,14 +2842,26 @@ def run_server(manager, port=8501, mode="dev"):
                     split = payload.get("split", "val")
                     percentile = payload.get("percentile")
                     max_batches = payload.get("max_batches")
+                    data_dir = payload.get("data_dir")
+                    max_images = payload.get("max_images")
+                    temperature = payload.get("temperature")
+                    binary_floor = payload.get("binary_floor")
                     if model_name not in manager.models:
                         self._respond(404, "application/json",
                                       json.dumps({"error": "Model not found"}).encode())
                         return
                     thresholds = manager.recalibrate_ood(
-                        model_name, split=split, percentile=percentile,
-                        max_batches=max_batches)
-                    self._respond(200, "application/json",
+                        model_name,
+                        split=split,
+                        percentile=percentile,
+                        max_batches=max_batches,
+                        data_dir=data_dir,
+                        max_images=max_images,
+                        temperature=temperature,
+                        binary_floor=binary_floor,
+                    )
+                    status = 400 if "error" in thresholds else 200
+                    self._respond(status, "application/json",
                                   json.dumps(thresholds).encode())
                 except Exception as e:
                     self._respond(500, "application/json",

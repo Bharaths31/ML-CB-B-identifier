@@ -67,6 +67,80 @@ def list_ood_profiles():
     return jsonify({"profiles": profiles})
 
 
+@ood_bp.route('/api/ood/data-dirs', methods=['GET'])
+def list_data_dirs():
+    """Suggested folders for manual breed-named calibration."""
+    from src.ood_calibration import list_calibration_dirs
+    return jsonify({"dirs": list_calibration_dirs()})
+
+
+@ood_bp.route('/api/ood/recalibrate', methods=['POST'])
+def recalibrate_ood():
+    """Recalibrate OOD thresholds from the selected model and image folder."""
+    socketio = current_app.extensions.get('socketio')
+    db = get_shared_config(socketio)
+    manager = get_manager()
+    logger = get_logger()
+
+    data = request.get_json() or {}
+    model_name = data.get("model") or (manager.get_active_model_name() if manager else None)
+    if not model_name:
+        return jsonify({"error": "No model selected"}), 400
+    if manager is None or model_name not in manager.models:
+        return jsonify({"error": f"Model '{model_name}' not found"}), 404
+
+    try:
+        result = manager.recalibrate_ood(
+            model_name,
+            data_dir=data.get("data_dir"),
+            split=data.get("split", "val"),
+            percentile=data.get("percentile"),
+            max_batches=data.get("max_batches"),
+            max_images=data.get("max_images"),
+            temperature=data.get("temperature"),
+            binary_floor=data.get("binary_floor"),
+        )
+    except Exception as exc:
+        if logger:
+            logger.error(f"OOD recalibration failed: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+    if result.get("error"):
+        return jsonify(result), 400
+
+    # Persist the freshly calibrated thresholds, then switch back to per-model
+    # auto resolution so subsequent predictions use the new profile. The last
+    # set is notifying, so clients receive the complete updated config.
+    db.set("ood.energy_threshold", result.get("energy_threshold"), notify=False)
+    db.set("ood.msp_threshold", result.get("msp_threshold"), notify=False)
+    db.set("ood.temperature", result.get("energy_temperature", 1.0), notify=False)
+    db.set(
+        "ood.binary_confidence_floor",
+        result.get("binary_confidence_floor", 0.6),
+        notify=False,
+    )
+    db.set("ood.selected_profile", "auto", notify=True)
+    if socketio:
+        socketio.emit(
+            "ood_status_changed",
+            {
+                "profile": "auto",
+                "model": model_name,
+                "energy_threshold": result.get("energy_threshold"),
+                "msp_threshold": result.get("msp_threshold"),
+                "calibrated_on_samples": result.get("calibrated_on_samples"),
+            },
+            namespace="/ws",
+        )
+
+    if logger:
+        logger.info(
+            f"OOD recalibrated for '{model_name}' on "
+            f"{result.get('calibrated_on_samples')} samples -> {result.get('path')}"
+        )
+    return jsonify(result)
+
+
 @ood_bp.route('/api/ood/active', methods=['GET'])
 def get_active_ood():
     """Get active OOD configuration and currently resolved detector status."""

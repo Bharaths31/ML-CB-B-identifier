@@ -25,7 +25,7 @@
 
 | Field | Value |
 |---|---|
-| **Goal** | Classify images of Indian cattle (35 breeds) and buffalo (10 breeds, 45 total) using a lightweight, mobile-deployable CNN |
+| **Goal** | Classify images of Indian cattle (50 breeds) and buffalo (18 breeds, 68 total) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + deeper binary head (1280→512→256→2) + 2 breed heads + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
 | **Training** | 2-phase default: all-heads warmup (8 epochs) → multi-task fine-tune (80 epochs, AdamW lr=1e-4, warmup=5, EMA decay=0.9995) |
@@ -35,7 +35,7 @@
 
 ### Key Numbers
 
-- **45 total breeds**: 35 cattle + 10 buffalo (consolidated pool)
+- **68 total breeds**: 50 cattle + 18 buffalo (consolidated pool, including `other_buffalo`)
 - **Input size**: 260×260 RGB (pad-to-square enabled)
 - **Feature dim**: 1280 (from EfficientNet head)
 - **Backbone params**: ~6M (lite2), ~13M (lite4)
@@ -82,10 +82,10 @@
 Image → Resize(260) → CenterCrop(260) → ToTensor()
      → model.forward() → {binary, cattle, buffalo, features, embedding, traits}
      → Energy OOD check (abort if non-bovine detected)
-     → soft routing: p(species)·softmax(head) over all 45 breeds → top-k
+     → soft routing: p(species)·softmax(head) over all 68 breeds → top-k
 ```
 
-`model.predict(x)` returns the soft-routed 45-class distribution. `test_model.py`
+`model.predict(x)` returns the soft-routed 68-class distribution. `test_model.py`
 and both Flutter engines use the same `p(species)·softmax(head)` mixture instead
 of a hard binary argmax, so a confident breed head can still win when the binary
 head is ambiguous (removes two-stage routing error propagation).
@@ -418,9 +418,9 @@ outputs/export/portable/<backbone>_phase2_best/
 | Constant | Value | Purpose |
 |---|---|---|
 | `IMAGE_SIZE` | 260 | Input image dimension |
-| `NUM_CATTLE_BREEDS` | 57 | Expected cattle breed count |
+| `NUM_CATTLE_BREEDS` | 50 | Expected cattle breed count |
 | `NUM_BUFFALO_BREEDS` | 18 | Expected buffalo breed count |
-| `NUM_BREEDS_TOTAL` | 75 | Total breed count across species |
+| `NUM_BREEDS_TOTAL` | 68 | Total breed count across species |
 | `CBAM_AFTER_STAGE` | 3 | Attention insertion point |
 | `FEATURE_DIM` | 1280 | Backbone output dimension |
 | `BINARY_DIM` | 256 | Binary head hidden dim |
@@ -708,7 +708,7 @@ python create_training_zip.py
 
 2. **Backbone weights are included in the repo**: `efficientnet_lite{2,4}.pth` are tracked in git. No separate download required. Without them, backbone trains from scratch (significantly worse accuracy).
 
-3. **Fixed head sizes**: Model heads are always sized for 57 cattle + 18 buffalo classes regardless of data mode. Unused class outputs receive no gradient. Architecture is identical across all modes.
+3. **Fixed head sizes**: Model heads are always sized for 50 cattle + 18 buffalo classes regardless of data mode. Unused class outputs receive no gradient. Architecture is identical across all modes.
 
 4. **WeightedRandomSampler (training only, default on)**: Training oversamples rare breeds with effective-number weights (`SAMPLER_BETA=0.99`). Evaluation uses no sampling — test set reflects natural distribution. This is the **single** long-tail mechanism (logit adjustment is off by default).
 

@@ -18,7 +18,7 @@ def predict():
     
     logger = get_logger()
     if logger:
-        logger.info(f"Model selected: {model_name}")
+        logger.info(f"Model selected: {model_name}, filename: {filename}")
 
     socketio = current_app.extensions.get('socketio')
     
@@ -31,7 +31,7 @@ def predict():
 
     try:
         manager = get_manager()
-        result = predict_image(manager, image_bytes, model_name, socketio=socketio)
+        result = predict_image(manager, image_bytes, model_name, socketio=socketio, filename=filename)
         result["filename"] = filename
         
         # We can pass `devMode` from the frontend, but here we just return all data 

@@ -2,14 +2,26 @@ import { useRef, useState } from "react";
 import ModelSelect from "./ModelSelect.jsx";
 import PredictionProgress from "./PredictionProgress.jsx";
 import { predict, exportOdt, downloadBlob } from "../api.js";
+import {
+  formatBytes,
+  optimizeImageTo260,
+  releaseOptimizerResult,
+} from "../utils/imageOptimizer.js";
+import {
+  SESSION_LIMIT,
+  makeSessionEntry,
+  readSession,
+  writeSession,
+} from "../utils/sessionStore.js";
 
 export default function Batch({ models, model, setModel, devMode, predictionEvent }) {
   const [files, setFiles] = useState([]);
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0, name: "" });
+  const [progress, setProgress] = useState({ done: 0, total: 0, name: "", phase: "" });
   const [exporting, setExporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [optimization, setOptimization] = useState(null);
   const inputRef = useRef(null);
 
   const pick = (fl) => {
@@ -17,6 +29,7 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     if (imgs.length) {
       setFiles(imgs);
       setResults([]);
+      setOptimization(null);
     }
   };
 
@@ -24,24 +37,66 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     if (!files.length) return;
     setBusy(true);
     const out = [];
+    let originalBytes = 0;
+    let optimizedBytes = 0;
+    let optimizedCount = 0;
+
     for (let i = 0; i < files.length; i++) {
-      setProgress({ done: i, total: files.length, name: files[i].name });
+      const source = files[i];
+      let optimized = null;
+      setProgress({
+        done: i,
+        total: files.length,
+        name: source.name,
+        phase: "optimizing",
+      });
       try {
-        const data = await predict(files[i], model, files[i].name);
-        data.filename = files[i].name;
+        optimized = await optimizeImageTo260(source, {
+          fitMode: "pad",
+          padStyle: "imagenet_mean",
+          allowUpscale: false,
+        });
+        originalBytes += source.size || 0;
+        optimizedBytes += optimized.meta.optimizedBytes || 0;
+        optimizedCount += 1;
+
+        setProgress({
+          done: i,
+          total: files.length,
+          name: source.name,
+          phase: "predicting",
+        });
+        const data = await predict(optimized.file, model, source.name);
+        data.filename = source.name;
+        data.optimizerMeta = optimized.meta;
         out.push(data);
       } catch (e) {
-        out.push({ error: e.message, filename: files[i].name });
+        out.push({ error: e.message, filename: source.name });
+      } finally {
+        if (optimized) releaseOptimizerResult(optimized);
       }
       setResults([...out]);
     }
-    setProgress({ done: files.length, total: files.length, name: "" });
+
+    if (optimizedCount) {
+      setOptimization({
+        count: optimizedCount,
+        originalBytes,
+        optimizedBytes,
+        savingsPct:
+          originalBytes > 0
+            ? Math.round((1 - optimizedBytes / originalBytes) * 1000) / 10
+            : 0,
+      });
+    }
+    setProgress({ done: files.length, total: files.length, name: "", phase: "" });
     setBusy(false);
   };
 
   const clear = () => {
     setFiles([]);
     setResults([]);
+    setOptimization(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -55,6 +110,16 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     } finally {
       setExporting(false);
     }
+  };
+
+  const addToSession = () => {
+    const validResults = results.filter((r) => !r.error);
+    const additions = validResults.map((r) =>
+      makeSessionEntry({ result: r, quality: null, thumbnail: null, filename: r.filename })
+    );
+    const next = [...additions, ...readSession()].slice(0, SESSION_LIMIT);
+    writeSession(next);
+    alert(`${validResults.length} animals added to the herd session.`);
   };
 
   const valid = results.filter((r) => !r.error);
@@ -120,6 +185,7 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
             </div>
             <div className="progress-text">
               {progress.done + 1} / {progress.total}: {progress.name}
+              {progress.phase === "optimizing" ? " · Optimizing to 260×260…" : " · Predicting…"}
             </div>
           </>
         )}
@@ -134,6 +200,19 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
           </div>
         ) : (
           <>
+            {optimization && (
+              <div className="optimizer-bar optimizer-bar-compact">
+                <span className="optimizer-badge">
+                  Optimized {optimization.count} images:{" "}
+                  {formatBytes(optimization.originalBytes)} →{" "}
+                  {formatBytes(optimization.optimizedBytes)}
+                  {optimization.savingsPct
+                    ? ` (${optimization.savingsPct > 0 ? "-" : "+"}${Math.abs(optimization.savingsPct)}%)`
+                    : ""}
+                </span>
+              </div>
+            )}
+
             <div className="batch-summary">
               <div>
                 <div className="stat-val">{valid.length}</div>
@@ -149,11 +228,16 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
               </div>
             </div>
 
-            {devMode && (
-              <button className="btn outline-green full" onClick={doExport} disabled={exporting}>
-                {exporting ? "⏳ Generating ODT…" : "📄 Export All to ODT"}
+            <div className="batch-action-row">
+              <button className="btn secondary full" onClick={addToSession}>
+                ＋ Add All to Herd Session
               </button>
-            )}
+              {devMode && (
+                <button className="btn outline-green full" onClick={doExport} disabled={exporting}>
+                  {exporting ? "⏳ Generating ODT…" : "📄 Export All to ODT"}
+                </button>
+              )}
+            </div>
 
             <div className="batch-results-wrap">
               {results.map((r, i) =>
@@ -165,12 +249,13 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
                     <div style={{ color: "var(--red)" }}>❌ {r.error}</div>
                   </div>
                 ) : (
-                  <div className="batch-card" key={i}>
+                  <div className={"batch-card" + (r.is_ood ? " batch-card-ood" : "")} key={i}>
                     <div className="bc-header">
                       <span className="bc-filename">📄 {r.filename}</span>
-                      <span className={"bc-species " + r.species.toLowerCase()}>
+                      <span className={"bc-species " + String(r.species).toLowerCase()}>
                         {r.species} {devMode && r.species_confidence.toFixed(1) + "%"}
                       </span>
+                      {r.is_ood && <span className="bc-ood">OOD</span>}
                     </div>
                     <div className="bc-breed">{r.top_breed}</div>
                     <div className="bc-conf">{r.top_breed_confidence.toFixed(1)}% confidence</div>

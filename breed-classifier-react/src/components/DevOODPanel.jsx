@@ -6,6 +6,9 @@ import {
   toggleOOD,
   updateOODThresholds,
   uploadOODProfile,
+  getModels,
+  getOODDataDirs,
+  recalibrateOOD,
 } from "../api.js";
 
 export default function DevOODPanel({ config, onConfigChanged }) {
@@ -19,6 +22,17 @@ export default function DevOODPanel({ config, onConfigChanged }) {
   const [temp, setTemp] = useState(config?.ood?.temperature ?? 1.0);
   const [savingThresholds, setSavingThresholds] = useState(false);
   const [uploadMsg, setUploadMsg] = useState(null);
+
+  // Manual folder-based recalibration
+  const [models, setModels] = useState([]);
+  const [calModel, setCalModel] = useState(config?.active_model || "");
+  const [dataDirs, setDataDirs] = useState([]);
+  const [dataDir, setDataDir] = useState("");
+  const [percentile, setPercentile] = useState(95);
+  const [maxImages, setMaxImages] = useState(500);
+  const [recalibrating, setRecalibrating] = useState(false);
+  const [recalResult, setRecalResult] = useState(null);
+  const [recalError, setRecalError] = useState(null);
 
   const isEnabled = config?.ood?.enabled ?? true;
   const selectedProfile = config?.ood?.selected_profile ?? "auto";
@@ -48,6 +62,55 @@ export default function DevOODPanel({ config, onConfigChanged }) {
   useEffect(() => {
     refreshData();
   }, [config]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([getModels(), getOODDataDirs()]).then(([mRes, dRes]) => {
+      if (cancelled) return;
+      if (mRes.status === "fulfilled") {
+        const list = mRes.value.models || [];
+        setModels(list);
+        setCalModel((current) => current || config?.active_model || list[0]?.name || "");
+      }
+      if (dRes.status === "fulfilled") {
+        const dirs = dRes.value.dirs || [];
+        setDataDirs(dirs);
+        setDataDir((current) => current || dirs[0]?.path || "");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config?.active_model]);
+
+  useEffect(() => {
+    if (config?.active_model) setCalModel((current) => current || config.active_model);
+  }, [config?.active_model]);
+
+  const handleRecalibrate = async () => {
+    if (!calModel) {
+      setRecalError("Select a model first.");
+      return;
+    }
+    try {
+      setRecalibrating(true);
+      setRecalError(null);
+      setRecalResult(null);
+      const result = await recalibrateOOD({
+        model: calModel,
+        data_dir: dataDir.trim() || undefined,
+        percentile: Number(percentile) || 95,
+        max_images: Number(maxImages) || undefined,
+      });
+      setRecalResult(result);
+      onConfigChanged?.();
+      await refreshData();
+    } catch (err) {
+      setRecalError(err.message || "Recalibration failed");
+    } finally {
+      setRecalibrating(false);
+    }
+  };
 
   const handleToggle = async (e) => {
     const nextVal = e.target.checked;
@@ -223,7 +286,7 @@ export default function DevOODPanel({ config, onConfigChanged }) {
                 disabled={!isEnabled}
               />
               <p className="slider-hint">
-                Samples with free energy below this cut-off are marked Out-of-Distribution.
+                Samples with free energy above this cut-off are marked Out-of-Distribution.
               </p>
             </div>
 
@@ -279,6 +342,161 @@ export default function DevOODPanel({ config, onConfigChanged }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Manual folder-based recalibration */}
+      <div className="dev-card ood-recal-card">
+        <div className="dev-card-header">
+          <h3 className="card-heading">Manual OOD Recalibration</h3>
+          <span className="badge badge-outline">Breed-named folder</span>
+        </div>
+        <p className="panel-description">
+          Pick the model and a folder of breed-named images. Flat files
+          (<code>Deoni_01.jpg</code>) and nested folders (<code>cattle/deoni/…</code>)
+          are both supported. Only names matching the model class maps are used;
+          unmatched files are reported instead of silently polluting thresholds.
+        </p>
+
+        <div className="ood-recal-grid">
+          <label className="form-group">
+            <span className="form-label">Model</span>
+            <select
+              className="form-select"
+              value={calModel}
+              onChange={(e) => setCalModel(e.target.value)}
+            >
+              {models.length === 0 && <option value="">No models found</option>}
+              {models.map((m) => (
+                <option key={m.name} value={m.name}>
+                  {m.name} ({m.backbone})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-group">
+            <span className="form-label">Breed-named image folder</span>
+            <input
+              className="form-input"
+              list="ood-data-dir-options"
+              value={dataDir}
+              onChange={(e) => setDataDir(e.target.value)}
+              placeholder="data/raw or Testing data"
+            />
+            <datalist id="ood-data-dir-options">
+              {dataDirs.map((d) => (
+                <option key={d.abs_path || d.path} value={d.path}>
+                  {d.label}
+                </option>
+              ))}
+            </datalist>
+          </label>
+
+          <label className="form-group">
+            <span className="form-label">Percentile</span>
+            <input
+              className="form-input"
+              type="number"
+              min="50"
+              max="99.9"
+              step="0.5"
+              value={percentile}
+              onChange={(e) => setPercentile(e.target.value)}
+            />
+          </label>
+
+          <label className="form-group">
+            <span className="form-label">Max images</span>
+            <input
+              className="form-input"
+              type="number"
+              min="1"
+              value={maxImages}
+              onChange={(e) => setMaxImages(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary btn-full"
+          onClick={handleRecalibrate}
+          disabled={recalibrating || !calModel}
+        >
+          {recalibrating ? "Calibrating from folder…" : "Recalibrate OOD from Folder"}
+        </button>
+
+        {recalError && <p className="ood-recal-error">{recalError}</p>}
+
+        {recalResult && (
+          <div className="ood-recal-result">
+            <div className="ood-recal-stats">
+              <div>
+                <span>Samples</span>
+                <strong>
+                  {recalResult.calibrated_on_samples ?? recalResult.n_samples ?? "—"}
+                </strong>
+              </div>
+              <div>
+                <span>Matched</span>
+                <strong>{recalResult.matched_images ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Unmatched</span>
+                <strong>{recalResult.unmatched_images ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Energy</span>
+                <strong>
+                  {typeof recalResult.energy_threshold === "number"
+                    ? recalResult.energy_threshold.toFixed(4)
+                    : "—"}
+                </strong>
+              </div>
+              <div>
+                <span>MSP</span>
+                <strong>
+                  {typeof recalResult.msp_threshold === "number"
+                    ? recalResult.msp_threshold.toFixed(4)
+                    : "—"}
+                </strong>
+              </div>
+              <div>
+                <span>Percentile</span>
+                <strong>{recalResult.percentile ?? "—"}</strong>
+              </div>
+            </div>
+
+            {recalResult.breed_counts &&
+              Object.keys(recalResult.breed_counts).length > 0 && (
+                <div className="ood-breed-chips">
+                  {Object.entries(recalResult.breed_counts)
+                    .slice(0, 16)
+                    .map(([name, count]) => (
+                      <span className="ood-chip" key={name}>
+                        {name} <strong>{count}</strong>
+                      </span>
+                    ))}
+                </div>
+              )}
+
+            {recalResult.unknown_breeds?.length > 0 && (
+              <p className="ood-recal-warning">
+                Unmatched names:{" "}
+                {recalResult.unknown_breeds
+                  .slice(0, 8)
+                  .map((x) => `${x.name} (${x.count})`)
+                  .join(", ")}
+              </p>
+            )}
+
+            {recalResult.path && (
+              <p className="ood-recal-path">
+                Saved profile: <code>{recalResult.path}</code>
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 {
-  "_comment": "Fill in trait values per breed (free-form strings). Leave a field empty ('') to ignore it for that breed. Empty values are excluded from the masked trait loss.",
+  "_comment": "Fill in trait values per breed (free-form strings). Leave a field empty ('') to ignore it for that breed. Empty values are excluded from the masked trait loss. 'origin' and 'key_distinguisher' are display-only metadata for the React UI; training reads TRAIT_FIELDS only.",
   "fields": [
     "hump",
     "horn",
@@ -18,7 +18,9 @@
         "ear": "small_horizontal",
         "dewlap": "minimal",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Karnataka, India",
+        "key_distinguisher": "Lean grey draft breed; horns sweep back more tightly than Hallikar."
       },
       "ayrshire": {
         "hump": "absent",
@@ -54,7 +56,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "long_narrow",
-        "size": "small"
+        "size": "small",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Brown-and-white hill breed with long horns; smaller than Kangayam."
       },
       "belahi": {
         "hump": "well_developed",
@@ -90,7 +94,9 @@
         "ear": "small_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Grey draft breed from the Panchmahal hills; compact and hardy."
       },
       "dangi": {
         "hump": "medium",
@@ -99,7 +105,9 @@
         "ear": "small_horizontal",
         "dewlap": "moderate",
         "face": "broad_convex",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Maharashtra, India",
+        "key_distinguisher": "Heavy dewlap and spotted red/brown coat in a rain-tolerant draft breed."
       },
       "deoni": {
         "hump": "well_developed",
@@ -108,7 +116,9 @@
         "ear": "drooping",
         "dewlap": "large_pendulous",
         "face": "broad_convex",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Maharashtra / Karnataka, India",
+        "key_distinguisher": "Irregular black-and-white patching is the quickest visual cue."
       },
       "gangatiri": {
         "hump": "well_developed",
@@ -144,7 +154,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "broad_convex",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Convex forehead + long pendulous ears give Gir its distinctive dolichocephalic profile."
       },
       "guernsey": {
         "hump": "absent",
@@ -162,7 +174,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Karnataka, India",
+        "key_distinguisher": "Long backward-sweeping horns on a lean grey draft frame."
       },
       "hariana": {
         "hump": "well_developed",
@@ -171,7 +185,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "long_narrow",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Haryana, India",
+        "key_distinguisher": "White/grey dual-purpose frame with short horns; taller than Tharparkar."
       },
       "himachali_pahari": {
         "hump": "small",
@@ -207,7 +223,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Compact draft build with tight dewlap and short upward horns."
       },
       "kankrej": {
         "hump": "large_well_developed",
@@ -216,7 +234,9 @@
         "ear": "long_pendulous",
         "dewlap": "moderate_pendulous",
         "face": "broad_concave",
-        "size": "large"
+        "size": "large",
+        "origin": "Gujarat / Rajasthan, India",
+        "key_distinguisher": "Lyre-shaped horns and a silver-grey coat; known for the fast 'Bhare' gait."
       },
       "kenkatha": {
         "hump": "well_developed",
@@ -234,7 +254,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Odisha, India",
+        "key_distinguisher": "Odisha draft breed; similar to Hariana but with a shorter face."
       },
       "kherigarh": {
         "hump": "well_developed",
@@ -243,7 +265,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Uttar Pradesh, India",
+        "key_distinguisher": "Light draft breed from the Kheri region; compact compared with Nagori."
       },
       "khillar": {
         "hump": "well_developed",
@@ -315,7 +339,9 @@
         "ear": "small_erect",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Karnataka, India",
+        "key_distinguisher": "Dwarf hill breed from the Western Ghats; coat colour is highly variable."
       },
       "malvi": {
         "hump": "well_developed",
@@ -324,7 +350,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Madhya Pradesh, India",
+        "key_distinguisher": "Draft breed with a prominent hump and a straight, long face."
       },
       "mewati": {
         "hump": "well_developed",
@@ -333,7 +361,9 @@
         "ear": "medium_horizontal",
         "dewlap": "large_pendulous",
         "face": "straight_profile",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Rajasthan / Haryana, India",
+        "key_distinguisher": "Dual-purpose breed; close to Hariana but heavier through the body."
       },
       "motu": {
         "hump": "small",
@@ -351,7 +381,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "long_narrow",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Rajasthan, India",
+        "key_distinguisher": "Tall, long-faced draft breed with a white/grey coat."
       },
       "nari": {
         "hump": "well_developed",
@@ -369,7 +401,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Madhya Pradesh, India",
+        "key_distinguisher": "Red-and-white patched draft breed; distinct from the solid red Sindhi."
       },
       "ongole": {
         "hump": "well_developed",
@@ -378,7 +412,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "broad_convex",
-        "size": "large"
+        "size": "large",
+        "origin": "Andhra Pradesh, India",
+        "key_distinguisher": "Massive hump and muscular white frame; ancestor of the Brahman breed."
       },
       "poda_thurpu": {
         "hump": "well_developed",
@@ -414,7 +450,9 @@
         "ear": "small_erect",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Andhra Pradesh, India",
+        "key_distinguisher": "One of the smallest cattle breeds in the world; dwarf stature is decisive."
       },
       "purnea": {
         "hump": "small",
@@ -432,7 +470,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Rajasthan, India",
+        "key_distinguisher": "Brown-and-white patched coat with long ears and a prominent hump."
       },
       "red_dane": {
         "hump": "absent",
@@ -459,7 +499,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Sindh (Pakistan) / India",
+        "key_distinguisher": "Darker, more uniform red coat and a shorter, thicker horn set than Sahiwal."
       },
       "sahiwal": {
         "hump": "well_developed",
@@ -468,7 +510,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "straight_profile",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Punjab (India / Pakistan)",
+        "key_distinguisher": "Deep red coat with loose skin and a long face separates Sahiwal from Red Sindhi."
       },
       "shweta_kapila": {
         "hump": "well_developed",
@@ -486,7 +530,9 @@
         "ear": "small_erect",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Sikkim / Bhutan / West Bengal",
+        "key_distinguisher": "Himalayan hill breed with a heavy head and long curved horns."
       },
       "tharparkar": {
         "hump": "well_developed",
@@ -495,7 +541,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "straight_profile",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Rajasthan, India",
+        "key_distinguisher": "Light grey coat with long tapering horns is typical of the Thar desert breed."
       },
       "thutho": {
         "hump": "small",
@@ -513,7 +561,9 @@
         "ear": "medium_horizontal",
         "dewlap": "moderate",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Grey paddy-field breed with a compact frame and short horns."
       },
       "vechur": {
         "hump": "small",
@@ -522,7 +572,9 @@
         "ear": "small_erect",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Kerala, India",
+        "key_distinguisher": "Compact Kerala dwarf breed; smaller and finer-boned than Punganur."
       }
     },
     "buffalo": {
@@ -533,7 +585,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Tamil Nadu breed with backward-swept horns and a deep barrel."
       },
       "banni": {
         "hump": "absent",
@@ -542,7 +596,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Hardy Banni grassland buffalo; horns curve less tightly than Murrah."
       },
       "bargur": {
         "hump": "absent",
@@ -551,7 +607,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Brown-and-white hill breed with long horns; smaller than Kangayam."
       },
       "bhadawari": {
         "hump": "absent",
@@ -560,7 +618,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Uttar Pradesh / Madhya Pradesh",
+        "key_distinguisher": "Copper-coloured sheen on a black coat; known for high-fat milk."
       },
       "chhattisgarhi": {
         "hump": "absent",
@@ -569,7 +629,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Chhattisgarh, India",
+        "key_distinguisher": "Central Indian dairy breed; medium frame with curved horns."
       },
       "chilika": {
         "hump": "absent",
@@ -578,7 +640,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "small"
+        "size": "small",
+        "origin": "Odisha, India",
+        "key_distinguisher": "Small coastal buffalo from the Chilika lagoon; short curved horns."
       },
       "gojri": {
         "hump": "absent",
@@ -587,7 +651,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Rajasthan / Gujarat, India",
+        "key_distinguisher": "Migratory pastoral breed; coat can be black or brown."
       },
       "jaffarabadi": {
         "hump": "absent",
@@ -596,7 +662,9 @@
         "ear": "long_pendulous",
         "dewlap": "large_pendulous",
         "face": "broad_convex",
-        "size": "large"
+        "size": "large",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Long flat horns that droop beside the face; heavier than Murrah."
       },
       "kalahandi": {
         "hump": "absent",
@@ -605,7 +673,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Odisha, India",
+        "key_distinguisher": "Odisha breed with a medium frame and gently curved horns."
       },
       "luit": {
         "hump": "absent",
@@ -614,7 +684,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Assam, India",
+        "key_distinguisher": "Brahmaputra valley breed; compact with a deep body."
       },
       "marathwadi": {
         "hump": "absent",
@@ -623,7 +695,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "broad_convex",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Maharashtra, India",
+        "key_distinguisher": "Marathwada dairy type; close to Nagpuri but with shorter horns."
       },
       "mehsana": {
         "hump": "absent",
@@ -632,7 +706,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "straight_profile",
-        "size": "medium_large"
+        "size": "medium_large",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Murrah–Surti cross type with spiralled horns and a lighter frame."
       },
       "murrah": {
         "hump": "absent",
@@ -641,7 +717,9 @@
         "ear": "short_drooping",
         "dewlap": "minimal",
         "face": "broad_flat",
-        "size": "large"
+        "size": "large",
+        "origin": "Haryana / Punjab, India",
+        "key_distinguisher": "Tightly curled horns on a massive jet-black frame; the classic dairy buffalo."
       },
       "nagpuri": {
         "hump": "absent",
@@ -650,7 +728,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Maharashtra, India",
+        "key_distinguisher": "Long flat horns swept back; taller and leaner than Murrah."
       },
       "nili_ravi": {
         "hump": "absent",
@@ -659,7 +739,9 @@
         "ear": "medium_pendulous",
         "dewlap": "minimal",
         "face": "long_convex",
-        "size": "large"
+        "size": "large",
+        "origin": "Punjab (India / Pakistan)",
+        "key_distinguisher": "White markings on the face and legs are the quickest cue."
       },
       "pandharpuri": {
         "hump": "absent",
@@ -668,7 +750,9 @@
         "ear": "long_pendulous",
         "dewlap": "minimal",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Maharashtra, India",
+        "key_distinguisher": "Exceptionally long sword-shaped horns are the defining feature."
       },
       "surti": {
         "hump": "absent",
@@ -677,7 +761,9 @@
         "ear": "medium_horizontal",
         "dewlap": "minimal",
         "face": "long_narrow",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Gujarat, India",
+        "key_distinguisher": "Sickle-shaped horns and two white chevrons on the neck are characteristic."
       },
       "toda": {
         "hump": "absent",
@@ -686,7 +772,9 @@
         "ear": "small_horizontal",
         "dewlap": "minimal",
         "face": "broad_convex",
-        "size": "medium"
+        "size": "medium",
+        "origin": "Tamil Nadu, India",
+        "key_distinguisher": "Small Nilgiri hill buffalo with short horns and a compact body."
       }
     }
   }

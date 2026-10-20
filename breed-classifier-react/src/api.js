@@ -13,7 +13,17 @@ export async function predict(file, model, filename) {
   form.append("model", model);
   form.append("filename", filename);
   const r = await fetch("/api/predict", { method: "POST", body: form });
-  return r.json();
+  const text = await r.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Prediction failed (HTTP ${r.status})`);
+  }
+  if (!r.ok || data.error) {
+    throw new Error(data.error || `Prediction failed (HTTP ${r.status})`);
+  }
+  return data;
 }
 
 export async function getDevInfo() {
@@ -116,6 +126,25 @@ export async function uploadOODProfile(file) {
   form.append("file", file);
   const r = await fetch("/api/ood/upload", { method: "POST", body: form });
   return r.json();
+}
+
+export async function getOODDataDirs() {
+  const r = await fetch("/api/ood/data-dirs");
+  if (!r.ok) throw new Error("Failed to load calibration folders");
+  return r.json();
+}
+
+export async function recalibrateOOD(payload) {
+  const r = await fetch("/api/ood/recalibrate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.error) {
+    throw new Error(data.error || "OOD recalibration failed");
+  }
+  return data;
 }
 
 // --- Model Selection & Upload ---
