@@ -1,9 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CameraCapture from "./CameraCapture.jsx";
 import ModelSelect from "./ModelSelect.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
 import PredictionProgress from "./PredictionProgress.jsx";
 import { predict, exportOdt, downloadBlob } from "../api.js";
+import {
+  formatBytes,
+  optimizeImageTo260,
+  releaseOptimizerResult,
+} from "../utils/imageOptimizer.js";
 
 const ACCEPT = ".png,.jpg,.jpeg,.bmp,.webp";
 
@@ -16,22 +21,61 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
   const [dragOver, setDragOver] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizerMeta, setOptimizerMeta] = useState(null);
   const inputRef = useRef(null);
+  const resultRef = useRef(null);
+  const requestRef = useRef(0);
 
-  const pickFile = (f, source = "upload") => {
+  useEffect(
+    () => () => {
+      if (resultRef.current) {
+        releaseOptimizerResult(resultRef.current);
+        resultRef.current = null;
+      }
+    },
+    []
+  );
+
+  const pickFile = async (f, source = "upload") => {
     if (!f || !f.type.startsWith("image/")) return;
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(f);
-    setSourceType(source);
-    setPreview(URL.createObjectURL(f));
-    setResult(null);
+    const requestId = ++requestRef.current;
+    setOptimizing(true);
+    try {
+      const optimized = await optimizeImageTo260(f, {
+        fitMode: "pad",
+        padStyle: "imagenet_mean",
+        allowUpscale: false,
+      });
+      if (requestId !== requestRef.current) {
+        releaseOptimizerResult(optimized);
+        return;
+      }
+      if (resultRef.current) releaseOptimizerResult(resultRef.current);
+      resultRef.current = optimized;
+      setFile(optimized.file);
+      setSourceType(source);
+      setPreview(optimized.dataUrl);
+      setOptimizerMeta(optimized.meta);
+      setResult(null);
+    } catch (e) {
+      setResult({ error: `Image optimization failed: ${e.message}` });
+    } finally {
+      setOptimizing(false);
+    }
   };
 
   const clear = () => {
-    if (preview) URL.revokeObjectURL(preview);
+    requestRef.current += 1;
+    setOptimizing(false);
+    if (resultRef.current) {
+      releaseOptimizerResult(resultRef.current);
+      resultRef.current = null;
+    }
     setFile(null);
     setSourceType(null);
     setPreview(null);
+    setOptimizerMeta(null);
     setResult(null);
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -128,7 +172,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="action-tile camera-tile"
                 onClick={() => setCameraOpen(true)}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 <div className="tile-icon-wrap">
                   <span className="tile-icon">📷</span>
@@ -144,7 +188,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="action-tile upload-tile"
                 onClick={() => inputRef.current?.click()}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 <div className="tile-icon-wrap">
                   <span className="tile-icon">📁</span>
@@ -200,7 +244,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="sample-chip"
                 onClick={() => loadSample("gir")}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 🐄 Gir Cattle Sample
               </button>
@@ -208,7 +252,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="sample-chip"
                 onClick={() => loadSample("murrah")}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 🐃 Murrah Buffalo Sample
               </button>
@@ -228,7 +272,17 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
               </span>
             </div>
 
-            <div className="preview-container modern-preview">
+            {optimizerMeta && (
+              <div className="optimizer-bar optimizer-bar-compact">
+                <span className="optimizer-badge">
+                  {optimizerMeta.originalWidth}×{optimizerMeta.originalHeight} → 260×260 •{" "}
+                  {optimizerMeta.fitMode === "stretch" ? "Stretch" : "Zero Crop"} •{" "}
+                  {formatBytes(optimizerMeta.optimizedBytes)}
+                </span>
+              </div>
+            )}
+
+            <div className="preview-container modern-preview preview-260-container">
               <img src={preview} alt="Selected livestock preview" />
               <button
                 className="clear-btn"
@@ -251,7 +305,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="btn ghost btn-sm"
                 onClick={() => setCameraOpen(true)}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 📷 Retake with Camera
               </button>
@@ -259,7 +313,7 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
                 type="button"
                 className="btn ghost btn-sm"
                 onClick={() => inputRef.current?.click()}
-                disabled={busy}
+                disabled={busy || optimizing}
               >
                 📁 Choose Different File
               </button>
@@ -279,11 +333,16 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
 
         {/* Main Analyze Button */}
         <button
-          className={`btn primary full analyze-cta-btn ${busy ? "busy" : ""}`}
+          className={`btn primary full analyze-cta-btn ${busy || optimizing ? "busy" : ""}`}
           onClick={analyze}
-          disabled={!file || busy}
+          disabled={!file || busy || optimizing}
         >
-          {busy ? (
+          {optimizing ? (
+            <span className="btn-loading-flex">
+              <span className="spinner-icon" />
+              <span>Optimizing to 260×260…</span>
+            </span>
+          ) : busy ? (
             <span className="btn-loading-flex">
               <span className="spinner-icon" />
               <span>Analyzing Livestock Breed…</span>
@@ -314,8 +373,17 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
       {cameraOpen && (
         <CameraCapture
           onClose={() => setCameraOpen(false)}
-          onCapture={(capturedFile) => {
-            if (capturedFile) pickFile(capturedFile, "camera");
+          onCapture={(capturedFile, capturedDataUrl, capturedMeta) => {
+            if (!capturedFile) return;
+            requestRef.current += 1;
+            setOptimizing(false);
+            if (resultRef.current) releaseOptimizerResult(resultRef.current);
+            resultRef.current = null;
+            setFile(capturedFile);
+            setSourceType("camera");
+            setPreview(capturedDataUrl);
+            setOptimizerMeta(capturedMeta || null);
+            setResult(null);
           }}
         />
       )}

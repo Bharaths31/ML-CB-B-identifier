@@ -104,13 +104,30 @@ export function computeSourceRect({
 }
 
 /**
- * Keep pan inside the covered image so the preview never shows background.
+ * Keep the *target box* inside the source image.
+ *
+ * This is intentionally more permissive than clamping to the viewport: a
+ * landscape photo in a 4:3 viewfinder has no vertical overflow, but the
+ * smaller square target can still move up and down over the image. That is
+ * what enables both-axis framing. The area outside the target is dimmed and
+ * is never part of the model input.
  */
-export function clampPan({ panX, panY, zoom, viewportW, viewportH, sourceW, sourceH }) {
+export function clampPan({
+  panX,
+  panY,
+  zoom,
+  viewportW,
+  viewportH,
+  sourceW,
+  sourceH,
+  reticleSize,
+}) {
   const safeZoom = clamp(zoom || 1, ZOOM_MIN, ZOOM_MAX);
-  const scale = computeCoverScale(sourceW, sourceH, viewportW, viewportH);
-  const maxX = Math.max(0, (sourceW * scale * safeZoom - viewportW) / 2);
-  const maxY = Math.max(0, (sourceH * scale * safeZoom - viewportH) / 2);
+  const scale = computeCoverScale(sourceW, sourceH, viewportW, viewportH) * safeZoom;
+  const target = Math.max(1, reticleSize || Math.min(viewportW, viewportH));
+  const cropSize = Math.min(target / scale, Math.min(sourceW, sourceH));
+  const maxX = Math.max(0, ((sourceW - cropSize) * scale) / 2);
+  const maxY = Math.max(0, ((sourceH - cropSize) * scale) / 2);
   return {
     x: clamp(panX, -maxX, maxX),
     y: clamp(panY, -maxY, maxY),

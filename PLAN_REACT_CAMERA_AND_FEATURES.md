@@ -11,13 +11,14 @@ Out of scope: Flutter/Dart.
 - The previous camera reticle was **cosmetic**: capture drew the full video frame (`HEAD:breed-classifier-react/src/components/CameraCapture.jsx:139`) while the model receives a centre crop (`src/data_pipeline.py:689`).
 - The previous handoff was **broken**: `onCapture(capturedBlob)` passed one argument (`HEAD:…/CameraCapture.jsx:160`); `UserPage` expected `(file, dataUrl)` (`HEAD:…/UserPage.jsx:29`) and immediately unmounted the camera (`HEAD:…/UserPage.jsx:149`).
 - Uploaded photos were sent **unframed**, so the server's `Resize(260) -> CenterCrop(260)` silently removed 25–44% of a 4:3/16:9 animal.
-- Fix: an **authoritative 1:1 square crop**. The square the user sees is the exact pixel region exported and sent to `/api/predict`; because the image is already square, the server centre crop is a no-op.
-- Implemented shared crop math and tests in `src/utils/cropAndQuality.js`; interactive cropper in `src/components/ImageCropper.jsx`.
+- Fix: an **authoritative 260×260 zero-crop optimizer** is now the default for every upload and capture. The client sends a square image, so the server `Resize(260) -> CenterCrop(260)` is a no-op; the full animal is preserved via letterbox padding or an explicit stretch.
+- Implemented shared crop math and tests in `src/utils/cropAndQuality.js`; interactive cropper in `src/components/ImageCropper.jsx` (retained for optional manual framing).
 - Implemented an on-device quality gate (Laplacian sharpness, exposure histogram, Sobel framing) with non-colour-only guidance.
-- Upgraded live camera with 1:1 mask, zoom/pan, auto-capture, burst-3 best frame, torch support, and freeze-frame re-crop.
+- Converted the live camera to a **full-frame viewfinder** (`object-fit: contain`) with auto-capture, burst-3 best frame, torch support, Pad/Stretch review, and optional manual re-framing.
 - Implemented 6 product features: guided quality coach, 3-tier confidence/OOD abstention, “Why this breed?” trait matrix, herd session log with CSV/JSON/ODT export, shareable PNG result card, EN/TA i18n.
 - The user-specified coordinate formula omitted `zoom` from the centring offset; the implementation computes the offset at `coverScale × zoom` so zoom is anchored at the viewport centre, matching CSS `transform: scale()`.
-- Verification: `npm test` → 20/20 geometry, quality, session, and trait tests pass; `npm run build` → production bundle succeeds; headless Chromium smoke tests cover upload → crop → prediction, camera → shutter → re-crop, tier 1/2/3, traits, session persistence, and EN/TA switching.
+- Verification: `npm test` → 30/30 geometry, optimizer, quality, session, and trait tests pass; `npm run build` → production bundle succeeds; headless Chromium smoke tests cover upload → optimize → predict, fit-mode switching, original/model preview toggle, both-axis framing, full-frame camera → optimize → handoff, tier 1/2/3, traits, session persistence, and EN/TA switching.
+- Added a **zero-crop 260×260 optimizer** (`src/utils/imageOptimizer.js`) and converted the live camera to a full-frame viewfinder; the existing cropper remains as the optional manual framing tool.
 
 ---
 
@@ -43,6 +44,8 @@ Out of scope: Flutter/Dart.
 
 ## 3. Decision Record — Crop vs Overlay
 
+> **Update:** the shipped default is now **Option D — zero-crop 260×260 optimizer** (section 11). Option B below remains the optional manual framing path behind “Adjust Framing”; the overlay/crop discussion is retained because that code still exists and is tested.
+
 ### Option A — Decorative overlay (status quo)
 Reticle is a hint; capture sends the full frame.
 - ✅ No new math.
@@ -50,7 +53,7 @@ Reticle is a hint; capture sends the full frame.
 - ❌ Horns/tail still truncated; users blame the model.
 - **Rejected.**
 
-### Option B — Authoritative 1:1 target crop (chosen)
+### Option B — Authoritative 1:1 target crop (manual framing path)
 The square target defines the exact source rectangle. The client exports a square JPEG (`520×520`), the server centre-crops to `260×260` losslessly, and the TFLite/ONNX graphs receive the same framing.
 - ✅ Overlay and model input are provably identical.
 - ✅ Removes the silent long-axis truncation.
@@ -85,7 +88,9 @@ mirrored front camera: xi' = Wi − xi − Li
 
 ---
 
-## 4. Capture UX
+## 4. Capture UX (optional manual framing)
+
+> The shipped default is the full-frame zero-crop flow in section 11. This section documents the manual cropper that opens from “Adjust Framing”.
 
 ### State machine
 
@@ -275,8 +280,8 @@ Features 1–9. All run without retraining and without a backend change; the onl
 | A1 | Pure crop math + mirror/clamp | `src/utils/cropAndQuality.js` | 0.5 d | Unit tests for portrait, landscape, zoom, pan, mirror, clamp ✅ |
 | A2 | Quality gate (blur/exposure/framing) | `src/utils/cropAndQuality.js` | 0.5 d | Flat/black/white/checkerboard tests ✅ |
 | A3 | Shared interactive cropper | `src/components/ImageCropper.jsx` | 1 d | Drag/pinch/wheel, quality recompute, square export ✅ |
-| A4 | Live camera rewrite | `src/components/CameraCapture.jsx` | 1.5 d | 1:1 mask, guidance, auto, burst, torch, review ✅ |
-| A5 | Upload cropper | `src/components/ImageUpload.jsx` | 0.5 d | Adjust framing before inference ✅ |
+| A4 | Live camera rewrite | `src/components/CameraCapture.jsx` | 1.5 d | Full-frame contain view, guide badge, quality gate, auto-capture, burst-3, torch, Pad/Stretch review, optimizer handoff ✅ |
+| A5 | Upload optimizer + optional cropper | `src/components/ImageUpload.jsx`, `src/utils/imageOptimizer.js` | 1 d | Auto-optimize to 260×260, fit modes, original/model toggle, optional Adjust Framing ✅ |
 | A6 | Handoff fix | `src/pages/UserPage.jsx` | 0.25 d | `(File, dataUrl, quality)` reaches preview ✅ |
 | B1 | 3-tier result + OOD trigger | `src/components/ResultCard.jsx` | 0.75 d | Tier 1/2/3 with actionable retake ✅ |
 | B2 | Trait matrix | `src/data/breedTraits.js`, `ResultCard.jsx`, `TraitComparison.jsx` | 1 d | 44 breeds, 8 fields, differs highlight ✅ |
@@ -284,7 +289,7 @@ Features 1–9. All run without retraining and without a backend change; the onl
 | B4 | Share PNG | `cropAndQuality.js`, `ResultCard.jsx` | 0.5 d | Canvas card + native share fallback ✅ |
 | B5 | i18n | `src/i18n/*`, `LanguageToggle.jsx` | 0.75 d | EN/TA toggle persisted ✅ |
 | B6 | CSS system | `src/styles.css` | 0.75 d | All 5 themes + mobile ✅ |
-| C1 | Tests + build | `__tests__`, `package.json` | 0.25 d | 20/20 pass, `npm run build` ✅ |
+| C1 | Tests + build | `__tests__`, `package.json` | 0.25 d | 30/30 pass, `npm run build` ✅ |
 
 ### Test matrix
 
@@ -301,9 +306,9 @@ Features 1–9. All run without retraining and without a backend change; the onl
 
 ## 8. 5-Minute Reviewer Demo Script
 
-1. **0:00 — Framing problem.** Upload a 16:9 photo. Show the 1:1 adjuster and the dimmed surround: “This square is exactly what the model receives; previously the server centre-cropped 44% of the animal.”
+1. **0:00 — Framing problem.** Upload a 16:9 photo. Show the optimizer bar: `1920×1080 → 260×146 + 57px pad` and the payload drop. “The full animal is preserved; previously the server centre-cropped 44% of it.” Toggle Ambient blur / Stretch, then open Adjust Framing to show the optional 1:1 crop with both-axis pan.
 2. **0:45 — Quality gate.** Drag into a dark/blurred region and show the amber pill plus the sharpness/lighting/framing bars.
-3. **1:15 — Live camera.** Open camera, show the 1:1 mask, zoom, auto-capture ring, burst-3. Confirm a capture and show the frozen re-crop.
+3. **1:15 — Live camera.** Open camera, show the full-frame guide, quality gate, auto-capture ring, burst-3. Capture and show the 260×260 review with Pad/Stretch telemetry; confirm the handoff.
 4. **2:00 — Prediction tiers.** Run inference. Show tier 1 (green) for a clear Gir; switch to a look-alike image to show tier 2 (amber) and the trait matrix.
 5. **2:45 — OOD.** Show a dog/car image. Tier 3 lists the exact trigger (energy / MSP / binary floor) and offers “Retake with Guided Coach”.
 6. **3:15 — Session.** Open the Herd drawer: totals, cattle/buffalo split, flagged count, average confidence/quality. Export CSV, JSON, ODT.
@@ -333,7 +338,43 @@ Features 1–9. All run without retraining and without a backend change; the onl
 None of these block the implementation; each has a shipped default so there is no unresolved code path.
 
 1. **Session scope** — device-local in `localStorage`. Server sync is a Phase 2 decision; the export path (CSV/JSON/ODT) already covers sharing.
-2. **Export size** — `520×520` client crop; the server downsamples to `260×260`. This preserves review quality without changing the model contract.
+2. **Export size** — the shipped path sends `260×260` for every upload/capture, so the server `Resize(260) -> CenterCrop(260)` is identity. The optional manual cropper still exports `520×520`, which the optimizer then downsizes to `260×260` for review quality.
 3. **Tier thresholds** — `0.72` confidence and `0.12` margin are constants in `ResultCard.jsx`. Moving them to the shared config DB is a future configuration task, not a missing feature.
 4. **Thumbnail consent** — thumbnails stay in the browser and are never uploaded; the session can be cleared in one click. A consent screen is only needed if server-side sync is added.
 5. **Retake behaviour** — “Retake with Coach” opens the camera without force-enabling auto-capture, so the user keeps manual control.
+
+---
+
+## 11. Zero-Crop 260×260 Optimizer (added)
+
+**Contract.** `src/utils/imageOptimizer.js` turns every selected/captured image into a `260×260` RGB JPEG before `/api/predict`. Because the server runs `Resize(260) -> CenterCrop(260)`, a square input makes both steps identity transforms — zero cropping.
+
+**Default (`fitMode: "pad"`, `padStyle: "imagenet_mean"`).**
+- `scale = 260 / max(width, height)` unless `allowUpscale` is false and the image is smaller than 260.
+- `nw = round(width × scale)`, `nh = round(height × scale)`.
+- `padX = floor((260 − nw)/2)`, `padY = floor((260 − nh)/2)`.
+- Pad colour `rgb(124, 116, 104)` (`#7c7468`), matching `_PadToSquare` and ~0 after ImageNet normalization.
+
+**Modes exposed in the UI.**
+- `Pad · ImageNet mean` — default, neutral bars.
+- `Pad · Ambient blur` — blurred/darkened stretched copy behind the sharp image.
+- `Pad · Black` — solid black bars.
+- `Stretch 260×260` — direct fit, no bars, no crop; labelled “Upscaled” if the source is smaller than 260.
+
+**Decoding & quality.**
+- `createImageBitmap(blob, { imageOrientation: "from-image" })` with an `Image` + object-URL fallback, so phone portrait EXIF is upright.
+- Progressive halving while both dimensions can be halved, then one high-quality final draw. This avoids aliasing on horns and coat texture.
+- `imageSmoothingEnabled = true`, `imageSmoothingQuality = "high"`.
+
+**Output contract.** `optimizeImageTo260(fileOrBlob, options)` resolves to `{ file, blob, dataUrl, originalDataUrl, meta }`, where `meta` includes original/optimized dimensions, aspect ratio, payload sizes, savings %, inner scaled size, `padX/padY`, scale factors, fit mode, pad style, upscale flag, and duration.
+
+**Integration points.**
+- `ImageUpload.jsx` optimizes on file select, exposes fit modes + model/original preview toggle, metadata grid, and an optional manual “Adjust Framing” pass through the existing cropper.
+- `CameraCapture.jsx` now shows the **entire sensor frame** (`object-fit: contain`), captures full-frame, optimizes to 260×260, and offers Pad/Stretch plus optional manual framing before handoff.
+- `UserPage.jsx` stores `optimizerMeta`, sends the optimized `File`, and passes the meta to `ResultCard` diagnostics.
+- `SingleImage.jsx` and `Batch.jsx` optimize before prediction; Batch reports aggregate bandwidth saved.
+- `clampPan()` now clamps the target box against the source, not the viewport, so the manual cropper allows **both vertical and horizontal** framing even when the image has no viewport overflow.
+
+**Tests.** `src/utils/__tests__/imageOptimizer.test.js` covers `1920×1080 → 260×146, padY=57`, `1080×1920 → 146×260, padX=57`, identity, no-upscale, `allowUpscale`, stretch, aspect ratios, and byte formatting. `cropAndQuality.test.js` covers both-axis pan.
+
+**Model-distribution note.** Training used `Resize(260) -> CenterCrop(260)`, so letterbox bars are a small distribution shift; `Stretch` is provided as the no-bar alternative. Both modes are one click apart in the UI. Validate Pad vs Stretch on the validation split before choosing a field default; `EVAL_PAD_TO_SQUARE` in `src/config.py` is the server-side counterpart if the training/eval contract is changed later.

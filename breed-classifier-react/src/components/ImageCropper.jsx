@@ -50,6 +50,11 @@ export default function ImageCropper({
     setQuality(null);
   }, [imageUrl]);
 
+  // The cropper can sit below the fold in the upload card; bring it into view.
+  useEffect(() => {
+    stageRef.current?.scrollIntoView?.({ block: "center", inline: "nearest" });
+  }, [imageUrl]);
+
   useLayoutEffect(() => {
     const node = stageRef.current;
     if (!node) return undefined;
@@ -122,10 +127,11 @@ export default function ImageCropper({
           viewportH: frame.vh,
           sourceW: source.w,
           sourceH: source.h,
+          reticleSize: frame.rl,
         })
       );
     },
-    [frame.vw, frame.vh, source.w, source.h, maxZoom]
+    [frame.vw, frame.vh, frame.rl, source.w, source.h, maxZoom]
   );
 
   // Native wheel listener so preventDefault works (React wheel is passive).
@@ -176,6 +182,7 @@ export default function ImageCropper({
         viewportH: frame.vh,
         sourceW: source.w,
         sourceH: source.h,
+        reticleSize: frame.rl,
       });
       setPan(next);
     } else if (g.mode === "pinch" && pointers.current.size === 2) {

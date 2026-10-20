@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { shareTraits } from "../data/breedTraits.js";
 import { loadImage, renderShareCard, shareOrDownloadCanvas } from "../utils/cropAndQuality.js";
+import { formatBytes } from "../utils/imageOptimizer.js";
 import { statusMeta } from "./QualityBadge.jsx";
 import TraitComparison from "./TraitComparison.jsx";
 
@@ -33,7 +34,15 @@ function oodTriggers(details) {
   return triggers;
 }
 
-export default function ResultCard({ result, config, onReset, onRetake, quality, previewUrl }) {
+export default function ResultCard({
+  result,
+  config,
+  onReset,
+  onRetake,
+  quality,
+  previewUrl,
+  optimizerMeta,
+}) {
   const { t } = useI18n();
   const [showDetails, setShowDetails] = useState(
     config?.display?.show_technical_details ?? false
@@ -272,6 +281,17 @@ export default function ResultCard({ result, config, onReset, onRetake, quality,
                     : t("result.notAvailable")}
                 </span>
               </div>
+              {optimizerMeta && (
+                <div className="diag-item">
+                  <span className="diag-label">{t("optimizer.modelInput")}</span>
+                  <span className="diag-value">
+                    260×260 · {formatBytes(optimizerMeta.optimizedBytes)} ·{" "}
+                    {optimizerMeta.fitMode === "stretch"
+                      ? t("optimizer.stretch")
+                      : t("optimizer.zeroCrop")}
+                  </span>
+                </div>
+              )}
               {quality && (
                 <>
                   <div className="diag-item">

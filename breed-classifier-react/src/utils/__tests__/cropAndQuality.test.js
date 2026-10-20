@@ -118,7 +118,7 @@ test("crop never exceeds the shortest source side", () => {
   assert.ok(rect.y >= 0 && rect.y + rect.size <= 240 + 1e-9);
 });
 
-test("clampPan bounds pan to the covered image", () => {
+test("clampPan keeps the target box inside the source on both axes", () => {
   const clamped = clampPan({
     panX: 9999,
     panY: -9999,
@@ -127,9 +127,28 @@ test("clampPan bounds pan to the covered image", () => {
     viewportH: 300,
     sourceW: 1920,
     sourceH: 1080,
+    reticleSize: 234,
   });
-  assert.ok(clamped.x <= (1920 * (300 / 1080) * 2 - 400) / 2 + 1e-6);
-  assert.ok(clamped.y >= -(1080 * (300 / 1080) * 2 - 300) / 2 - 1e-6);
+  // scale = (300/1080)*2 = 0.5556, crop = 234/0.5556 = 421.2
+  // maxX = (1920-421.2)*0.5556/2 = 416.3, maxY = (1080-421.2)*0.5556/2 = 183.0
+  assert.ok(clamped.x <= 416.4 && clamped.x > 0);
+  assert.ok(clamped.y >= -183.1 && clamped.y < 0);
+});
+
+test("vertical framing is possible even without viewport overflow", () => {
+  // A 16:9 photo fills a 4:3 viewfinder vertically, but the smaller square
+  // target can still move up/down over the source.
+  const panned = clampPan({
+    panX: 0,
+    panY: 9999,
+    zoom: 1,
+    viewportW: 400,
+    viewportH: 300,
+    sourceW: 1920,
+    sourceH: 1080,
+    reticleSize: 234,
+  });
+  assert.ok(panned.y > 0, `expected vertical pan, got ${panned.y}`);
 });
 
 test("centerSquareRect matches shortest-side + centre crop", () => {

@@ -3682,3 +3682,245 @@ input[type="range"] {
 }
 .capture-test-btn { font-size: 0.78rem; padding: 7px 12px; text-decoration: none; }
 .trait-disclaimer { margin: 6px 0 0; font-size: 0.66rem; color: var(--text-muted); opacity: 0.85; }
+
+/* ==========================================================================
+   ZERO-CROP 260x260 OPTIMIZER + FULL-FRAME CAMERA
+   ========================================================================== */
+
+.camera-video-contain {
+  object-fit: contain !important;
+  background: #000;
+}
+.camera-video.mirrored { transform: scaleX(-1); }
+
+.camera-stage-fullframe { background: #000; }
+
+.camera-fullframe-guide {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.camera-fullframe-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.camera-review-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px;
+}
+
+.preview-260-frame {
+  position: relative;
+  width: min(260px, 100%);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-260-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.preview-260-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.preview-260-container {
+  max-width: 260px;
+  margin: 0 auto;
+}
+.preview-260-container img { max-height: 260px; }
+
+.optimizer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+}
+
+.optimizer-bar-compact {
+  margin: 8px 0;
+  padding: 6px 10px;
+}
+
+.optimizer-badge {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.optimizer-controls,
+.optimizer-preview-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.optimizer-mode-btn,
+.optimizer-toggle-btn {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-muted);
+  border-radius: 9999px;
+  padding: 5px 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.optimizer-mode-btn:hover:not(:disabled),
+.optimizer-toggle-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.optimizer-mode-btn.is-on,
+.optimizer-toggle-btn.is-on {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.optimizer-mode-btn:disabled,
+.optimizer-toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.optimizer-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.optimizer-meta-grid > div {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+  min-width: 0;
+}
+
+.optimizer-meta-grid span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.optimizer-meta-grid strong {
+  display: block;
+  font-size: 0.76rem;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optimizer-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.optimizer-busy-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 12px;
+}
+
+.camera-error-inline {
+  margin: 0;
+  color: var(--red);
+  font-size: 0.78rem;
+}
+
+.camera-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.camera-review-actions .btn { flex: 1 1 auto; }
+
+@media (max-width: 640px) {
+  .optimizer-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .camera-review-actions { flex-direction: column; }
+  .camera-fullframe-badge { font-size: 0.58rem; white-space: normal; width: max-content; max-width: 92%; text-align: center; }
+}
+
+/* Keep the crop stage at 4:3 even when vertical space is tight. */
+.crop-stage {
+  width: min(100%, 70vh, 520px);
+  max-height: none;
+  min-height: 0;
+  margin: 0 auto;
+}
+.camera-stage-fullframe { touch-action: pan-y; cursor: default; }
+.camera-fullframe-badge {
+  width: max-content;
+  max-width: 92%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
+}

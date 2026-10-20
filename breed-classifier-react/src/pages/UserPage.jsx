@@ -31,6 +31,7 @@ export default function UserPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [quality, setQuality] = useState(null);
+  const [optimizerMeta, setOptimizerMeta] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [predictionResult, setPredictionResult] = useState(null);
@@ -40,27 +41,30 @@ export default function UserPage() {
   const { connected, serverStatus, predictionEvent, socket } = useSocket();
   const { config } = useSharedConfig(socket);
 
-  const selectImage = (file, dataUrl, report = null) => {
+  const selectImage = (file, dataUrl, meta = null, report = null) => {
     setSelectedFile(file);
     setPreviewUrl(dataUrl);
+    setOptimizerMeta(meta);
     setQuality(report);
     setPredictionResult(null);
     setError(null);
   };
 
-  const handleImageSelected = (file, dataUrl, report) => {
-    selectImage(file, dataUrl, report);
+  // ImageUpload passes the optimized 260x260 File and its optimizer meta.
+  const handleImageSelected = (file, dataUrl, meta) => {
+    selectImage(file, dataUrl, meta, null);
   };
 
-  // CameraCapture now passes (File, cropped data URL, quality report).
-  const handleCameraCapture = (file, dataUrl, report) => {
-    selectImage(file, dataUrl, report);
+  // CameraCapture passes (File, 260x260 dataUrl, optimizer meta, quality report).
+  const handleCameraCapture = (file, dataUrl, meta, report) => {
+    selectImage(file, dataUrl, meta, report);
     setInputMode("upload");
   };
 
   const handleClear = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
+    setOptimizerMeta(null);
     setQuality(null);
     setPredictionResult(null);
     setError(null);
@@ -183,6 +187,7 @@ export default function UserPage() {
                 <ImageUpload
                   onImageSelected={handleImageSelected}
                   currentPreview={previewUrl}
+                  optimizerMeta={optimizerMeta}
                   onClear={handleClear}
                 />
               )}
@@ -249,6 +254,7 @@ export default function UserPage() {
               onRetake={handleRetake}
               quality={quality}
               previewUrl={previewUrl}
+              optimizerMeta={optimizerMeta}
             />
           </section>
         )}

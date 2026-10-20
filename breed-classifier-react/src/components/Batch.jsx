@@ -3,6 +3,11 @@ import ModelSelect from "./ModelSelect.jsx";
 import PredictionProgress from "./PredictionProgress.jsx";
 import { predict, exportOdt, downloadBlob } from "../api.js";
 import {
+  formatBytes,
+  optimizeImageTo260,
+  releaseOptimizerResult,
+} from "../utils/imageOptimizer.js";
+import {
   SESSION_LIMIT,
   makeSessionEntry,
   readSession,
@@ -13,9 +18,10 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
   const [files, setFiles] = useState([]);
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0, name: "" });
+  const [progress, setProgress] = useState({ done: 0, total: 0, name: "", phase: "" });
   const [exporting, setExporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [optimization, setOptimization] = useState(null);
   const inputRef = useRef(null);
 
   const pick = (fl) => {
@@ -23,6 +29,7 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     if (imgs.length) {
       setFiles(imgs);
       setResults([]);
+      setOptimization(null);
     }
   };
 
@@ -30,24 +37,66 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     if (!files.length) return;
     setBusy(true);
     const out = [];
+    let originalBytes = 0;
+    let optimizedBytes = 0;
+    let optimizedCount = 0;
+
     for (let i = 0; i < files.length; i++) {
-      setProgress({ done: i, total: files.length, name: files[i].name });
+      const source = files[i];
+      let optimized = null;
+      setProgress({
+        done: i,
+        total: files.length,
+        name: source.name,
+        phase: "optimizing",
+      });
       try {
-        const data = await predict(files[i], model, files[i].name);
-        data.filename = files[i].name;
+        optimized = await optimizeImageTo260(source, {
+          fitMode: "pad",
+          padStyle: "imagenet_mean",
+          allowUpscale: false,
+        });
+        originalBytes += source.size || 0;
+        optimizedBytes += optimized.meta.optimizedBytes || 0;
+        optimizedCount += 1;
+
+        setProgress({
+          done: i,
+          total: files.length,
+          name: source.name,
+          phase: "predicting",
+        });
+        const data = await predict(optimized.file, model, source.name);
+        data.filename = source.name;
+        data.optimizerMeta = optimized.meta;
         out.push(data);
       } catch (e) {
-        out.push({ error: e.message, filename: files[i].name });
+        out.push({ error: e.message, filename: source.name });
+      } finally {
+        if (optimized) releaseOptimizerResult(optimized);
       }
       setResults([...out]);
     }
-    setProgress({ done: files.length, total: files.length, name: "" });
+
+    if (optimizedCount) {
+      setOptimization({
+        count: optimizedCount,
+        originalBytes,
+        optimizedBytes,
+        savingsPct:
+          originalBytes > 0
+            ? Math.round((1 - optimizedBytes / originalBytes) * 1000) / 10
+            : 0,
+      });
+    }
+    setProgress({ done: files.length, total: files.length, name: "", phase: "" });
     setBusy(false);
   };
 
   const clear = () => {
     setFiles([]);
     setResults([]);
+    setOptimization(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -136,6 +185,7 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
             </div>
             <div className="progress-text">
               {progress.done + 1} / {progress.total}: {progress.name}
+              {progress.phase === "optimizing" ? " · Optimizing to 260×260…" : " · Predicting…"}
             </div>
           </>
         )}
@@ -150,6 +200,19 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
           </div>
         ) : (
           <>
+            {optimization && (
+              <div className="optimizer-bar optimizer-bar-compact">
+                <span className="optimizer-badge">
+                  Optimized {optimization.count} images:{" "}
+                  {formatBytes(optimization.originalBytes)} →{" "}
+                  {formatBytes(optimization.optimizedBytes)}
+                  {optimization.savingsPct
+                    ? ` (${optimization.savingsPct > 0 ? "-" : "+"}${Math.abs(optimization.savingsPct)}%)`
+                    : ""}
+                </span>
+              </div>
+            )}
+
             <div className="batch-summary">
               <div>
                 <div className="stat-val">{valid.length}</div>
