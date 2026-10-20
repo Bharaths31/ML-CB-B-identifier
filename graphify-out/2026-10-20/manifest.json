@@ -786,9 +786,9 @@
     "semantic_hash": ""
   },
   "VERSION.txt": {
-    "mtime": 1792493406.511335,
-    "seen": 1792495679.3581405,
-    "ast_hash": "65bfd2deb567d4f0affc206e90a4255d",
+    "mtime": 1792499013.5644162,
+    "seen": 1792499945.4557102,
+    "ast_hash": "e7ae86033d513c1df4f77d67fa04faba",
     "semantic_hash": ""
   },
   "breed-classifier-react/README.md": {
@@ -858,9 +858,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ImageUpload.jsx": {
-    "mtime": 1792495567.8367596,
-    "seen": 1792495679.3575482,
-    "ast_hash": "12267750d421ec075d4a82a0f855bc6a",
+    "mtime": 1792499865.6461291,
+    "seen": 1792499945.4534783,
+    "ast_hash": "125493c6f652820d379551af3d8b8e89",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ResultCard.jsx": {
@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/pages/UserPage.jsx": {
-    "mtime": 1792494699.2941117,
-    "seen": 1792495679.3576362,
-    "ast_hash": "5c111c40af4eb7942c0df80be5b55b81",
+    "mtime": 1792499857.8975582,
+    "seen": 1792499945.4545557,
+    "ast_hash": "ab1ad4c2c2c1d305ea18d7440e9eb0ba",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/router.jsx": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/translations.js": {
-    "mtime": 1792494561.165468,
-    "seen": 1792495679.357618,
-    "ast_hash": "9e4d168c4d290fd784277a99c3bceede",
+    "mtime": 1792499871.501716,
+    "seen": 1792499945.4545424,
+    "ast_hash": "df4a8fa016ece01872b66c1aafcb37a7",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/cropAndQuality.test.js": {
@@ -1044,9 +1044,9 @@
     "semantic_hash": ""
   },
   "PLAN_REACT_CAMERA_AND_FEATURES.md": {
-    "mtime": 1792495516.6416023,
-    "seen": 1792495679.3581195,
-    "ast_hash": "e89b3a0c2d0c98c7fca6971ac5acd2dc",
+    "mtime": 1792499925.307591,
+    "seen": 1792499945.4556894,
+    "ast_hash": "36122a87a792d090b424fdbe6b1a5eda",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/sessionStore.test.js": {
@@ -1095,6 +1095,198 @@
     "mtime": 1792495319.222176,
     "seen": 1792495679.358008,
     "ast_hash": "42134fa8fd1ab6bd5517963605c59632",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Amruthamahal_01.jpg": {
+    "mtime": 1792499431.361296,
+    "seen": 1792499945.4565213,
+    "ast_hash": "24c61bf04788263b0671c6eb5e559488",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Ayrshire-Cattle 1.webp": {
+    "mtime": 1792499431.3631754,
+    "seen": 1792499945.4565268,
+    "ast_hash": "9366fbbe83be1f557cb8cb4e8fc7cb06",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Badri cattle 1.webp": {
+    "mtime": 1792499431.363296,
+    "seen": 1792499945.4565306,
+    "ast_hash": "21013aad23813a405844ba3978bc75fe",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Baragur_02.jpg": {
+    "mtime": 1792499431.36527,
+    "seen": 1792499945.4565346,
+    "ast_hash": "94055de251279060c2ffcd4b2faa711c",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Dagri_Cattle 1.webp": {
+    "mtime": 1792499431.365296,
+    "seen": 1792499945.4565372,
+    "ast_hash": "5d3bd01cf9c04a195104d424ffe1328a",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Dagri_Cattle 2.webp": {
+    "mtime": 1792499431.3662958,
+    "seen": 1792499945.4565406,
+    "ast_hash": "ec054c8713b10707a8815cc5a1770176",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Deoni_01.jpg": {
+    "mtime": 1792499431.367296,
+    "seen": 1792499945.456544,
+    "ast_hash": "1dbf805c309eee850912fb35ad278ed8",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Gangatiri_02.jpg": {
+    "mtime": 1792499431.368296,
+    "seen": 1792499945.4565475,
+    "ast_hash": "79b0c0702f3f39aefe87a9d2b0347015",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Gaolao_02.jpg": {
+    "mtime": 1792499431.3706882,
+    "seen": 1792499945.4565523,
+    "ast_hash": "b9cc143061a42c02f6d18af694572d64",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Hallikaru_01.webp": {
+    "mtime": 1792499431.3715444,
+    "seen": 1792499945.4565554,
+    "ast_hash": "15f21edf9a58d14c5f2e64d426d672d4",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Hallikaru_02.jpg": {
+    "mtime": 1792499431.3732958,
+    "seen": 1792499945.4565587,
+    "ast_hash": "d224bfbd8d4d4b7539934a68cc40cd59",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Hariana_01.jpg": {
+    "mtime": 1792499431.3732958,
+    "seen": 1792499945.4565613,
+    "ast_hash": "2b8072d727834f9a0edd2bba4ca4c56c",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Kankrej_cattle_02.webp": {
+    "mtime": 1792499431.37717,
+    "seen": 1792499945.4565644,
+    "ast_hash": "569cbf7209f28c59dde0bd74aaccc2f8",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Malenadu_Gidda_01.JPG": {
+    "mtime": 1792499431.37717,
+    "seen": 1792499945.4565678,
+    "ast_hash": "097150417edf2a9eb77772e7bb4af8a6",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Nagori_01.JPG": {
+    "mtime": 1792499431.379584,
+    "seen": 1792499945.4565706,
+    "ast_hash": "b0bd3abb0a298984890d735aadac8507",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/Raghav_Gir_bull_at_Hyderabad.jpg": {
+    "mtime": 1792499431.379584,
+    "seen": 1792499945.456574,
+    "ast_hash": "48867ff14c18c4fe40f7cabfa27773fd",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/amrithmahal.webp": {
+    "mtime": 1792499431.3822958,
+    "seen": 1792499945.4565785,
+    "ast_hash": "82d99926cd0dc9a51aa2305d55175484",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/ayrshire cattle 2.webp": {
+    "mtime": 1792499431.3822958,
+    "seen": 1792499945.456582,
+    "ast_hash": "7c2abfc3c97bbaf1cd22cdbc9503d6f6",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/bachaur-cattle-1.webp": {
+    "mtime": 1792499431.3862958,
+    "seen": 1792499945.456585,
+    "ast_hash": "cc8fc7dfe84a4a7c6065bf2ec4c0b8fb",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/bachaur-cattle-2.webp": {
+    "mtime": 1792499431.3892958,
+    "seen": 1792499945.4565883,
+    "ast_hash": "41f5aa858011744f7e641c359eee86a5",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/bargur1.webp": {
+    "mtime": 1792499431.3922958,
+    "seen": 1792499945.4565916,
+    "ast_hash": "f610bf5eb9a7d9444d74de9fda3eb932",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/bargur2.webp": {
+    "mtime": 1792499431.394296,
+    "seen": 1792499945.4565945,
+    "ast_hash": "f780af502481452dc06076552ebfb23d",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/belahi.webp": {
+    "mtime": 1792499431.3982959,
+    "seen": 1792499945.456597,
+    "ast_hash": "0785962d566e07b31106f04f5fed3f11",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/deoni1.webp": {
+    "mtime": 1792499431.3982959,
+    "seen": 1792499945.456601,
+    "ast_hash": "d59d79af9b732ecd4d6df530d68431e2",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/deoni2.webp": {
+    "mtime": 1792499431.3982959,
+    "seen": 1792499945.4566033,
+    "ast_hash": "8e08e48f180c5b2dc72dc2299bd569d8",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/gaolao-cattle-1.webp": {
+    "mtime": 1792499431.4022958,
+    "seen": 1792499945.4566061,
+    "ast_hash": "251de010018c90121b77a1ba9299f554",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/gaolao-cattle-2.webp": {
+    "mtime": 1792499431.4045236,
+    "seen": 1792499945.4566095,
+    "ast_hash": "6c81a3d379aecc0a6765601599d81a17",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/gir.jpg": {
+    "mtime": 1792499431.4062958,
+    "seen": 1792499945.4566128,
+    "ast_hash": "f8fb42dee1a6a7064a230780d6bd83e7",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/gir2.webp": {
+    "mtime": 1792499431.4062958,
+    "seen": 1792499945.4566164,
+    "ast_hash": "4e4b92941b2624b75c01c492d925b4b8",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/kankrej_cattle_01.webp": {
+    "mtime": 1792499431.4062958,
+    "seen": 1792499945.4566197,
+    "ast_hash": "12304970387e9d83c4c4fe4624d4e35b",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/nagori1.webp": {
+    "mtime": 1792499431.4082959,
+    "seen": 1792499945.456623,
+    "ast_hash": "1b97581c5e5a8e1c1c50a34488978a6e",
+    "semantic_hash": ""
+  },
+  "test data ceck/New-files/nagori2.webp": {
+    "mtime": 1792499431.4082959,
+    "seen": 1792499945.4566262,
+    "ast_hash": "6452d548ca78a6f7ff6bf851f717271a",
     "semantic_hash": ""
   }
 }

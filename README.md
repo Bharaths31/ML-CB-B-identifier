@@ -13,9 +13,13 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
 | **Export** | TFLite INT8, ONNX Runtime INT8, ONNX, FP16, Portable bundle |
 | **Dataset** | Kaggle: `atharvadarpude` (clean primary) & `algsoch` (multi-dataset support) |
 
+> 📄 **Full technical report** — architecture, implementation details, React frontend breakdown and the complete inventory of non-ML product features: [`REPORTS.md`](REPORTS.md)
+
 ---
 
 ## Table of Contents
+
+- [Project Technical Report](REPORTS.md)
 
 - [Architecture & Data Flow](#architecture--data-flow)
 - [Directory Structure](#directory-structure)
