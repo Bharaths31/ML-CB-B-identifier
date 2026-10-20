@@ -70,6 +70,10 @@ export default function DevPage() {
             </span>
           </div>
 
+          <Link to="/?mode=camera" className="btn btn-outline capture-test-btn" title="Open the user capture flow">
+            Camera Test
+          </Link>
+
           <ThemeToggle />
         </div>
       </header>

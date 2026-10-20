@@ -1,76 +1,113 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import ImageCropper from "./ImageCropper.jsx";
+import { useI18n } from "../i18n/I18nProvider.jsx";
+import { fileToDataUrl } from "../utils/cropAndQuality.js";
 
 export default function ImageUpload({ onImageSelected, currentPreview, onClear }) {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
+  const [draft, setDraft] = useState(null); // { url, name }
+  const [editing, setEditing] = useState(false);
   const fileInputRef = useRef(null);
+  const originalRef = useRef(null);
+
+  // A parent-provided preview (e.g. camera handoff) wins when not editing.
+  useEffect(() => {
+    if (currentPreview && !editing) {
+      setDraft(null);
+    }
+  }, [currentPreview, editing]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processFile(files[0]);
-    }
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   };
-
   const handleFileInput = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
-    }
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    e.target.value = "";
   };
 
-  const processFile = (file) => {
+  const processFile = async (file) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file (.jpg, .jpeg, .png, .webp).");
+      alert(t("upload.invalid"));
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      onImageSelected(file, ev.target.result);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      originalRef.current = { url: dataUrl, name: file.name };
+      setDraft({ url: dataUrl, name: file.name });
+      setEditing(true);
+    } catch {
+      alert(t("upload.invalid"));
+    }
   };
+
+  const handleConfirmCrop = (file, dataUrl, quality) => {
+    setEditing(false);
+    onImageSelected?.(file, dataUrl, quality);
+  };
+
+  const openAdjust = () => {
+    const source = originalRef.current || (currentPreview ? { url: currentPreview, name: "uploaded.jpg" } : null);
+    if (!source) return;
+    setDraft(source);
+    setEditing(true);
+  };
+
+  if (editing && draft) {
+    return (
+      <div className="upload-container upload-editing">
+        <ImageCropper
+          imageUrl={draft.url}
+          fileName={draft.name}
+          onConfirm={handleConfirmCrop}
+          onCancel={() => setEditing(false)}
+          confirmLabel={t("actions.useThis")}
+        />
+      </div>
+    );
+  }
+
+  const preview = currentPreview;
 
   return (
     <div className="upload-container">
-      {currentPreview ? (
-        <div className="preview-card">
-          <div className="preview-image-wrapper">
-            <img src={currentPreview} alt="Selected livestock" className="preview-image" />
+      {preview ? (
+        <div className="preview-card preview-card-square">
+          <div className="preview-image-wrapper preview-image-square">
+            <img src={preview} alt="Selected livestock" className="preview-image" />
+            <span className="preview-square-badge">1:1 · 260×260</span>
           </div>
           <div className="preview-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClear}
-            >
+            <button type="button" className="btn btn-outline" onClick={openAdjust}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
               </svg>
-              Remove Image
+              {t("actions.adjust")}
             </button>
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <button type="button" className="btn btn-secondary" onClick={onClear}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-              Choose Another
+              {t("actions.remove")}
+            </button>
+            <button type="button" className="btn btn-outline" onClick={() => fileInputRef.current?.click()}>
+              {t("actions.chooseAnother")}
             </button>
           </div>
         </div>
@@ -83,20 +120,24 @@ export default function ImageUpload({ onImageSelected, currentPreview, onClear }
           onClick={() => fileInputRef.current?.click()}
           role="button"
           tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+          }}
         >
           <div className="dropzone-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
-              <path d="M12 12v9"></path>
-              <path d="m16 16-4-4-4 4"></path>
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+              <path d="M12 12v9" />
+              <path d="m16 16-4-4-4 4" />
             </svg>
           </div>
           <div className="dropzone-text">
-            <h3 className="dropzone-title">Upload Livestock Image</h3>
+            <h3 className="dropzone-title">{t("upload.dropzoneTitle")}</h3>
             <p className="dropzone-subtitle">
-              Drag & drop a photo here, or <span className="highlight-text">browse files</span>
+              {t("upload.dropzoneSubtitle", { browse: "" }).trimEnd()}{" "}
+              <span className="highlight-text">{t("upload.browse")}</span>
             </p>
-            <p className="dropzone-hint">Supports JPEG, PNG, WEBP high-resolution photographs</p>
+            <p className="dropzone-hint">{t("upload.hint")}</p>
           </div>
         </div>
       )}

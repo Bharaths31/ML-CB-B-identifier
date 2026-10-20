@@ -314,13 +314,8 @@ export default function SingleImage({ models, model, setModel, devMode, predicti
       {cameraOpen && (
         <CameraCapture
           onClose={() => setCameraOpen(false)}
-          onCapture={(blob) => {
-            const capturedFile = new File(
-              [blob],
-              `live_capture_${Date.now()}.jpg`,
-              { type: "image/jpeg" }
-            );
-            pickFile(capturedFile, "camera");
+          onCapture={(capturedFile) => {
+            if (capturedFile) pickFile(capturedFile, "camera");
           }}
         />
       )}

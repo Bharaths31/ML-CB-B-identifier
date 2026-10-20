@@ -73,9 +73,11 @@ try:
 except Exception:
     pass
 
-from src.config import (CHECKPOINT_DIR, EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR,
-                        IMAGE_SIZE, LOGS_DIR, PORTABLE_EXPORT_DIR, SPLIT_DIR,
-                        TRAIN_RESIZE, OOD_ENABLED, OOD_DIR)
+from src.config import (BINARY_DIM, BREED_DIM, CHECKPOINT_DIR,
+                        EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR, IMAGE_SIZE,
+                        LOGS_DIR, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                        PORTABLE_EXPORT_DIR, SPLIT_DIR, TRAIN_RESIZE,
+                        OOD_ENABLED, OOD_DIR)
 from src.model import BreedClassifier
 from src.model import OODDetector
 
@@ -551,17 +553,37 @@ class ModelManager:
         cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
                      for h in ("cattle_head", "buffalo_head"))
         
-        # Detect binary_dim, num_cattle, num_buffalo from checkpoint to support loading older models
-        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
-        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else 57
-        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else 18
-        
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine, binary_dim=binary_dim, num_cattle=num_cattle, num_buffalo=num_buffalo)
+        # Detect architecture dims from the checkpoint so models trained with a
+        # different head width still load cleanly. BREED_DIM changed over time
+        # (e.g. v25 checkpoints use 512 while the current default is 384), which
+        # otherwise triggers a size-mismatch error in load_state_dict.
+        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else BINARY_DIM
+        breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else BREED_DIM
+        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else NUM_CATTLE_BREEDS
+        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else NUM_BUFFALO_BREEDS
 
-        # Filter out QAT observer keys that don't exist in the base model
-        model_keys = set(model.state_dict().keys())
-        filtered = {k: v for k, v in state.items() if k in model_keys}
+        model = BreedClassifier(backbone=backbone, cosine_head=cosine,
+                                binary_dim=binary_dim, breed_dim=breed_dim,
+                                num_cattle=num_cattle, num_buffalo=num_buffalo)
+
+        # Filter out QAT observer keys that don't exist in the base model, and
+        # skip any tensor whose shape doesn't match the freshly-built model so a
+        # stray architecture drift can't crash the whole load.
+        model_state = model.state_dict()
+        filtered, skipped = {}, []
+        for k, v in state.items():
+            if k not in model_state:
+                continue
+            if tuple(v.shape) != tuple(model_state[k].shape):
+                skipped.append(k)
+                continue
+            filtered[k] = v
         model.load_state_dict(filtered, strict=False)
+        if skipped and logger:
+            logger.warning(
+                f"Ignored {len(skipped)} checkpoint tensor(s) with mismatched shapes "
+                f"(breed_dim={breed_dim}, binary_dim={binary_dim}): {skipped[:5]}"
+            )
         model.to(self.device)
         model.eval()
         info["model"] = model

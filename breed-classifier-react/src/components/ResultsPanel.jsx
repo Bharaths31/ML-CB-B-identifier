@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "../i18n/I18nProvider.jsx";
+import TraitComparison from "./TraitComparison.jsx";
 
 /** Single-image prediction result: hero card + top-5 bars + footer. */
 export default function ResultsPanel({ result, devMode, filename, onExport, exporting }) {
+  const { t } = useI18n();
   const [bars, setBars] = useState(false);
   useEffect(() => {
     setBars(false);
@@ -29,9 +32,35 @@ export default function ResultsPanel({ result, devMode, filename, onExport, expo
 
   const top5 = result.top5_breeds || [];
   const max = Math.max(...top5.map((b) => b.confidence), 1);
+  const topProb = (result.confidence ?? (top5[0]?.confidence || 0) / 100) || 0;
+  const margin = top5.length > 1 ? (top5[0].confidence - top5[1].confidence) / 100 : topProb;
+  const tier = result.is_ood ? 3 : topProb >= 0.72 && margin >= 0.12 ? 1 : 2;
+  const details = result.ood_details || {};
 
   return (
     <div className="results fade-up">
+      <div className={`tier-banner ${tier === 1 ? "tier-high" : tier === 2 ? "tier-medium" : "tier-low"}`} role="status">
+        <span className="tier-icon" aria-hidden="true">{tier === 1 ? "✓" : tier === 2 ? "≈" : "!"}</span>
+        <div className="tier-copy">
+          <strong>{t(`result.tier${tier}`)}</strong>
+          <span>{t(`result.tier${tier}Body`)}</span>
+        </div>
+      </div>
+
+      {tier === 3 && (
+        <div className="ood-trigger-box">
+          <h4>{t("result.trigger")}</h4>
+          <ul>
+            {details.ood_by_energy && <li>{t("result.trigger.energy")}</li>}
+            {details.ood_by_msp && <li>{t("result.trigger.msp")}</li>}
+            {details.ood_by_binary_floor && <li>{t("result.trigger.floor")}</li>}
+            {!details.ood_by_energy && !details.ood_by_msp && !details.ood_by_binary_floor && (
+              <li>{t("result.tier3Body")}</li>
+            )}
+          </ul>
+        </div>
+      )}
+
       <div className="result-hero">
         <div className={"species-badge " + result.species.toLowerCase()}>
           {result.species} {devMode && `${result.species_confidence.toFixed(1)}%`}
@@ -59,6 +88,13 @@ export default function ResultsPanel({ result, devMode, filename, onExport, expo
           </li>
         ))}
       </ul>
+
+      {tier !== 3 && top5.length > 0 && (
+        <TraitComparison
+          breeds={top5.slice(0, 3).map((b) => b.breed)}
+          defaultOpen={tier === 2}
+        />
+      )}
 
       <div className="info-footer">
         <span>🤖 {result.model_used}</span>

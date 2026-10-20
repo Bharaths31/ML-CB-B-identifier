@@ -2,6 +2,12 @@ import { useRef, useState } from "react";
 import ModelSelect from "./ModelSelect.jsx";
 import PredictionProgress from "./PredictionProgress.jsx";
 import { predict, exportOdt, downloadBlob } from "../api.js";
+import {
+  SESSION_LIMIT,
+  makeSessionEntry,
+  readSession,
+  writeSession,
+} from "../utils/sessionStore.js";
 
 export default function Batch({ models, model, setModel, devMode, predictionEvent }) {
   const [files, setFiles] = useState([]);
@@ -55,6 +61,16 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
     } finally {
       setExporting(false);
     }
+  };
+
+  const addToSession = () => {
+    const validResults = results.filter((r) => !r.error);
+    const additions = validResults.map((r) =>
+      makeSessionEntry({ result: r, quality: null, thumbnail: null, filename: r.filename })
+    );
+    const next = [...additions, ...readSession()].slice(0, SESSION_LIMIT);
+    writeSession(next);
+    alert(`${validResults.length} animals added to the herd session.`);
   };
 
   const valid = results.filter((r) => !r.error);
@@ -149,11 +165,16 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
               </div>
             </div>
 
-            {devMode && (
-              <button className="btn outline-green full" onClick={doExport} disabled={exporting}>
-                {exporting ? "⏳ Generating ODT…" : "📄 Export All to ODT"}
+            <div className="batch-action-row">
+              <button className="btn secondary full" onClick={addToSession}>
+                ＋ Add All to Herd Session
               </button>
-            )}
+              {devMode && (
+                <button className="btn outline-green full" onClick={doExport} disabled={exporting}>
+                  {exporting ? "⏳ Generating ODT…" : "📄 Export All to ODT"}
+                </button>
+              )}
+            </div>
 
             <div className="batch-results-wrap">
               {results.map((r, i) =>
@@ -165,12 +186,13 @@ export default function Batch({ models, model, setModel, devMode, predictionEven
                     <div style={{ color: "var(--red)" }}>❌ {r.error}</div>
                   </div>
                 ) : (
-                  <div className="batch-card" key={i}>
+                  <div className={"batch-card" + (r.is_ood ? " batch-card-ood" : "")} key={i}>
                     <div className="bc-header">
                       <span className="bc-filename">📄 {r.filename}</span>
-                      <span className={"bc-species " + r.species.toLowerCase()}>
+                      <span className={"bc-species " + String(r.species).toLowerCase()}>
                         {r.species} {devMode && r.species_confidence.toFixed(1) + "%"}
                       </span>
+                      {r.is_ood && <span className="bc-ood">OOD</span>}
                     </div>
                     <div className="bc-breed">{r.top_breed}</div>
                     <div className="bc-conf">{r.top_breed_confidence.toFixed(1)}% confidence</div>
