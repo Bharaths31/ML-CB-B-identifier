@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ImageUpload from "../components/ImageUpload.jsx";
 import CameraCapture from "../components/CameraCapture.jsx";
@@ -46,10 +46,24 @@ export default function UserPage() {
   const { connected, serverStatus, predictionEvent, socket } = useSocket();
   const { config } = useSharedConfig(socket);
 
+  // A new model input (new upload, crop, or fit change) invalidates the
+  // previous prediction. This keeps the explicit classify action visible.
+  useEffect(() => {
+    setPredictionResult(null);
+    setError(null);
+  }, [optimizer.result?.file]);
+
   const handleImageSelected = (file) => {
     setPredictionResult(null);
     setError(null);
     optimizer.loadFile(file);
+  };
+
+  const handleApplyCrop = async (file) => {
+    // Clear the old result immediately, before the new optimization finishes.
+    setPredictionResult(null);
+    setError(null);
+    return optimizer.applyCrop(file);
   };
 
   // CameraCapture passes (File, 260x260 dataUrl, optimizer meta, quality report).
@@ -199,41 +213,20 @@ export default function UserPage() {
                   original={optimizer.original}
                   busy={optimizer.busy}
                   error={optimizer.error}
+                  framed={Boolean(optimizer.cropped)}
                   onFileSelected={handleImageSelected}
-                  onApplyCrop={optimizer.applyCrop}
+                  onApplyCrop={handleApplyCrop}
                   onClear={handleClear}
+                  onClassify={handleRunPrediction}
+                  analyzing={analyzing}
+                  canClassify={Boolean(selectedFile) && !optimizer.busy && !analyzing}
+                  showClassify={!predictionResult}
                 />
               )}
 
               {inputMode === "camera" && (
                 <div className="camera-tab-container">
                   <CameraCapture onCapture={handleCameraCapture} onClose={() => setInputMode("upload")} />
-                </div>
-              )}
-
-              {selectedFile && !predictionResult && (
-                <div className="action-button-row">
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-large btn-full"
-                    disabled={analyzing || optimizer.busy}
-                    onClick={handleRunPrediction}
-                  >
-                    {analyzing ? (
-                      <span className="btn-spinner-content">
-                        <span className="spinner-border" />
-                        {t("actions.analyzing")}
-                      </span>
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="11" cy="11" r="8" />
-                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        {t("actions.identify")}
-                      </>
-                    )}
-                  </button>
                 </div>
               )}
 

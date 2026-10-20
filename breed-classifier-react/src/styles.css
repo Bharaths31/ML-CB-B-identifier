@@ -4225,3 +4225,18 @@ input[type="range"] {
   .advanced-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .advanced-summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.upload-classify-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.upload-classify-note {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+.classify-framed-btn { margin-top: 2px; }

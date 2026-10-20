@@ -27,6 +27,7 @@ export const TRANSLATIONS = {
     "tabs.camera": "Live Camera",
 
     "actions.identify": "Identify Breed",
+    "actions.identifyFramed": "Identify Framed Breed",
     "actions.analyzing": "Analyzing with Vision Model...",
     "actions.processing": "Processing...",
     "actions.remove": "Remove Image",
@@ -49,6 +50,7 @@ export const TRANSLATIONS = {
     "upload.dropzoneSubtitle": "Drag & drop a photo here, or {browse}",
     "upload.browse": "browse files",
     "upload.hint": "Supports JPEG, PNG, WEBP high-resolution photographs",
+    "upload.framedHint": "The framed crop will be classified. Adjust framing again to return to the original image.",
     "upload.processing": "Preparing image…",
     "upload.invalid": "Please upload an image file (.jpg, .jpeg, .png, .webp).",
 
@@ -198,6 +200,7 @@ export const TRANSLATIONS = {
     "tabs.camera": "நேரடி கேமரா",
 
     "actions.identify": "இனத்தை அடையாளம் காண்",
+    "actions.identifyFramed": "சட்டகப்படுத்திய இனத்தை அடையாளம் காண்",
     "actions.analyzing": "பார்வை மாதிரியால் பகுப்பாய்வு...",
     "actions.processing": "செயலாக்குகிறது...",
     "actions.remove": "படத்தை நீக்கு",
@@ -220,6 +223,7 @@ export const TRANSLATIONS = {
     "upload.dropzoneSubtitle": "படத்தை இங்கே இழுத்து விடுங்கள் அல்லது {browse}",
     "upload.browse": "கோப்புகளைத் தேர்வு செய்",
     "upload.hint": "JPEG, PNG, WEBP படங்கள் ஆதரிக்கப்படும்",
+    "upload.framedHint": "சட்டகப்படுத்திய பகுதி வகைப்படுத்தப்படும். அசல் படத்திற்குத் திரும்ப மீண்டும் சட்டகம் சரிசெய்யவும்.",
     "upload.processing": "படத்தைத் தயாராக்குகிறது…",
     "upload.invalid": "படக் கோப்பைப் பதிவேற்றவும் (.jpg, .png, .webp).",
 

@@ -389,6 +389,7 @@ None of these block the implementation; each has a shipped default so there is n
 - The upload card shows only the **original uploaded image** and three actions: Adjust framing, Remove, Choose another. The optimizer bar, model-input preview, metadata grid, and fit controls are no longer in the normal flow.
 - Uploads default to `fitMode: "stretch"`, so the model input is `260×260` with no bars; the viewer still sees the original photograph.
 - The cropper always opens `original.dataUrl`. Repeating “Adjust framing” never crops an already-cropped image. The optimized result is used only for `/api/predict`.
+- The preview card contains an explicit primary action: **Identify Breed** before framing and **Identify Framed Breed** after a crop, with a note that the framed crop will be classified. Applying a new crop or changing the fit mode clears the previous result so the classify action is always visible and never classifies a stale input.
 
 **Header Advanced panel.**
 - A compact `⚙ Advanced` button sits next to the Connected/status badge. It opens a right-side top-layer panel.

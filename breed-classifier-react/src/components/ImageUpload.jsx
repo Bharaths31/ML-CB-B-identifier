@@ -14,9 +14,14 @@ export default function ImageUpload({
   original,
   busy = false,
   error = null,
+  framed = false,
   onFileSelected,
   onApplyCrop,
   onClear,
+  onClassify,
+  analyzing = false,
+  canClassify = false,
+  showClassify = true,
 }) {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
@@ -108,6 +113,33 @@ export default function ImageUpload({
               {t("actions.chooseAnother")}
             </button>
           </div>
+
+          {showClassify && onClassify && (
+            <div className="upload-classify-block">
+              {framed && <p className="upload-classify-note">{t("upload.framedHint")}</p>}
+              <button
+                type="button"
+                className="btn btn-primary btn-large btn-full classify-framed-btn"
+                onClick={onClassify}
+                disabled={!canClassify}
+              >
+                {analyzing ? (
+                  <span className="btn-spinner-content">
+                    <span className="spinner-border" />
+                    {t("actions.analyzing")}
+                  </span>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    {framed ? t("actions.identifyFramed") : t("actions.identify")}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div

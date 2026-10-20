@@ -2971,7 +2971,7 @@
       "file_type": "code",
       "norm_label": "getstoredlanguage()",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
-      "source_location": "L358"
+      "source_location": "L362"
     },
     {
       "id": "breed_classifier_react_src_i18n_translations_translate",
@@ -2983,7 +2983,7 @@
       "file_type": "code",
       "norm_label": "translate()",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
-      "source_location": "L368"
+      "source_location": "L372"
     },
     {
       "id": "breed_classifier_react_src_router_approuter",
@@ -17847,6 +17847,18 @@
       "type": "external"
     },
     {
+      "id": "dataclasses",
+      "label": "dataclasses",
+      "_origin": "semantic",
+      "community": 41,
+      "community_name": "ood_calibration.py",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "dataclasses",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "difflib",
       "label": "difflib",
       "_origin": "semantic",
@@ -18323,17 +18335,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "threading",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "dataclasses",
-      "label": "dataclasses",
-      "community": 41,
-      "community_name": "ood_calibration.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "dataclasses",
       "source_file": "",
       "type": "external"
     }
@@ -19188,7 +19189,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/components/ImageUpload.jsx",
-      "source_location": "L21",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -19697,6 +19698,54 @@
     },
     {
       "source": "breed_classifier_react_src_pages_userpage_userpage",
+      "target": "breed_classifier_react_src_api_predict",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "breed_classifier_react_src_pages_userpage_userpage",
+      "target": "breed_classifier_react_src_utils_sessionstore_thumbnailfromdataurl",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "breed_classifier_react_src_pages_userpage_userpage",
+      "target": "breed_classifier_react_src_utils_sessionstore_makesessionentry",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "breed_classifier_react_src_pages_userpage_userpage",
+      "target": "breed_classifier_react_src_utils_sessionstore_addsessionentry",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
+      "source_location": "L112",
+      "weight": 1.0
+    },
+    {
+      "source": "breed_classifier_react_src_pages_userpage_userpage",
       "target": "breed_classifier_react_src_utils_sessionstore_sessionstats",
       "relation": "calls",
       "_origin": "ast",
@@ -19704,7 +19753,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
-      "source_location": "L106",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -19765,54 +19814,6 @@
       "context": "call",
       "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
       "source_location": "L47",
-      "weight": 1.0
-    },
-    {
-      "source": "breed_classifier_react_src_pages_userpage_userpage",
-      "target": "breed_classifier_react_src_api_predict",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
-      "source_location": "L90",
-      "weight": 1.0
-    },
-    {
-      "source": "breed_classifier_react_src_pages_userpage_userpage",
-      "target": "breed_classifier_react_src_utils_sessionstore_thumbnailfromdataurl",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
-      "source_location": "L96",
-      "weight": 1.0
-    },
-    {
-      "source": "breed_classifier_react_src_pages_userpage_userpage",
-      "target": "breed_classifier_react_src_utils_sessionstore_makesessionentry",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
-      "source_location": "L97",
-      "weight": 1.0
-    },
-    {
-      "source": "breed_classifier_react_src_pages_userpage_userpage",
-      "target": "breed_classifier_react_src_utils_sessionstore_addsessionentry",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "breed-classifier-react/src/pages/UserPage.jsx",
-      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -40441,7 +40442,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "breed-classifier-react/src/i18n/translations.js",
-      "source_location": "L358",
+      "source_location": "L362",
       "weight": 1.0
     },
     {
@@ -40452,7 +40453,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "breed-classifier-react/src/i18n/translations.js",
-      "source_location": "L368",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -52871,7 +52872,7 @@
       "confidence_score": 0.95,
       "context": "AdvancedBatchTester",
       "source_file": "PLAN_REACT_CAMERA_AND_FEATURES.md",
-      "source_location": "L396",
+      "source_location": "L397",
       "weight": 1.0
     },
     {
@@ -52955,7 +52956,7 @@
       "confidence_score": 0.95,
       "context": "DevOODPanel",
       "source_file": "PLAN_REACT_CAMERA_AND_FEATURES.md",
-      "source_location": "L402",
+      "source_location": "L403",
       "weight": 1.0
     },
     {
@@ -52991,7 +52992,7 @@
       "confidence_score": 0.95,
       "context": "ResultCard",
       "source_file": "PLAN_REACT_CAMERA_AND_FEATURES.md",
-      "source_location": "L407",
+      "source_location": "L408",
       "weight": 1.0
     },
     {
@@ -54930,5 +54931,5 @@
       "source_file": "Test results/Screenshot_20260914_215909.png"
     }
   ],
-  "built_at_commit": "770798cccf3ec2c13e714f006a7bab917b7eb2fb"
+  "built_at_commit": "9081e31a0cab8889f495cbfaadf74ab1dc624c8e"
 }
