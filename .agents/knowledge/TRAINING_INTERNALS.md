@@ -22,6 +22,35 @@ Raw JPEG/PNG (any size)
 Raw image → Resize(260) → CenterCrop(260) → ToTensor() → [3, 260, 260]
 ```
 
+### Client Path (zero-crop, 2026-10-20)
+
+The web client converts every image to a 260×260 square **before** upload, so
+the server's `Resize(260) → CenterCrop(260)` becomes an identity transform and
+no part of the animal is discarded.
+
+```
+Raw image (any size, EXIF applied)
+  → client: createImageBitmap({imageOrientation:'from-image'})
+  → client: scale longest side to 260 (progressive halving, high-quality draw)
+  → client: paste into 260×260 canvas
+        stretch              : image fills 260×260 (default in the web app)
+        pad/imagenet_mean    : bars = rgb(124,116,104)  (~0 after Normalize)
+        pad/ambient_blur     : blurred + darkened stretched copy behind
+        pad/black            : bars = #000000
+  → server: Resize(260) → CenterCrop(260) → Normalize  (now a no-op resize/crop)
+  → model
+```
+
+Layout maths (`computeOptimizerLayout`): `scale = 260 / max(W, H)` (no upscale
+by default), `nw = round(W·scale)`, `nh = round(H·scale)`,
+`padX = floor((260−nw)/2)`, `padY = floor((260−nh)/2)`.
+Examples: 1920×1080 → 260×146, padY 57; 1080×1920 → 146×260, padX 57.
+
+Manual framing (optional, `ImageCropper.jsx`) crops the **original** upload to a
+1:1 square; `clampPan` clamps the target box against the source image (not the
+viewport) so the frame can move on **both** axes even when the source has no
+viewport overflow.
+
 ### Batch Mixing (Training Only)
 ```
 50% chance: apply one of:
@@ -194,7 +223,31 @@ Result: ~375 images total (75 breeds × 5), but model has full 57+18 class heads
 
 ---
 
-## 8. CLI Progress & Monitoring
+## 8. OOD Calibration (post-hoc, no retraining)
+
+`OODDetector.calibrate(model, loader, device, percentile=95, ...)` collects
+free energy over the concatenated heads and MSP over the binary head, then sets
+`energy_threshold = quantile(energies, p)` and
+`msp_threshold = quantile(msps, 1−p)`. A sample is OOD when
+`energy > energy_threshold` **or** `msp < msp_threshold` **or**
+`msp < binary_confidence_floor`.
+
+Two ways to run it:
+
+| Path | Source of in-distribution data |
+|---|---|
+| `scripts/calibrate_ood.py` / `local_train.py` §7.5 | the generated validation split |
+| `src/ood_calibration.py` (manual, 2026-10-20) | an arbitrary folder of breed-named images |
+
+The manual path matches file/folder names to the **selected model's** class
+maps (alias + fuzzy fallback), verifies readability, calibrates on matched
+images only, and reports matched/unmatched/unreadable counts and per-breed
+coverage so a mis-named folder is visible instead of silently skewing the
+thresholds.
+
+---
+
+## 9. CLI Progress & Monitoring
 
 ```
 python -m src.train / local_train.py

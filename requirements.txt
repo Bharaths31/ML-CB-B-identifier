@@ -1,8 +1,14 @@
-# Core Deep Learning & Computer Vision
+# =============================================================================
+# BreedID Livestock Vision — Python dependencies
+# Install:  python -m pip install -r requirements.txt
+# The React web app has its own dependencies (breed-classifier-react/package.json).
+# =============================================================================
+
+# --- Core deep learning & computer vision -----------------------------------
 torch>=2.1.0
 torchvision>=0.16.0
 
-# Data Processing & Visualization
+# --- Data processing, analysis & visualisation --------------------------------
 numpy>=1.24
 pandas>=1.5
 matplotlib>=3.7
@@ -11,14 +17,35 @@ tqdm>=4.66
 Pillow>=10.0
 requests>=2.31
 
-# Model Export & Quantization
+# --- Serving layer (Flask REST API + Socket.IO realtime) ----------------------
+# Used by server/ (24 REST endpoints) and by the React app via the Vite proxy.
+Flask>=3.0
+flask-cors>=4.0
+Flask-SocketIO>=5.3
+python-socketio>=5.10
+Werkzeug>=3.0
+# NOTE: server/app.py runs SocketIO with async_mode='threading', so no
+# eventlet/gevent worker is required.
+
+# --- Model export, quantisation & parity -------------------------------------
 onnx>=1.16
 onnxruntime>=1.16
-# Optional — only needed for `python -m src.export --mode tflite`:
-#   pip install tensorflow onnx2tf tf-keras onnx-graphsurgeon sng4onnx onnxsim
-# (ONNX Runtime Mobile INT8 needs nothing extra; onnxruntime already ships
-#  the quantization tools.)
+# (ONNX Runtime Mobile INT8 needs nothing extra: onnxruntime ships the
+#  quantisation tools used by src/export.py:export_onnx_int8.)
 
-# Utilities
+# --- Reports (ODT export) -----------------------------------------------------
 odfpy>=1.4.1
 
+# --- Optional extras ---------------------------------------------------------
+# TFLite export + TFLite parity check (src/export.py --mode tflite,
+# src/parity_check.py). Heavy; install only when needed:
+#   pip install tensorflow onnx2tf tf-keras onnx-graphsurgeon sng4onnx onnxsim
+#   pip install tflite-runtime        # lighter interpreter, used on Colab
+#
+# Kaggle dataset download (data_collection.py). local_train.py installs the
+# `kaggle` CLI automatically during stage 1, so it is optional here:
+#   pip install kaggle
+#
+# Google Gemini REST access for scripts/populate_breed_traits.py uses the
+# already-required `requests` package plus a GEMINI_API_KEY environment
+# variable — no extra library needed.

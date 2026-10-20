@@ -400,3 +400,78 @@ No flags. Expected output:
 [verify] buffalo head output: (1, 18) ✓
 [verify] All checks passed.
 ```
+
+---
+
+## Web App REST API (`server/app.py`, port 5000)
+
+The React app and the Colab workflows use the same HTTP contract.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Liveness, model count, device |
+| POST | `/api/predict` | Multipart inference: `image`, `model`, `filename` (the **original** file name) |
+| GET | `/api/models` | Model registry (name, backbone, size, type) |
+| POST | `/api/select-model` | Switch the active model for every client |
+| GET | `/api/model-spec?model=` | Parameter counts, per-layer breakdown, ONNX input/output shapes |
+| POST | `/api/upload-model` | Register a new checkpoint (`model_file`) |
+| GET | `/api/ood/profiles` | Calibration profiles with thresholds and metadata |
+| GET | `/api/ood/active` | Active profile plus the resolved detector status |
+| POST | `/api/ood/select` | `auto` or a specific profile file name |
+| POST | `/api/ood/toggle` | Enable/disable OOD filtering |
+| POST | `/api/ood/thresholds` | Live tuning: `energy_threshold`, `msp_threshold`, `temperature` |
+| POST | `/api/ood/upload` | Upload a custom calibration JSON |
+| GET | `/api/ood/data-dirs` | Suggested calibration folders (includes breed sub-folders) |
+| POST | `/api/ood/recalibrate` | **Manual folder-based recalibration for the selected model** |
+| GET | `/api/config` | Shared settings DB (dot-notation keys) |
+| PATCH/POST | `/api/config` | Update settings (broadcast over WebSocket) |
+| POST | `/api/config/reset` | Restore defaults |
+| GET | `/api/config/<key>` | Read a single setting |
+| GET/POST | `/api/presenter-config` | Presenter view customisation |
+| POST | `/api/export-odt` | ODT report from single or batch results |
+| GET | `/api/dev-info` | Cattle/buffalo class maps |
+| POST | `/api/image-info` | EXIF / dimension metadata for one image |
+| GET | `/api/logs` | Session log tail |
+
+`test_model.py` exposes the same semantics with legacy names
+(`/api/ood-profiles`, `/api/ood-info`, `/api/dataset-info`,
+`/api/recalibrate-ood` — an alias of `/api/ood/recalibrate`) and adds
+`/api/ood-data-dirs`.
+
+### Manual OOD recalibration — request
+
+```bash
+curl -X POST http://localhost:5000/api/ood/recalibrate \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "model": "lite2_phase2_best_v26_1012-2332_f9ce",
+        "data_dir": "Testing data",
+        "percentile": 95,
+        "max_images": 500
+      }'
+```
+
+`data_dir` may be absolute or relative to the project root. Images can be
+flat (`Deoni_01.jpg`) or nested (`cattle/deoni/…`); names are matched against
+the selected model's class maps.
+
+### Manual OOD recalibration — response (abridged)
+
+```json
+{
+  "energy_threshold": -3.8443,
+  "msp_threshold": 0.8688,
+  "binary_confidence_floor": 0.6,
+  "percentile": 95.0,
+  "calibrated_on_samples": 6,
+  "matched_images": 6,
+  "unmatched_images": 0,
+  "unreadable_images": 0,
+  "unknown_breeds": [],
+  "breed_counts": { "cattle:deoni": 1, "cattle:gir": 1 },
+  "data_dir": "/abs/path/Testing data",
+  "path": "/abs/path/outputs/ood/lite2_phase2_best_v26_1012-2332_f9ce.json"
+}
+```
+
+Requires a PyTorch `.pt` checkpoint; ONNX models return a clear error.

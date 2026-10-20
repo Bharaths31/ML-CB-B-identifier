@@ -81,7 +81,25 @@ ML-CB-B-identifier/
 │   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
 │   ├── evaluate.py             # per-head eval + confusion matrices
 │   ├── parity_check.py         # fp32 vs mobile-artifact parity gate
+│   ├── ood_calibration.py      # breed-named folder scanning + manual OOD calibration
+│   ├── traits.py               # auxiliary trait heads (training only)
 │   └── verify.py               # architecture sanity check
+├── server/                     # Flask REST API + Socket.IO (24 endpoints)
+│   ├── app.py                  # app factory, blueprints, realtime namespace
+│   ├── model_manager.py        # model registry, loader, predict, recalibrate_ood
+│   ├── shared_config.py        # thread-safe settings DB (outputs/app_config.json)
+│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev
+│   ├── services/               # inference, metadata, ODT report generation
+│   ├── websocket/events.py     # live status broadcast
+│   └── utils/logger.py         # session logger
+├── breed-classifier-react/     # React 18 + Vite web app (public page + dev control plane)
+│   └── src/
+│       ├── pages/              # UserPage (public), DevPage (control plane)
+│       ├── components/         # 20 components (camera, cropper, optimizer, tiers, session…)
+│       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
+│       ├── utils/              # cropAndQuality, imageOptimizer, sessionStore
+│       ├── data/breedTraits.js  # 44 curated breeds x 8 trait fields
+│       └── i18n/               # EN + தமிழ் translations
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
 │   ├── cattle_buffalo_trainer.py     # Same as percent-format script
@@ -95,7 +113,11 @@ ML-CB-B-identifier/
 │   ├── export/                 # ONNX / INT8 / float16 exports
 │   │   └── portable/           # Self-contained model bundles
 │   └── metrics/                # Evaluation JSON + confusion matrix PNGs
-├── scripts/                    # Utility scripts
+├── scripts/                    # audit, diagnose, mine-confusions, calibrate-ood, parity,
+│                               # trait template/population, log viewer, ablations, app assets
+├── docs/                       # mkdocs site (19 pages, incl. react-web.md)
+├── REPORTS.md                  # project technical report (architecture + non-ML feature inventory)
+├── PLAN_REACT_CAMERA_AND_FEATURES.md  # React capture/optimizer/advanced-panel design
 ├── local_train.py              # 🚀 Fully automated pipeline (setup → download → train → export)
 ├── test_model.py               # 🔬 Standalone web GUI for testing exported models
 ├── create_training_zip.py      # Lightweight training-only zip
@@ -450,6 +472,38 @@ python test_model.py --no-browser
 
 ---
 
+## React Web Application
+
+A React 18 + Vite application (`breed-classifier-react/`) with two surfaces: a public
+capture-and-classify page (`/`) and a developer control plane (`/dev`).
+
+```bash
+# terminal 1 — backend
+python server/app.py --port 5000
+
+# terminal 2 — web app
+cd breed-classifier-react
+npm install
+npm run dev          # http://localhost:5173
+npm test             # 30 client unit tests
+npm run build        # static production bundle
+```
+
+| Surface | What it does |
+|---|---|
+| **Upload** | Original image only + explicit *Identify / Identify Framed Breed* action; optional 1:1 framing (pan on both axes) |
+| **Live camera** | Full-frame viewfinder, on-device quality gate, auto-capture, burst-3 sharpest frame, torch, Pad/Stretch review |
+| **Zero-crop optimizer** | Every image becomes exactly 260×260 client-side (stretch, or ImageNet-mean / ambient-blur / black pad) so the server's `Resize→CenterCrop` is a no-op and no animal is cropped |
+| **Advanced panel** | Model-input vs original preview, `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME`, four fit modes, and a batch tester using the selected model + fit config |
+| **3-tier results** | Verified / look-alike / safety abstention, with the exact OOD trigger and a *Why this breed?* trait matrix (44 breeds) |
+| **Herd session** | Persistent session log with statistics and CSV / JSON / ODT export, plus a shareable PNG result card |
+| **Developer control plane** | Model registry + spec viewer, OOD laboratory (including **manual recalibration from a breed-named folder**), shared config DB, live logs |
+| **Extras** | 5 themes, EN / தமிழ் localisation, original-filename provenance in every export and log |
+
+> Full guide: [`docs/react-web.md`](docs/react-web.md) · project report: [`REPORTS.md`](REPORTS.md)
+
+---
+
 ## Google Colab Training
 
 For GPU-accelerated training on **Google Colab Free (T4 GPU, 15 GB VRAM)**:
@@ -541,6 +595,13 @@ This notebook allows you to:
 | **GPU-side CutMix/MixUp** | Operations on CUDA device | Prevents CPU DataLoader bottleneck |
 | **Split Ratio** | 70/15/15 stratified (≥1 val/test per breed) | Maximizes rare-breed evaluation |
 | **OOD Security Harness** | Energy-based detector (post-hoc) | Rejects non-bovine inputs natively without retraining |
+| **Zero-crop client optimizer** | 260×260 letterbox/stretch in the browser | Server crop becomes a no-op — no truncated animals, ~95% smaller uploads |
+| **On-device quality gate** | Sharpness, exposure, framing heuristics | Blurry/dark/mis-framed shots are coached before inference |
+| **3-tier confidence UI** | Verified / look-alike / abstention | Ambiguity is explained, not hidden; abstention shows the exact trigger |
+| **Trait comparison matrix** | 44 breeds × 8 morphological fields | Look-alike pairs are separated by field, not just by score |
+| **Herd session & exports** | localStorage log + CSV / JSON / ODT | Field work becomes a report; original filenames are preserved |
+| **Manual OOD recalibration** | Calibrate from a breed-named folder | Thresholds can be re-tuned per deployed model without retraining |
+| **Shared config + realtime** | File-backed settings DB over Socket.IO | Model, display and OOD changes propagate to every client |
 
 ---
 
@@ -1006,7 +1067,11 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 
 11. **Logit adjustment is OFF by default**: the effective-number sampler already rebalances batches; enabling `--logit-adjust` too double-corrects and over-predicts rare breeds at inference. If enabled, its prior comes from the effective *sampled* distribution.
 
-12. **Outputs are version tagged**: checkpoints/exports/metrics carry a `run id` (auto-incrementing `v4`, `v5` or `--run-tag`), neatly categorized into `outputs/<tag>/` folders, and never overwrite previous runs. Tools auto-discover the newest checkpoint.
+12. **Client sends 260×260 squares**: the web app optimises every image to exactly 260×260 before upload, so the server `Resize(260) → CenterCrop(260)` is identity and nothing is cropped. Letterbox padding is a small distribution shift versus the centre-cropped training data — `Stretch` (the web default) has no bars but distorts aspect; validate both on the validation split.
+
+13. **Manual OOD recalibration needs a PyTorch `.pt` checkpoint**: `OODDetector.calibrate` runs torch logits, so ONNX models return a clear "needs a PyTorch .pt checkpoint" error.
+
+14. **Outputs are version tagged**: checkpoints/exports/metrics carry a `run id` (auto-incrementing `v4`, `v5` or `--run-tag`), neatly categorized into `outputs/<tag>/` folders, and never overwrite previous runs. Tools auto-discover the newest checkpoint.
 
 13. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TensorFlow is not installable on Python 3.14 — use a ≤3.13 venv (the Windows venv is 3.13) or Colab.
 
@@ -1019,6 +1084,14 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 ---
 
 ## Changelog
+
+**2026-10-20 — React capture & zero-crop optimizer, Advanced panel, manual OOD recalibration**
+
+- **React web app** (`breed-classifier-react/`): public capture-and-classify page plus a developer control plane, with a zero-crop 260×260 client optimizer (stretch default, ImageNet-mean / ambient-blur / black pad), an authoritative both-axis framing cropper, a full-frame camera with an on-device quality gate, auto-capture, burst-3 and torch, 3-tier confidence results with a 44-breed trait matrix, a herd session log with CSV/JSON/ODT export, a shareable PNG result card, an Advanced panel with model-input inspection and a batch tester, 5 themes and EN/தமிழ் localisation.
+- **Manual OOD recalibration** from a folder of breed-named images: new `src/ood_calibration.py`, `GET /api/ood/data-dirs` and `POST /api/ood/recalibrate` in both the Flask API and `test_model.py`, plus controls in the React OOD lab and the tester GUI.
+- **Flask serving layer** (`server/`) with 24 REST endpoints, a shared configuration database and Socket.IO realtime events.
+- **Fixes**: `test_model.py` OOD linkage no longer reads non-existent detector attributes; client prediction errors surface properly; original filenames are carried through predictions, exports, share cards, diagnostics and server logs.
+- **Docs & tooling**: new `REPORTS.md` project report and `docs/react-web.md`; `requirements.txt` now covers the Flask/Socket.IO stack; knowledge base, graph and docs refreshed.
 
 **2026-09-25 — OOD Security Harness & Breed Trait Auto-Population**
 

@@ -17,7 +17,11 @@
 9. [API Reference](#9-api-reference)
 10. [Common Operations](#10-common-operations)
 11. [Known Constraints & Gotchas](#11-known-constraints--gotchas)
-12. [Changelog](#12-changelog)
+12. [Web Application Stack](#12-web-application-stack)
+13. [Manual OOD Calibration](#13-manual-ood-calibration)
+14. [Colab Training](#14-colab-training)
+15. [Android Deployment](#15-android-deployment)
+16. [Changelog](#16-changelog)
 
 ---
 
@@ -28,6 +32,9 @@
 | **Goal** | Classify images of Indian cattle (50 breeds) and buffalo (18 breeds, 68 total) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + deeper binary head (1280→512→256→2) + 2 breed heads + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
+| **Web app** | React 18 + Vite 5 + React Router 7 (`breed-classifier-react/`) — public app + developer control plane |
+| **Serving** | Flask REST API + Socket.IO (`server/`, port 5000) and the standalone tester (`test_model.py`, port 8501) |
+| **Edge** | Flutter app (TFLite Android + TF.js web) under `flutter_app/` |
 | **Training** | 2-phase default: all-heads warmup (8 epochs) → multi-task fine-tune (80 epochs, AdamW lr=1e-4, warmup=5, EMA decay=0.9995) |
 | **Deployment** | ONNX, INT8 (converter-side PTQ), float16, or portable self-contained folder |
 | **Outputs** | Timestamped per run (`DD-MM-YYYY-HH-MM`) — never overwrites previous results |
@@ -106,7 +113,28 @@ Mini Project/
 │   ├── export.py               # portable / ONNX / TFLite / FP16 / mobile INT8 (PTQ)
 │   ├── evaluate.py             # per-head eval + confusion matrices (timestamped)
 │   ├── parity_check.py         # fp32 vs INT8 parity gate
+│   ├── ood_calibration.py      # breed-named folder scanning + manual OOD calibration
+│   ├── traits.py               # auxiliary trait heads (training only)
 │   └── verify.py               # architecture sanity check
+├── server/                     # Flask REST API + Socket.IO (24 endpoints)
+│   ├── app.py                  # app factory, blueprints, realtime namespace
+│   ├── model_manager.py        # registry, loader, predict, recalibrate_ood
+│   ├── shared_config.py        # thread-safe file-backed settings DB (outputs/app_config.json)
+│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev
+│   ├── services/               # inference, metadata, ODT report generation
+│   ├── websocket/events.py     # live status broadcast
+│   └── utils/logger.py         # session logger
+├── breed-classifier-react/     # React 18 + Vite web application
+│   └── src/
+│       ├── pages/              # UserPage (public), DevPage (control plane)
+│       ├── components/         # 20 components (camera, cropper, optimizer, tiers, session…)
+│       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
+│       ├── utils/              # cropAndQuality, imageOptimizer, sessionStore
+│       ├── data/breedTraits.js  # 44 curated breeds x 8 trait fields
+│       └── i18n/               # EN + தமிழ் translations
+├── flutter_app/                # Android/web edge client (TFLite + TF.js engines)
+├── REPORTS.md                  # project technical report (architecture + non-ML feature inventory)
+├── PLAN_REACT_CAMERA_AND_FEATURES.md  # React capture/optimizer/advanced-panel design + plan
 ├── colab/
 │   ├── cattle_buffalo_trainer.py   # Colab training script (percent-format)
 │   ├── cattle_buffalo_trainer.ipynb # Jupyter notebook (auto-generated)
@@ -125,7 +153,8 @@ Mini Project/
 │   ├── export/                 # ONNX/INT8/float16 exports
 │   │   └── portable/           # Self-contained model bundles
 │   └── metrics/                # Evaluation JSON + confusion matrix PNGs
-├── scripts/                    # Colab archive creators, app asset prep
+├── scripts/                    # audit, diagnose, mine-confusions, calibrate-ood, parity,
+│                               # trait template/population, log viewer, ablations, app assets
 ├── create_training_zip.py      # Creates lightweight standalone training package
 ├── create_test_eval_zip.py     # Creates zip of test split images for evaluation
 ├── local_train.py              # Fully automated local training pipeline (setup → train → export)
@@ -134,7 +163,9 @@ Mini Project/
 ├── setup_venv.py               # Automated virtual environment setup script
 ├── .gitignore                  # Git ignore rules (includes outputs, venv, cache)
 ├── efficientnet_lite{2,4}.pth  # Pretrained ImageNet backbone weights
-├── requirements.txt            # Python dependencies
+├── requirements.txt            # Python dependencies (core, serving, export, reports)
+├── docs/                       # 19-page mkdocs site (incl. react-web.md)
+└── ADR.md                      # architecture decision record (ADR-001)
 ```
 
 ---
@@ -587,6 +618,35 @@ outputs/export/portable/<backbone>_phase2_best/
 | `--checkpoint PATH` | auto | Specific `.pt` file |
 | `--device DEVICE` | auto | Force `cuda` or `cpu` |
 
+### Flask REST API (`server/app.py`, port 5000)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Liveness, model count, device |
+| POST | `/api/predict` | Multipart inference (`image`, `model`, `filename`) → species, top-k, OOD details, thresholds, latency |
+| GET | `/api/models` | Model registry |
+| POST | `/api/select-model` | Switch the active model globally |
+| GET | `/api/model-spec` | Parameter counts, layer breakdown, ONNX I/O |
+| POST | `/api/upload-model` | Register a checkpoint at runtime |
+| GET | `/api/ood/profiles` | Calibration profiles with thresholds |
+| GET | `/api/ood/active` | Active profile + resolved detector |
+| POST | `/api/ood/select` | Choose `auto` or a profile file |
+| POST | `/api/ood/toggle` | Enable/disable OOD filtering |
+| POST | `/api/ood/thresholds` | Live threshold tuning (energy, MSP, temperature) |
+| POST | `/api/ood/upload` | Upload a custom calibration JSON |
+| GET | `/api/ood/data-dirs` | Suggested calibration folders (breed sub-folders included) |
+| POST | `/api/ood/recalibrate` | **Manual folder-based recalibration for the selected model** |
+| GET/PATCH | `/api/config`, `/api/config/<key>`, POST `/api/config/reset` | Shared settings DB (dot-notation) |
+| GET/POST | `/api/presenter-config` | Presenter view customisation |
+| POST | `/api/export-odt` | ODT report from single/batch results |
+| GET | `/api/dev-info`, `/api/logs` | Class maps, session log tail |
+| POST | `/api/image-info` | EXIF/dimension metadata |
+
+`test_model.py` exposes the same semantics with legacy names
+(`/api/ood-profiles`, `/api/ood-info`, `/api/dataset-info`,
+`/api/recalibrate-ood` — kept as an alias of `/api/ood/recalibrate` — and
+adds `/api/ood-data-dirs`).
+
 ### `python test_model.py`
 
 | Flag | Default | Description |
@@ -706,6 +766,28 @@ python create_training_zip.py
 
 18. **TFLite toolchain is optional**: `--mode tflite` needs `tensorflow` + `onnx2tf` (see requirements.txt); `--mode onnx-int8` needs only `onnxruntime`. TF is not installable on Python 3.14 — run TFLite conversion from the Windows venv (Python 3.13) or Colab.
 
+19. **Client sends 260x260 squares (zero-crop)**: the React app optimises every
+    image to exactly 260x260 before upload, so the server `Resize(260) ->
+    CenterCrop(260)` becomes an identity pass-through and no part of the
+    animal is truncated. The letterbox pad colour is the ImageNet mean
+    (`rgb(124,116,104)`), which is ~0 after normalization.
+
+20. **Letterbox is a small distribution shift**: training used center-crop, so
+    padded bars are not in-distribution. `Stretch` (default in the web app) has
+    no bars but distorts aspect; validate both on the validation split before
+    choosing a field default.
+
+21. **Manual OOD calibration needs a PyTorch `.pt` checkpoint**: `OODDetector.calibrate`
+    runs torch logits, so ONNX models return "OOD calibration needs a PyTorch
+    .pt checkpoint (not ONNX)".
+
+22. **QAT (phase 3) still degrades accuracy** (loss spike, top-1 drop) in the
+    last recorded runs — keep it opt-in; mobile INT8 comes from converter PTQ
+    and is protected by the parity gate.
+
+23. **Herd session is browser-local**: the session log lives in `localStorage`
+    (`breed-herd-session-v1`); sharing happens through CSV/JSON/ODT export.
+
 2. **Backbone weights are included in the repo**: `efficientnet_lite{2,4}.pth` are tracked in git. No separate download required. Without them, backbone trains from scratch (significantly worse accuracy).
 
 3. **Fixed head sizes**: Model heads are always sized for 50 cattle + 18 buffalo classes regardless of data mode. Unused class outputs receive no gradient. Architecture is identical across all modes.
@@ -725,6 +807,58 @@ python create_training_zip.py
 10. **`data/splits/` regenerated each run**: CSV splits are always regenerated at the start of training. Do not manually edit files in `data/splits/`.
 
 11. **Windows `curl` alias**: In PowerShell, `curl` is an alias for `Invoke-WebRequest`. Use `curl.exe` or the Python `requests` library. `local_train.py` uses `requests` internally.
+
+---
+
+## 12. Web Application Stack
+
+React 18 + Vite 5 + React Router 7 + socket.io-client, in `breed-classifier-react/`.
+
+| Route | Page | Purpose |
+|---|---|---|
+| `/` | `UserPage` | Public app: upload / live camera, framing, explicit classify action, result card, herd session, Advanced panel |
+| `/dev` | `DevPage` | Developer control plane: models, OOD lab, shared config, logs |
+
+Key client modules:
+
+- `utils/imageOptimizer.js` — 260x260 zero-crop optimizer (stretch / pad with
+  ImageNet mean, ambient blur or black), EXIF-upright decode, progressive
+  halving, full metadata contract.
+- `utils/cropAndQuality.js` — authoritative crop math (cover, zoom, pan, mirror),
+  on-device quality gate (Laplacian sharpness, exposure histogram, Sobel
+  framing) and the share-card canvas renderer.
+- `utils/sessionStore.js` — herd session persistence, statistics, CSV/JSON/ODT.
+- `hooks/useImageOptimizer.js` — keeps the **original** image separate from the
+  optimized 260x260 result, so re-framing always starts from the original.
+- `components/AdvancedPanel.jsx` — model-input/original preview, the
+  `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME` grid, the four
+  fit modes and the batch tester (selected model + selected fit config).
+- `components/ImageCropper.jsx` — shared 1:1 framing cropper; pan works on
+  **both** axes (`clampPan` clamps the target box against the source, not the
+  viewport).
+- `i18n/` — EN + தமிழ்; `styles.css` — 5 themes via CSS custom properties.
+
+Client tests: `npm test` (node --test) — 30 tests across
+`utils/__tests__/{cropAndQuality,imageOptimizer,sessionStore}.test.js`.
+
+---
+
+## 13. Manual OOD Calibration
+
+`src/ood_calibration.py` powers **recalibrating OOD thresholds from a folder of
+breed-named images** for a chosen model.
+
+| Step | Behaviour |
+|---|---|
+| Scan | Recursive walk of the folder (`.jpg/.jpeg/.png/.webp/.bmp/.tif`), skipping `outputs/`, `logs/`, `.git`, `node_modules` |
+| Breed matching | Normalised tokens (`Baragur->bargur`, `Muthamahal->amritmahal`, `Malenadu_Gidda->malnad_gidda`, `Hallikaru->hallikar`, `Gangatiri->gangatari`, `Bhadwari->bhadwari`, `Poda_Thurpu->poda_thirupu`, `Bhelai<->belahi`, `Marathwadi->marathwada`, `Ghumsari<->ghumusari`) plus `difflib` fuzzy fallback against the model's own class maps |
+| Validation | Every file is opened and verified; unreadable files are reported, never silently used |
+| Calibration | `OODDetector.calibrate` runs the selected model over **matched images only** (percentile configurable) |
+| Output | Thresholds, sample count, matched/unmatched/unreadable counts, per-breed coverage, unknown names and the saved profile path (`outputs/ood/<model>.json`) |
+
+Entry points: `POST /api/ood/recalibrate` (Flask **and** `test_model.py`),
+`GET /api/ood/data-dirs` for folder pickers, React `DevOODPanel` and the
+`test_model.py` OOD tools card.
 
 ---
 
@@ -814,6 +948,34 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 ---
 
 ## 16. Changelog
+
+### 2026-10-20 — React capture/optimizer, Advanced panel, manual OOD recalibration, project report
+
+- **Zero-crop 260x260 client optimizer** (`breed-classifier-react/src/utils/imageOptimizer.js`):
+  stretch (default) / ImageNet-mean pad / ambient-blur pad / black pad, EXIF-upright
+  decode, progressive halving, full metadata contract.
+- **Full-frame camera** (`CameraCapture.jsx`): `object-fit: contain` guide, quality
+  gate, auto-capture, burst-3 sharpest frame, torch, Pad/Stretch review, optional
+  manual framing; hands off an optimized 260x260 file.
+- **Authoritative framing cropper** (`ImageCropper.jsx`) with pan on both axes;
+  `clampPan` now clamps the target box against the source, not the viewport.
+- **Minimal user view + header Advanced panel**: normal view shows only the
+  original image with an explicit *Identify / Identify Framed Breed* action;
+  the Advanced panel holds the model-input preview, the
+  `ORIGINAL/MODEL INPUT/SCALED/PADDING/PAYLOAD/TIME` grid, the four fit modes and
+  a batch tester that uses the selected model + fit configuration.
+- **3-tier confidence UI** (verified / ambiguous look-alike / safety abstention)
+  with the exact OOD trigger, plus a *Why this breed?* trait matrix for 44 breeds.
+- **Herd session log** with CSV/JSON/ODT export and a shareable PNG result card.
+- **Manual OOD recalibration** from a breed-named folder (`src/ood_calibration.py`,
+  `/api/ood/recalibrate` in both backends, React `DevOODPanel`, `test_model.py` GUI).
+  Fixed `test_model.py::ModelManager.ood_info` reading non-existent
+  `OODDetector.source`/`.calibrated_at`/`.percentile` attributes.
+- **Original filename provenance** through predictions, exports, share card,
+  diagnostics and server logs.
+- **New**: `src/ood_calibration.py`, `REPORTS.md`, `PLAN_REACT_CAMERA_AND_FEATURES.md`,
+  `docs/react-web.md`; `requirements.txt` now covers the Flask/Socket.IO serving
+  stack; knowledge base, graph and docs refreshed.
 
 ### 2026-09-25 — OOD Security Harness & Breed Trait Auto-Population
 

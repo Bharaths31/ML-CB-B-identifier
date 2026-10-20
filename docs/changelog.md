@@ -1,5 +1,35 @@
 # 16. Changelog
 
+### 2026-10-20 — React capture & zero-crop optimizer, Advanced panel, manual OOD recalibration
+
+- **Zero-crop 260×260 client optimizer** (`breed-classifier-react/src/utils/imageOptimizer.js`):
+  stretch (default) / ImageNet-mean pad / ambient-blur pad / black pad, EXIF-upright
+  decode, progressive halving, full metadata contract. The server's
+  `Resize(260) → CenterCrop(260)` is now an identity pass-through.
+- **Full-frame camera** with a 1:1-aware guide, on-device quality gate, auto-capture
+  (3 stable checks ≈ 750 ms), burst-3 sharpest frame, torch, Pad/Stretch review and
+  optional manual framing; it hands off an optimized 260×260 file plus the original name.
+- **Authoritative framing cropper** with pan on both axes (`clampPan` clamps the target
+  box against the source, not the viewport) and 1–3× zoom.
+- **Minimal user view** (original image only) with an explicit *Identify / Identify
+  Framed Breed* action; new upload, crop or fit change clears stale results.
+- **Header Advanced panel**: model-input/original preview, the
+  `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME` grid, four fit modes
+  and a **batch tester** that uses the selected model and fit configuration.
+- **3-tier confidence UI** (verified / look-alike / safety abstention) with the exact OOD
+  trigger, and a *Why this breed?* trait matrix for 44 curated breeds.
+- **Herd session log** (localStorage) with statistics and CSV/JSON/ODT export; shareable
+  PNG result card; original filename carried through predictions, exports and logs.
+- **Manual OOD recalibration** from a breed-named folder: new `src/ood_calibration.py`,
+  `GET /api/ood/data-dirs` and `POST /api/ood/recalibrate` in both backends, React
+  `DevOODPanel` controls and the `test_model.py` OOD tools card.
+- **Fixes**: `test_model.py::ModelManager.ood_info` no longer reads non-existent
+  `OODDetector.source`/`.calibrated_at`/`.percentile`; `api.predict` now surfaces
+  server errors instead of a JSON parse exception; share-card footer prints the file name.
+- **Docs/knowledge**: new [Web Application](react-web.md) page, `REPORTS.md` project
+  report, `requirements.txt` now covers the Flask/Socket.IO serving stack, and the
+  knowledge base, graph and README are refreshed.
+
 ### 2026-10-06 — Source consolidation: `src/` reduced from 16 files to 10
 
 Modules performing the same job were merged into cohesive homes (old import

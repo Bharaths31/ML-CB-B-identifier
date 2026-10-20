@@ -51,7 +51,7 @@
 | Serving (`server/` + `test_model.py`) | 5,010 LOC | 16 modules |
 | React web app | 8,477 LOC JS/JSX + 4,242 LOC CSS | 39 files (20 components, 3 hooks, 3 utils, 3 test specs) |
 | Automation (`local_train.py`, `scripts/`) | 3,761 LOC | 15 entry points |
-| Documentation (`docs/`, `README.md`, `ADR.md`) | ~15.6k words | 18 mkdocs pages + ADR |
+| Documentation (`docs/`, `README.md`, `ADR.md`) | ~16.5k words | 19 mkdocs pages + ADR |
 | Data | 11,199 images / 59 breeds inventoried | Kaggle sources merged locally |
 
 **Status.** All subsystems are implemented, wired and verified: `npm test` 30/30, production build clean, Python modules compile, and browser-level end-to-end runs cover upload → frame → classify → export → session log, full-frame camera capture, manual OOD recalibration from a breed-named folder, and batch inference with the selected configuration.
@@ -215,7 +215,7 @@ ML-CB-B-identifier/
 │       └── styles.css       4,242-line themeable design system
 ├── flutter_app/             Android/web edge app (TFLite + TF.js engines)
 ├── colab/                   Colab trainer + tester notebooks
-├── docs/                    18 mkdocs pages
+├── docs/                    19 mkdocs pages (incl. react-web.md)
 ├── scripts/ + ADR.md        tooling and architecture decision record
 └── outputs/                 checkpoints, exports, OOD profiles, metrics, logs
 ```
@@ -494,7 +494,7 @@ Everything in this section is product/engineering surface built **around** the m
 | Colab training | `colab/cattle_buffalo_trainer.py` + notebook | Full-data training on hosted GPUs; archive helpers for dataset/project upload |
 | Colab testing | `colab/cattle_buffalo_tester.py` + notebook | Notebook-based evaluation |
 | Local automation | `local_train.py` — 8 stages: prerequisites → venv → dataset download → organize → verify → splits → train → export → OOD calibration → summary | `--quarter-data` / `--half-data` / `--smoke-test` budgets |
-| Deployment docs | `docs/android-deployment.md`, `docs/export-deployment.md`, `docs/colab-*.md` | 18 mkdocs pages |
+| Deployment & app docs | `docs/android-deployment.md`, `docs/export-deployment.md`, `docs/colab-*.md`, `docs/react-web.md` | 19 mkdocs pages |
 
 ---
 
@@ -692,7 +692,7 @@ npm test && npm run build
 | `breed-classifier-react/src/i18n/translations.js` | EN + தமிழ️ copy deck |
 | `local_train.py` | 8-stage end-to-end automation |
 | `ADR.md` | Architecture decision record with rejected alternatives |
-| `docs/` | 18-page mkdocs site (installation → deployment → troubleshooting) |
+| `docs/` | 19-page mkdocs site (installation → training → deployment → web app → troubleshooting) |
 
 ---
 

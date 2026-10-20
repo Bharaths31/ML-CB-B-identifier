@@ -228,22 +228,22 @@
     "semantic_hash": "f814d014bdb160507f90147cbd3b55f8"
   },
   ".agents/knowledge/CONTEXT.md": {
-    "mtime": 1792491131.8029382,
-    "seen": 1792491188.5594928,
-    "ast_hash": "d5b2a4a4512a5fa9c22067b86b1e0c16",
+    "mtime": 1792505703.4938793,
+    "seen": 1792505954.916258,
+    "ast_hash": "e8d52016d23e96484d10e775550432e8",
     "semantic_hash": ""
   },
   ".agents/knowledge/MODULE_REFERENCE.md": {
-    "mtime": 1791269966.0664384,
-    "seen": 1791270111.1155648,
-    "ast_hash": "581efd1fe0779164598980049a82fb4f",
+    "mtime": 1792505724.2853634,
+    "seen": 1792505954.9162621,
+    "ast_hash": "144849c7854d9fe0f82fd8f8b595d77b",
     "semantic_hash": ""
   },
   ".agents/knowledge/TRAINING_INTERNALS.md": {
-    "mtime": 1790183974.8948998,
-    "seen": 1790345820.531857,
-    "ast_hash": "f76eb0adf059c054a5653fd88aedbd55",
-    "semantic_hash": "f76eb0adf059c054a5653fd88aedbd55"
+    "mtime": 1792505751.5661144,
+    "seen": 1792505954.9162643,
+    "ast_hash": "cb51dffd75635b58b14e3d43634ac6b1",
+    "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
     "mtime": 1788704793.794806,
@@ -264,9 +264,9 @@
     "semantic_hash": "dc76ac42cd67d200ec1f67dbfebbfa8a"
   },
   "README.md": {
-    "mtime": 1792505154.5359929,
-    "seen": 1792505173.5681112,
-    "ast_hash": "e89b9f76e59d5e89930173057f8f812f",
+    "mtime": 1792505920.4691834,
+    "seen": 1792505954.916276,
+    "ast_hash": "acca31276bb833e525b0bb58cc760482",
     "semantic_hash": ""
   },
   "Test results/training-result.txt": {
@@ -288,21 +288,21 @@
     "semantic_hash": ""
   },
   "docs/api-reference.md": {
-    "mtime": 1790184219.3019936,
-    "seen": 1790184250.1532059,
-    "ast_hash": "2be84e6e23d73a0604d59666dc63d09f",
+    "mtime": 1792505847.4962406,
+    "seen": 1792505954.9163027,
+    "ast_hash": "26e5dbfca42966e1702a7788d2b70c1e",
     "semantic_hash": ""
   },
   "docs/architecture.md": {
-    "mtime": 1790345825.1210852,
-    "seen": 1791270111.1155937,
-    "ast_hash": "d38926e898f333f9ded9828b978d0cbb",
+    "mtime": 1792505847.4982407,
+    "seen": 1792505954.9163048,
+    "ast_hash": "314ec1be990d83db2203941e914d810e",
     "semantic_hash": ""
   },
   "docs/changelog.md": {
-    "mtime": 1791269973.955617,
-    "seen": 1791270111.115596,
-    "ast_hash": "bb67d335fca96aecd058bee19ed577d6",
+    "mtime": 1792505847.5004177,
+    "seen": 1792505954.9163072,
+    "ast_hash": "52f2a31a2a8d33744d31442b8e8e609b",
     "semantic_hash": ""
   },
   "docs/colab-testing.md": {
@@ -318,9 +318,9 @@
     "semantic_hash": "08eedfbbff41cc6a92a591e6ed07dfa1"
   },
   "docs/common-operations.md": {
-    "mtime": 1790184205.0253072,
-    "seen": 1790184250.153216,
-    "ast_hash": "e6903028e2de3767273d731cf99f13ba",
+    "mtime": 1792505847.4992409,
+    "seen": 1792505954.9163136,
+    "ast_hash": "ea181742eaec39ec10a4f5238883c1c5",
     "semantic_hash": ""
   },
   "docs/config-reference.md": {
@@ -348,10 +348,10 @@
     "semantic_hash": ""
   },
   "docs/index.md": {
-    "mtime": 1789898574.1523752,
-    "seen": 1790006481.605667,
-    "ast_hash": "12b1a68a7bf80d7dad1c85dde5ae17b1",
-    "semantic_hash": "12b1a68a7bf80d7dad1c85dde5ae17b1"
+    "mtime": 1792505847.5012407,
+    "seen": 1792505954.9163249,
+    "ast_hash": "be3e75cae8a0078634896c7e0f191d3c",
+    "semantic_hash": ""
   },
   "docs/installation.md": {
     "mtime": 1788883048.305048,
@@ -372,10 +372,10 @@
     "semantic_hash": ""
   },
   "docs/model-tester.md": {
-    "mtime": 1789487953.6616776,
-    "seen": 1790006481.605674,
-    "ast_hash": "1f388ff3bfc2b9fe99f8628fbf1a1183",
-    "semantic_hash": "1f388ff3bfc2b9fe99f8628fbf1a1183"
+    "mtime": 1792505847.497724,
+    "seen": 1792505954.9163418,
+    "ast_hash": "84f00d64ef902c949a159ead241b84e8",
+    "semantic_hash": ""
   },
   "docs/training-pipeline.md": {
     "mtime": 1790184142.6376188,
@@ -414,16 +414,16 @@
     "semantic_hash": "3d3775101f7b831a74568d2f579f3800"
   },
   "mkdocs.yml": {
-    "mtime": 1789291957.5659056,
-    "seen": 1790006481.6057067,
-    "ast_hash": "4e67a3b53d102742913caf4700493fac",
-    "semantic_hash": "4e67a3b53d102742913caf4700493fac"
+    "mtime": 1792505847.5022013,
+    "seen": 1792505954.9163654,
+    "ast_hash": "74686c837190f9b411a55c26cff31c1b",
+    "semantic_hash": ""
   },
   "requirements.txt": {
-    "mtime": 1789896040.030754,
-    "seen": 1790006481.6057105,
-    "ast_hash": "f02ef0069f811118b8553d39f8247c95",
-    "semantic_hash": "f02ef0069f811118b8553d39f8247c95"
+    "mtime": 1792505645.4002078,
+    "seen": 1792505954.9163673,
+    "ast_hash": "39eb32c12aec8b0edc76ee663eb29fe8",
+    "semantic_hash": ""
   },
   "Test results/Screenshot_20260913_135102.png": {
     "mtime": 1789287672.6741772,
@@ -1293,6 +1293,12 @@
     "mtime": 1792505098.48797,
     "seen": 1792505173.568115,
     "ast_hash": "81ef27459531bb5d74dc8e535770af6e",
+    "semantic_hash": ""
+  },
+  "docs/react-web.md": {
+    "mtime": 1792505814.908108,
+    "seen": 1792505954.916345,
+    "ast_hash": "e9fcd816407d9765110644e89db0a3bd",
     "semantic_hash": ""
   }
 }

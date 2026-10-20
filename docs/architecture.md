@@ -26,7 +26,7 @@
 │        ↓                                                     │
 │  outputs/checkpoints/<backbone>_phase{N}_best_<runid>.pt           │
 │        ↓                                                           │
-│  Energy-based OOD Filtering (rejects inputs with E > -25.0)        │
+│  Energy-based OOD Filtering (rejects energy > calibrated threshold)   │
 │        ↓                                                           │
 │  outputs/export/portable/<backbone>_<...>_<runid>/                 │
 └────────────────────────────────────────────────────────────────────┘
@@ -38,8 +38,27 @@
 Image → Resize(260) → CenterCrop(260) → ToTensor()
      → model.forward() → {binary, cattle, buffalo, features, embedding, traits}
      → Energy OOD check (abort if OOD)
-     → soft routing: p(species)·softmax(head) over all 75 breeds → top-k
+     → soft routing: p(species)·softmax(head) over all 68 breeds → top-k
 ```
+
+### Client Capture Flow (React, zero-crop)
+
+The web client normalises every input to the model input size *before* upload,
+so the server-side `Resize(260) → CenterCrop(260)` becomes an identity
+pass-through and no part of the animal is discarded:
+
+```
+Original image (EXIF applied)
+  → 260×260 canvas: stretch (default) | pad · ImageNet mean | pad · ambient blur | pad · black
+  → optional 1:1 manual framing (pan on both axes) applied to the ORIGINAL
+  → POST /api/predict (260×260 JPEG + original filename)
+  → ResultCard (3-tier confidence, trait matrix, quality badge, share PNG)
+  → herd session log → CSV / JSON / ODT export
+```
+
+See [Web Application](react-web.md) for the full client architecture and
+[Manual OOD calibration](model-tester.md#ood-calibration-from-a-breed-named-folder)
+for the folder-based threshold workflow.
 
 ---
 

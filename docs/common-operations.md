@@ -200,3 +200,37 @@ python create_training_zip.py
 # Colab-ready project zip
 python scripts/create_colab_project_zip.py
 ```
+
+---
+
+## 5. Web Application
+
+```bash
+# backend
+python server/app.py --port 5000
+
+# web app
+cd breed-classifier-react && npm install && npm run dev   # http://localhost:5173
+```
+
+`npm test` runs the client unit tests, `npm run build` produces the static
+bundle. See [Web Application](react-web.md).
+
+---
+
+## 6. Recalibrate OOD from a Folder
+
+```bash
+# API
+curl -X POST http://localhost:5000/api/ood/recalibrate \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"lite2_phase2_best_v26_1012-2332_f9ce",
+       "data_dir":"Testing data","percentile":95,"max_images":500}'
+
+# or from the React control plane: /dev → OOD Safety → Recalibrate OOD from Folder
+# or from the tester GUI: OOD Calibration & Dataset card
+```
+
+The response reports thresholds, sample count, matched/unmatched images and the
+per-breed coverage; the profile is saved to `outputs/ood/<model>.json` and used
+by the next prediction.

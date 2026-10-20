@@ -41,6 +41,12 @@ train.py  (losses, EMA, loop, CLI + §7 evaluate_epoch)
 export.py ← (model, run_utils)        evaluate.py ← (data_pipeline, train, export)
     ↓                                      ↓
 parity_check.py ← (export, data_pipeline)   verify.py ← (model)
+
+ood_calibration.py ← (model, config)     # manual folder-based OOD calibration
+    ↓
+server/model_manager.py  (registry, loader, predict, recalibrate_ood)
+    ↓
+server/routes/ood_api.py  (/api/ood/*)  →  React DevOODPanel
 ```
 
 ## Function Index
@@ -108,8 +114,48 @@ Constants only, no functions. Side effect: creates output/log directories on imp
 ### `src/verify.py`
 - `check_backbone`, `check_full_model`, `main`
 
+### `src/ood_calibration.py` (2026-10-20)
+- Breed naming: `normalize_breed_key`, `_candidate_keys`, `_match_in_maps`,
+  `derive_breed`
+- Folder scan: `scan_breed_images` (recursive walk, readability check, coverage)
+- Calibration: `calibrate_from_folder` (matched images only, percentile driven)
+- Paths: `resolve_data_dir`, `list_calibration_dirs`
+- Dataset: `BreedImageDataset` (yields `(tensor, class_id)` for
+  `OODDetector.calibrate`)
+
+### `src/traits.py`
+- `load_trait_spec`, `build_trait_vocab`, `breed_trait_targets`,
+  `TraitClassifier` (re-exported helpers live in `src/model.py`)
+
+### React application (`breed-classifier-react/src/`)
+- `utils/imageOptimizer.js` — `computeOptimizerLayout`, `stepDownResize`,
+  `optimizeSourceTo260`, `optimizeImageTo260`, `releaseOptimizerResult`,
+  `aspectRatio`, `formatBytes`
+- `utils/cropAndQuality.js` — `computeSourceRect`, `clampPan`, `analyzeImageData`,
+  `analyzeCanvas`, `drawCropToCanvas`, `analyzeSourceCrop`, `makeCroppedFile`,
+  `renderShareCard`, `shareOrDownloadCanvas`, `fileToDataUrl`, `loadImage`
+- `utils/sessionStore.js` — `readSession`, `writeSession`, `addSessionEntry`,
+  `makeSessionEntry`, `sessionStats`, `sessionToCsv`, `sessionToJson`,
+  `sessionToOdtResults`, `thumbnailFromDataUrl`, `downloadTextFile`
+- `hooks/` — `useImageOptimizer`, `useSharedConfig`, `useSocket`
+- `components/` — 20 components: user surface (`UserPage`, `ImageUpload`,
+  `CameraCapture`, `ImageCropper`, `ResultCard`, `TraitComparison`,
+  `QualityBadge`, `HerdSessionDrawer`, `AdvancedPanel`,
+  `AdvancedBatchTester`, `LanguageToggle`, `ThemeToggle`) and dev surface
+  (`DevPage`, `DevModelPanel`, `DevOODPanel`, `DevConfigPanel`, `DevTools`,
+  `Batch`, `SingleImage`, `ResultsPanel`, `ModelSelect`,
+  `PredictionProgress`, `App`)
+
 ### External entry points
-- `test_model.py` — PyTorch/ONNX testing GUI (imports `src.model.OODDetector`).
+- `test_model.py` — stdlib HTTP tester + built-in GUI, 17 endpoints, `--dev` /
+  `--present` modes (imports `src.model.OODDetector`, `src.ood_calibration`).
 - `local_train.py` — 8-stage automated pipeline (wraps `python -m src.train`).
-- `server/` — FastAPI-style serving (`model_manager.py` imports `src.model`).
-- `scripts/` — audit/diagnose/mine/train-template/parity/ablation tools.
+- `server/` — Flask serving layer: `model_manager.py` (registry, loader,
+  `recalibrate_ood`), `shared_config.py` (settings DB), `routes/ood_api.py`
+  (`/api/ood/recalibrate`, `/api/ood/data-dirs`), `services/odt_export.py`.
+- `breed-classifier-react/` — React 18 + Vite app (public page + dev control
+  plane) talking to the Flask API over the Vite proxy.
+- `flutter_app/` — edge client (TFLite / TF.js engines) using the same
+  preprocessing contract.
+- `scripts/` — audit/diagnose/mine-confusions/calibrate-ood/parity/trait
+  template + population/log viewer/ablations/app-asset tools.

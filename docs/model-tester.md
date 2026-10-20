@@ -131,6 +131,28 @@ python test_model.py
 
 ---
 
+## OOD Calibration from a Breed-Named Folder
+
+The OOD tools card (`🧪 OOD Calibration & Dataset`) now calibrates thresholds
+from **any folder of breed-named images** for the model selected in *Inspect
+Model*:
+
+| Control | Meaning |
+|---|---|
+| **Breed-named image folder** | Free text with a picker of repository folders. Flat (`Deoni_01.jpg`) and nested (`cattle/deoni/…`) layouts are both supported |
+| **Percentile** | Energy percentile used as the threshold (default 95) |
+| **Max images** | Upper bound on images used (default 500) |
+
+Press **🔄 Recalibrate OOD** to run it. The result shows the new thresholds,
+the sample count, matched/unmatched images, the per-breed coverage and the path
+of the saved profile (`outputs/ood/<model>.json`). Unmatched names are listed so
+a mis-named folder is visible instead of silently skewing the thresholds.
+
+Leave the folder empty to recalibrate on the generated validation split, as
+before.
+
+---
+
 ## Requirements
 
 - Trained model checkpoint(s) in `outputs/checkpoints/` or `outputs/export/portable/`
