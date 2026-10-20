@@ -534,10 +534,10 @@
     "semantic_hash": ""
   },
   "data/breed_traits.json": {
-    "mtime": 1790339481.8733056,
-    "seen": 1790345820.5274096,
-    "ast_hash": "9cc9f020b6923389659815ee90373a20",
-    "semantic_hash": "9cc9f020b6923389659815ee90373a20"
+    "mtime": 1792489279.9813473,
+    "seen": 1792489940.645223,
+    "ast_hash": "16565d50630e6e64e594f8f61cf4a0b7",
+    "semantic_hash": ""
   },
   "scripts/make_trait_template.py": {
     "mtime": 1791269467.1197975,
@@ -624,15 +624,15 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/Batch.jsx": {
-    "mtime": 1792487433.5716605,
-    "seen": 1792488031.3252807,
-    "ast_hash": "95cd7b6240d31ca0b9fdf000940ae0e1",
+    "mtime": 1792489697.1689734,
+    "seen": 1792489940.645135,
+    "ast_hash": "7572e9f180e2c018a145050ce85e9d04",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/CameraCapture.jsx": {
-    "mtime": 1792487185.1506906,
-    "seen": 1792488031.3252847,
-    "ast_hash": "ae58b29c43b20659606ae5e78c9ff5b6",
+    "mtime": 1792489791.9648502,
+    "seen": 1792489940.645138,
+    "ast_hash": "3b466ddc5c05212989233cfd0f282a5b",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevTools.jsx": {
@@ -654,9 +654,9 @@
     "semantic_hash": "f31f7959f7207f6a3f4c1051ef297bb0"
   },
   "breed-classifier-react/src/components/ResultsPanel.jsx": {
-    "mtime": 1792487035.8520796,
-    "seen": 1792488031.325336,
-    "ast_hash": "f4c915d3a43167fd072a378094d8329b",
+    "mtime": 1792489145.4213011,
+    "seen": 1792489940.6451697,
+    "ast_hash": "e2321d39eb6cb8ed0b0d36b2f6d3a5e5",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/SingleImage.jsx": {
@@ -864,9 +864,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ResultCard.jsx": {
-    "mtime": 1792488534.908209,
-    "seen": 1792488628.2134874,
-    "ast_hash": "c45dd0932d3dca5a30a4023f1ccf9aad",
+    "mtime": 1792489525.1574242,
+    "seen": 1792489940.6451676,
+    "ast_hash": "597ad763ecba781095abae1cc9036734",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/hooks/useSharedConfig.js": {
@@ -990,9 +990,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ImageCropper.jsx": {
-    "mtime": 1792486893.7947178,
-    "seen": 1792488031.3253102,
-    "ast_hash": "482704c007c5d4c072a6ea73f8524531",
+    "mtime": 1792489201.5037274,
+    "seen": 1792489940.645153,
+    "ast_hash": "d34520e8843603dfd49f16e8f8c28531",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/LanguageToggle.jsx": {
@@ -1008,9 +1008,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/data/breedTraits.js": {
-    "mtime": 1792486787.6568415,
-    "seen": 1792488031.3253462,
-    "ast_hash": "fc5f8b9352d653eb846e4feb4c52600d",
+    "mtime": 1792489779.7287362,
+    "seen": 1792489940.6451797,
+    "ast_hash": "669d69261fede15a587f1d885523e4b5",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/I18nProvider.jsx": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/translations.js": {
-    "mtime": 1792488526.2281966,
-    "seen": 1792488628.2135062,
-    "ast_hash": "eeb45cc4cdcb8a15d4a66af70b125fe0",
+    "mtime": 1792489514.43133,
+    "seen": 1792489940.645189,
+    "ast_hash": "2a8de32b416cf84dc5f44d6a43d8ecdc",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/cropAndQuality.test.js": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/cropAndQuality.js": {
-    "mtime": 1792487919.055216,
-    "seen": 1792488031.3253872,
-    "ast_hash": "ace44e7e995e0438152c33c555c02488",
+    "mtime": 1792489836.9922714,
+    "seen": 1792489940.6452053,
+    "ast_hash": "473a5a3ead45091b03901b65df2b3923",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/sessionStore.js": {
@@ -1044,15 +1044,21 @@
     "semantic_hash": ""
   },
   "PLAN_REACT_CAMERA_AND_FEATURES.md": {
-    "mtime": 1792488465.9501467,
-    "seen": 1792488628.2138426,
-    "ast_hash": "49242f21e113fa7300a3d7c39b3a777c",
+    "mtime": 1792489861.436501,
+    "seen": 1792489940.6453907,
+    "ast_hash": "7f1892c419e3fe6d6563993bfffbdbba",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/sessionStore.test.js": {
     "mtime": 1792488666.3915403,
     "seen": 1792488690.676952,
     "ast_hash": "3c7bc08ade13bba5b50c6151fd612ccd",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/components/TraitComparison.jsx": {
+    "mtime": 1792489501.6212175,
+    "seen": 1792489940.645177,
+    "ast_hash": "94ce5236de503f3f329f7986aaf46cb7",
     "semantic_hash": ""
   }
 }
