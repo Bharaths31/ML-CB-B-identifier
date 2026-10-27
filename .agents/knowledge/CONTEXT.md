@@ -32,8 +32,11 @@
 | **Goal** | Classify images of Indian cattle (50 breeds) and buffalo (18 breeds, 68 total) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + deeper binary head (1280→512→256→2) + 2 breed heads + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
-| **Web app** | React 18 + Vite 5 + React Router 7 (`breed-classifier-react/`) — public app + developer control plane |
-| **Serving** | Flask REST API + Socket.IO (`server/`, port 5000) and the standalone tester (`test_model.py`, port 8501) |
+| **Web app** | React 18 + Vite 5 + React Router 7 (`breed-classifier-react/`) — public app (`/`), developer control plane (`/dev`) and veterinary expert portal (`/expert`) |
+| **Serving** | Flask REST API + Socket.IO (`server/`, port 5000), `/ws` realtime namespace, and the standalone tester (`test_model.py`, port 8501) |
+| **Expert workflow** | SQLite escalation queue (`outputs/escalations.db`), offline outbox, active-learning promotion to `data/raw/` + manifest |
+| **Explainability** | CBAM spatial mask + class-activation heatmap in `/api/predict` and the Advanced X-Ray overlay |
+| **Registration** | Bharat Pashudhan 12-digit ear-tag card with QR PNG/ODT |
 | **Edge** | Flutter app (TFLite Android + TF.js web) under `flutter_app/` |
 | **Training** | 2-phase default: all-heads warmup (8 epochs) → multi-task fine-tune (80 epochs, AdamW lr=1e-4, warmup=5, EMA decay=0.9995) |
 | **Deployment** | ONNX, INT8 (converter-side PTQ), float16, or portable self-contained folder |
@@ -116,21 +119,22 @@ Mini Project/
 │   ├── ood_calibration.py      # breed-named folder scanning + manual OOD calibration
 │   ├── traits.py               # auxiliary trait heads (training only)
 │   └── verify.py               # architecture sanity check
-├── server/                     # Flask REST API + Socket.IO (24 endpoints)
+├── server/                     # Flask REST API + Socket.IO (29 route rules)
 │   ├── app.py                  # app factory, blueprints, realtime namespace
-│   ├── model_manager.py        # registry, loader, predict, recalibrate_ood
+│   ├── model_manager.py        # registry, count-matched class maps, loader, OOD rebinding
 │   ├── shared_config.py        # thread-safe file-backed settings DB (outputs/app_config.json)
-│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev
-│   ├── services/               # inference, metadata, ODT report generation
-│   ├── websocket/events.py     # live status broadcast
+│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev, escalations
+│   ├── services/               # inference + X-Ray, metadata, ODT, escalation SQLite
+│   ├── websocket/events.py     # /ws status/config/prediction/escalation events
 │   └── utils/logger.py         # session logger
 ├── breed-classifier-react/     # React 18 + Vite web application
 │   └── src/
-│       ├── pages/              # UserPage (public), DevPage (control plane)
-│       ├── components/         # 20 components (camera, cropper, optimizer, tiers, session…)
+│       ├── pages/              # UserPage (/), DevPage (/dev), ExpertPage (/expert)
+│       ├── components/         # camera HUD, cropper, compact result, Advanced details, BPA modal…
 │       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
-│       ├── utils/              # cropAndQuality, imageOptimizer, sessionStore
-│       ├── data/breedTraits.js  # 44 curated breeds x 8 trait fields
+│       ├── utils/              # cropAndQuality, imageOptimizer (CLAHE), sessionStore,
+│       │                       # confidence rubric, escalation outbox, result helpers
+│       ├── data/breedTraits.js  # 68 curated breeds x 8 trait fields
 │       └── i18n/               # EN + தமிழ் translations
 ├── flutter_app/                # Android/web edge client (TFLite + TF.js engines)
 ├── REPORTS.md                  # project technical report (architecture + non-ML feature inventory)
@@ -152,7 +156,9 @@ Mini Project/
 │   ├── checkpoints/            # Training checkpoints (*.pt)
 │   ├── export/                 # ONNX/INT8/float16 exports
 │   │   └── portable/           # Self-contained model bundles
-│   └── metrics/                # Evaluation JSON + confusion matrix PNGs
+│   ├── metrics/                # Evaluation JSON + confusion matrix PNGs
+│   ├── escalations.db          # Veterinary expert queue (SQLite)
+│   └── active_learning_manifest.csv  # Verified escalation → dataset manifest
 ├── scripts/                    # audit, diagnose, mine-confusions, calibrate-ood, parity,
 │                               # trait template/population, log viewer, ablations, app assets
 ├── create_training_zip.py      # Creates lightweight standalone training package
@@ -180,7 +186,7 @@ class BreedClassifier(nn.Module):
     attention: CBAM | SEBlock      # inserted after stage 3 (88ch lite2 / 112ch lite4)
     avg_pool: AdaptiveAvgPool2d(1)
     binary_head: Linear(1280→256→2)
-    cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→57)
+    cattle_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→50)
     buffalo_head: Linear(1280→512) + BN + ReLU + Drop(0.3) + Linear(512→256) + BN + ReLU + Drop(0.2) + Linear(256→18)
     projection_head: Linear(1280→1280) + ReLU + Linear(1280→128)   # training-only (SupCon)
     trait_heads: Parallel linear layers for multiple morphological traits
@@ -190,7 +196,7 @@ class BreedClassifier(nn.Module):
 
 1. `forward_features(x)`: backbone stages 0..3 → CBAM → stages 4..6 → head → pool → flatten
 2. `forward(x)`: features → 4 parallel heads + projection head → dict{binary, cattle, buffalo, features, embedding, traits}
-3. `predict(x)` (`@torch.no_grad()`): returns the soft-routed combined 75-class distribution `[p(species=0)·softmax(cattle), p(species=1)·softmax(buffalo)]`
+3. `predict(x)` (`@torch.no_grad()`): returns the soft-routed combined 68-class distribution `[p(species=0)·softmax(cattle), p(species=1)·softmax(buffalo)]`
 
 The `projection_head` and `embedding` output are consumed only by the
 supervised-contrastive (SupCon) loss; they are never exported and are tolerated
@@ -272,7 +278,7 @@ logs **both** raw and EMA metrics and saves whichever scores better.
   `CONTRASTIVE_TEMPERATURE=0.1`): supervised-contrastive loss on the 128-d
   projection embedding; skipped on mixed batches (soft labels).
 - Binary head: per-batch species re-weighting (`BALANCE_BINARY_HEAD=True`)
-  neutralizes the ~57:18 breed-count species prior.
+  neutralizes the ~50:18 breed-count species prior.
 
 ### Mixing & augmentation (opt-in; OFF by default)
 
@@ -368,7 +374,7 @@ data/raw/
 ├── cattle/
 │   ├── amritmahal/  (N .jpg files)
 │   ├── ayrshire/
-│   └── ... (57 breeds)
+│   └── ... (50 breeds)
 └── buffalo/
     ├── alambadi/
     ├── banni/
@@ -623,24 +629,29 @@ outputs/export/portable/<backbone>_phase2_best/
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/health` | Liveness, model count, device |
-| POST | `/api/predict` | Multipart inference (`image`, `model`, `filename`) → species, top-k, OOD details, thresholds, latency |
+| POST | `/api/predict` | Multipart inference → species, Top-k, five-level confidence, OOD details, attention heatmap, latency |
 | GET | `/api/models` | Model registry |
-| POST | `/api/select-model` | Switch the active model globally |
-| GET | `/api/model-spec` | Parameter counts, layer breakdown, ONNX I/O |
-| POST | `/api/upload-model` | Register a checkpoint at runtime |
+| POST | `/api/select-model` | Switch active model; rebinds count-matched class maps + OOD; returns actual active |
+| GET | `/api/model-spec` | Dynamic class counts/head widths, parameters, ONNX I/O |
+| POST | `/api/upload-model` | `secure_filename` + `.pt`/`.onnx` validation |
 | GET | `/api/ood/profiles` | Calibration profiles with thresholds |
 | GET | `/api/ood/active` | Active profile + resolved detector |
-| POST | `/api/ood/select` | Choose `auto` or a profile file |
+| POST | `/api/ood/select` | Choose `auto` (active-model profile) or a profile file |
 | POST | `/api/ood/toggle` | Enable/disable OOD filtering |
 | POST | `/api/ood/thresholds` | Live threshold tuning (energy, MSP, temperature) |
 | POST | `/api/ood/upload` | Upload a custom calibration JSON |
 | GET | `/api/ood/data-dirs` | Suggested calibration folders (breed sub-folders included) |
-| POST | `/api/ood/recalibrate` | **Manual folder-based recalibration for the selected model** |
+| POST | `/api/ood/recalibrate` | Manual folder-based recalibration for the selected model |
 | GET/PATCH | `/api/config`, `/api/config/<key>`, POST `/api/config/reset` | Shared settings DB (dot-notation) |
 | GET/POST | `/api/presenter-config` | Presenter view customisation |
-| POST | `/api/export-odt` | ODT report from single/batch results |
-| GET | `/api/dev-info`, `/api/logs` | Class maps, session log tail |
+| POST | `/api/export-odt` | ODT report from single/batch results (optional BPA block) |
+| GET | `/api/dev-info`, `/api/logs` | Active class maps + known-breed union, session log tail |
 | POST | `/api/image-info` | EXIF/dimension metadata |
+| GET | `/api/escalations?status=all\|pending\|verified` | Expert queue + summary counts |
+| POST | `/api/escalations` | Create escalation (JSON or multipart); emits `escalation_created` |
+| GET | `/api/escalations/<id>` | Single escalation |
+| POST | `/api/escalations/<id>/resolve` | Vet verdict + optional active-learning promotion |
+| POST | `/api/bpa/qr` | QR module matrix for the BPA canvas health card |
 
 `test_model.py` exposes the same semantics with legacy names
 (`/api/ood-profiles`, `/api/ood-info`, `/api/dataset-info`,
@@ -798,7 +809,7 @@ python create_training_zip.py
 
 6. **Portable export requires `BreedClassifier` class**: Saves `state_dict`, not TorchScript. Loading requires `from src.model import BreedClassifier`. For framework-free inference, use ONNX.
 
-7. **Smoke test uses ALL 75 classes**: Even with 5 imgs/breed, class maps include all breeds. Architecture is identical to full training.
+7. **Smoke test uses ALL 68 classes**: Even with 5 imgs/breed, class maps include all configured cattle/buffalo breeds. Architecture is identical to full training.
 
 8. **`torch.compile` OOM on T4 GPU**: `mode="reduce-overhead"` uses CUDA Graphs, causing OOM on 15 GB T4. Default `torch.compile(model)` (no mode) avoids this.
 
@@ -816,30 +827,54 @@ React 18 + Vite 5 + React Router 7 + socket.io-client, in `breed-classifier-reac
 
 | Route | Page | Purpose |
 |---|---|---|
-| `/` | `UserPage` | Public app: upload / live camera, framing, explicit classify action, result card, herd session, Advanced panel |
-| `/dev` | `DevPage` | Developer control plane: models, OOD lab, shared config, logs |
+| `/` | `UserPage` | Public app: upload/downscale-or-frame, live AR camera, compact result, herd session, Advanced details |
+| `/dev` | `DevPage` | Developer control plane: model activation, OOD lab, shared config, logs |
+| `/expert` | `ExpertPage` | Veterinary review: escalation queue, X-Ray, Top-3, OOD/quality telemetry, active-learning promotion |
 
 Key client modules:
 
 - `utils/imageOptimizer.js` — 260x260 zero-crop optimizer (stretch / pad with
   ImageNet mean, ambient blur or black), EXIF-upright decode, progressive
-  halving, full metadata contract.
-- `utils/cropAndQuality.js` — authoritative crop math (cover, zoom, pan, mirror),
-  on-device quality gate (Laplacian sharpness, exposure histogram, Sobel
-  framing) and the share-card canvas renderer.
+  halving, opt-in LAB CLAHE, full metadata contract.
+- `utils/cropAndQuality.js` — authoritative crop math and quality gate with
+  explicit `lightingState` / `framingState` / `sharpnessState`; black/empty
+  frames are `no_subject`, never `ready`.
+- `utils/confidence.js` — five-level rubric and presenter confidence formats.
+- `utils/escalationQueue.js` — offline outbox (`breed-escalation-outbox-v1`).
 - `utils/sessionStore.js` — herd session persistence, statistics, CSV/JSON/ODT.
-- `hooks/useImageOptimizer.js` — keeps the **original** image separate from the
-  optimized 260x260 result, so re-framing always starts from the original.
-- `components/AdvancedPanel.jsx` — model-input/original preview, the
-  `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME` grid, the four
-  fit modes and the batch tester (selected model + selected fit config).
+- `utils/resultHelpers.js` — shared Top-k/OOD/quality display helpers.
+- `hooks/useImageOptimizer.js` — keeps the original separate from the optimized
+  260x260 result; supports `clearCrop()` for downscale-only.
+- `components/CameraCapture.jsx` — AR anatomical HUD (Cattle/Buffalo/Minimal),
+  flip-aware Head & Horns / Hump-Dorsal / Dewlap / Tail-Rump zones and status pills.
+- `components/AdvancedPanel.jsx` — model-input/original preview, fit modes,
+  batch tester and `AdvancedResultDetails` (X-Ray, traits, quality, diagnostics,
+  BPA, escalation).
+- `components/ResultCard.jsx` — compact main result only.
+- `components/BpaRegistrationModal.jsx` — BPA ear tag + QR health card.
 - `components/ImageCropper.jsx` — shared 1:1 framing cropper; pan works on
-  **both** axes (`clampPan` clamps the target box against the source, not the
-  viewport).
-- `i18n/` — EN + தமிழ்; `styles.css` — 5 themes via CSS custom properties.
+  **both** axes.
+- `i18n/` — EN + தமிழ்; `styles.css` — 5 themes via CSS custom properties,
+  consistently applied across `/`, `/dev` and `/expert`.
 
-Client tests: `npm test` (node --test) — 30 tests across
-`utils/__tests__/{cropAndQuality,imageOptimizer,sessionStore}.test.js`.
+Client tests: `npm test` (node --test) — **42 tests** across
+`utils/__tests__/{cropAndQuality,imageOptimizer,sessionStore,confidence,clahe,breedTraits}.test.js`.
+
+**Current active web features (2026-10-27):**
+
+- Five-level confidence rubric with Level 1–2 vet escalation.
+- Expert escalation SQLite queue + `/expert` review portal.
+- Offline escalation outbox and header sync badge.
+- CBAM/Grad-CAM “AI Vision X-Ray” overlay.
+- Compact main result; detailed diagnostics moved to the Advanced drawer.
+- Upload choice: **Downscale only** or **Frame manually**.
+- Guided AR camera HUD with flip-aware anatomical zones.
+- Independent lighting/framing/sharpness quality states.
+- Opt-in LAB CLAHE shadow normalization.
+- Bharat Pashudhan registration card with QR.
+- 68/68 breed morphology coverage.
+- `display.show_escalation_warning` hides the vet warning and shows only predictions.
+- Count-matched model selection, per-model OOD binding, robust activation feedback.
 
 ---
 
@@ -948,6 +983,19 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 ---
 
 ## 16. Changelog
+
+### 2026-10-27 — Expert escalation, five-level confidence, X-Ray, BPA, AR camera HUD, compact result
+
+- **Expert escalation & active learning** — new `server/services/escalation_db.py` (SQLite at `outputs/escalations.db`), `server/routes/escalations.py`, `/ws` events, `/expert` portal, offline outbox and verified-image promotion into `data/raw/<species>/<breed>/` + `outputs/active_learning_manifest.csv`.
+- **Five-level confidence rubric** — joint soft-routed `C=P(species)×P(breed|species)` mapped to levels 1–5, with EN/Tamil actions and `display.show_escalation_warning`.
+- **AI Vision X-Ray** — CBAM spatial mask + winning-head class-activation heatmap in `/api/predict`, rendered in the Advanced drawer with opacity control.
+- **BPA registration** — 12-digit ear-tag UID, owner/animal form, QR-backed PNG health card and ODT.
+- **Camera HUD** — clean AR safe-frame/axes with flip-aware anatomical zones; no cartoon silhouette. Independent `lightingState`/`framingState`/`sharpnessState` pills; dark/empty frames are `no_subject`, never `ready`.
+- **Compact result** — main page shows only essentials; X-Ray, traits, quality, diagnostics, BPA and escalation live in Advanced.
+- **Upload preparation** — Downscale only vs Frame manually, with `clearCrop()` returning to the original.
+- **Model/serving fixes** — count-matched class maps, dynamic `/api/model-spec`, per-model OOD binding, `/ws` namespace parity, secure upload, robust model activation with immediate UI state.
+- **Theming** — consistent tokens across `/`, `/dev`, `/expert`; ThemeToggle available on all three; guarded localStorage.
+- **Tests/docs** — 42 frontend tests; source-of-truth and knowledge base synchronized.
 
 ### 2026-10-20 — React capture/optimizer, Advanced panel, manual OOD recalibration, project report
 

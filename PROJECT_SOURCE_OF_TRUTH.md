@@ -962,7 +962,8 @@ Source: `server/model_manager.py`.
 - `outputs/app_config.json` → `active_model` if it exists in the discovered set.
 - Otherwise first discovered name containing `"portable"`.
 - Otherwise first discovered model.
-- `set_active_model()` writes the config, rebinds the count-matched class maps and (when `ood.selected_profile == "auto"`) rebinds the OOD detector, then emits `model_switched` and `ood_status_changed` on `/ws`.
+- `set_active_model()` validates the name, binds the count-matched class maps and OOD detector **before** persisting `active_model`, then emits `model_switched` and `ood_status_changed` on `/ws`.
+- `POST /api/select-model` returns the actual resolved active name and JSON errors (`404` unknown model, `500` switch failure). The Dev model panel updates its local active state immediately, shows an `Activating…` state, awaits the shared-config refresh, and displays success/error feedback; the `/dev` header shows an Active model pill.
 
 
 **Loading**
@@ -1445,7 +1446,9 @@ Source: `components/ThemeToggle.jsx`, `styles.css`.
 | `cyber` | Cyber Neon |
 
 - Applied via `data-theme` on `<html>`.
-- Persisted in `localStorage` key `breed-classifier-theme`.
+- Persisted in `localStorage` key `breed-classifier-theme`; unreadable/blocked storage falls back to `dark` without crashing.
+- ThemeToggle is available on `/`, `/dev`, and `/expert`; the Expert page can be opened directly and still applies the stored theme.
+- New pages/actions use shared theme tokens (`--surface`, `--surface2`, `--border`, `--text`, `--text-muted`, `--green`, `--amber`, `--red`, `--accent`); fixed colours are reserved for confidence-level semantics, camera HUD over live video, and downloadable QR/card artwork.
 - Browser-local; not synced to `display.theme`.
 
 ### 9.13 Batch tester (inside Advanced panel)
@@ -1683,7 +1686,9 @@ ood_thresholds.json      # when calibration ran
 `outputs/escalations.db` (SQLite, created lazily):
 
 - `escalations` row: id, created_at, filename, image_b64, gps_lat/lng, location_label, flw_id, model_used, predicted_species/breed, confidence, confidence_level, is_ood, ood_details_json, top3_json, quality_json, status, expert_species/breed, expert_notes, reviewed_at, attention_map_b64.
-- Verified + `promote_to_dataset=true` writes `data/raw/<species>/<breed>/escalated_<id>.jpg` and appends `outputs/active_learning_manifest.csv`.
+- `POST /api/escalations` validates the `top3` array, base64 image (≤8 MB) and required prediction fields.
+- Verification validates `(expert_species, expert_breed)` against the union of all known class maps; unknown breeds are rejected before the DB update. The expert dropdown uses `known_cattle_classes` / `known_buffalo_classes` from `/api/dev-info`, so old-model cases remain reviewable.
+- Verified + `promote_to_dataset=true` writes `data/raw/<species>/<breed>/escalated_<id>.jpg` and appends `outputs/active_learning_manifest.csv`; failures are returned to the portal without hiding that the review was saved.
 
 
 ---
@@ -1967,6 +1972,9 @@ The following report-promised features are now **ACTIVE** and should be describe
 12. **Upload hardening + real ODT** — `secure_filename` + `.pt/.onnx` validation; Dev config ODT exports the actual herd session.
 13. **Compact result / advanced details** — the main view shows only essential prediction results; X-Ray, traits, quality, diagnostics, BPA and vet escalation live in the Advanced drawer. Dev can hide the vet warning with `display.show_escalation_warning=false`.
 14. **Upload preparation choice** — Downscale only (no crop) or Frame manually (1:1 cropper), with a one-click reset back to the original image.
+15. **Quality-state hardening** — `analyzeCanvasQuality` exposes independent lighting/framing/sharpness states; pitch-black or washed-out frames report `No Subject` and never auto-capture as `Ready`.
+16. **Model selection reliability** — immediate local active state, `Activating…` feedback, awaited config refresh, JSON switch errors and an Active model pill in `/dev`.
+17. **Theme consistency** — shared theme tokens across `/`, `/dev`, `/expert`; ThemeToggle on all three; guarded localStorage; no undefined `--card` token.
 
 ### Verification snapshot (2026-10-27)
 

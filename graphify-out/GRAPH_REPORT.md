@@ -1,17 +1,17 @@
 # Graph Report - ML-CB-B-identifier  (2026-10-27)
 
 ## Corpus Check
-- 168 files · ~511,766 words
+- 168 files · ~513,072 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 39 file(s) not represented in the graph (top: (none) 8, .pt 8, .jsonl 8)
 
 ## Summary
-- 1868 nodes · 3879 edges · 117 communities (92 shown, 25 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 224 edges (avg confidence: 0.92)
+- 1868 nodes · 3883 edges · 121 communities (96 shown, 25 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 225 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fe4503f1`
+- Built from commit: `c02581c2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,14 +32,14 @@
 - breedTraits.test.js
 - android_tflite_engine.dart
 - model.py
-- react
-- 8. Serving and inference runtime (Flask)
+- 7.3 Component inventory
+- AdvancedResultDetails.jsx
 - ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition
 - cropAndQuality.js
 - train.py
 - data_pipeline.py
 - ModelManager
-- I18nProvider.jsx
+- useI18n
 - camera_screen.dart
 - prediction_result.dart
 - 20260925-011758-29c2/manifest.json
@@ -93,15 +93,15 @@
 - UserPage.jsx
 - 3. Manual Step-by-Step Operations
 - Export & Deployment
-- DevPage.jsx
+- react
 - 15. Android Deployment
 - ExpertPage.jsx
 - parity_check.py
 - build_dataset_inventory
-- main
+- OODDetector
 - 🐄 Breed Classifier — React Frontend
 - 16. Changelog
-- sessionStore.js
+- CameraCapture.jsx
 - architecture.md
 - 10. Configuration Reference
 - Q: how the model utlize the efficientne lite 2, cbam ,ood
@@ -116,25 +116,29 @@
 - Nagori_01 — Nagori cattle: white/off-white coat, long horns, deep body, standing in a barn stall with rope halter; zebu cattle
 - _Tee
 - py_to_ipynb
-- OODDetector
+- .is_ood
 - RunLogger
 - Web Application (React)
 - 9. React user-facing application
+- releaseOptimizerResult
 - ._load_model
 - run_server
+- BpaRegistrationModal.jsx
 - audit_data.py
 - BreedImageDataset
 - 6. Data Pipeline
 - Project Source of Truth — Cattle & Buffalo Breed Classifier
 - 13. Runbook
 - CattleBuffaloDataset
+- 5. Input image handling (end-to-end)
+- renderShareCard
 - 12. Data formats and artifacts
 - 10. Developer control plane (`/dev`)
 - AGENTS.md
 
 ## God Nodes (most connected - your core abstractions)
 1. `BreedClassifier` - 42 edges
-2. `get_logger()` - 33 edges
+2. `get_logger()` - 35 edges
 3. `OODDetector` - 32 edges
 4. `main()` - 32 edges
 5. `useI18n()` - 30 edges
@@ -149,12 +153,12 @@
   PLAN_REACT_CAMERA_AND_FEATURES.md → breed-classifier-react/src/api.js
 - `15.12 ODT empty report — **RESOLVED 2026-10-27**` --references--> `DevConfigPanel()`  [INFERRED]
   PROJECT_SOURCE_OF_TRUTH.md → breed-classifier-react/src/components/DevConfigPanel.jsx
-- `7.2 State architecture` --references--> `useImageOptimizer()`  [INFERRED]
-  REPORTS.md → breed-classifier-react/src/hooks/useImageOptimizer.js
 - `15.4 WebSocket namespace — **RESOLVED 2026-10-27**` --references--> `useSocket()`  [INFERRED]
   PROJECT_SOURCE_OF_TRUTH.md → breed-classifier-react/src/hooks/useSocket.js
 - `Phase 2 — reviewer differentiators (1–2 weeks)` --references--> `DevPage()`  [INFERRED]
   PLAN_REACT_CAMERA_AND_FEATURES.md → breed-classifier-react/src/pages/DevPage.jsx
+- `1. Executive Summary` --references--> `UserPage()`  [INFERRED]
+  PLAN_REACT_CAMERA_AND_FEATURES.md → breed-classifier-react/src/pages/UserPage.jsx
 
 ## Import Cycles
 - None detected.
@@ -167,7 +171,7 @@
 - **Colab T4 training setup flow** — colab_cattle_buffalo_trainer, kaggle_dataset, t4_gpu, scripts_create_colab_project_zip [INFERRED 0.75]
 - **Cattle Breed Prediction Outputs Across Test Screenshots** — test_results_screenshot_20260913_135102_umblachery_prediction, test_results_screenshot_20260914_213516_amritmahal_prediction, test_results_screenshot_20260914_215842_amritmahal_prediction, test_results_screenshot_20260914_215909_kenkatha_prediction [INFERRED 0.85]
 
-## Communities (117 total, 25 thin omitted)
+## Communities (121 total, 25 thin omitted)
 
 ### Community 0 - "package.json"
 Cohesion: 0.10
@@ -182,8 +186,8 @@ Cohesion: 0.20
 Nodes (13): Namespace, get_config(), get_config_key(), route, Update configuration values. Supports either: 1. {"key": "ood.enabled",…, Reset configuration to initial default schema., Retrieve a single key or sub-tree, e.g. /api/config/ood/enabled., Retrieve the entire current application configuration. (+5 more)
 
 ### Community 3 - "verify.py"
-Cohesion: 0.06
-Nodes (28): 4.1 `BreedClassifier`, Compatibility forwarding module for CBAM and SE attention mechanisms. All…, Compatibility forwarding module for EfficientNet-Lite backbone. All backbone…, build_attention(), CBAM, ChannelAttention, CosineHead, EfficientNetLite (+20 more)
+Cohesion: 0.05
+Nodes (30): 4.1 `BreedClassifier`, 4.2 Dynamic head sizing / checkpoint loading, 4. Model definition, Compatibility forwarding module for CBAM and SE attention mechanisms. All…, Compatibility forwarding module for EfficientNet-Lite backbone. All backbone…, build_attention(), CBAM, ChannelAttention (+22 more)
 
 ### Community 4 - "cattle_buffalo_tester.py"
 Cohesion: 0.05
@@ -198,8 +202,8 @@ Cohesion: 0.13
 Nodes (14): Any, _deep_merge(), Return a copy of the entire config tree., Get a value by dot-notation key path, e.g. 'ood.enabled'., Set a value by dot-notation key path and optionally emit a change event., Update multiple keys from a dictionary and save atomically., Reset config to default values and save., Recursively merge source into destination. (+6 more)
 
 ### Community 7 - "imageOptimizer.js"
-Cohesion: 0.11
-Nodes (32): applyCLAHE(), applyClaheToImageData(), aspectRatio(), buildClaheMaps(), canvasToBlob(), COMMON_RATIOS, computeOptimizerLayout(), createCanvas() (+24 more)
+Cohesion: 0.12
+Nodes (30): applyCLAHE(), applyClaheToImageData(), aspectRatio(), buildClaheMaps(), canvasToBlob(), COMMON_RATIOS, computeOptimizerLayout(), createCanvas() (+22 more)
 
 ### Community 8 - "cattle_buffalo_trainer.py"
 Cohesion: 0.06
@@ -222,8 +226,8 @@ Cohesion: 0.27
 Nodes (9): flask_cors, flask_socketio, create_app(), Flask API server for the Breed Classifier React frontend. python server/app.py…, init_manager(), portable_bundle_sort_key(), Newest-first sort key for a portable export directory. ISO-8601 ``exported_at``…, init_logger() (+1 more)
 
 ### Community 13 - "breedTraits.test.js"
-Cohesion: 0.15
-Nodes (17): TraitComparison(), ALIASES, BREED_TRAITS, breedKey(), compareTraits(), getBreedTraits(), shareTraits(), TRAIT_FIELDS (+9 more)
+Cohesion: 0.13
+Nodes (19): TraitComparison(), ALIASES, BREED_TRAITS, breedKey(), compareTraits(), getBreedTraits(), TRAIT_FIELDS, buffalo (+11 more)
 
 ### Community 14 - "android_tflite_engine.dart"
 Cohesion: 0.08
@@ -233,21 +237,21 @@ Nodes (23): _binaryLabels, _buffaloLabels, _cattleLabels, dispose, _exp, index, 
 Cohesion: 0.07
 Nodes (34): argparse, Convert cattle_buffalo_trainer.py to .ipynb notebook format. Parses the `# %%`…, collections, Create a zip file of test-split images for Colab batch evaluation. Reads…, csv, datetime, glob, json (+26 more)
 
-### Community 16 - "react"
-Cohesion: 0.12
-Nodes (33): downloadBlob(), exportOdt(), getBpaQrMatrix(), predict(), AdvancedBatchTester(), AdvancedPanel(), FIT_OPTIONS, Batch() (+25 more)
+### Community 16 - "7.3 Component inventory"
+Cohesion: 0.15
+Nodes (29): downloadBlob(), exportOdt(), predict(), AdvancedBatchTester(), AdvancedPanel(), FIT_OPTIONS, Batch(), DevConfigPanel() (+21 more)
 
-### Community 17 - "8. Serving and inference runtime (Flask)"
-Cohesion: 0.22
-Nodes (9): 8.1 Launcher, 8.3 Request flow, 8.6 Shared config DB, 8.7 REST endpoints (Flask, 29 route rules), 8.8 WebSocket events, 8.9 ODT export, 8. Serving and inference runtime (Flask), generate_odt_report() (+1 more)
+### Community 17 - "AdvancedResultDetails.jsx"
+Cohesion: 0.30
+Nodes (13): AdvancedResultDetails(), ResultCard(), shareTraits(), clampConfidence(), CONFIDENCE_LEVELS, confidenceMeta(), formatBreedConfidence(), getConfidenceLevel() (+5 more)
 
 ### Community 18 - "ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition"
 Cohesion: 0.25
 Nodes (15): ADR-001: ML Architecture for Cattle & Buffalo Breed Recognition, Bharat Pashudhan App (BPA), CBAM attention module, EfficientNet-Lite2 backbone, Guided image capture overlay, Binary head + species-specific sub-heads, Masked per-head loss, Shared-backbone multi-head hierarchical architecture decision (+7 more)
 
 ### Community 19 - "cropAndQuality.js"
-Cohesion: 0.06
-Nodes (66): AdvancedResultDetails(), analyzeFullFrame(), CameraCapture(), sleep(), ImageCropper(), stageSide(), ImageUpload(), QualityBadge() (+58 more)
+Cohesion: 0.16
+Nodes (25): ImageCropper(), stageSide(), ImageUpload(), analyzeCanvasQuality(), analyzeDataUrlQuality(), analyzeImageData(), analyzeSourceCrop(), centerSquareRect() (+17 more)
 
 ### Community 20 - "train.py"
 Cohesion: 0.05
@@ -261,9 +265,9 @@ Nodes (62): 2026-09-23 — Tail-bias regression fix: single imbalance mechanism,
 Cohesion: 0.12
 Nodes (11): 6.1 Two backends, one contract, 6.2 API surface, 6.3 Runtime services, 6. Serving Layer, ModelManager, Discovers, loads, and caches models for prediction., Load breed label maps, prioritizing the NEWEST portable export., Find all available checkpoints. (+3 more)
 
-### Community 23 - "I18nProvider.jsx"
-Cohesion: 0.19
-Nodes (13): LanguageToggle(), I18nContext, I18nProvider(), getStoredLanguage(), LANGUAGES, STORAGE_KEY, translate(), TRANSLATIONS (+5 more)
+### Community 23 - "useI18n"
+Cohesion: 0.27
+Nodes (10): LanguageToggle(), ResultsPanel(), I18nContext, I18nProvider(), useI18n(), getStoredLanguage(), LANGUAGES, STORAGE_KEY (+2 more)
 
 ### Community 24 - "camera_screen.dart"
 Cohesion: 0.14
@@ -286,8 +290,8 @@ Cohesion: 0.15
 Nodes (13): get_python_executable(), is_port_in_use(), main(), Single-command launcher for the Cattle & Buffalo Breed Classifier. Starts both…, Check if a network port is already bound., Resolve virtual environment python if present., Poll an HTTP endpoint until it answers 200 OK or timeout expires., wait_for_service() (+5 more)
 
 ### Community 29 - "React Camera & Product Features — Architecture + Implementation Plan"
-Cohesion: 0.07
-Nodes (29): 10. Deferred Product Decisions (defaults shipped), 12. Minimal User View, Header Advanced Panel, and Manual OOD Recalibration, 1. Executive Summary, 2. Current-State Audit, 3. Decision Record — Crop vs Overlay, 4. Capture UX (optional manual framing), 5. Worked Coordinate Examples, 6. Feature Portfolio (14 candidates) (+21 more)
+Cohesion: 0.06
+Nodes (32): 10. Deferred Product Decisions (defaults shipped), 11. Zero-Crop 260×260 Optimizer (added), 12. Minimal User View, Header Advanced Panel, and Manual OOD Recalibration, 1. Executive Summary, 2. Current-State Audit, 3. Decision Record — Crop vs Overlay, 4. Capture UX (optional manual framing), 5. Worked Coordinate Examples (+24 more)
 
 ### Community 30 - "inference_controller.dart"
 Cohesion: 0.15
@@ -310,8 +314,8 @@ Cohesion: 0.09
 Nodes (17): copy, importlib, pil, random, CPU-only synthetic tests for the 2026-09-23 fixes. No dataset/GPU needed. Run:…, # NOTE: make_run_id() with no args auto-increments VERSION.txt (v5, v6, ...),, _M, CPU-only synthetic tests for the master-task fixes. No GPU/dataset needed. Run:… (+9 more)
 
 ### Community 35 - "api.js"
-Cohesion: 0.16
-Nodes (25): getActiveOOD(), getDevInfo(), getImageInfo(), getModels(), getModelSpec(), getOODDataDirs(), getOODProfiles(), getPresenterConfig() (+17 more)
+Cohesion: 0.14
+Nodes (28): getActiveOOD(), getDevInfo(), getImageInfo(), getLogs(), getModels(), getModelSpec(), getOODDataDirs(), getOODProfiles() (+20 more)
 
 ### Community 36 - "ood_api.py"
 Cohesion: 0.13
@@ -413,9 +417,9 @@ Nodes (15): 1. Automated Pipeline (Recommended), 2. Model Testing GUI, 3.1 Virtu
 Cohesion: 0.13
 Nodes (15): Android Deployment, Deployment Options, Export Command, Export & Deployment, Export Formats, Input conventions (important!), Legacy `--mode int8` (removed), Manual Export Commands (+7 more)
 
-### Community 79 - "DevPage.jsx"
-Cohesion: 0.19
-Nodes (14): getLogs(), getSharedConfig(), resetSharedConfig(), updateSharedConfig(), App(), DevTools(), SessionLogs(), persistTheme() (+6 more)
+### Community 79 - "react"
+Cohesion: 0.16
+Nodes (18): getSharedConfig(), resetSharedConfig(), updateSharedConfig(), App(), persistTheme(), readStoredTheme(), THEMES, ThemeToggle() (+10 more)
 
 ### Community 80 - "15. Android Deployment"
 Cohesion: 0.22
@@ -433,9 +437,9 @@ Nodes (12): accumulate(), evaluate_on_split(), finalize(), main(), make_onnx_run
 Cohesion: 0.22
 Nodes (8): build_dataset_inventory(), find_breed_dirs(), merge_into_species_dir(), normalize_breed_name(), Find all leaf directories containing images (breed folders)., Normalize breed folder names: lowercase, underscores, strip whitespace., Write a JSON inventory of the dataset to…, Auto-detect breed folders inside source_base and copy/merge them into…
 
-### Community 84 - "main"
-Cohesion: 0.20
-Nodes (9): main(), Recalibrate OOD thresholds for the selected model. With ``data_dir`` the folder…, Calibrate energy and MSP thresholds on an in-distribution DataLoader., Save calibrated thresholds to JSON with appropriate naming., calibrate_from_folder(), Resolve a user-supplied folder path against the project root., Run the selected model over breed-named images and return thresholds + coverage., resolve_data_dir() (+1 more)
+### Community 84 - "OODDetector"
+Cohesion: 0.14
+Nodes (15): 4.3 OOD detector, main(), Recalibrate OOD thresholds for the selected model. With ``data_dir`` the folder…, OODDetector, Post-hoc energy-based out-of-distribution detector. Computes an OOD score from…, Strip directory prefixes, file extensions, and UI tags from model name., Find the matching OOD calibration JSON for a given model., Calibrate energy and MSP thresholds on an in-distribution DataLoader. (+7 more)
 
 ### Community 85 - "🐄 Breed Classifier — React Frontend"
 Cohesion: 0.40
@@ -445,9 +449,9 @@ Nodes (4): 🐄 Breed Classifier — React Frontend, Camera capture, Features, S
 Cohesion: 0.17
 Nodes (12): 16. Changelog, 2026-09-05 — Major Update, 2026-09-06 — Colab + SOTA Hyperparameters + Android QAT, 2026-09-07 — Unified Kaggle Dataset & Colab Trainer Update, 2026-09-08 — Fix: `torch.compile` on Windows, 2026-09-13 — Colab Testing Notebook & Large-Scale Evaluation, 2026-09-15 — Architecture Improvements, EMA, & ImageNet Normalization Fix, 2026-09-15 — Presenter Mode, Logging & Advanced Image Metadata (+4 more)
 
-### Community 87 - "sessionStore.js"
+### Community 87 - "CameraCapture.jsx"
 Cohesion: 0.26
-Nodes (13): HerdSessionDrawer(), clearSession(), csvCell(), downloadTextFile(), hasStorage(), SESSION_KEY, sessionStats(), sessionToCsv() (+5 more)
+Nodes (11): analyzeFullFrame(), CameraCapture(), sleep(), QualityBadge(), QualityPill(), STATUS_META, statusMeta(), statusToHint() (+3 more)
 
 ### Community 88 - "architecture.md"
 Cohesion: 0.25
@@ -485,9 +489,9 @@ Nodes (4): _DS, _FakeModel, run_once(), synth_labels()
 Cohesion: 0.17
 Nodes (8): 5.2 Model (`src/model.py`, 919 LOC), 5.3 Training curriculum (`src/train.py`, 1,742 LOC), 5.4 Evaluation and metrics (`src/metrics.py`, `src/evaluate.py`), 5.5 OOD detection and calibration, 5.6 Export and deployment (`src/export.py`, 656 LOC), 5. ML Core, Enumerate all available OOD calibration files and their metrics., List all available OOD calibration files.
 
-### Community 102 - "OODDetector"
-Cohesion: 0.14
-Nodes (12): 4.2 Dynamic head sizing / checkpoint loading, 4.3 OOD detector, 4. Model definition, 8.5 OOD runtime behavior, OODDetector, Post-hoc energy-based out-of-distribution detector. Computes an OOD score from…, Strip directory prefixes, file extensions, and UI tags from model name., Find the matching OOD calibration JSON for a given model. (+4 more)
+### Community 102 - ".is_ood"
+Cohesion: 0.29
+Nodes (4): 8.5 OOD runtime behavior, E(x) = -T * log(Σ exp(f_i / T)) across all logit heads., Max softmax probability from binary head (cattle-vs-buffalo)., Returns (is_ood: bool, ood_score: float, details: dict). A sample is considered…
 
 ### Community 103 - "RunLogger"
 Cohesion: 0.15
@@ -498,16 +502,24 @@ Cohesion: 0.14
 Nodes (14): 1. Quick start, 2. The capture → classify path, 3.1 Upload, 3.2 Live camera, 3.3 Result card, 3.4 Herd session, 3. User surface, 4. Advanced panel (header, next to Connected) (+6 more)
 
 ### Community 105 - "9. React user-facing application"
-Cohesion: 0.13
-Nodes (15): 9.11 Internationalization, 9.12 Themes, 9.13 Batch tester (inside Advanced panel), 9.14 Status, error, accessibility, privacy behavior, 9.15 Config consumed by the user UI, 9.1 Routes and active files, 9.2 Page structure, 9.3 Upload UX (+7 more)
+Cohesion: 0.12
+Nodes (16): 9.11 Internationalization, 9.12 Themes, 9.13 Batch tester (inside Advanced panel), 9.14 Status, error, accessibility, privacy behavior, 9.15 Config consumed by the user UI, 9.16 Legacy / unreachable React code, 9.1 Routes and active files, 9.2 Page structure (+8 more)
+
+### Community 106 - "releaseOptimizerResult"
+Cohesion: 0.24
+Nodes (10): DEFAULT_FIT, useImageOptimizer(), fileToDataUrl(), releaseOptimizerResult(), 5.2 Browser decode and 260×260 optimizer, 7.1 Stack and structure, 7.2 State architecture, 7.4 Client-side image pipeline (`src/utils/`) (+2 more)
 
 ### Community 107 - "._load_model"
 Cohesion: 0.18
 Nodes (8): get_model_spec(), _human_number(), no_grad, Extract detailed model architecture and parameter info., Format large numbers: 6234567 → '6.23M'., Resolve and cache an OOD detector for a given model or custom profile., Load a model checkpoint into memory., Run prediction on raw image bytes. Returns result dict.
 
 ### Community 108 - "run_server"
-Cohesion: 0.09
-Nodes (25): A. Completed this session (verified), B1. Docs — README + detailed guide  *(requested)*, B4. Doc/knowledge sync, B5. Runtime verification on the GPU machine (cannot do here), B6. Optional / decisions, B. Remaining work (implement next), C. Acceptance criteria, D. Files touched so far (+17 more)
+Cohesion: 0.08
+Nodes (28): A. Completed this session (verified), B1. Docs — README + detailed guide  *(requested)*, B4. Doc/knowledge sync, B5. Runtime verification on the GPU machine (cannot do here), B6. Optional / decisions, B. Remaining work (implement next), C. Acceptance criteria, D. Files touched so far (+20 more)
+
+### Community 109 - "BpaRegistrationModal.jsx"
+Cohesion: 0.31
+Nodes (8): getBpaQrMatrix(), BPA_TAG_KEY, BpaRegistrationModal(), generateBpaTag(), LACTATION, SEXES, VACCINATION, roundRect()
 
 ### Community 110 - "audit_data.py"
 Cohesion: 0.33
@@ -529,6 +541,14 @@ Nodes (7): 0. How to use this document, 11. Flutter edge app, 14. Invariants an 
 Cohesion: 0.25
 Nodes (8): 13.1 Train, 13.2 Export, 13.3 Evaluate / verify / parity, 13.4 Serve, 13.5 Test the standalone tester, 13.6 Frontend tests/build, 13.7 Manual OOD recalibration, 13. Runbook
 
+### Community 116 - "5. Input image handling (end-to-end)"
+Cohesion: 0.25
+Nodes (8): 5.1 Canonical numeric contract, 5.4 Camera path (ACTIVE), 5.5 Interactive cropper (ACTIVE, optional), 5.6 On-device quality gate, 5.7 Server-side image handling, 5.8 Flutter edge handling, 5.9 What the image pipeline does *not* do, 5. Input image handling (end-to-end)
+
+### Community 117 - "renderShareCard"
+Cohesion: 0.33
+Nodes (6): canvasToBlob(), drawCover(), renderShareCard(), shareOrDownloadCanvas(), wrapText(), 9.10 Shareable PNG result card
+
 ### Community 118 - "12. Data formats and artifacts"
 Cohesion: 0.33
 Nodes (6): 12.1 Split manifests, 12.2 Training traits, 12.3 OOD profile JSON, 12.5 Browser localStorage keys, 12.6 Expert escalation database, 12. Data formats and artifacts
@@ -545,12 +565,12 @@ Nodes (5): 10.1 Model Checkpoints, 10.2 OOD Safety Profiles, 10.3 Shared Databas
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `_PadToSquare` connect `cropAndQuality.js` to `data_pipeline.py`?**
-  _High betweenness centrality (0.091) - this node is a cross-community bridge._
-- **Why does `11. Zero-Crop 260×260 Optimizer (added)` connect `cropAndQuality.js` to `React Camera & Product Features — Architecture + Implementation Plan`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
-- **Why does `OODDetector` connect `OODDetector` to `5. ML Core`, `verify.py`, `ood_api.py`, `ood_calibration.py`, `._load_model`, `model_manager.py`, `model.py`, `ModelManager`, `Project Source of Truth — Cattle & Buffalo Breed Classifier`, `main`, `train.py`, `data_pipeline.py`, `ModelManager`?**
+- **Why does `OODDetector` connect `OODDetector` to `5. ML Core`, `verify.py`, `ood_api.py`, `.is_ood`, `ood_calibration.py`, `._load_model`, `model_manager.py`, `ModelManager`, `model.py`, `Project Source of Truth — Cattle & Buffalo Breed Classifier`, `train.py`, `data_pipeline.py`, `ModelManager`?**
   _High betweenness centrality (0.082) - this node is a cross-community bridge._
+- **Why does `_PadToSquare` connect `React Camera & Product Features — Architecture + Implementation Plan` to `data_pipeline.py`?**
+  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+- **Why does `11. Zero-Crop 260×260 Optimizer (added)` connect `React Camera & Product Features — Architecture + Implementation Plan` to `AdvancedResultDetails.jsx`, `cropAndQuality.js`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
 - **Are the 9 inferred relationships involving `BreedClassifier` (e.g. with `Export Modes` and `Known Constraints & Gotchas`) actually correct?**
   _`BreedClassifier` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 9 inferred relationships involving `OODDetector` (e.g. with `3. Repository map` and `5.5 OOD detection and calibration`) actually correct?**

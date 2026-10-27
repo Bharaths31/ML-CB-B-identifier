@@ -56,7 +56,7 @@ EfficientNet-Lite backbone (stages 0..6)
   stem → [stage 0..3] → CBAM/SE attention → [stage 4..6] → head
         ↓  AdaptiveAvgPool2d(1) → flatten → 1280-dim pooled features
    ┌────┴────────────┬───────────────┬────────────────────────┬─────────────────────┐
-binary_head (→2)  cattle_head (→57)  buffalo_head (→18)  projection_head (→128)  trait_heads (→75 traits)
+binary_head (→2)  cattle_head (→50)  buffalo_head (→18)  projection_head (→128)  trait_heads (→training-only)
         ↓  masked_loss: w_bin·CE + w_cat·CE + w_buf·CE + w_trait·BCE
            (+ τ·log(prior) logit adjustment, OFF by default)
            (+ λ·SupCon features)
@@ -84,21 +84,22 @@ ML-CB-B-identifier/
 │   ├── ood_calibration.py      # breed-named folder scanning + manual OOD calibration
 │   ├── traits.py               # auxiliary trait heads (training only)
 │   └── verify.py               # architecture sanity check
-├── server/                     # Flask REST API + Socket.IO (24 endpoints)
+├── server/                     # Flask REST API + Socket.IO (29 route rules)
 │   ├── app.py                  # app factory, blueprints, realtime namespace
-│   ├── model_manager.py        # model registry, loader, predict, recalibrate_ood
+│   ├── model_manager.py        # model registry, count-matched class maps, loader, OOD rebinding
 │   ├── shared_config.py        # thread-safe settings DB (outputs/app_config.json)
-│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev
-│   ├── services/               # inference, metadata, ODT report generation
-│   ├── websocket/events.py     # live status broadcast
+│   ├── routes/                 # models, predict, ood, config, shared_config, export, dev, escalations
+│   ├── services/               # inference + attention X-Ray, metadata, ODT, escalation SQLite
+│   ├── websocket/events.py     # live status/config/prediction/escalation events on /ws
 │   └── utils/logger.py         # session logger
-├── breed-classifier-react/     # React 18 + Vite web app (public page + dev control plane)
+├── breed-classifier-react/     # React 18 + Vite web app (public page + dev + expert portal)
 │   └── src/
-│       ├── pages/              # UserPage (public), DevPage (control plane)
-│       ├── components/         # 20 components (camera, cropper, optimizer, tiers, session…)
+│       ├── pages/              # UserPage (/), DevPage (/dev), ExpertPage (/expert)
+│       ├── components/         # camera HUD, cropper, compact result, Advanced details, BPA modal…
 │       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
-│       ├── utils/              # cropAndQuality, imageOptimizer, sessionStore
-│       ├── data/breedTraits.js  # 44 curated breeds x 8 trait fields
+│       ├── utils/              # cropAndQuality, imageOptimizer (CLAHE), sessionStore,
+│       │                       # confidence rubric, escalation outbox, result helpers
+│       ├── data/breedTraits.js  # 68 curated breeds x 8 trait fields
 │       └── i18n/               # EN + தமிழ் translations
 ├── colab/
 │   ├── cattle_buffalo_trainer.ipynb  # Colab GPU notebook
@@ -112,7 +113,9 @@ ML-CB-B-identifier/
 │   ├── checkpoints/            # Training checkpoints (*.pt)
 │   ├── export/                 # ONNX / INT8 / float16 exports
 │   │   └── portable/           # Self-contained model bundles
-│   └── metrics/                # Evaluation JSON + confusion matrix PNGs
+│   ├── metrics/                # Evaluation JSON + confusion matrix PNGs
+│   ├── escalations.db          # Veterinary expert review queue (SQLite)
+│   └── active_learning_manifest.csv  # Verified escalation → dataset manifest
 ├── scripts/                    # audit, diagnose, mine-confusions, calibrate-ood, parity,
 │                               # trait template/population, log viewer, ablations, app assets
 ├── docs/                       # mkdocs site (19 pages, incl. react-web.md)
@@ -474,8 +477,9 @@ python test_model.py --no-browser
 
 ## React Web Application
 
-A React 18 + Vite application (`breed-classifier-react/`) with two surfaces: a public
-capture-and-classify page (`/`) and a developer control plane (`/dev`).
+A React 18 + Vite application (`breed-classifier-react/`) with three surfaces:
+a public capture-and-classify page (`/`), a developer control plane (`/dev`),
+and a veterinary expert review portal (`/expert`).
 
 ```bash
 # terminal 1 — backend
@@ -485,20 +489,26 @@ python server/app.py --port 5000
 cd breed-classifier-react
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 30 client unit tests
+npm test             # 42 client unit tests
 npm run build        # static production bundle
 ```
 
 | Surface | What it does |
 |---|---|
-| **Upload** | Original image only + explicit *Identify / Identify Framed Breed* action; optional 1:1 framing (pan on both axes) |
-| **Live camera** | Full-frame viewfinder, on-device quality gate, auto-capture, burst-3 sharpest frame, torch, Pad/Stretch review |
-| **Zero-crop optimizer** | Every image becomes exactly 260×260 client-side (stretch, or ImageNet-mean / ambient-blur / black pad) so the server's `Resize→CenterCrop` is a no-op and no animal is cropped |
-| **Advanced panel** | Model-input vs original preview, `ORIGINAL / MODEL INPUT / SCALED / PADDING / PAYLOAD / TIME`, four fit modes, and a batch tester using the selected model + fit config |
-| **3-tier results** | Verified / look-alike / safety abstention, with the exact OOD trigger and a *Why this breed?* trait matrix (44 breeds) |
-| **Herd session** | Persistent session log with statistics and CSV / JSON / ODT export, plus a shareable PNG result card |
-| **Developer control plane** | Model registry + spec viewer, OOD laboratory (including **manual recalibration from a breed-named folder**), shared config DB, live logs |
-| **Extras** | 5 themes, EN / தமிழ் localisation, original-filename provenance in every export and log |
+| **Upload** | Original image plus **Downscale only** vs **Frame manually** preparation; explicit *Identify / Identify Framed Breed* action |
+| **Live camera** | Full-frame AR HUD with Cattle/Buffalo/Minimal guides, flip-aware Head & Horns / Hump-Dorsal / Dewlap / Tail-Rump targets, on-device quality gate, auto-capture, burst-3, torch, Pad/Stretch and opt-in CLAHE |
+| **Quality gate** | Independent `lightingState` / `framingState` / `sharpnessState`; dark or empty frames report `No Subject`, never a false `Ready` |
+| **Zero-crop optimizer** | Every image becomes exactly 260×260 client-side (stretch, or ImageNet-mean / ambient-blur / black pad); optional LAB CLAHE shadow normalization |
+| **Compact result** | Species, breed, confidence, level pill, Top-3 and essential actions only; details move to Advanced |
+| **Advanced panel** | Model-input preview, fit modes, X-Ray, full Top-5, morphology matrix, quality subscores, diagnostics, BPA registration and vet escalation |
+| **Confidence rubric** | Five levels from joint soft-routed confidence `C=P(species)×P(breed|species)`, with Level 1–2 escalation and `display.show_escalation_warning` toggle |
+| **AI Vision X-Ray** | CBAM spatial-attention mask + class-activation heatmap overlay with opacity control |
+| **Expert portal** | `/expert` queue metrics, 260×260 image + heatmap, Top-3 bars, OOD/quality telemetry, searchable breed confirmation, notes, active-learning promotion |
+| **Offline escalation** | `breed-escalation-outbox-v1` local queue with header badge, retry and auto-sync on `/ws` reconnect |
+| **BPA registration** | 12-digit Bharat Pashudhan ear-tag UID, owner/animal form, herd-session save, scannable QR PNG card and printable ODT |
+| **Herd session** | Persistent log with statistics and CSV / JSON / ODT export, plus a shareable PNG result card |
+| **Developer control plane** | Model registry + spec viewer with robust activation feedback, OOD lab (manual folder recalibration), shared config, live logs |
+| **Extras** | 68-breed morphology coverage, 5 themes, EN / தமிழ் localisation, original-filename provenance |
 
 > Full guide: [`docs/react-web.md`](docs/react-web.md) · project report: [`REPORTS.md`](REPORTS.md)
 
@@ -1053,7 +1063,7 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 
 4. **`torch.compile` OOM on T4 (Colab)**: `mode="reduce-overhead"` pre-allocates VRAM via CUDA Graphs, causing OOM on 15 GB T4. The default mode (no `reduce-overhead`) is used instead.
 
-5. **Fixed head sizes**: Model heads remain sized for 57 cattle + 18 buffalo classes even on subset training. Unused outputs are never trained — architecture is identical across all modes.
+5. **Fixed head sizes**: Model heads are sized from the configured/surviving class maps (currently 50 cattle + 18 buffalo = 68); unused outputs receive no gradient. Architecture is identical across data modes.
 
 6. **WeightedRandomSampler**: Training oversamples rare breeds with **effective-number-of-samples** weighting (β=0.99). Evaluation uses no sampling — test set reflects natural distribution. The binary head is species-balanced per batch on top.
 
@@ -1077,7 +1087,7 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 
 14. **Portable export requires class definition**: The portable bundle saves `state_dict`, not TorchScript. Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment, use ONNX / TFLite instead.
 
-15. **Smoke test uses ALL 75 classes**: Even with only 5 images per breed, class maps include all breeds. Architecture is identical to full training.
+15. **Smoke test uses ALL 68 classes**: Even with only 5 images per breed, class maps include all configured cattle/buffalo breeds. Architecture is identical to full training.
 
 16. **Windows build tools (optional)**: PyTorch installs via pre-built wheels and does not need MSVC. C++ Build Tools are only required if a package (e.g., an older `onnx` build) tries to compile C extensions.
 
@@ -1085,9 +1095,23 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 
 ## Changelog
 
+**2026-10-27 — Expert escalation, 5-level confidence, X-Ray, BPA, AR camera HUD, compact results**
+
+- **Expert escalation**: new SQLite queue (`outputs/escalations.db`), `/api/escalations` create/list/resolve, `/ws` events, offline outbox and `/expert` Veterinary Review Portal.
+- **Active learning**: verified + promoted escalations are saved to `data/raw/<species>/<breed>/escalated_<id>.jpg` and appended to `outputs/active_learning_manifest.csv`; breeds are validated against known class maps.
+- **Five-level confidence rubric**: backend `confidence_level`/`confidence_band`/`confidence_action`, EN/Tamil labels, Level 1–2 escalation, and a Dev toggle (`display.show_escalation_warning`) to hide warnings.
+- **AI Vision X-Ray**: CBAM spatial mask + winning-head class-activation heatmap returned by `/api/predict` and overlaid in the Advanced drawer.
+- **BPA registration**: 12-digit Bharat Pashudhan ear-tag card, owner/animal form, QR PNG and ODT export.
+- **Camera upgrade**: clean AR anatomical HUD (flip-aware Head & Horns, Hump/Dorsal Ridge, Dewlap, Tail/Rump), 16:10 viewport, independent lighting/framing/sharpness state pills, opt-in LAB CLAHE.
+- **Compact result view**: main page shows only essential prediction data; X-Ray, traits, quality, diagnostics, BPA and vet escalation live in Advanced.
+- **Upload preparation**: choose **Downscale only** or **Frame manually**.
+- **Model manager/serving fixes**: count-matched class maps, dynamic `/api/model-spec`, per-model OOD binding, `/ws` namespace parity, secure model upload, `secure_filename`.
+- **Developer UX**: immediate active-model state, explicit activation feedback, JSON errors for model-switch failures, active-model header pill, consistent theming across `/`, `/dev` and `/expert`.
+- **Tests/docs**: 42 frontend tests, 68/68 trait coverage, updated source of truth and knowledge base.
+
 **2026-10-20 — React capture & zero-crop optimizer, Advanced panel, manual OOD recalibration**
 
-- **React web app** (`breed-classifier-react/`): public capture-and-classify page plus a developer control plane, with a zero-crop 260×260 client optimizer (stretch default, ImageNet-mean / ambient-blur / black pad), an authoritative both-axis framing cropper, a full-frame camera with an on-device quality gate, auto-capture, burst-3 and torch, 3-tier confidence results with a 44-breed trait matrix, a herd session log with CSV/JSON/ODT export, a shareable PNG result card, an Advanced panel with model-input inspection and a batch tester, 5 themes and EN/தமிழ் localisation.
+- **React web app** (`breed-classifier-react/`): public capture-and-classify page plus a developer control plane and `/expert` vet portal, with a zero-crop 260×260 client optimizer (stretch default, ImageNet-mean / ambient-blur / black pad), an authoritative both-axis framing cropper, a full-frame AR camera HUD with on-device quality states, auto-capture, burst-3 and torch, a five-level confidence rubric with 68-breed trait coverage, a herd session log with CSV/JSON/ODT export, a shareable PNG result card, an Advanced panel with model-input inspection, X-Ray diagnostics and a batch tester, optional LAB CLAHE, BPA registration, offline escalation, 5 themes and EN/தமிழ் localisation.
 - **Manual OOD recalibration** from a folder of breed-named images: new `src/ood_calibration.py`, `GET /api/ood/data-dirs` and `POST /api/ood/recalibrate` in both the Flask API and `test_model.py`, plus controls in the React OOD lab and the tester GUI.
 - **Flask serving layer** (`server/`) with 24 REST endpoints, a shared configuration database and Socket.IO realtime events.
 - **Fixes**: `test_model.py` OOD linkage no longer reads non-existent detector attributes; client prediction errors surface properly; original filenames are carried through predictions, exports, share cards, diagnostics and server logs.

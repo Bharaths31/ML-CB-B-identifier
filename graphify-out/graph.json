@@ -103,19 +103,6 @@
       "source_location": "L204"
     },
     {
-      "id": "src_model_ooddetector",
-      "label": "OODDetector",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "code",
-      "norm_label": "ooddetector",
-      "source_file": "src/model.py",
-      "source_location": "L613"
-    },
-    {
       "id": "src_run_utils_runlogger",
       "label": "RunLogger",
       "_callable": true,
@@ -155,19 +142,6 @@
       "source_location": "L721"
     },
     {
-      "id": "src_data_pipeline_padtosquare",
-      "label": "_PadToSquare",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "_padtosquare",
-      "source_file": "src/data_pipeline.py",
-      "source_location": "L610"
-    },
-    {
       "id": "server_websocket_events_systemeventsnamespace",
       "label": "SystemEventsNamespace",
       "_callable": true,
@@ -192,6 +166,19 @@
       "norm_label": "modelmanager",
       "source_file": "test_model.py",
       "source_location": "L387"
+    },
+    {
+      "id": "src_data_pipeline_padtosquare",
+      "label": "_PadToSquare",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "code",
+      "norm_label": "_padtosquare",
+      "source_file": "src/data_pipeline.py",
+      "source_location": "L610"
     },
     {
       "id": "src_model_cbam",
@@ -400,6 +387,19 @@
       "norm_label": "_rawoutputs",
       "source_file": "src/export.py",
       "source_location": "L52"
+    },
+    {
+      "id": "src_model_ooddetector",
+      "label": "OODDetector",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "code",
+      "norm_label": "ooddetector",
+      "source_file": "src/model.py",
+      "source_location": "L613"
     },
     {
       "id": "server_services_escalation_db_escalationdb",
@@ -719,24 +719,12 @@
       "source_location": "L28"
     },
     {
-      "id": "src_model_ooddetector_clean_name",
-      "label": ".clean_name()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "code",
-      "norm_label": ".clean_name()",
-      "source_file": "src/model.py",
-      "source_location": "L669"
-    },
-    {
       "id": "src_model_ooddetector_compute_energy",
       "label": ".compute_energy()",
       "_callable": true,
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "code",
       "norm_label": ".compute_energy()",
       "source_file": "src/model.py",
@@ -748,7 +736,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "code",
       "norm_label": ".compute_msp()",
       "source_file": "src/model.py",
@@ -760,23 +748,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "code",
       "norm_label": ".is_ood()",
       "source_file": "src/model.py",
       "source_location": "L880"
-    },
-    {
-      "id": "src_model_ooddetector_resolve_profile_path",
-      "label": ".resolve_profile_path()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "code",
-      "norm_label": ".resolve_profile_path()",
-      "source_file": "src/model.py",
-      "source_location": "L683"
     },
     {
       "id": "src_run_utils_dumps",
@@ -947,6 +923,42 @@
       "source_location": "L312"
     },
     {
+      "id": "breed_classifier_react_src_hooks_useimageoptimizer_useimageoptimizer",
+      "label": "useImageOptimizer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "code",
+      "norm_label": "useimageoptimizer()",
+      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
+      "source_location": "L18"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_filetodataurl",
+      "label": "fileToDataUrl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "code",
+      "norm_label": "filetodataurl()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L446"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_imageoptimizer_releaseoptimizerresult",
+      "label": "releaseOptimizerResult()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "code",
+      "norm_label": "releaseoptimizerresult()",
+      "source_file": "breed-classifier-react/src/utils/imageOptimizer.js",
+      "source_location": "L518"
+    },
+    {
       "id": "test_model_get_model_spec",
       "label": "get_model_spec()",
       "_callable": true,
@@ -1043,6 +1055,18 @@
       "source_location": "L172"
     },
     {
+      "id": "test_model_generate_odt_report",
+      "label": "generate_odt_report()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "run_server",
+      "file_type": "code",
+      "norm_label": "generate_odt_report()",
+      "source_file": "test_model.py",
+      "source_location": "L927"
+    },
+    {
       "id": "test_model_load_presenter_config",
       "label": "load_presenter_config()",
       "_callable": true,
@@ -1137,6 +1161,54 @@
       "norm_label": "save_presenter_config()",
       "source_file": "test_model.py",
       "source_location": "L376"
+    },
+    {
+      "id": "breed_classifier_react_src_api_getbpaqrmatrix",
+      "label": "getBpaQrMatrix()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "getbpaqrmatrix()",
+      "source_file": "breed-classifier-react/src/api.js",
+      "source_location": "L238"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_bparegistrationmodal",
+      "label": "BpaRegistrationModal()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "bparegistrationmodal()",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L21"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_generatebpatag",
+      "label": "generateBpaTag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "generatebpatag()",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L9"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_roundrect",
+      "label": "roundRect()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "roundrect()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L472"
     },
     {
       "id": "scripts_audit_data_ahash",
@@ -1307,6 +1379,66 @@
       "source_location": "L739"
     },
     {
+      "id": "breed_classifier_react_src_utils_cropandquality_canvastoblob",
+      "label": "canvasToBlob()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "code",
+      "norm_label": "canvastoblob()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L415"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_drawcover",
+      "label": "drawCover()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "code",
+      "norm_label": "drawcover()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L483"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_rendersharecard",
+      "label": "renderShareCard()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "code",
+      "norm_label": "rendersharecard()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L516"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_shareordownloadcanvas",
+      "label": "shareOrDownloadCanvas()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "code",
+      "norm_label": "shareordownloadcanvas()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L648"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_wraptext",
+      "label": "wrapText()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "code",
+      "norm_label": "wraptext()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L492"
+    },
+    {
       "id": "server_app_create_app",
       "label": "create_app()",
       "_callable": true,
@@ -1415,18 +1547,6 @@
       "source_location": "L956"
     },
     {
-      "id": "breed_classifier_react_src_data_breedtraits_sharetraits",
-      "label": "shareTraits()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "breedTraits.test.js",
-      "file_type": "code",
-      "norm_label": "sharetraits()",
-      "source_file": "breed-classifier-react/src/data/breedTraits.js",
-      "source_location": "L979"
-    },
-    {
       "id": "breed_classifier_react_src_utils_tests_breedtraits_test_pythontuple",
       "label": "pythonTuple()",
       "_callable": true,
@@ -1437,6 +1557,18 @@
       "norm_label": "pythontuple()",
       "source_file": "breed-classifier-react/src/utils/__tests__/breedTraits.test.js",
       "source_location": "L12"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_tests_clahe_test_makeimage",
+      "label": "makeImage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "file_type": "code",
+      "norm_label": "makeimage()",
+      "source_file": "breed-classifier-react/src/utils/__tests__/clahe.test.js",
+      "source_location": "L5"
     },
     {
       "id": "create_test_eval_zip_main",
@@ -1612,7 +1744,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "downloadblob()",
       "source_file": "breed-classifier-react/src/api.js",
@@ -1624,23 +1756,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "exportodt()",
       "source_file": "breed-classifier-react/src/api.js",
       "source_location": "L191"
-    },
-    {
-      "id": "breed_classifier_react_src_api_getbpaqrmatrix",
-      "label": "getBpaQrMatrix()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "getbpaqrmatrix()",
-      "source_file": "breed-classifier-react/src/api.js",
-      "source_location": "L238"
     },
     {
       "id": "breed_classifier_react_src_api_predict",
@@ -1648,7 +1768,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "predict()",
       "source_file": "breed-classifier-react/src/api.js",
@@ -1660,7 +1780,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "advancedbatchtester()",
       "source_file": "breed-classifier-react/src/components/AdvancedBatchTester.jsx",
@@ -1672,7 +1792,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "advancedpanel()",
       "source_file": "breed-classifier-react/src/components/AdvancedPanel.jsx",
@@ -1684,35 +1804,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "batch()",
       "source_file": "breed-classifier-react/src/components/Batch.jsx",
       "source_location": "L17"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_bparegistrationmodal",
-      "label": "BpaRegistrationModal()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "bparegistrationmodal()",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L21"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_generatebpatag",
-      "label": "generateBpaTag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "generatebpatag()",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L9"
     },
     {
       "id": "breed_classifier_react_src_components_devconfigpanel_devconfigpanel",
@@ -1720,11 +1816,35 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "devconfigpanel()",
       "source_file": "breed-classifier-react/src/components/DevConfigPanel.jsx",
       "source_location": "L5"
+    },
+    {
+      "id": "breed_classifier_react_src_components_herdsessiondrawer_herdsessiondrawer",
+      "label": "HerdSessionDrawer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "herdsessiondrawer()",
+      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "breed_classifier_react_src_components_herdsessiondrawer_stat",
+      "label": "Stat()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "stat()",
+      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
+      "source_location": "L115"
     },
     {
       "id": "breed_classifier_react_src_components_modelselect_modelselect",
@@ -1732,7 +1852,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "modelselect()",
       "source_file": "breed-classifier-react/src/components/ModelSelect.jsx",
@@ -1744,23 +1864,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "predictionprogress()",
       "source_file": "breed-classifier-react/src/components/PredictionProgress.jsx",
       "source_location": "L3"
-    },
-    {
-      "id": "breed_classifier_react_src_components_resultspanel_resultspanel",
-      "label": "ResultsPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "resultspanel()",
-      "source_file": "breed-classifier-react/src/components/ResultsPanel.jsx",
-      "source_location": "L6"
     },
     {
       "id": "breed_classifier_react_src_components_singleimage_singleimage",
@@ -1768,47 +1876,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "singleimage()",
       "source_file": "breed-classifier-react/src/components/SingleImage.jsx",
       "source_location": "L15"
-    },
-    {
-      "id": "breed_classifier_react_src_hooks_useimageoptimizer_useimageoptimizer",
-      "label": "useImageOptimizer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "useimageoptimizer()",
-      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
-      "source_location": "L18"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_filetodataurl",
-      "label": "fileToDataUrl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "filetodataurl()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L446"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_roundrect",
-      "label": "roundRect()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "roundrect()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L472"
     },
     {
       "id": "breed_classifier_react_src_utils_imageoptimizer_formatbytes",
@@ -1816,23 +1888,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "formatbytes()",
       "source_file": "breed-classifier-react/src/utils/imageOptimizer.js",
       "source_location": "L74"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_imageoptimizer_releaseoptimizerresult",
-      "label": "releaseOptimizerResult()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "releaseoptimizerresult()",
-      "source_file": "breed-classifier-react/src/utils/imageOptimizer.js",
-      "source_location": "L518"
     },
     {
       "id": "breed_classifier_react_src_utils_sessionstore_addsessionentry",
@@ -1840,11 +1900,59 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "addsessionentry()",
       "source_file": "breed-classifier-react/src/utils/sessionStore.js",
       "source_location": "L106"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_clearsession",
+      "label": "clearSession()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "clearsession()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L47"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_csvcell",
+      "label": "csvCell()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "csvcell()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L131"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_downloadtextfile",
+      "label": "downloadTextFile()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "downloadtextfile()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L200"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_hasstorage",
+      "label": "hasStorage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "hasstorage()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L13"
     },
     {
       "id": "breed_classifier_react_src_utils_sessionstore_makesessionentry",
@@ -1852,7 +1960,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "makesessionentry()",
       "source_file": "breed-classifier-react/src/utils/sessionStore.js",
@@ -1864,71 +1972,215 @@
       "_callable": true,
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "readsession()",
       "source_file": "breed-classifier-react/src/utils/sessionStore.js",
       "source_location": "L21"
     },
     {
-      "id": "test_model_generate_odt_report",
-      "label": "generate_odt_report()",
+      "id": "breed_classifier_react_src_utils_sessionstore_sessionstats",
+      "label": "sessionStats()",
       "_callable": true,
       "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
-      "norm_label": "generate_odt_report()",
-      "source_file": "test_model.py",
-      "source_location": "L927"
+      "norm_label": "sessionstats()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L112"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_sessiontocsv",
+      "label": "sessionToCsv()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "sessiontocsv()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L137"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_sessiontojson",
+      "label": "sessionToJson()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "sessiontojson()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L169"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_sessiontoodtresults",
+      "label": "sessionToOdtResults()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "sessiontoodtresults()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L178"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_sessionstore_writesession",
+      "label": "writeSession()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "writesession()",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L32"
     },
     {
       "id": "breed_classifier_react_src_components_advancedresultdetails_advancedresultdetails",
       "label": "AdvancedResultDetails()",
       "_callable": true,
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
       "norm_label": "advancedresultdetails()",
       "source_file": "breed-classifier-react/src/components/AdvancedResultDetails.jsx",
       "source_location": "L15"
     },
     {
-      "id": "breed_classifier_react_src_components_cameracapture_analyzefullframe",
-      "label": "analyzeFullFrame()",
+      "id": "breed_classifier_react_src_components_resultcard_resultcard",
+      "label": "ResultCard()",
       "_callable": true,
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
-      "norm_label": "analyzefullframe()",
-      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
-      "source_location": "L14"
+      "norm_label": "resultcard()",
+      "source_file": "breed-classifier-react/src/components/ResultCard.jsx",
+      "source_location": "L17"
     },
     {
-      "id": "breed_classifier_react_src_components_cameracapture_cameracapture",
-      "label": "CameraCapture()",
+      "id": "breed_classifier_react_src_data_breedtraits_sharetraits",
+      "label": "shareTraits()",
       "_callable": true,
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
-      "norm_label": "cameracapture()",
-      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
-      "source_location": "L29"
+      "norm_label": "sharetraits()",
+      "source_file": "breed-classifier-react/src/data/breedTraits.js",
+      "source_location": "L979"
     },
     {
-      "id": "breed_classifier_react_src_components_cameracapture_sleep",
-      "label": "sleep()",
+      "id": "breed_classifier_react_src_utils_confidence_clampconfidence",
+      "label": "clampConfidence()",
       "_callable": true,
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
-      "norm_label": "sleep()",
-      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
-      "source_location": "L12"
+      "norm_label": "clampconfidence()",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L61"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence_confidencemeta",
+      "label": "confidenceMeta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "confidencemeta()",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L88"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence_formatbreedconfidence",
+      "label": "formatBreedConfidence()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "formatbreedconfidence()",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L102"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence_getconfidencelevel",
+      "label": "getConfidenceLevel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "getconfidencelevel()",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L68"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence_resolveconfidencelevel",
+      "label": "resolveConfidenceLevel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "resolveconfidencelevel()",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L79"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_cropandquality_loadimage",
+      "label": "loadImage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "loadimage()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L437"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_resulthelpers_normalizetop",
+      "label": "normalizeTop()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "normalizetop()",
+      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
+      "source_location": "L3"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_resulthelpers_oodtriggers",
+      "label": "oodTriggers()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "oodtriggers()",
+      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
+      "source_location": "L22"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_resulthelpers_qualityhintkey",
+      "label": "qualityHintKey()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "qualityhintkey()",
+      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
+      "source_location": "L31"
     },
     {
       "id": "breed_classifier_react_src_components_imagecropper_imagecropper",
@@ -1965,174 +2217,6 @@
       "norm_label": "imageupload()",
       "source_file": "breed-classifier-react/src/components/ImageUpload.jsx",
       "source_location": "L14"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_metricbar",
-      "label": "MetricBar()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "metricbar()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L37"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_qualitybadge",
-      "label": "QualityBadge()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "qualitybadge()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_qualitypill",
-      "label": "QualityPill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "qualitypill()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L20"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_statusmeta",
-      "label": "statusMeta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "statusmeta()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L12"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_statustohint",
-      "label": "statusToHint()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "statustohint()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L95"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_toneclass",
-      "label": "toneClass()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "toneclass()",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L16"
-    },
-    {
-      "id": "breed_classifier_react_src_components_resultcard_resultcard",
-      "label": "ResultCard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "resultcard()",
-      "source_file": "breed-classifier-react/src/components/ResultCard.jsx",
-      "source_location": "L17"
-    },
-    {
-      "id": "breed_classifier_react_src_i18n_i18nprovider_usei18n",
-      "label": "useI18n()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "usei18n()",
-      "source_file": "breed-classifier-react/src/i18n/I18nProvider.jsx",
-      "source_location": "L34"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_clampconfidence",
-      "label": "clampConfidence()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "clampconfidence()",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L61"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_confidencemeta",
-      "label": "confidenceMeta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "confidencemeta()",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L88"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_formatbreedconfidence",
-      "label": "formatBreedConfidence()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "formatbreedconfidence()",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L102"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_getconfidencelevel",
-      "label": "getConfidenceLevel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "getconfidencelevel()",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L68"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_resolveconfidencelevel",
-      "label": "resolveConfidenceLevel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "resolveconfidencelevel()",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L79"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_analyzecanvas",
-      "label": "analyzeCanvas()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "analyzecanvas()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L389"
     },
     {
       "id": "breed_classifier_react_src_utils_cropandquality_analyzecanvasquality",
@@ -2181,30 +2265,6 @@
       "norm_label": "analyzesourcecrop()",
       "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
       "source_location": "L377"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_canvastoblob",
-      "label": "canvasToBlob()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "canvastoblob()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L415"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_capturevideoframe",
-      "label": "captureVideoFrame()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "capturevideoframe()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L455"
     },
     {
       "id": "breed_classifier_react_src_utils_cropandquality_centersquarerect",
@@ -2267,18 +2327,6 @@
       "source_location": "L68"
     },
     {
-      "id": "breed_classifier_react_src_utils_cropandquality_drawcover",
-      "label": "drawCover()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "drawcover()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L483"
-    },
-    {
       "id": "breed_classifier_react_src_utils_cropandquality_drawcroptocanvas",
       "label": "drawCropToCanvas()",
       "_callable": true,
@@ -2289,18 +2337,6 @@
       "norm_label": "drawcroptocanvas()",
       "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
       "source_location": "L348"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_loadimage",
-      "label": "loadImage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "loadimage()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L437"
     },
     {
       "id": "breed_classifier_react_src_utils_cropandquality_makecroppedfile",
@@ -2315,18 +2351,6 @@
       "source_location": "L425"
     },
     {
-      "id": "breed_classifier_react_src_utils_cropandquality_rendersharecard",
-      "label": "renderShareCard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "rendersharecard()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L516"
-    },
-    {
       "id": "breed_classifier_react_src_utils_cropandquality_samplecropforquality",
       "label": "sampleCropForQuality()",
       "_callable": true,
@@ -2337,18 +2361,6 @@
       "norm_label": "samplecropforquality()",
       "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
       "source_location": "L373"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_cropandquality_shareordownloadcanvas",
-      "label": "shareOrDownloadCanvas()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "shareordownloadcanvas()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L648"
     },
     {
       "id": "breed_classifier_react_src_utils_cropandquality_sobelmagnitude",
@@ -2375,54 +2387,6 @@
       "source_location": "L151"
     },
     {
-      "id": "breed_classifier_react_src_utils_cropandquality_wraptext",
-      "label": "wrapText()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "wraptext()",
-      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
-      "source_location": "L492"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_resulthelpers_normalizetop",
-      "label": "normalizeTop()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "normalizetop()",
-      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
-      "source_location": "L3"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_resulthelpers_oodtriggers",
-      "label": "oodTriggers()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "oodtriggers()",
-      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
-      "source_location": "L22"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_resulthelpers_qualityhintkey",
-      "label": "qualityHintKey()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "qualityhintkey()",
-      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
-      "source_location": "L31"
-    },
-    {
       "id": "breed_classifier_react_src_utils_tests_cropandquality_test_buffer",
       "label": "buffer()",
       "_callable": true,
@@ -2433,42 +2397,6 @@
       "norm_label": "buffer()",
       "source_file": "breed-classifier-react/src/utils/__tests__/cropAndQuality.test.js",
       "source_location": "L163"
-    },
-    {
-      "id": "src_data_pipeline_padtosquare_call",
-      "label": ".__call__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": ".__call__()",
-      "source_file": "src/data_pipeline.py",
-      "source_location": "L621"
-    },
-    {
-      "id": "src_data_pipeline_padtosquare_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": "src/data_pipeline.py",
-      "source_location": "L617"
-    },
-    {
-      "id": "src_data_pipeline_padtosquare_repr",
-      "label": ".__repr__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": ".__repr__()",
-      "source_file": "src/data_pipeline.py",
-      "source_location": "L630"
     },
     {
       "id": "server_routes_shared_config_api_get_config",
@@ -3508,11 +3436,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "languagetoggle()",
       "source_file": "breed-classifier-react/src/components/LanguageToggle.jsx",
       "source_location": "L4"
+    },
+    {
+      "id": "breed_classifier_react_src_components_resultspanel_resultspanel",
+      "label": "ResultsPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "useI18n",
+      "file_type": "code",
+      "norm_label": "resultspanel()",
+      "source_file": "breed-classifier-react/src/components/ResultsPanel.jsx",
+      "source_location": "L6"
     },
     {
       "id": "breed_classifier_react_src_i18n_i18nprovider_i18nprovider",
@@ -3520,11 +3460,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "i18nprovider()",
       "source_file": "breed-classifier-react/src/i18n/I18nProvider.jsx",
       "source_location": "L10"
+    },
+    {
+      "id": "breed_classifier_react_src_i18n_i18nprovider_usei18n",
+      "label": "useI18n()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "useI18n",
+      "file_type": "code",
+      "norm_label": "usei18n()",
+      "source_file": "breed-classifier-react/src/i18n/I18nProvider.jsx",
+      "source_location": "L34"
     },
     {
       "id": "breed_classifier_react_src_i18n_translations_getstoredlanguage",
@@ -3532,7 +3484,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "getstoredlanguage()",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
@@ -3544,7 +3496,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "translate()",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
@@ -3621,6 +3573,42 @@
       "norm_label": "wait_for_service()",
       "source_file": "run.py",
       "source_location": "L60"
+    },
+    {
+      "id": "src_data_pipeline_padtosquare_call",
+      "label": ".__call__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "code",
+      "norm_label": ".__call__()",
+      "source_file": "src/data_pipeline.py",
+      "source_location": "L621"
+    },
+    {
+      "id": "src_data_pipeline_padtosquare_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": "src/data_pipeline.py",
+      "source_location": "L617"
+    },
+    {
+      "id": "src_data_pipeline_padtosquare_repr",
+      "label": ".__repr__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "code",
+      "norm_label": ".__repr__()",
+      "source_file": "src/data_pipeline.py",
+      "source_location": "L630"
     },
     {
       "id": "src_model_breedclassifier_init",
@@ -4271,6 +4259,18 @@
       "source_location": "L56"
     },
     {
+      "id": "breed_classifier_react_src_api_getlogs",
+      "label": "getLogs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 35,
+      "community_name": "api.js",
+      "file_type": "code",
+      "norm_label": "getlogs()",
+      "source_file": "breed-classifier-react/src/api.js",
+      "source_location": "L185"
+    },
+    {
       "id": "breed_classifier_react_src_api_getmodels",
       "label": "getModels()",
       "_callable": true,
@@ -4487,6 +4487,18 @@
       "source_location": "L30"
     },
     {
+      "id": "breed_classifier_react_src_components_devtools_devtools",
+      "label": "DevTools()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 35,
+      "community_name": "api.js",
+      "file_type": "code",
+      "norm_label": "devtools()",
+      "source_file": "breed-classifier-react/src/components/DevTools.jsx",
+      "source_location": "L407"
+    },
+    {
       "id": "breed_classifier_react_src_components_devtools_human",
       "label": "human()",
       "_callable": true,
@@ -4557,6 +4569,18 @@
       "norm_label": "presenterconfig()",
       "source_file": "breed-classifier-react/src/components/DevTools.jsx",
       "source_location": "L275"
+    },
+    {
+      "id": "breed_classifier_react_src_components_devtools_sessionlogs",
+      "label": "SessionLogs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 35,
+      "community_name": "api.js",
+      "file_type": "code",
+      "norm_label": "sessionlogs()",
+      "source_file": "breed-classifier-react/src/components/DevTools.jsx",
+      "source_location": "L392"
     },
     {
       "id": "server_routes_ood_api_get_active_ood",
@@ -5228,7 +5252,7 @@
       "file_type": "code",
       "norm_label": "get_model_spec()",
       "source_file": "server/routes/models.py",
-      "source_location": "L36"
+      "source_location": "L37"
     },
     {
       "id": "server_routes_models_get_model_spec_human_number",
@@ -5240,7 +5264,7 @@
       "file_type": "code",
       "norm_label": "_human_number()",
       "source_file": "server/routes/models.py",
-      "source_location": "L82"
+      "source_location": "L83"
     },
     {
       "id": "server_routes_models_head_dims",
@@ -5252,7 +5276,7 @@
       "file_type": "code",
       "norm_label": "_head_dims()",
       "source_file": "server/routes/models.py",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "server_routes_models_list_models",
@@ -5264,7 +5288,7 @@
       "file_type": "code",
       "norm_label": "list_models()",
       "source_file": "server/routes/models.py",
-      "source_location": "L141"
+      "source_location": "L142"
     },
     {
       "id": "server_routes_models_model_spec",
@@ -5276,7 +5300,7 @@
       "file_type": "code",
       "norm_label": "model_spec()",
       "source_file": "server/routes/models.py",
-      "source_location": "L165"
+      "source_location": "L173"
     },
     {
       "id": "server_routes_models_select_model",
@@ -5288,7 +5312,7 @@
       "file_type": "code",
       "norm_label": "select_model()",
       "source_file": "server/routes/models.py",
-      "source_location": "L149"
+      "source_location": "L150"
     },
     {
       "id": "server_routes_models_upload_model",
@@ -5300,7 +5324,7 @@
       "file_type": "code",
       "norm_label": "upload_model()",
       "source_file": "server/routes/models.py",
-      "source_location": "L179"
+      "source_location": "L187"
     },
     {
       "id": "src_ood_calibration_candidate_keys",
@@ -6959,18 +6983,6 @@
       "source_location": "L310"
     },
     {
-      "id": "breed_classifier_react_src_utils_tests_clahe_test_makeimage",
-      "label": "makeImage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "imageOptimizer.js",
-      "file_type": "code",
-      "norm_label": "makeimage()",
-      "source_file": "breed-classifier-react/src/utils/__tests__/clahe.test.js",
-      "source_location": "L5"
-    },
-    {
       "id": "server_utils_logger_sessionlogger_debug",
       "label": ".debug()",
       "_callable": true,
@@ -7223,24 +7235,12 @@
       "source_location": "L56"
     },
     {
-      "id": "breed_classifier_react_src_api_getlogs",
-      "label": "getLogs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 79,
-      "community_name": "DevPage.jsx",
-      "file_type": "code",
-      "norm_label": "getlogs()",
-      "source_file": "breed-classifier-react/src/api.js",
-      "source_location": "L185"
-    },
-    {
       "id": "breed_classifier_react_src_api_getsharedconfig",
       "label": "getSharedConfig()",
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "getsharedconfig()",
       "source_file": "breed-classifier-react/src/api.js",
@@ -7252,7 +7252,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "resetsharedconfig()",
       "source_file": "breed-classifier-react/src/api.js",
@@ -7264,7 +7264,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "updatesharedconfig()",
       "source_file": "breed-classifier-react/src/api.js",
@@ -7276,35 +7276,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "app()",
       "source_file": "breed-classifier-react/src/App.jsx",
       "source_location": "L11"
-    },
-    {
-      "id": "breed_classifier_react_src_components_devtools_devtools",
-      "label": "DevTools()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 79,
-      "community_name": "DevPage.jsx",
-      "file_type": "code",
-      "norm_label": "devtools()",
-      "source_file": "breed-classifier-react/src/components/DevTools.jsx",
-      "source_location": "L407"
-    },
-    {
-      "id": "breed_classifier_react_src_components_devtools_sessionlogs",
-      "label": "SessionLogs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 79,
-      "community_name": "DevPage.jsx",
-      "file_type": "code",
-      "norm_label": "sessionlogs()",
-      "source_file": "breed-classifier-react/src/components/DevTools.jsx",
-      "source_location": "L392"
     },
     {
       "id": "breed_classifier_react_src_components_themetoggle_persisttheme",
@@ -7312,7 +7288,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "persisttheme()",
       "source_file": "breed-classifier-react/src/components/ThemeToggle.jsx",
@@ -7324,7 +7300,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "readstoredtheme()",
       "source_file": "breed-classifier-react/src/components/ThemeToggle.jsx",
@@ -7336,7 +7312,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "themetoggle()",
       "source_file": "breed-classifier-react/src/components/ThemeToggle.jsx",
@@ -7348,7 +7324,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "usesharedconfig()",
       "source_file": "breed-classifier-react/src/hooks/useSharedConfig.js",
@@ -7360,7 +7336,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "usesocket()",
       "source_file": "breed-classifier-react/src/hooks/useSocket.js",
@@ -7372,7 +7348,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "devpage()",
       "source_file": "breed-classifier-react/src/pages/DevPage.jsx",
@@ -8056,7 +8032,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "scripts/calibrate_ood.py",
@@ -8068,7 +8044,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": "_layer_num()",
       "source_file": "scripts/calibrate_ood.py",
@@ -8080,7 +8056,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": ".recalibrate_ood()",
       "source_file": "server/model_manager.py",
@@ -8092,11 +8068,35 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": ".calibrate()",
       "source_file": "src/model.py",
       "source_location": "L721"
+    },
+    {
+      "id": "src_model_ooddetector_clean_name",
+      "label": ".clean_name()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "code",
+      "norm_label": ".clean_name()",
+      "source_file": "src/model.py",
+      "source_location": "L669"
+    },
+    {
+      "id": "src_model_ooddetector_resolve_profile_path",
+      "label": ".resolve_profile_path()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "code",
+      "norm_label": ".resolve_profile_path()",
+      "source_file": "src/model.py",
+      "source_location": "L683"
     },
     {
       "id": "src_model_ooddetector_save",
@@ -8104,7 +8104,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": ".save()",
       "source_file": "src/model.py",
@@ -8116,7 +8116,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": "calibrate_from_folder()",
       "source_file": "src/ood_calibration.py",
@@ -8128,7 +8128,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": "resolve_data_dir()",
       "source_file": "src/ood_calibration.py",
@@ -8140,143 +8140,143 @@
       "_callable": true,
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "code",
       "norm_label": ".recalibrate_ood()",
       "source_file": "test_model.py",
       "source_location": "L628"
     },
     {
-      "id": "breed_classifier_react_src_components_herdsessiondrawer_herdsessiondrawer",
-      "label": "HerdSessionDrawer()",
+      "id": "breed_classifier_react_src_components_cameracapture_analyzefullframe",
+      "label": "analyzeFullFrame()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "herdsessiondrawer()",
-      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
+      "norm_label": "analyzefullframe()",
+      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
+      "source_location": "L14"
+    },
+    {
+      "id": "breed_classifier_react_src_components_cameracapture_cameracapture",
+      "label": "CameraCapture()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 87,
+      "community_name": "CameraCapture.jsx",
+      "file_type": "code",
+      "norm_label": "cameracapture()",
+      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
+      "source_location": "L29"
+    },
+    {
+      "id": "breed_classifier_react_src_components_cameracapture_sleep",
+      "label": "sleep()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 87,
+      "community_name": "CameraCapture.jsx",
+      "file_type": "code",
+      "norm_label": "sleep()",
+      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
       "source_location": "L12"
     },
     {
-      "id": "breed_classifier_react_src_components_herdsessiondrawer_stat",
-      "label": "Stat()",
+      "id": "breed_classifier_react_src_components_qualitybadge_metricbar",
+      "label": "MetricBar()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "stat()",
-      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
-      "source_location": "L115"
+      "norm_label": "metricbar()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L37"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_clearsession",
-      "label": "clearSession()",
+      "id": "breed_classifier_react_src_components_qualitybadge_qualitybadge",
+      "label": "QualityBadge()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "clearsession()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L47"
+      "norm_label": "qualitybadge()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L54"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_csvcell",
-      "label": "csvCell()",
+      "id": "breed_classifier_react_src_components_qualitybadge_qualitypill",
+      "label": "QualityPill()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "csvcell()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L131"
+      "norm_label": "qualitypill()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L20"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_downloadtextfile",
-      "label": "downloadTextFile()",
+      "id": "breed_classifier_react_src_components_qualitybadge_statusmeta",
+      "label": "statusMeta()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "downloadtextfile()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L200"
+      "norm_label": "statusmeta()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L12"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_hasstorage",
-      "label": "hasStorage()",
+      "id": "breed_classifier_react_src_components_qualitybadge_statustohint",
+      "label": "statusToHint()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "hasstorage()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L13"
+      "norm_label": "statustohint()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L95"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_sessionstats",
-      "label": "sessionStats()",
+      "id": "breed_classifier_react_src_components_qualitybadge_toneclass",
+      "label": "toneClass()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "sessionstats()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L112"
+      "norm_label": "toneclass()",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L16"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_sessiontocsv",
-      "label": "sessionToCsv()",
+      "id": "breed_classifier_react_src_utils_cropandquality_analyzecanvas",
+      "label": "analyzeCanvas()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "sessiontocsv()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L137"
+      "norm_label": "analyzecanvas()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L389"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_sessiontojson",
-      "label": "sessionToJson()",
+      "id": "breed_classifier_react_src_utils_cropandquality_capturevideoframe",
+      "label": "captureVideoFrame()",
       "_callable": true,
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "sessiontojson()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L169"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_sessionstore_sessiontoodtresults",
-      "label": "sessionToOdtResults()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 87,
-      "community_name": "sessionStore.js",
-      "file_type": "code",
-      "norm_label": "sessiontoodtresults()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L178"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_sessionstore_writesession",
-      "label": "writeSession()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 87,
-      "community_name": "sessionStore.js",
-      "file_type": "code",
-      "norm_label": "writesession()",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L32"
+      "norm_label": "capturevideoframe()",
+      "source_file": "breed-classifier-react/src/utils/cropAndQuality.js",
+      "source_location": "L455"
     },
     {
       "id": "server_routes_escalations_coerce_payload",
@@ -9130,103 +9130,23 @@
       "source_location": "L14"
     },
     {
-      "id": "src_ood_detector",
-      "label": "ood_detector.py",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "code",
-      "norm_label": "ood_detector.py",
-      "source_file": "src/ood_detector.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "project_source_of_truth_4_2_dynamic_head_sizing_checkpoint_loading",
-      "label": "4.2 Dynamic head sizing / checkpoint loading",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "4.2 dynamic head sizing / checkpoint loading",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L250"
-    },
-    {
-      "id": "project_source_of_truth_4_3_ood_detector",
-      "label": "4.3 OOD detector",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "4.3 ood detector",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L265"
-    },
-    {
-      "id": "project_source_of_truth_4_model_definition",
-      "label": "4. Model definition",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "4. model definition",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L202"
-    },
-    {
       "id": "project_source_of_truth_8_5_ood_runtime_behavior",
       "label": "8.5 OOD runtime behavior",
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "8.5 ood runtime behavior",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1057"
-    },
-    {
-      "id": "src_model_rationale_614",
-      "label": "Post-hoc energy-based out-of-distribution detector. Computes an OOD score from\u2026",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "rationale",
-      "norm_label": "post-hoc energy-based out-of-distribution detector. computes an ood score from...",
-      "source_file": "src/model.py",
-      "source_location": "L614"
-    },
-    {
-      "id": "src_model_rationale_670",
-      "label": "Strip directory prefixes, file extensions, and UI tags from model name.",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "rationale",
-      "norm_label": "strip directory prefixes, file extensions, and ui tags from model name.",
-      "source_file": "src/model.py",
-      "source_location": "L670"
-    },
-    {
-      "id": "src_model_rationale_684",
-      "label": "Find the matching OOD calibration JSON for a given model.",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "rationale",
-      "norm_label": "find the matching ood calibration json for a given model.",
-      "source_file": "src/model.py",
-      "source_location": "L684"
+      "source_location": "L1058"
     },
     {
       "id": "src_model_rationale_854",
       "label": "E(x) = -T * log(\u03a3 exp(f_i / T)) across all logit heads.",
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "rationale",
       "norm_label": "e(x) = -t * log(\u03c3 exp(f_i / t)) across all logit heads.",
       "source_file": "src/model.py",
@@ -9237,7 +9157,7 @@
       "label": "Max softmax probability from binary head (cattle-vs-buffalo).",
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "rationale",
       "norm_label": "max softmax probability from binary head (cattle-vs-buffalo).",
       "source_file": "src/model.py",
@@ -9248,22 +9168,11 @@
       "label": "Returns (is_ood: bool, ood_score: float, details: dict). A sample is considered\u2026",
       "_origin": "ast",
       "community": 102,
-      "community_name": "OODDetector",
+      "community_name": ".is_ood",
       "file_type": "rationale",
       "norm_label": "returns (is_ood: bool, ood_score: float, details: dict). a sample is considered...",
       "source_file": "src/model.py",
       "source_location": "L881"
-    },
-    {
-      "id": "src_ood_detector_rationale_1",
-      "label": "Compatibility forwarding module for OOD detector. All OOD detector definitions\u2026",
-      "_origin": "ast",
-      "community": 102,
-      "community_name": "OODDetector",
-      "file_type": "rationale",
-      "norm_label": "compatibility forwarding module for ood detector. all ood detector definitions...",
-      "source_file": "src/ood_detector.py",
-      "source_location": "L1"
     },
     {
       "id": "project_source_of_truth_7_1_test_model_py_standalone_tester_active_but_independent",
@@ -9527,7 +9436,7 @@
       "node_kind": "heading",
       "norm_label": "9.11 internationalization",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1424"
+      "source_location": "L1425"
     },
     {
       "id": "project_source_of_truth_9_12_themes",
@@ -9539,7 +9448,7 @@
       "node_kind": "heading",
       "norm_label": "9.12 themes",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1435"
+      "source_location": "L1436"
     },
     {
       "id": "project_source_of_truth_9_13_batch_tester_inside_advanced_panel",
@@ -9551,7 +9460,7 @@
       "node_kind": "heading",
       "norm_label": "9.13 batch tester (inside advanced panel)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1451"
+      "source_location": "L1454"
     },
     {
       "id": "project_source_of_truth_9_14_status_error_accessibility_privacy_behavior",
@@ -9563,7 +9472,7 @@
       "node_kind": "heading",
       "norm_label": "9.14 status, error, accessibility, privacy behavior",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1462"
+      "source_location": "L1465"
     },
     {
       "id": "project_source_of_truth_9_15_config_consumed_by_the_user_ui",
@@ -9575,7 +9484,19 @@
       "node_kind": "heading",
       "norm_label": "9.15 config consumed by the user ui",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1474"
+      "source_location": "L1477"
+    },
+    {
+      "id": "project_source_of_truth_9_16_legacy_unreachable_react_code",
+      "label": "9.16 Legacy / unreachable React code",
+      "_origin": "ast",
+      "community": 105,
+      "community_name": "9. React user-facing application",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "9.16 legacy / unreachable react code",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1487"
     },
     {
       "id": "project_source_of_truth_9_1_routes_and_active_files",
@@ -9587,7 +9508,7 @@
       "node_kind": "heading",
       "norm_label": "9.1 routes and active files",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1221"
+      "source_location": "L1222"
     },
     {
       "id": "project_source_of_truth_9_2_page_structure",
@@ -9599,7 +9520,7 @@
       "node_kind": "heading",
       "norm_label": "9.2 page structure",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1235"
+      "source_location": "L1236"
     },
     {
       "id": "project_source_of_truth_9_3_upload_ux",
@@ -9611,7 +9532,7 @@
       "node_kind": "heading",
       "norm_label": "9.3 upload ux",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1260"
+      "source_location": "L1261"
     },
     {
       "id": "project_source_of_truth_9_4_camera_ux",
@@ -9623,7 +9544,7 @@
       "node_kind": "heading",
       "norm_label": "9.4 camera ux",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1272"
+      "source_location": "L1273"
     },
     {
       "id": "project_source_of_truth_9_5_advanced_panel",
@@ -9635,7 +9556,7 @@
       "node_kind": "heading",
       "norm_label": "9.5 advanced panel",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1289"
+      "source_location": "L1290"
     },
     {
       "id": "project_source_of_truth_9_6_result_card",
@@ -9647,7 +9568,7 @@
       "node_kind": "heading",
       "norm_label": "9.6 result card",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1309"
+      "source_location": "L1310"
     },
     {
       "id": "project_source_of_truth_9_7_why_this_breed_trait_comparison",
@@ -9659,7 +9580,7 @@
       "node_kind": "heading",
       "norm_label": "9.7 \u201cwhy this breed?\u201d trait comparison",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1364"
+      "source_location": "L1365"
     },
     {
       "id": "project_source_of_truth_9_8_quality_badge",
@@ -9671,7 +9592,7 @@
       "node_kind": "heading",
       "norm_label": "9.8 quality badge",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1376"
+      "source_location": "L1377"
     },
     {
       "id": "project_source_of_truth_9_9_herd_session",
@@ -9683,7 +9604,7 @@
       "node_kind": "heading",
       "norm_label": "9.9 herd session",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1393"
+      "source_location": "L1394"
     },
     {
       "id": "project_source_of_truth_9_react_user_facing_application",
@@ -9695,7 +9616,101 @@
       "node_kind": "heading",
       "norm_label": "9. react user-facing application",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1219"
+      "source_location": "L1220"
+    },
+    {
+      "id": "breed_classifier_react_src_hooks_useimageoptimizer",
+      "label": "useImageOptimizer.js",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "code",
+      "norm_label": "useimageoptimizer.js",
+      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_hooks_useimageoptimizer_default_fit",
+      "label": "DEFAULT_FIT",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "code",
+      "norm_label": "default_fit",
+      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
+      "source_location": "L8"
+    },
+    {
+      "id": "project_source_of_truth_5_2_browser_decode_and_260_260_optimizer",
+      "label": "5.2 Browser decode and 260\u00d7260 optimizer",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.2 browser decode and 260\u00d7260 optimizer",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L362"
+    },
+    {
+      "id": "reports_7_1_stack_and_structure",
+      "label": "7.1 Stack and structure",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "7.1 stack and structure",
+      "source_file": "REPORTS.md",
+      "source_location": "L358"
+    },
+    {
+      "id": "reports_7_2_state_architecture",
+      "label": "7.2 State architecture",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "7.2 state architecture",
+      "source_file": "REPORTS.md",
+      "source_location": "L371"
+    },
+    {
+      "id": "reports_7_4_client_side_image_pipeline_src_utils",
+      "label": "7.4 Client-side image pipeline (`src/utils/`)",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "7.4 client-side image pipeline (`src/utils/`)",
+      "source_file": "REPORTS.md",
+      "source_location": "L403"
+    },
+    {
+      "id": "reports_7_5_design_system",
+      "label": "7.5 Design system",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "7.5 design system",
+      "source_file": "REPORTS.md",
+      "source_location": "L411"
+    },
+    {
+      "id": "reports_7_react_frontend",
+      "label": "7. React Frontend",
+      "_origin": "ast",
+      "community": 106,
+      "community_name": "releaseOptimizerResult",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "7. react frontend",
+      "source_file": "REPORTS.md",
+      "source_location": "L356"
     },
     {
       "id": "test_model_py_no_grad",
@@ -9884,6 +9899,18 @@
       "source_location": "L1"
     },
     {
+      "id": "project_source_of_truth_8_9_odt_export",
+      "label": "8.9 ODT export",
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "run_server",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.9 odt export",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1204"
+    },
+    {
       "id": "test_model_rationale_1172",
       "label": "Return the complete single-page GUI HTML. Mode: 'dev' or 'present'.",
       "_origin": "ast",
@@ -9948,6 +9975,72 @@
       "norm_label": "save presenter config to json.",
       "source_file": "test_model.py",
       "source_location": "L377"
+    },
+    {
+      "id": "test_model_rationale_928",
+      "label": "Generate an ODT report from prediction results. Args: results: single result\u2026",
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "run_server",
+      "file_type": "rationale",
+      "norm_label": "generate an odt report from prediction results. args: results: single result...",
+      "source_file": "test_model.py",
+      "source_location": "L928"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal",
+      "label": "BpaRegistrationModal.jsx",
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "bparegistrationmodal.jsx",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_bpa_tag_key",
+      "label": "BPA_TAG_KEY",
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "bpa_tag_key",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_lactation",
+      "label": "LACTATION",
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "lactation",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L18"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_sexes",
+      "label": "SEXES",
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "sexes",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L17"
+    },
+    {
+      "id": "breed_classifier_react_src_components_bparegistrationmodal_vaccination",
+      "label": "VACCINATION",
+      "_origin": "ast",
+      "community": 109,
+      "community_name": "BpaRegistrationModal.jsx",
+      "file_type": "code",
+      "norm_label": "vaccination",
+      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
+      "source_location": "L19"
     },
     {
       "id": "dart_js_interop",
@@ -10409,7 +10502,7 @@
       "node_kind": "heading",
       "norm_label": "11. flutter edge app",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1572"
+      "source_location": "L1575"
     },
     {
       "id": "project_source_of_truth_14_invariants_an_agent_must_preserve",
@@ -10421,7 +10514,7 @@
       "node_kind": "heading",
       "norm_label": "14. invariants an agent must preserve",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1779"
+      "source_location": "L1784"
     },
     {
       "id": "project_source_of_truth_16_explicitly_not_implemented",
@@ -10433,7 +10526,7 @@
       "node_kind": "heading",
       "norm_label": "16. explicitly not implemented",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1891"
+      "source_location": "L1896"
     },
     {
       "id": "project_source_of_truth_2_system_map",
@@ -10481,7 +10574,7 @@
       "node_kind": "heading",
       "norm_label": "13.1 train",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1693"
+      "source_location": "L1698"
     },
     {
       "id": "project_source_of_truth_13_2_export",
@@ -10493,7 +10586,7 @@
       "node_kind": "heading",
       "norm_label": "13.2 export",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1715"
+      "source_location": "L1720"
     },
     {
       "id": "project_source_of_truth_13_3_evaluate_verify_parity",
@@ -10505,7 +10598,7 @@
       "node_kind": "heading",
       "norm_label": "13.3 evaluate / verify / parity",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1725"
+      "source_location": "L1730"
     },
     {
       "id": "project_source_of_truth_13_4_serve",
@@ -10517,7 +10610,7 @@
       "node_kind": "heading",
       "norm_label": "13.4 serve",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1734"
+      "source_location": "L1739"
     },
     {
       "id": "project_source_of_truth_13_5_test_the_standalone_tester",
@@ -10529,7 +10622,7 @@
       "node_kind": "heading",
       "norm_label": "13.5 test the standalone tester",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1744"
+      "source_location": "L1749"
     },
     {
       "id": "project_source_of_truth_13_6_frontend_tests_build",
@@ -10541,7 +10634,7 @@
       "node_kind": "heading",
       "norm_label": "13.6 frontend tests/build",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1752"
+      "source_location": "L1757"
     },
     {
       "id": "project_source_of_truth_13_7_manual_ood_recalibration",
@@ -10553,7 +10646,7 @@
       "node_kind": "heading",
       "norm_label": "13.7 manual ood recalibration",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1760"
+      "source_location": "L1765"
     },
     {
       "id": "project_source_of_truth_13_runbook",
@@ -10565,7 +10658,7 @@
       "node_kind": "heading",
       "norm_label": "13. runbook",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1691"
+      "source_location": "L1696"
     },
     {
       "id": "src_data_pipeline_py_dataset",
@@ -10579,6 +10672,114 @@
       "source_location": ""
     },
     {
+      "id": "project_source_of_truth_5_1_canonical_numeric_contract",
+      "label": "5.1 Canonical numeric contract",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.1 canonical numeric contract",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L345"
+    },
+    {
+      "id": "project_source_of_truth_5_4_camera_path_active",
+      "label": "5.4 Camera path (ACTIVE)",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.4 camera path (active)",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L431"
+    },
+    {
+      "id": "project_source_of_truth_5_5_interactive_cropper_active_optional",
+      "label": "5.5 Interactive cropper (ACTIVE, optional)",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.5 interactive cropper (active, optional)",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L478"
+    },
+    {
+      "id": "project_source_of_truth_5_6_on_device_quality_gate",
+      "label": "5.6 On-device quality gate",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.6 on-device quality gate",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L502"
+    },
+    {
+      "id": "project_source_of_truth_5_7_server_side_image_handling",
+      "label": "5.7 Server-side image handling",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.7 server-side image handling",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L544"
+    },
+    {
+      "id": "project_source_of_truth_5_8_flutter_edge_handling",
+      "label": "5.8 Flutter edge handling",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.8 flutter edge handling",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L556"
+    },
+    {
+      "id": "project_source_of_truth_5_9_what_the_image_pipeline_does_not_do",
+      "label": "5.9 What the image pipeline does *not* do",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5.9 what the image pipeline does *not* do",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L573"
+    },
+    {
+      "id": "project_source_of_truth_5_input_image_handling_end_to_end",
+      "label": "5. Input image handling (end-to-end)",
+      "_origin": "ast",
+      "community": 116,
+      "community_name": "5. Input image handling (end-to-end)",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "5. input image handling (end-to-end)",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L341"
+    },
+    {
+      "id": "project_source_of_truth_9_10_shareable_png_result_card",
+      "label": "9.10 Shareable PNG result card",
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "renderShareCard",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "9.10 shareable png result card",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1415"
+    },
+    {
       "id": "project_source_of_truth_12_1_split_manifests",
       "label": "12.1 Split manifests",
       "_origin": "ast",
@@ -10588,7 +10789,7 @@
       "node_kind": "heading",
       "norm_label": "12.1 split manifests",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1597"
+      "source_location": "L1600"
     },
     {
       "id": "project_source_of_truth_12_2_training_traits",
@@ -10600,7 +10801,7 @@
       "node_kind": "heading",
       "norm_label": "12.2 training traits",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1616"
+      "source_location": "L1619"
     },
     {
       "id": "project_source_of_truth_12_3_ood_profile_json",
@@ -10612,7 +10813,7 @@
       "node_kind": "heading",
       "norm_label": "12.3 ood profile json",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1632"
+      "source_location": "L1635"
     },
     {
       "id": "project_source_of_truth_12_5_browser_localstorage_keys",
@@ -10624,7 +10825,7 @@
       "node_kind": "heading",
       "norm_label": "12.5 browser localstorage keys",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1670"
+      "source_location": "L1673"
     },
     {
       "id": "project_source_of_truth_12_6_expert_escalation_database",
@@ -10636,7 +10837,7 @@
       "node_kind": "heading",
       "norm_label": "12.6 expert escalation database",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1681"
+      "source_location": "L1684"
     },
     {
       "id": "project_source_of_truth_12_data_formats_and_artifacts",
@@ -10648,7 +10849,7 @@
       "node_kind": "heading",
       "norm_label": "12. data formats and artifacts",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1595"
+      "source_location": "L1598"
     },
     {
       "id": "server_app",
@@ -10737,7 +10938,7 @@
       "node_kind": "heading",
       "norm_label": "10.1 model checkpoints",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1514"
+      "source_location": "L1517"
     },
     {
       "id": "project_source_of_truth_10_2_ood_safety_profiles",
@@ -10749,7 +10950,7 @@
       "node_kind": "heading",
       "norm_label": "10.2 ood safety profiles",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1527"
+      "source_location": "L1530"
     },
     {
       "id": "project_source_of_truth_10_3_shared_database_config",
@@ -10761,7 +10962,7 @@
       "node_kind": "heading",
       "norm_label": "10.3 shared database (config)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1550"
+      "source_location": "L1553"
     },
     {
       "id": "project_source_of_truth_10_4_system_logs",
@@ -10773,7 +10974,7 @@
       "node_kind": "heading",
       "norm_label": "10.4 system logs",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1565"
+      "source_location": "L1568"
     },
     {
       "id": "project_source_of_truth_10_developer_control_plane_dev",
@@ -10785,7 +10986,7 @@
       "node_kind": "heading",
       "norm_label": "10. developer control plane (`/dev`)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1500"
+      "source_location": "L1503"
     },
     {
       "id": "agents",
@@ -10942,6 +11143,39 @@
       "norm_label": "here",
       "source_file": "breed-classifier-react/src/utils/__tests__/breedTraits.test.js",
       "source_location": "L8"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_tests_clahe_test",
+      "label": "clahe.test.js",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "file_type": "code",
+      "norm_label": "clahe.test.js",
+      "source_file": "breed-classifier-react/src/utils/__tests__/clahe.test.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_tests_sessionstore_test",
+      "label": "sessionStore.test.js",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "file_type": "code",
+      "norm_label": "sessionstore.test.js",
+      "source_file": "breed-classifier-react/src/utils/__tests__/sessionStore.test.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_tests_sessionstore_test_result",
+      "label": "result",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "file_type": "code",
+      "norm_label": "result",
+      "source_file": "breed-classifier-react/src/utils/__tests__/sessionStore.test.js",
+      "source_location": "L12"
     },
     {
       "id": "flutter_app_lib_data_ml_engines_android_tflite_engine",
@@ -11432,7 +11666,7 @@
       "label": "AdvancedBatchTester.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "advancedbatchtester.jsx",
       "source_file": "breed-classifier-react/src/components/AdvancedBatchTester.jsx",
@@ -11443,7 +11677,7 @@
       "label": "AdvancedPanel.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "advancedpanel.jsx",
       "source_file": "breed-classifier-react/src/components/AdvancedPanel.jsx",
@@ -11454,7 +11688,7 @@
       "label": "FIT_OPTIONS",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "fit_options",
       "source_file": "breed-classifier-react/src/components/AdvancedPanel.jsx",
@@ -11465,76 +11699,32 @@
       "label": "Batch.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "batch.jsx",
       "source_file": "breed-classifier-react/src/components/Batch.jsx",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal",
-      "label": "BpaRegistrationModal.jsx",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "bparegistrationmodal.jsx",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_bpa_tag_key",
-      "label": "BPA_TAG_KEY",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "bpa_tag_key",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_lactation",
-      "label": "LACTATION",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "lactation",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L18"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_sexes",
-      "label": "SEXES",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "sexes",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L17"
-    },
-    {
-      "id": "breed_classifier_react_src_components_bparegistrationmodal_vaccination",
-      "label": "VACCINATION",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "vaccination",
-      "source_file": "breed-classifier-react/src/components/BpaRegistrationModal.jsx",
-      "source_location": "L19"
-    },
-    {
       "id": "breed_classifier_react_src_components_devconfigpanel",
       "label": "DevConfigPanel.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "devconfigpanel.jsx",
       "source_file": "breed-classifier-react/src/components/DevConfigPanel.jsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_components_herdsessiondrawer",
+      "label": "HerdSessionDrawer.jsx",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "herdsessiondrawer.jsx",
+      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
       "source_location": "L1"
     },
     {
@@ -11542,7 +11732,7 @@
       "label": "ModelSelect.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "modelselect.jsx",
       "source_file": "breed-classifier-react/src/components/ModelSelect.jsx",
@@ -11553,21 +11743,10 @@
       "label": "PredictionProgress.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "predictionprogress.jsx",
       "source_file": "breed-classifier-react/src/components/PredictionProgress.jsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_components_resultspanel",
-      "label": "ResultsPanel.jsx",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "resultspanel.jsx",
-      "source_file": "breed-classifier-react/src/components/ResultsPanel.jsx",
       "source_location": "L1"
     },
     {
@@ -11575,86 +11754,62 @@
       "label": "SingleImage.jsx",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "singleimage.jsx",
       "source_file": "breed-classifier-react/src/components/SingleImage.jsx",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_hooks_useimageoptimizer",
-      "label": "useImageOptimizer.js",
+      "id": "breed_classifier_react_src_utils_sessionstore",
+      "label": "sessionStore.js",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
-      "norm_label": "useimageoptimizer.js",
-      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
+      "norm_label": "sessionstore.js",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_hooks_useimageoptimizer_default_fit",
-      "label": "DEFAULT_FIT",
+      "id": "breed_classifier_react_src_utils_sessionstore_session_key",
+      "label": "SESSION_KEY",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
-      "norm_label": "default_fit",
-      "source_file": "breed-classifier-react/src/hooks/useImageOptimizer.js",
-      "source_location": "L8"
+      "norm_label": "session_key",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L9"
     },
     {
       "id": "breed_classifier_react_src_utils_sessionstore_session_limit",
       "label": "SESSION_LIMIT",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "code",
       "norm_label": "session_limit",
       "source_file": "breed-classifier-react/src/utils/sessionStore.js",
       "source_location": "L10"
     },
     {
-      "id": "ref_react",
-      "label": "react",
+      "id": "breed_classifier_react_src_utils_sessionstore_thumb_size",
+      "label": "THUMB_SIZE",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
-      "file_type": "concept",
-      "norm_label": "react",
-      "source_file": "breed-classifier-react/package.json",
-      "source_location": "L13"
-    },
-    {
-      "id": "project_source_of_truth_5_2_browser_decode_and_260_260_optimizer",
-      "label": "5.2 Browser decode and 260\u00d7260 optimizer",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.2 browser decode and 260\u00d7260 optimizer",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L362"
-    },
-    {
-      "id": "project_source_of_truth_9_16_legacy_unreachable_react_code",
-      "label": "9.16 Legacy / unreachable React code",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "react",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "9.16 legacy / unreachable react code",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1484"
+      "community_name": "7.3 Component inventory",
+      "file_type": "code",
+      "norm_label": "thumb_size",
+      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "source_location": "L11"
     },
     {
       "id": "reports_7_3_component_inventory",
       "label": "7.3 Component inventory",
       "_origin": "ast",
       "community": 16,
-      "community_name": "react",
+      "community_name": "7.3 Component inventory",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "7.3 component inventory",
@@ -11662,120 +11817,69 @@
       "source_location": "L383"
     },
     {
-      "id": "project_source_of_truth_8_1_launcher",
-      "label": "8.1 Launcher",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.1 launcher",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L921"
-    },
-    {
-      "id": "project_source_of_truth_8_3_request_flow",
-      "label": "8.3 Request flow",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.3 request flow",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L987"
-    },
-    {
-      "id": "project_source_of_truth_8_6_shared_config_db",
-      "label": "8.6 Shared config DB",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.6 shared config db",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1069"
-    },
-    {
-      "id": "project_source_of_truth_8_7_rest_endpoints_flask_29_route_rules",
-      "label": "8.7 REST endpoints (Flask, 29 route rules)",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.7 rest endpoints (flask, 29 route rules)",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1140"
-    },
-    {
-      "id": "project_source_of_truth_8_8_websocket_events",
-      "label": "8.8 WebSocket events",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.8 websocket events",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1176"
-    },
-    {
-      "id": "project_source_of_truth_8_9_odt_export",
-      "label": "8.9 ODT export",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8.9 odt export",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1203"
-    },
-    {
-      "id": "project_source_of_truth_8_serving_and_inference_runtime_flask",
-      "label": "8. Serving and inference runtime (Flask)",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "8. serving and inference runtime (flask)",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L919"
-    },
-    {
-      "id": "test_model_rationale_928",
-      "label": "Generate an ODT report from prediction results. Args: results: single result\u2026",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "8. Serving and inference runtime (Flask)",
-      "file_type": "rationale",
-      "norm_label": "generate an odt report from prediction results. args: results: single result...",
-      "source_file": "test_model.py",
-      "source_location": "L928"
-    },
-    {
       "id": "breed_classifier_react_src_components_advancedresultdetails",
       "label": "AdvancedResultDetails.jsx",
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
       "norm_label": "advancedresultdetails.jsx",
       "source_file": "breed-classifier-react/src/components/AdvancedResultDetails.jsx",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_components_cameracapture",
-      "label": "CameraCapture.jsx",
+      "id": "breed_classifier_react_src_components_resultcard",
+      "label": "ResultCard.jsx",
       "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
       "file_type": "code",
-      "norm_label": "cameracapture.jsx",
-      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
+      "norm_label": "resultcard.jsx",
+      "source_file": "breed-classifier-react/src/components/ResultCard.jsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence",
+      "label": "confidence.js",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "confidence.js",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_confidence_confidence_levels",
+      "label": "CONFIDENCE_LEVELS",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "confidence_levels",
+      "source_file": "breed-classifier-react/src/utils/confidence.js",
+      "source_location": "L8"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_resulthelpers",
+      "label": "resultHelpers.js",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "resulthelpers.js",
+      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_utils_tests_confidence_test",
+      "label": "confidence.test.js",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "AdvancedResultDetails.jsx",
+      "file_type": "code",
+      "norm_label": "confidence.test.js",
+      "source_file": "breed-classifier-react/src/utils/__tests__/confidence.test.js",
       "source_location": "L1"
     },
     {
@@ -11799,61 +11903,6 @@
       "norm_label": "imageupload.jsx",
       "source_file": "breed-classifier-react/src/components/ImageUpload.jsx",
       "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge",
-      "label": "QualityBadge.jsx",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "qualitybadge.jsx",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_components_qualitybadge_status_meta",
-      "label": "STATUS_META",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "status_meta",
-      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
-      "source_location": "L3"
-    },
-    {
-      "id": "breed_classifier_react_src_components_resultcard",
-      "label": "ResultCard.jsx",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "resultcard.jsx",
-      "source_file": "breed-classifier-react/src/components/ResultCard.jsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence",
-      "label": "confidence.js",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "confidence.js",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_confidence_confidence_levels",
-      "label": "CONFIDENCE_LEVELS",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "confidence_levels",
-      "source_file": "breed-classifier-react/src/utils/confidence.js",
-      "source_location": "L8"
     },
     {
       "id": "breed_classifier_react_src_utils_cropandquality",
@@ -11933,28 +11982,6 @@
       "source_location": "L18"
     },
     {
-      "id": "breed_classifier_react_src_utils_resulthelpers",
-      "label": "resultHelpers.js",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "resulthelpers.js",
-      "source_file": "breed-classifier-react/src/utils/resultHelpers.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_tests_confidence_test",
-      "label": "confidence.test.js",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "code",
-      "norm_label": "confidence.test.js",
-      "source_file": "breed-classifier-react/src/utils/__tests__/confidence.test.js",
-      "source_location": "L1"
-    },
-    {
       "id": "breed_classifier_react_src_utils_tests_cropandquality_test",
       "label": "cropAndQuality.test.js",
       "_origin": "ast",
@@ -11966,18 +11993,6 @@
       "source_location": "L1"
     },
     {
-      "id": "plan_react_camera_and_features_11_zero_crop_260_260_optimizer_added",
-      "label": "11. Zero-Crop 260\u00d7260 Optimizer (added)",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "11. zero-crop 260\u00d7260 optimizer (added)",
-      "source_file": "PLAN_REACT_CAMERA_AND_FEATURES.md",
-      "source_location": "L350"
-    },
-    {
       "id": "project_source_of_truth_15_6_quality_state_nuance_resolved_2026_10_27",
       "label": "15.6 Quality-state nuance \u2014 **RESOLVED 2026-10-27**",
       "_origin": "ast",
@@ -11987,19 +12002,7 @@
       "node_kind": "heading",
       "norm_label": "15.6 quality-state nuance \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1843"
-    },
-    {
-      "id": "project_source_of_truth_5_1_canonical_numeric_contract",
-      "label": "5.1 Canonical numeric contract",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.1 canonical numeric contract",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L345"
+      "source_location": "L1848"
     },
     {
       "id": "project_source_of_truth_5_3_upload_path_active",
@@ -12012,113 +12015,6 @@
       "norm_label": "5.3 upload path (active)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
       "source_location": "L417"
-    },
-    {
-      "id": "project_source_of_truth_5_4_camera_path_active",
-      "label": "5.4 Camera path (ACTIVE)",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.4 camera path (active)",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L431"
-    },
-    {
-      "id": "project_source_of_truth_5_5_interactive_cropper_active_optional",
-      "label": "5.5 Interactive cropper (ACTIVE, optional)",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.5 interactive cropper (active, optional)",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L478"
-    },
-    {
-      "id": "project_source_of_truth_5_6_on_device_quality_gate",
-      "label": "5.6 On-device quality gate",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.6 on-device quality gate",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L502"
-    },
-    {
-      "id": "project_source_of_truth_5_7_server_side_image_handling",
-      "label": "5.7 Server-side image handling",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.7 server-side image handling",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L544"
-    },
-    {
-      "id": "project_source_of_truth_5_8_flutter_edge_handling",
-      "label": "5.8 Flutter edge handling",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.8 flutter edge handling",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L556"
-    },
-    {
-      "id": "project_source_of_truth_5_9_what_the_image_pipeline_does_not_do",
-      "label": "5.9 What the image pipeline does *not* do",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5.9 what the image pipeline does *not* do",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L573"
-    },
-    {
-      "id": "project_source_of_truth_5_input_image_handling_end_to_end",
-      "label": "5. Input image handling (end-to-end)",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "5. input image handling (end-to-end)",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L341"
-    },
-    {
-      "id": "project_source_of_truth_9_10_shareable_png_result_card",
-      "label": "9.10 Shareable PNG result card",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "9.10 shareable png result card",
-      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1414"
-    },
-    {
-      "id": "src_data_pipeline_rationale_611",
-      "label": "Resize the LONG side to ``size`` and pad the short side to a square. A 4:3\u2026",
-      "_origin": "ast",
-      "community": 19,
-      "community_name": "cropAndQuality.js",
-      "file_type": "rationale",
-      "norm_label": "resize the long side to ``size`` and pad the short side to a square. a 4:3...",
-      "source_file": "src/data_pipeline.py",
-      "source_location": "L611"
     },
     {
       "id": "namespace",
@@ -12530,7 +12426,7 @@
       "node_kind": "heading",
       "norm_label": "17. fast file index",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1916"
+      "source_location": "L1921"
     },
     {
       "id": "project_source_of_truth_6_2_dataset_layout_split_rules_class_maps",
@@ -12917,10 +12813,21 @@
       "label": "LanguageToggle.jsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "languagetoggle.jsx",
       "source_file": "breed-classifier-react/src/components/LanguageToggle.jsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "breed_classifier_react_src_components_resultspanel",
+      "label": "ResultsPanel.jsx",
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "useI18n",
+      "file_type": "code",
+      "norm_label": "resultspanel.jsx",
+      "source_file": "breed-classifier-react/src/components/ResultsPanel.jsx",
       "source_location": "L1"
     },
     {
@@ -12928,7 +12835,7 @@
       "label": "I18nProvider.jsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "i18nprovider.jsx",
       "source_file": "breed-classifier-react/src/i18n/I18nProvider.jsx",
@@ -12939,7 +12846,7 @@
       "label": "I18nContext",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "i18ncontext",
       "source_file": "breed-classifier-react/src/i18n/I18nProvider.jsx",
@@ -12950,7 +12857,7 @@
       "label": "translations.js",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "translations.js",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
@@ -12961,7 +12868,7 @@
       "label": "LANGUAGES",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "languages",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
@@ -12972,7 +12879,7 @@
       "label": "STORAGE_KEY",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "storage_key",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
@@ -12983,71 +12890,11 @@
       "label": "TRANSLATIONS",
       "_origin": "ast",
       "community": 23,
-      "community_name": "I18nProvider.jsx",
+      "community_name": "useI18n",
       "file_type": "code",
       "norm_label": "translations",
       "source_file": "breed-classifier-react/src/i18n/translations.js",
       "source_location": "L13"
-    },
-    {
-      "id": "reports_7_1_stack_and_structure",
-      "label": "7.1 Stack and structure",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "I18nProvider.jsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "7.1 stack and structure",
-      "source_file": "REPORTS.md",
-      "source_location": "L358"
-    },
-    {
-      "id": "reports_7_2_state_architecture",
-      "label": "7.2 State architecture",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "I18nProvider.jsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "7.2 state architecture",
-      "source_file": "REPORTS.md",
-      "source_location": "L371"
-    },
-    {
-      "id": "reports_7_4_client_side_image_pipeline_src_utils",
-      "label": "7.4 Client-side image pipeline (`src/utils/`)",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "I18nProvider.jsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "7.4 client-side image pipeline (`src/utils/`)",
-      "source_file": "REPORTS.md",
-      "source_location": "L403"
-    },
-    {
-      "id": "reports_7_5_design_system",
-      "label": "7.5 Design system",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "I18nProvider.jsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "7.5 design system",
-      "source_file": "REPORTS.md",
-      "source_location": "L411"
-    },
-    {
-      "id": "reports_7_react_frontend",
-      "label": "7. React Frontend",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "I18nProvider.jsx",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "7. react frontend",
-      "source_file": "REPORTS.md",
-      "source_location": "L356"
     },
     {
       "id": "changenotifier",
@@ -14158,6 +14005,18 @@
       "source_location": "L338"
     },
     {
+      "id": "plan_react_camera_and_features_11_zero_crop_260_260_optimizer_added",
+      "label": "11. Zero-Crop 260\u00d7260 Optimizer (added)",
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "11. zero-crop 260\u00d7260 optimizer (added)",
+      "source_file": "PLAN_REACT_CAMERA_AND_FEATURES.md",
+      "source_location": "L350"
+    },
+    {
       "id": "plan_react_camera_and_features_12_minimal_user_view_header_advanced_panel_and_manual_ood_recalibration",
       "label": "12. Minimal User View, Header Advanced Panel, and Manual OOD Recalibration",
       "_origin": "ast",
@@ -14494,6 +14353,17 @@
       "source_location": "L268"
     },
     {
+      "id": "src_data_pipeline_rationale_611",
+      "label": "Resize the LONG side to ``size`` and pad the short side to a square. A 4:3\u2026",
+      "_origin": "ast",
+      "community": 29,
+      "community_name": "React Camera & Product Features \u2014 Architecture + Implementation Plan",
+      "file_type": "rationale",
+      "norm_label": "resize the long side to ``size`` and pad the short side to a square. a 4:3...",
+      "source_file": "src/data_pipeline.py",
+      "source_location": "L611"
+    },
+    {
       "id": "src_cbam",
       "label": "cbam.py",
       "_origin": "ast",
@@ -14548,6 +14418,30 @@
       "norm_label": "4.1 `breedclassifier`",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
       "source_location": "L204"
+    },
+    {
+      "id": "project_source_of_truth_4_2_dynamic_head_sizing_checkpoint_loading",
+      "label": "4.2 Dynamic head sizing / checkpoint loading",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "verify.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "4.2 dynamic head sizing / checkpoint loading",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L250"
+    },
+    {
+      "id": "project_source_of_truth_4_model_definition",
+      "label": "4. Model definition",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "verify.py",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "4. model definition",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L202"
     },
     {
       "id": "src_cbam_rationale_1",
@@ -15881,7 +15775,7 @@
       "source_location": "L66"
     },
     {
-      "id": "server_routes_models_rationale_14",
+      "id": "server_routes_models_rationale_15",
       "label": "Return dynamic (cattle, buffalo) output widths for a loaded model.",
       "_origin": "ast",
       "community": 40,
@@ -15889,10 +15783,10 @@
       "file_type": "rationale",
       "norm_label": "return dynamic (cattle, buffalo) output widths for a loaded model.",
       "source_file": "server/routes/models.py",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
-      "id": "server_routes_models_rationale_37",
+      "id": "server_routes_models_rationale_38",
       "label": "Extract detailed model architecture and parameter info.",
       "_origin": "ast",
       "community": 40,
@@ -15900,7 +15794,7 @@
       "file_type": "rationale",
       "norm_label": "extract detailed model architecture and parameter info.",
       "source_file": "server/routes/models.py",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "src_ood_calibration",
@@ -16859,7 +16753,7 @@
       "node_kind": "heading",
       "norm_label": "18. feature release \u2014 2026-10-27",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1952"
+      "source_location": "L1957"
     },
     {
       "id": "project_source_of_truth_8_4_prediction_response_contract",
@@ -16871,7 +16765,7 @@
       "node_kind": "heading",
       "norm_label": "8.4 prediction response contract",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1012"
+      "source_location": "L1013"
     },
     {
       "id": "project_source_of_truth_verification_snapshot_2026_10_27",
@@ -16883,7 +16777,7 @@
       "node_kind": "heading",
       "norm_label": "verification snapshot (2026-10-27)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1971"
+      "source_location": "L1979"
     },
     {
       "id": "server_services_inference_rationale_116",
@@ -17678,17 +17572,6 @@
       "source_location": "L16"
     },
     {
-      "id": "breed_classifier_react_src_utils_tests_clahe_test",
-      "label": "clahe.test.js",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "imageOptimizer.js",
-      "file_type": "code",
-      "norm_label": "clahe.test.js",
-      "source_file": "breed-classifier-react/src/utils/__tests__/clahe.test.js",
-      "source_location": "L1"
-    },
-    {
       "id": "breed_classifier_react_src_utils_tests_imageoptimizer_test",
       "label": "imageOptimizer.test.js",
       "_origin": "ast",
@@ -18346,7 +18229,7 @@
       "label": "App.jsx",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "app.jsx",
       "source_file": "breed-classifier-react/src/App.jsx",
@@ -18357,7 +18240,7 @@
       "label": "ThemeToggle.jsx",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "themetoggle.jsx",
       "source_file": "breed-classifier-react/src/components/ThemeToggle.jsx",
@@ -18368,7 +18251,7 @@
       "label": "THEMES",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "themes",
       "source_file": "breed-classifier-react/src/components/ThemeToggle.jsx",
@@ -18379,7 +18262,7 @@
       "label": "useSharedConfig.js",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "usesharedconfig.js",
       "source_file": "breed-classifier-react/src/hooks/useSharedConfig.js",
@@ -18390,7 +18273,7 @@
       "label": "useSocket.js",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "usesocket.js",
       "source_file": "breed-classifier-react/src/hooks/useSocket.js",
@@ -18401,11 +18284,94 @@
       "label": "DevPage.jsx",
       "_origin": "ast",
       "community": 79,
-      "community_name": "DevPage.jsx",
+      "community_name": "react",
       "file_type": "code",
       "norm_label": "devpage.jsx",
       "source_file": "breed-classifier-react/src/pages/DevPage.jsx",
       "source_location": "L1"
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "concept",
+      "norm_label": "react",
+      "source_file": "breed-classifier-react/package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "project_source_of_truth_8_1_launcher",
+      "label": "8.1 Launcher",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.1 launcher",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L921"
+    },
+    {
+      "id": "project_source_of_truth_8_3_request_flow",
+      "label": "8.3 Request flow",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.3 request flow",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L988"
+    },
+    {
+      "id": "project_source_of_truth_8_6_shared_config_db",
+      "label": "8.6 Shared config DB",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.6 shared config db",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1070"
+    },
+    {
+      "id": "project_source_of_truth_8_7_rest_endpoints_flask_29_route_rules",
+      "label": "8.7 REST endpoints (Flask, 29 route rules)",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.7 rest endpoints (flask, 29 route rules)",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1141"
+    },
+    {
+      "id": "project_source_of_truth_8_8_websocket_events",
+      "label": "8.8 WebSocket events",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8.8 websocket events",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1177"
+    },
+    {
+      "id": "project_source_of_truth_8_serving_and_inference_runtime_flask",
+      "label": "8. Serving and inference runtime (Flask)",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "react",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "8. serving and inference runtime (flask)",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L919"
     },
     {
       "id": "colab_cattle_buffalo_trainer",
@@ -18497,7 +18463,7 @@
       "node_kind": "heading",
       "norm_label": "12.4 portable bundle",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1656"
+      "source_location": "L1659"
     },
     {
       "id": "project_source_of_truth_1_2_run_output_naming_actual",
@@ -18973,22 +18939,78 @@
       "source_location": "L315"
     },
     {
+      "id": "src_ood_detector",
+      "label": "ood_detector.py",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "code",
+      "norm_label": "ood_detector.py",
+      "source_file": "src/ood_detector.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "project_source_of_truth_4_3_ood_detector",
+      "label": "4.3 OOD detector",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "4.3 ood detector",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L265"
+    },
+    {
       "id": "server_model_manager_rationale_430",
       "label": "Recalibrate OOD thresholds for the selected model. With ``data_dir`` the folder\u2026",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "recalibrate ood thresholds for the selected model. with ``data_dir`` the folder...",
       "source_file": "server/model_manager.py",
       "source_location": "L430"
     },
     {
+      "id": "src_model_rationale_614",
+      "label": "Post-hoc energy-based out-of-distribution detector. Computes an OOD score from\u2026",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "rationale",
+      "norm_label": "post-hoc energy-based out-of-distribution detector. computes an ood score from...",
+      "source_file": "src/model.py",
+      "source_location": "L614"
+    },
+    {
+      "id": "src_model_rationale_670",
+      "label": "Strip directory prefixes, file extensions, and UI tags from model name.",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "rationale",
+      "norm_label": "strip directory prefixes, file extensions, and ui tags from model name.",
+      "source_file": "src/model.py",
+      "source_location": "L670"
+    },
+    {
+      "id": "src_model_rationale_684",
+      "label": "Find the matching OOD calibration JSON for a given model.",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "rationale",
+      "norm_label": "find the matching ood calibration json for a given model.",
+      "source_file": "src/model.py",
+      "source_location": "L684"
+    },
+    {
       "id": "src_model_rationale_724",
       "label": "Calibrate energy and MSP thresholds on an in-distribution DataLoader.",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "calibrate energy and msp thresholds on an in-distribution dataloader.",
       "source_file": "src/model.py",
@@ -18999,7 +19021,7 @@
       "label": "Save calibrated thresholds to JSON with appropriate naming.",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "save calibrated thresholds to json with appropriate naming.",
       "source_file": "src/model.py",
@@ -19010,7 +19032,7 @@
       "label": "Resolve a user-supplied folder path against the project root.",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "resolve a user-supplied folder path against the project root.",
       "source_file": "src/ood_calibration.py",
@@ -19021,18 +19043,29 @@
       "label": "Run the selected model over breed-named images and return thresholds + coverage.",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "run the selected model over breed-named images and return thresholds + coverage.",
       "source_file": "src/ood_calibration.py",
       "source_location": "L320"
     },
     {
+      "id": "src_ood_detector_rationale_1",
+      "label": "Compatibility forwarding module for OOD detector. All OOD detector definitions\u2026",
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "OODDetector",
+      "file_type": "rationale",
+      "norm_label": "compatibility forwarding module for ood detector. all ood detector definitions...",
+      "source_file": "src/ood_detector.py",
+      "source_location": "L1"
+    },
+    {
       "id": "test_model_rationale_631",
       "label": "Calibrate OOD thresholds for one model and save outputs/ood/<name>.json. When\u2026",
       "_origin": "ast",
       "community": 84,
-      "community_name": "main",
+      "community_name": "OODDetector",
       "file_type": "rationale",
       "norm_label": "calibrate ood thresholds for one model and save outputs/ood/<name>.json. when...",
       "source_file": "test_model.py",
@@ -19243,70 +19276,37 @@
       "source_location": "L3"
     },
     {
-      "id": "breed_classifier_react_src_components_herdsessiondrawer",
-      "label": "HerdSessionDrawer.jsx",
+      "id": "breed_classifier_react_src_components_cameracapture",
+      "label": "CameraCapture.jsx",
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "herdsessiondrawer.jsx",
-      "source_file": "breed-classifier-react/src/components/HerdSessionDrawer.jsx",
+      "norm_label": "cameracapture.jsx",
+      "source_file": "breed-classifier-react/src/components/CameraCapture.jsx",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore",
-      "label": "sessionStore.js",
+      "id": "breed_classifier_react_src_components_qualitybadge",
+      "label": "QualityBadge.jsx",
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "sessionstore.js",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
+      "norm_label": "qualitybadge.jsx",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
       "source_location": "L1"
     },
     {
-      "id": "breed_classifier_react_src_utils_sessionstore_session_key",
-      "label": "SESSION_KEY",
+      "id": "breed_classifier_react_src_components_qualitybadge_status_meta",
+      "label": "STATUS_META",
       "_origin": "ast",
       "community": 87,
-      "community_name": "sessionStore.js",
+      "community_name": "CameraCapture.jsx",
       "file_type": "code",
-      "norm_label": "session_key",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L9"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_sessionstore_thumb_size",
-      "label": "THUMB_SIZE",
-      "_origin": "ast",
-      "community": 87,
-      "community_name": "sessionStore.js",
-      "file_type": "code",
-      "norm_label": "thumb_size",
-      "source_file": "breed-classifier-react/src/utils/sessionStore.js",
-      "source_location": "L11"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_tests_sessionstore_test",
-      "label": "sessionStore.test.js",
-      "_origin": "ast",
-      "community": 87,
-      "community_name": "sessionStore.js",
-      "file_type": "code",
-      "norm_label": "sessionstore.test.js",
-      "source_file": "breed-classifier-react/src/utils/__tests__/sessionStore.test.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "breed_classifier_react_src_utils_tests_sessionstore_test_result",
-      "label": "result",
-      "_origin": "ast",
-      "community": 87,
-      "community_name": "sessionStore.js",
-      "file_type": "code",
-      "norm_label": "result",
-      "source_file": "breed-classifier-react/src/utils/__tests__/sessionStore.test.js",
-      "source_location": "L12"
+      "norm_label": "status_meta",
+      "source_file": "breed-classifier-react/src/components/QualityBadge.jsx",
+      "source_location": "L3"
     },
     {
       "id": "docs_architecture",
@@ -19628,7 +19628,7 @@
       "node_kind": "heading",
       "norm_label": "15.10 tester vs web app",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1868"
+      "source_location": "L1873"
     },
     {
       "id": "project_source_of_truth_15_11_edge_assets",
@@ -19640,7 +19640,7 @@
       "node_kind": "heading",
       "norm_label": "15.11 edge assets",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1875"
+      "source_location": "L1880"
     },
     {
       "id": "project_source_of_truth_15_12_odt_empty_report_resolved_2026_10_27",
@@ -19652,7 +19652,7 @@
       "node_kind": "heading",
       "norm_label": "15.12 odt empty report \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1881"
+      "source_location": "L1886"
     },
     {
       "id": "project_source_of_truth_15_13_run_id_format_unused",
@@ -19664,7 +19664,7 @@
       "node_kind": "heading",
       "norm_label": "15.13 `run_id_format` unused",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1885"
+      "source_location": "L1890"
     },
     {
       "id": "project_source_of_truth_15_1_documentation_drift_verified",
@@ -19676,7 +19676,7 @@
       "node_kind": "heading",
       "norm_label": "15.1 documentation drift (verified)",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1798"
+      "source_location": "L1803"
     },
     {
       "id": "project_source_of_truth_15_2_class_map_checkpoint_pairing_resolved_2026_10_27",
@@ -19688,7 +19688,7 @@
       "node_kind": "heading",
       "norm_label": "15.2 class-map / checkpoint pairing \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1813"
+      "source_location": "L1818"
     },
     {
       "id": "project_source_of_truth_15_3_ood_profile_pairing_resolved_2026_10_27",
@@ -19700,7 +19700,7 @@
       "node_kind": "heading",
       "norm_label": "15.3 ood profile pairing \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1820"
+      "source_location": "L1825"
     },
     {
       "id": "project_source_of_truth_15_4_websocket_namespace_resolved_2026_10_27",
@@ -19712,7 +19712,7 @@
       "node_kind": "heading",
       "norm_label": "15.4 websocket namespace \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1826"
+      "source_location": "L1831"
     },
     {
       "id": "project_source_of_truth_15_5_config_fields_that_are_editable_but_inert",
@@ -19724,7 +19724,7 @@
       "node_kind": "heading",
       "norm_label": "15.5 config fields that are editable but inert",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1832"
+      "source_location": "L1837"
     },
     {
       "id": "project_source_of_truth_15_7_server_route_validation_gaps",
@@ -19736,7 +19736,7 @@
       "node_kind": "heading",
       "norm_label": "15.7 server/route validation gaps",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1849"
+      "source_location": "L1854"
     },
     {
       "id": "project_source_of_truth_15_8_model_class_metadata_strings_resolved_2026_10_27",
@@ -19748,7 +19748,7 @@
       "node_kind": "heading",
       "norm_label": "15.8 model/class metadata strings \u2014 **resolved 2026-10-27**",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1856"
+      "source_location": "L1861"
     },
     {
       "id": "project_source_of_truth_15_9_training_data_state_vs_config",
@@ -19760,7 +19760,7 @@
       "node_kind": "heading",
       "norm_label": "15.9 training data state vs config",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1862"
+      "source_location": "L1867"
     },
     {
       "id": "project_source_of_truth_15_known_constraints_gotchas_and_drift",
@@ -19772,7 +19772,7 @@
       "node_kind": "heading",
       "norm_label": "15. known constraints, gotchas, and drift",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1796"
+      "source_location": "L1801"
     },
     {
       "id": "reports_5_2_model_src_model_py_919_loc",
@@ -21368,6 +21368,18 @@
       "type": "external"
     },
     {
+      "id": "ref_node_assert",
+      "label": "ref_node_assert",
+      "_origin": "semantic",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_assert",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ref_node_fs",
       "label": "ref_node_fs",
       "_origin": "semantic",
@@ -21388,6 +21400,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_path",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_test",
+      "label": "ref_node_test",
+      "_origin": "semantic",
+      "community": 13,
+      "community_name": "breedTraits.test.js",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_test",
       "source_file": "",
       "type": "external"
     },
@@ -22068,30 +22092,6 @@
       "norm_label": "phase 1: all-heads warmup",
       "rationale": "Trains classification heads while backbone and attention layers are frozen.",
       "source_file": "docs/training-pipeline.md"
-    },
-    {
-      "id": "ref_node_assert",
-      "label": "ref_node_assert",
-      "_origin": "semantic",
-      "community": 7,
-      "community_name": "imageOptimizer.js",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_assert",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_test",
-      "label": "ref_node_test",
-      "_origin": "semantic",
-      "community": 7,
-      "community_name": "imageOptimizer.js",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_test",
-      "source_file": "",
-      "type": "external"
     },
     {
       "id": "concept_phase_2_finetune",
@@ -23082,7 +23082,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/components/DevModelPanel.jsx",
-      "source_location": "L17",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -23094,7 +23094,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/components/DevModelPanel.jsx",
-      "source_location": "L40",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -23106,7 +23106,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/components/DevModelPanel.jsx",
-      "source_location": "L53",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -23118,7 +23118,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "breed-classifier-react/src/components/DevModelPanel.jsx",
-      "source_location": "L68",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -27426,7 +27426,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/model_manager.py",
-      "source_location": "L146",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -27438,7 +27438,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/model_manager.py",
-      "source_location": "L147",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -27714,7 +27714,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -27726,7 +27726,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -27738,7 +27738,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -27750,7 +27750,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L142",
+      "source_location": "L143",
       "weight": 1.0
     },
     {
@@ -27762,7 +27762,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L166",
+      "source_location": "L174",
       "weight": 1.0
     },
     {
@@ -27774,7 +27774,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L173",
+      "source_location": "L181",
       "weight": 1.0
     },
     {
@@ -27786,7 +27786,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L150",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_models_select_model",
+      "target": "server_utils_logger_get_logger",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "server/routes/models.py",
+      "source_location": "L167",
       "weight": 1.0
     },
     {
@@ -27798,7 +27810,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L204",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -32550,7 +32562,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/routes/models.py",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -32874,7 +32886,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "server/routes/models.py",
-      "source_location": "L140",
+      "source_location": "L141",
       "weight": 1.0
     },
     {
@@ -32886,7 +32898,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "server/routes/models.py",
-      "source_location": "L164",
+      "source_location": "L172",
       "weight": 1.0
     },
     {
@@ -32898,7 +32910,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "server/routes/models.py",
-      "source_location": "L148",
+      "source_location": "L149",
       "weight": 1.0
     },
     {
@@ -32910,7 +32922,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "server/routes/models.py",
-      "source_location": "L178",
+      "source_location": "L186",
       "weight": 1.0
     },
     {
@@ -39130,6 +39142,18 @@
       "weight": 1.0
     },
     {
+      "source": "server_routes_models",
+      "target": "server_utils_logger_get_logger",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/models.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
       "source": "server_routes_ood_api",
       "target": "os",
       "relation": "imports",
@@ -45191,7 +45215,7 @@
     },
     {
       "source": "server_routes_models",
-      "target": "src_config",
+      "target": "server_utils_logger",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -45199,6 +45223,18 @@
       "context": "import",
       "source_file": "server/routes/models.py",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "server_routes_models",
+      "target": "src_config",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "server/routes/models.py",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -46374,7 +46410,7 @@
       "confidence_score": 1.0,
       "context": "test_model.py::generate_odt_report",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1205",
+      "source_location": "L1206",
       "weight": 1.0
     },
     {
@@ -46398,7 +46434,7 @@
       "confidence_score": 1.0,
       "context": "utils/cropAndQuality.js::renderShareCard",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1416",
+      "source_location": "L1417",
       "weight": 1.0
     },
     {
@@ -51994,7 +52030,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1514",
+      "source_location": "L1517",
       "weight": 1.0
     },
     {
@@ -52005,7 +52041,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1527",
+      "source_location": "L1530",
       "weight": 1.0
     },
     {
@@ -52016,7 +52052,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1550",
+      "source_location": "L1553",
       "weight": 1.0
     },
     {
@@ -52027,7 +52063,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1565",
+      "source_location": "L1568",
       "weight": 1.0
     },
     {
@@ -52038,7 +52074,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1597",
+      "source_location": "L1600",
       "weight": 1.0
     },
     {
@@ -52049,7 +52085,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1616",
+      "source_location": "L1619",
       "weight": 1.0
     },
     {
@@ -52060,7 +52096,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1632",
+      "source_location": "L1635",
       "weight": 1.0
     },
     {
@@ -52071,7 +52107,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1656",
+      "source_location": "L1659",
       "weight": 1.0
     },
     {
@@ -52082,7 +52118,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1670",
+      "source_location": "L1673",
       "weight": 1.0
     },
     {
@@ -52093,7 +52129,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1681",
+      "source_location": "L1684",
       "weight": 1.0
     },
     {
@@ -52104,7 +52140,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1693",
+      "source_location": "L1698",
       "weight": 1.0
     },
     {
@@ -52115,7 +52151,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1715",
+      "source_location": "L1720",
       "weight": 1.0
     },
     {
@@ -52126,7 +52162,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1725",
+      "source_location": "L1730",
       "weight": 1.0
     },
     {
@@ -52137,7 +52173,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1734",
+      "source_location": "L1739",
       "weight": 1.0
     },
     {
@@ -52148,7 +52184,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1744",
+      "source_location": "L1749",
       "weight": 1.0
     },
     {
@@ -52159,7 +52195,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1752",
+      "source_location": "L1757",
       "weight": 1.0
     },
     {
@@ -52170,7 +52206,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1760",
+      "source_location": "L1765",
       "weight": 1.0
     },
     {
@@ -52181,7 +52217,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1798",
+      "source_location": "L1803",
       "weight": 1.0
     },
     {
@@ -52192,7 +52228,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1813",
+      "source_location": "L1818",
       "weight": 1.0
     },
     {
@@ -52203,7 +52239,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1820",
+      "source_location": "L1825",
       "weight": 1.0
     },
     {
@@ -52214,7 +52250,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1826",
+      "source_location": "L1831",
       "weight": 1.0
     },
     {
@@ -52225,7 +52261,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1832",
+      "source_location": "L1837",
       "weight": 1.0
     },
     {
@@ -52236,7 +52272,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1843",
+      "source_location": "L1848",
       "weight": 1.0
     },
     {
@@ -52247,7 +52283,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1849",
+      "source_location": "L1854",
       "weight": 1.0
     },
     {
@@ -52258,7 +52294,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1856",
+      "source_location": "L1861",
       "weight": 1.0
     },
     {
@@ -52269,7 +52305,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1862",
+      "source_location": "L1867",
       "weight": 1.0
     },
     {
@@ -52280,7 +52316,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1868",
+      "source_location": "L1873",
       "weight": 1.0
     },
     {
@@ -52291,7 +52327,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1875",
+      "source_location": "L1880",
       "weight": 1.0
     },
     {
@@ -52302,7 +52338,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1881",
+      "source_location": "L1886",
       "weight": 1.0
     },
     {
@@ -52313,7 +52349,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1885",
+      "source_location": "L1890",
       "weight": 1.0
     },
     {
@@ -52324,7 +52360,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1971",
+      "source_location": "L1979",
       "weight": 1.0
     },
     {
@@ -52654,7 +52690,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1012",
+      "source_location": "L1013",
       "weight": 1.0
     },
     {
@@ -52665,7 +52701,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1057",
+      "source_location": "L1058",
       "weight": 1.0
     },
     {
@@ -52676,7 +52712,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1069",
+      "source_location": "L1070",
       "weight": 1.0
     },
     {
@@ -52687,7 +52723,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1140",
+      "source_location": "L1141",
       "weight": 1.0
     },
     {
@@ -52698,7 +52734,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1176",
+      "source_location": "L1177",
       "weight": 1.0
     },
     {
@@ -52709,7 +52745,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1203",
+      "source_location": "L1204",
       "weight": 1.0
     },
     {
@@ -52742,7 +52778,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L987",
+      "source_location": "L988",
       "weight": 1.0
     },
     {
@@ -52753,7 +52789,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1221",
+      "source_location": "L1222",
       "weight": 1.0
     },
     {
@@ -52764,7 +52800,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1235",
+      "source_location": "L1236",
       "weight": 1.0
     },
     {
@@ -52775,7 +52811,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1260",
+      "source_location": "L1261",
       "weight": 1.0
     },
     {
@@ -52786,7 +52822,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1272",
+      "source_location": "L1273",
       "weight": 1.0
     },
     {
@@ -52797,7 +52833,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1289",
+      "source_location": "L1290",
       "weight": 1.0
     },
     {
@@ -52808,7 +52844,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1309",
+      "source_location": "L1310",
       "weight": 1.0
     },
     {
@@ -52819,7 +52855,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1364",
+      "source_location": "L1365",
       "weight": 1.0
     },
     {
@@ -52830,7 +52866,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1376",
+      "source_location": "L1377",
       "weight": 1.0
     },
     {
@@ -52841,7 +52877,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1393",
+      "source_location": "L1394",
       "weight": 1.0
     },
     {
@@ -52852,7 +52888,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1414",
+      "source_location": "L1415",
       "weight": 1.0
     },
     {
@@ -52863,7 +52899,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1424",
+      "source_location": "L1425",
       "weight": 1.0
     },
     {
@@ -52874,7 +52910,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1435",
+      "source_location": "L1436",
       "weight": 1.0
     },
     {
@@ -52885,7 +52921,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1451",
+      "source_location": "L1454",
       "weight": 1.0
     },
     {
@@ -52896,7 +52932,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1462",
+      "source_location": "L1465",
       "weight": 1.0
     },
     {
@@ -52907,7 +52943,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1474",
+      "source_location": "L1477",
       "weight": 1.0
     },
     {
@@ -52918,7 +52954,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1484",
+      "source_location": "L1487",
       "weight": 1.0
     },
     {
@@ -52951,7 +52987,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1219",
+      "source_location": "L1220",
       "weight": 1.0
     },
     {
@@ -52973,7 +53009,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1500",
+      "source_location": "L1503",
       "weight": 1.0
     },
     {
@@ -52984,7 +53020,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1572",
+      "source_location": "L1575",
       "weight": 1.0
     },
     {
@@ -52995,7 +53031,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1595",
+      "source_location": "L1598",
       "weight": 1.0
     },
     {
@@ -53006,7 +53042,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1691",
+      "source_location": "L1696",
       "weight": 1.0
     },
     {
@@ -53017,7 +53053,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1779",
+      "source_location": "L1784",
       "weight": 1.0
     },
     {
@@ -53028,7 +53064,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1796",
+      "source_location": "L1801",
       "weight": 1.0
     },
     {
@@ -53039,7 +53075,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1891",
+      "source_location": "L1896",
       "weight": 1.0
     },
     {
@@ -53050,7 +53086,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1916",
+      "source_location": "L1921",
       "weight": 1.0
     },
     {
@@ -53061,7 +53097,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1952",
+      "source_location": "L1957",
       "weight": 1.0
     },
     {
@@ -54568,7 +54604,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -54579,7 +54615,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L141",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -54590,7 +54626,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L149",
+      "source_location": "L150",
       "weight": 1.0
     },
     {
@@ -54601,7 +54637,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L165",
+      "source_location": "L173",
       "weight": 1.0
     },
     {
@@ -54612,7 +54648,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L179",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -54623,7 +54659,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -61249,25 +61285,25 @@
       "weight": 1.0
     },
     {
-      "source": "server_routes_models_rationale_14",
+      "source": "server_routes_models_rationale_15",
       "target": "server_routes_models_head_dims",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
-      "source": "server_routes_models_rationale_37",
+      "source": "server_routes_models_rationale_38",
       "target": "server_routes_models_get_model_spec",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "server/routes/models.py",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -63795,7 +63831,7 @@
       "confidence_score": 0.95,
       "context": "Batch",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1492",
+      "source_location": "L1495",
       "weight": 1.0
     },
     {
@@ -63951,7 +63987,7 @@
       "confidence_score": 0.95,
       "context": "DevConfigPanel",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1883",
+      "source_location": "L1888",
       "weight": 1.0
     },
     {
@@ -64107,7 +64143,7 @@
       "confidence_score": 0.95,
       "context": "I18nProvider",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1223",
+      "source_location": "L1224",
       "weight": 1.0
     },
     {
@@ -64131,7 +64167,7 @@
       "confidence_score": 0.95,
       "context": "ImageCropper",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1846",
+      "source_location": "L1851",
       "weight": 1.0
     },
     {
@@ -64167,7 +64203,7 @@
       "confidence_score": 0.95,
       "context": "ImageUpload",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1846",
+      "source_location": "L1851",
       "weight": 1.0
     },
     {
@@ -64335,7 +64371,7 @@
       "confidence_score": 0.95,
       "context": "SingleImage",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1492",
+      "source_location": "L1495",
       "weight": 1.0
     },
     {
@@ -64419,7 +64455,7 @@
       "confidence_score": 0.95,
       "context": "UserPage",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1846",
+      "source_location": "L1851",
       "weight": 1.0
     },
     {
@@ -64455,7 +64491,7 @@
       "confidence_score": 0.95,
       "context": "UserPage",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1464",
+      "source_location": "L1467",
       "weight": 1.0
     },
     {
@@ -64467,7 +64503,7 @@
       "confidence_score": 0.95,
       "context": "UserPage",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1233",
+      "source_location": "L1234",
       "weight": 1.0
     },
     {
@@ -64551,7 +64587,7 @@
       "confidence_score": 0.95,
       "context": "_PadToSquare",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1922",
+      "source_location": "L1927",
       "weight": 1.0
     },
     {
@@ -64611,7 +64647,7 @@
       "confidence_score": 0.95,
       "context": "_eval_transform",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1922",
+      "source_location": "L1927",
       "weight": 1.0
     },
     {
@@ -64695,7 +64731,7 @@
       "confidence_score": 0.95,
       "context": "_train_transform",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1922",
+      "source_location": "L1927",
       "weight": 1.0
     },
     {
@@ -64719,7 +64755,7 @@
       "confidence_score": 0.95,
       "context": "_validate_class_counts",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1865",
+      "source_location": "L1870",
       "weight": 1.0
     },
     {
@@ -64755,7 +64791,19 @@
       "confidence_score": 0.95,
       "context": "analyzeCanvasQuality",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1845",
+      "source_location": "L1850",
+      "weight": 1.0
+    },
+    {
+      "source": "project_source_of_truth_18_feature_release_2026_10_27",
+      "target": "breed_classifier_react_src_utils_cropandquality_analyzecanvasquality",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "context": "analyzeCanvasQuality",
+      "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
+      "source_location": "L1975",
       "weight": 1.0
     },
     {
@@ -64779,7 +64827,7 @@
       "confidence_score": 0.95,
       "context": "analyzeDataUrlQuality",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1845",
+      "source_location": "L1850",
       "weight": 1.0
     },
     {
@@ -64947,7 +64995,7 @@
       "confidence_score": 0.95,
       "context": "confidence_band",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1959",
+      "source_location": "L1964",
       "weight": 1.0
     },
     {
@@ -64959,7 +65007,7 @@
       "confidence_score": 0.95,
       "context": "confidence_band",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1024",
+      "source_location": "L1025",
       "weight": 1.0
     },
     {
@@ -64971,7 +65019,7 @@
       "confidence_score": 0.95,
       "context": "confidence_level",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1959",
+      "source_location": "L1964",
       "weight": 1.0
     },
     {
@@ -64983,7 +65031,7 @@
       "confidence_score": 0.95,
       "context": "confidence_level",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1023",
+      "source_location": "L1024",
       "weight": 1.0
     },
     {
@@ -65079,7 +65127,7 @@
       "confidence_score": 0.95,
       "context": "is_ood",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1033",
+      "source_location": "L1034",
       "weight": 1.0
     },
     {
@@ -65091,7 +65139,7 @@
       "confidence_score": 0.95,
       "context": "is_ood",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1065",
+      "source_location": "L1066",
       "weight": 1.0
     },
     {
@@ -65199,7 +65247,7 @@
       "confidence_score": 0.95,
       "context": "make_run_id()",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1887",
+      "source_location": "L1892",
       "weight": 1.0
     },
     {
@@ -65427,7 +65475,7 @@
       "confidence_score": 0.95,
       "context": "set_active_model()",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1822",
+      "source_location": "L1827",
       "weight": 1.0
     },
     {
@@ -65463,7 +65511,7 @@
       "confidence_score": 0.95,
       "context": "shareOrDownloadCanvas",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1416",
+      "source_location": "L1417",
       "weight": 1.0
     },
     {
@@ -65535,7 +65583,7 @@
       "confidence_score": 0.95,
       "context": "src.export.create_portable_export",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1668",
+      "source_location": "L1671",
       "weight": 1.0
     },
     {
@@ -65547,7 +65595,7 @@
       "confidence_score": 0.95,
       "context": "src.train.create_portable_export",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1668",
+      "source_location": "L1671",
       "weight": 1.0
     },
     {
@@ -65583,7 +65631,7 @@
       "confidence_score": 0.95,
       "context": "test_model.ModelManager._load_model",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1926",
+      "source_location": "L1931",
       "weight": 1.0
     },
     {
@@ -65691,7 +65739,7 @@
       "confidence_score": 0.95,
       "context": "useSharedConfig()",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1198",
+      "source_location": "L1199",
       "weight": 1.0
     },
     {
@@ -65703,7 +65751,7 @@
       "confidence_score": 0.95,
       "context": "useSocket()",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1828",
+      "source_location": "L1833",
       "weight": 1.0
     },
     {
@@ -65715,7 +65763,7 @@
       "confidence_score": 0.95,
       "context": "useSocket()",
       "source_file": "PROJECT_SOURCE_OF_TRUTH.md",
-      "source_location": "L1196",
+      "source_location": "L1197",
       "weight": 1.0
     },
     {
@@ -67234,5 +67282,5 @@
       "source_file": "Test results/Screenshot_20260914_215909.png"
     }
   ],
-  "built_at_commit": "fe4503f1a2d300d1df3cb42329d15292f9425bca"
+  "built_at_commit": "c02581c23f1cbff4a3af8153eba2a07bb3f0a90f"
 }
