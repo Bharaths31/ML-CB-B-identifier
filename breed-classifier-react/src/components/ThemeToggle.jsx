@@ -40,16 +40,31 @@ export const THEMES = [
 
 const THEME_KEY = "breed-classifier-theme";
 
+function readStoredTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    return THEMES.some((item) => item.id === stored) ? stored : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function persistTheme(theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* storage may be blocked; theme still applies for this session */
+  }
+}
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem(THEME_KEY) || "dark";
-  });
+  const [theme, setTheme] = useState(readStoredTheme);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
+    persistTheme(theme);
   }, [theme]);
 
   // Close dropdown on outside click

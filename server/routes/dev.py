@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from server.model_manager import get_manager
+from server.services.escalation_db import known_breed_map
 from server.services.metadata import extract_image_metadata
 from server.utils.logger import get_logger
 
@@ -8,9 +9,14 @@ dev_bp = Blueprint('dev', __name__)
 @dev_bp.route('/api/dev-info', methods=['GET'])
 def dev_info():
     manager = get_manager()
+    known = known_breed_map()
     info = {
         "cattle_classes": manager.class_maps.get("cattle"),
-        "buffalo_classes": manager.class_maps.get("buffalo")
+        "buffalo_classes": manager.class_maps.get("buffalo"),
+        # Union across all visible portable class maps, used by the expert
+        # portal so an old-model escalation can still be verified.
+        "known_cattle_classes": {name: idx for idx, name in enumerate(sorted(known["cattle"]))},
+        "known_buffalo_classes": {name: idx for idx, name in enumerate(sorted(known["buffalo"]))},
     }
     return jsonify(info)
 

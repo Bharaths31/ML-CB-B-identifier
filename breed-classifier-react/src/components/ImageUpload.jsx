@@ -129,7 +129,7 @@ export default function ImageUpload({
                 onClick={() => {
                   if (framed) onClearCrop?.();
                 }}
-                disabled={busy || !framed}
+                disabled={busy}
               >
                 {t("upload.downscaleOnly")}
               </button>

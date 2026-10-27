@@ -109,6 +109,14 @@ def _confidence_level(confidence, is_ood=False):
     return 1
 
 
+def _valid_level(reported, confidence, is_ood=False):
+    try:
+        level = int(reported)
+    except (TypeError, ValueError):
+        return _confidence_level(confidence, is_ood)
+    return level if 1 <= level <= 5 else _confidence_level(confidence, is_ood)
+
+
 _BREED_CACHE = None
 _BREED_CACHE_LOCK = threading.Lock()
 
@@ -190,9 +198,10 @@ class EscalationDB:
             "predicted_species": payload.get("predicted_species") or payload.get("species"),
             "predicted_breed": payload.get("predicted_breed") or payload.get("top_breed"),
             "confidence": _as_float(payload.get("confidence")),
-            "confidence_level": _as_int(
+            "confidence_level": _valid_level(
                 payload.get("confidence_level"),
-                _confidence_level(payload.get("confidence"), bool(payload.get("is_ood"))),
+                payload.get("confidence"),
+                bool(payload.get("is_ood")),
             ),
             "is_ood": 1 if payload.get("is_ood") else 0,
             "ood_details_json": _json(payload.get("ood_details")),

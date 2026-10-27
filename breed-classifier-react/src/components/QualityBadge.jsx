@@ -29,7 +29,7 @@ export function QualityPill({ quality, className = "" }) {
     >
       <span className="quality-pill-icon" aria-hidden="true">{meta.icon}</span>
       <span className="quality-pill-text">{t(meta.key)}</span>
-      <span className="quality-pill-score">{quality.overallScore}</span>
+      <span className="quality-pill-score">Score: {Math.round(quality.overallScore)}%</span>
     </div>
   );
 }

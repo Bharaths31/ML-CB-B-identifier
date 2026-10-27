@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getBpaQrMatrix, exportOdt, downloadBlob } from "../api.js";
 import { loadImage, shareOrDownloadCanvas, roundRect } from "../utils/cropAndQuality.js";
 import { makeSessionEntry, addSessionEntry, thumbnailFromDataUrl } from "../utils/sessionStore.js";
@@ -39,6 +39,7 @@ export default function BpaRegistrationModal({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [qr, setQr] = useState(null);
+  const savedRef = useRef("");
 
   const species = result?.predicted_species || result?.species || "Cattle";
   const breed = (result?.predicted_breed || result?.top_breed || "Unknown").replace(/_/g, " ");
@@ -104,6 +105,10 @@ export default function BpaRegistrationModal({
   const saveToHerd = () => {
     if (!validateTag()) return;
     const reg = registration();
+    if (savedRef.current === tag) {
+      setNotice(`Registration ${tag} is already saved in the herd session.`);
+      return reg;
+    }
     const entry = makeSessionEntry({
       result: { ...result, predicted_species: species, predicted_breed: breed },
       quality,
@@ -113,21 +118,26 @@ export default function BpaRegistrationModal({
     entry.bpa = reg;
     entry.id = `bpa_${tag}_${Date.now()}`;
     addSessionEntry(entry);
+    savedRef.current = tag;
     setNotice(`Registration ${tag} saved to the herd session.`);
     return reg;
   };
 
   const drawQr = (ctx, matrix, x, y, size) => {
-    if (!matrix || !matrix.length) return false;
+    if (!matrix || !Array.isArray(matrix) || !matrix.length) return false;
     const n = matrix.length;
-    const cell = size / n;
+    const cell = Math.max(1, Math.floor(size / n));
+    const rendered = cell * n;
+    const offsetX = x + Math.floor((size - rendered) / 2);
+    const offsetY = y + Math.floor((size - rendered) / 2);
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(x, y, size, size);
     ctx.fillStyle = "#0b0f19";
     for (let row = 0; row < n; row += 1) {
+      if (!Array.isArray(matrix[row])) continue;
       for (let col = 0; col < n; col += 1) {
         if (matrix[row][col]) {
-          ctx.fillRect(x + col * cell, y + row * cell, Math.ceil(cell), Math.ceil(cell));
+          ctx.fillRect(offsetX + col * cell, offsetY + row * cell, cell, cell);
         }
       }
     }
@@ -142,9 +152,9 @@ export default function BpaRegistrationModal({
       const reg = registration();
       const canvas = document.createElement("canvas");
       canvas.width = 1080;
-      canvas.height = 1400;
+      canvas.height = 1500;
       const ctx = canvas.getContext("2d");
-      const bg = ctx.createLinearGradient(0, 0, 1080, 1400);
+      const bg = ctx.createLinearGradient(0, 0, 1080, 1500);
       bg.addColorStop(0, "#06261c");
       bg.addColorStop(1, "#0b1220");
       ctx.fillStyle = bg;
@@ -197,21 +207,21 @@ export default function BpaRegistrationModal({
         ctx.fillStyle = "#f1f5f9";
         ctx.font = "700 28px Inter, system-ui, sans-serif";
         ctx.fillText(String(value).slice(0, 34), 500, y + 34);
-        y += 92;
+        y += 80;
       }
 
       if (qr?.matrix) {
-        drawQr(ctx, qr.matrix, 686, 1010, 300);
+        drawQr(ctx, qr.matrix, 790, 1160, 210);
         ctx.fillStyle = "#94a3b8";
-        ctx.font = "500 20px Inter, system-ui, sans-serif";
-        ctx.fillText("Scan to verify tag + breed JSON", 686, 1340);
+        ctx.font = "500 18px Inter, system-ui, sans-serif";
+        ctx.fillText("Scan to verify tag + breed JSON", 790, 1392);
       }
 
       ctx.fillStyle = "#64748b";
       ctx.font = "500 20px Inter, system-ui, sans-serif";
-      ctx.fillText("BreedID Livestock Vision · Soft-routed 3-head EfficientNet-Lite", 64, 1260);
-      ctx.fillText(`Model: ${result?.model_name || "unknown"}`, 64, 1296);
-      ctx.fillText("Generated offline from the FLW device. Confirm with a veterinary officer.", 64, 1332);
+      ctx.fillText("BreedID Livestock Vision · Soft-routed 3-head EfficientNet-Lite", 64, 1418);
+      ctx.fillText(`Model: ${result?.model_name || "unknown"}`, 64, 1450);
+      ctx.fillText("Generated offline from the FLW device. Confirm with a veterinary officer.", 64, 1480);
 
       await shareOrDownloadCanvas(canvas, `bpa_${reg.tag}_${Date.now()}.png`);
       setNotice("Digital health card PNG generated.");
@@ -360,7 +370,9 @@ export default function BpaRegistrationModal({
           </div>
 
           <p className="bpa-gps">
-            GPS: {location?.gps_lat ? `${location.gps_lat.toFixed(5)}, ${location.gps_lng.toFixed(5)}` : "not captured"} ·{" "}
+            GPS: {location?.gps_lat != null && location?.gps_lng != null
+              ? `${Number(location.gps_lat).toFixed(5)}, ${Number(location.gps_lng).toFixed(5)}`
+              : "not captured"} ·{" "}
             {new Date().toLocaleString()}
           </p>
 

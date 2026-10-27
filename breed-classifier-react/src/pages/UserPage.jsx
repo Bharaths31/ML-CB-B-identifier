@@ -94,8 +94,12 @@ export default function UserPage() {
     if (!outboxCount()) return;
     const result = await syncOutbox();
     setQueuedEscalations(result.remaining);
-    if (!silent && result.synced > 0) {
+    if (result.dropped > 0) {
+      setSyncNotice(t("escalation.dropped", { count: result.dropped }));
+    } else if (!silent && result.synced > 0) {
       setSyncNotice(t("escalation.synced", { count: result.synced }));
+    }
+    if (result.dropped > 0 || (!silent && result.synced > 0)) {
       setTimeout(() => setSyncNotice(null), 5000);
     }
   };

@@ -407,7 +407,9 @@ Source: `breed-classifier-react/src/utils/imageOptimizer.js` and `hooks/useImage
 - `result` is the current 260×260 optimized file.
 - Request IDs cancel stale async optimizations.
 - `applyCrop(file)` runs the optimizer on the cropped file.
+- `clearCrop()` drops the manual crop and re-optimizes the original upload (“downscale only”).
 - `setFitMode(nextFit)` re-runs on `cropped.file || original.file`.
+- `setClaheEnabled(bool)` re-runs with opt-in LAB CLAHE.
 - `adoptResult(file, dataUrl, meta)` accepts an already-optimized camera result; no full-resolution original is retained in that path.
 - `reset()` also resets fit to `stretch` + `imagenet_mean`.
 - Blob object URLs are revoked via `releaseOptimizerResult()`.
@@ -419,10 +421,11 @@ Source: `components/ImageUpload.jsx`, `pages/UserPage.jsx`.
 - Drag/drop, click-to-browse, or keyboard `Enter`/`Space`.
 - `accept="image/*"`; only `file.type.startsWith("image/")` is checked. No dimension or byte-size limit in the client.
 - The card displays the **original** image only. The 260×260 model input is inspectable in the header **Advanced** panel.
-- Actions: **Adjust framing**, **Remove Image**, **Choose Another**, and the primary **Identify Breed** / **Identify Framed Breed** button.
+- **Image preparation mode:** **Downscale only** (default; no manual crop, full image resized to 260×260) or **Frame manually** (opens the 1:1 cropper). Switching back to downscale uses `optimizer.clearCrop()`.
+- Additional actions: **Remove Image**, **Choose Another**, and the primary **Identify Breed** / **Identify Framed Breed** button.
 - The classify button is hidden after a result exists (`showClassify={!predictionResult}`).
-- A new upload, crop, or fit change clears the previous prediction and error.
-- An upload has **no quality report** unless the user goes through the cropper; the cropper's quality report is currently discarded on the upload path (see §15).
+- A new upload, crop, fit change, or downscale-reset clears the previous prediction and error.
+- Every upload/crop is scored on the resulting 260×260 canvas (`analyzeDataUrlQuality` → `analyzeCanvasQuality`); the report is forwarded to `UserPage`.
 - The file sent to `/api/predict` is the optimized 260×260 JPEG; the original filename is sent separately for display/log/export.
 
 ### 5.4 Camera path (ACTIVE)
@@ -440,7 +443,10 @@ Source: `components/CameraCapture.jsx`, `utils/cropAndQuality.js`.
 **Viewfinder**
 
 - Full sensor frame with `object-fit: contain`; the guide corners are drawn around the actual video rectangle, not a crop.
-- Badge: “Full Frame Active • Auto-Optimized to 260×260 (Zero Crop)”.
+- Responsive viewport targets a clean 16:10/16:9 frame (`min-height: 360px`, `max-height: 62vh`).
+- Top HUD is a single flex row: compact quality pill on the left, `260×260 • Zero-Crop` badge on the right.
+- Optional **AR anatomical guide** (`Cattle Guide`, `Buffalo Guide`, or `Minimal Grid (Off)`) shows a rounded safe frame, dorsal/chest reference axes, and four flip-aware zones: Head & Horns, Hump / Dorsal Ridge, Dewlap, Tail / Rump. Labels remain upright when direction flips.
+- Bottom telemetry pills show independent lighting/framing/sharpness states from the quality report; a dark or empty frame now reports `Animal in Frame: No Subject`, never `Ready`.
 - A 130×130 downscaled full-frame quality report runs every **250 ms**.
 
 **Capture**
@@ -521,9 +527,15 @@ Where:
 | `TOO_BLURRY` | `sharpness < 85` | first flag wins |
 | `TOO_DARK` | `meanLuma < 45` or `darkPct > 0.5` | |
 | `OVEREXPOSED` | `meanLuma > 225` or `brightPct > 0.4` | |
-| `NO_SUBJECT_OR_TOO_FAR` | `centerEdge < 6` | framing score capped at 15 |
+| `NO_SUBJECT_OR_TOO_FAR` | `meanLuma < 35` **or** `darkPct > 0.65` **or** `meanLuma > 235` **or** `centerEdge < 8` | framing score capped at 15 |
 | `PARTIALLY_OUT_OF_FRAME` | `borderTouch > 0.28` **and** `borderEdge >= centerEdge` | framing score capped at 55 |
 | `READY` | no flags | `isReady=true` only in this state |
+
+The report also returns independent UI states:
+
+- `lightingState`: `good` / `too_dark` / `overexposed`
+- `framingState`: `ready` only when there is a subject and no edge clipping; otherwise `no_subject` or `edge_clipped`
+- `sharpnessState`: `optimal` only when sharpness ≥ 85 **and** the frame is bright enough; otherwise `blurry`
 
 Status is the **first flag** in the order above. The UI maps each status to an icon, tone, short guidance, and a longer hint (EN/TA).
 
@@ -843,7 +855,7 @@ Source: `test_model.py` (~2,970 lines).
 |---|---|---|
 | GET | `/` | Embedded tester UI |
 | GET | `/api/models` | Discovered models + device |
-| GET | `/api/dev-info` | Cattle/buffalo class maps |
+| GET | `/api/dev-info` | Active cattle/buffalo class maps + union of known class-map names for the expert portal |
 | GET | `/api/model-spec?model=` | Params/components/ONNX I/O |
 | GET | `/api/presenter-config` | Presenter settings |
 | GET | `/api/ood-profiles` | Available OOD profiles |
@@ -897,7 +909,7 @@ Source: `test_model.py` (~2,970 lines).
 |---|---|
 | `scripts/test_master_cpu.py` | Transform defaults, pad behavior, class-count validation, mixing, contrastive, trait integration, logger, checkpoint naming. |
 | `scripts/test_fixes_cpu.py` | Augmentation defaults, same-species mixing, class counts, SupCon, logit adjustment, run-id/path behavior. |
-| `breed-classifier-react/src/utils/__tests__/*` | **41** Node tests: optimizer layout, crop math, quality metrics, session store, trait comparison, five-level confidence, CLAHE, 68-breed coverage. |
+| `breed-classifier-react/src/utils/__tests__/*` | **42** Node tests: optimizer layout, crop math, quality metrics (incl. pitch-black no-subject), session store, trait comparison, five-level confidence, CLAHE, 68-breed coverage. |
 
 
 Run frontend tests with `npm test` inside `breed-classifier-react/`.
@@ -1087,6 +1099,7 @@ Default config:
     "min_breed_confidence_pct": 5.0,
     "show_species_confidence": true,
     "show_species_badge": true,
+    "show_escalation_warning": true,
     "show_technical_details": false,
     "theme": "dark"
   },
@@ -1112,11 +1125,12 @@ Default config:
 | `display.min_breed_confidence_pct` | Server filtering + client filtering. |
 | `display.min_breeds` | Server guarantees at least this many candidates. |
 | `display.max_breeds` / `display.top_k` | Server fetch/slice + client slice. |
-| `display.show_technical_details` | Initial expanded state of the result card diagnostics. |
-| `display.confidence_mode` | **STORED-ONLY** in the active React path. |
-| `display.confidence_floor_pct` | **STORED-ONLY** in the active React path. |
-| `display.show_species_confidence` | **STORED-ONLY** in the active React path. |
-| `display.show_species_badge` | **STORED-ONLY**; no consumer. |
+| `display.show_technical_details` | Initial expanded state of the advanced diagnostics. |
+| `display.confidence_mode` | Live: percentage / scaled / clamped / badge_only / hide. |
+| `display.confidence_floor_pct` | Live floor for scaled/clamped modes. |
+| `display.show_species_confidence` | Live species-probability pill. |
+| `display.show_species_badge` | Live species badge toggle. |
+| `display.show_escalation_warning` | Live: hides Level 1–2 vet escalation warning/button when false. |
 | `display.theme` | **STORED-ONLY**; the React theme is browser-local (`breed-classifier-theme`). |
 | `dataset.min_images_per_breed` | **STORED-ONLY**; training reads `src/config.py` / CLI, not this file. |
 | `dataset.max_images_per_breed` | **STORED-ONLY**. |
@@ -1130,7 +1144,7 @@ Default config:
 | GET | `/api/health` | status, device, model count, uptime |
 | GET | `/api/models` | model list + device + active model |
 | GET | `/api/model-spec?model=` | parameter/component/ONNX I/O spec |
-| GET | `/api/dev-info` | cattle/buffalo class maps |
+| GET | `/api/dev-info` | active cattle/buffalo class maps + known-breed union for expert review |
 | GET | `/api/logs` | current server session log text |
 | GET | `/api/config` | full shared config |
 | GET | `/api/config/<path:key>` | one dot-notation subtree |
@@ -1284,6 +1298,7 @@ Opened from the header. It is a modal drawer with:
   - Pad · Ambient blur
   - Pad · Black
 - Opt-in **Normalize Harsh Shadows (CLAHE)** toggle (default off preserves inference parity).
+- **Detailed prediction diagnostics** when a result exists: five-level action/escalation warning, X-Ray, Top-5, trait comparison, quality subscores, OOD triggers, technical details, BPA registration and Vet escalation actions.
 - Metadata grid: original dimensions, model input, scaled inner size, padding, payload, optimization time.
 - File name.
 - Optimizer errors.
@@ -1313,50 +1328,38 @@ Source: `components/ResultCard.jsx`.
 | 2 | `0.40 ≤ C < 0.60`, not OOD | Orange | Block auto-registration; recapture or queue vet review |
 | 1 | `C < 0.40` or OOD | Red | Reject/OOD; route to vet queue or retake |
 
-The level banner sits above the legacy tier banner. Level 1/2 automatically exposes **Escalate to Vet Expert**; every level also offers a manual escalation action.
+The compact main card shows the level pill (only when `display.show_escalation_warning=true`) and prediction result. The prescribed action, escalation warning/button, BPA registration, X-Ray, trait comparison, quality subscores, OOD trigger list and technical diagnostics live in the header **Advanced** drawer (`AdvancedResultDetails.jsx`).
+
+**Compact main card**
+
+- Species pill (or “OUT-OF-DISTRIBUTION”), confidence pill, optional level pill, species confidence and quality chip.
+- Predicted breed title (or OOD title).
+- Confidence bar with 0/50/100 scale (hidden in `hide`/`badge_only` display modes).
+- Top 3 breed candidates only.
+- Buttons: **Advanced details**, Download/Share Result Card (PNG), Retake with Guided Coach, Classify Another Photo.
+- OOD safety advisory remains visible inline because it is essential.
+
+**Advanced result details (header Advanced drawer)**
+
+- Full five-level banner with prescribed action and escalation trigger warning.
+- **Escalate to Vet Expert** button (hidden when `display.show_escalation_warning=false`).
+- BPA registration for Levels 3–5.
+- AI Vision X-Ray (interactive CBAM + class-activation overlay).
+- Full Top-5 ranked list, look-alike/trait comparison, quality subscores, OOD trigger diagnostics and technical details.
+
+`display.show_escalation_warning=false` hides the level/escalation warning in both the compact card and Advanced details, leaving only prediction results.
 
 **AI Vision X-Ray**
 
-- Interactive toggle + 0–100% opacity slider over the 260×260 model input.
+- Interactive toggle + 0–100% opacity slider over the 260×260 model input inside Advanced details.
 - Overlay uses `attention_map_b64` (winning-head class activation) and optionally `spatial_attention_b64` (CBAM mask).
 - Legend from *Low focus (background suppressed)* to *High focus (horns / hump / dewlap)*; peak quadrant and feature/CBAM grid sizes are shown.
 - ONNX artifacts display “attention map unavailable” because internal hooks are not available.
 
 **BPA registration**
 
-- Levels 3–5 show **Register in BPA (Bharat Pashudhan)**.
+- Levels 3–5 show **Register in BPA (Bharat Pashudhan)** inside Advanced details.
 - Modal generates a 12-digit numeric ear-tag UID (custom entry allowed), auto-fills species/breed/confidence/Top-3/FLW/timestamp/GPS, captures owner/village/age/sex/lactation/vaccination, saves to the herd session, and downloads a PNG health card with a scannable QR (matrix rendered on canvas) or a printable ODT.
-
-**Main card**
-
-- Species pill (or “OUT-OF-DISTRIBUTION”).
-- Confidence pill (or “Safety abstention”).
-- Quality score chip if a quality report exists.
-- Predicted breed title (or “Unrecognized or Out-of-Distribution Sample”).
-- Confidence bar with 0/50/100 scale.
-- Ranked breed list filtered by `min_breed_confidence_pct` and capped at `max_breeds`; duplicates by display name removed.
-- “Why this breed? · Look-alike comparison” table for top 3 (tier 1/2 only).
-- Quality report row.
-- Technical details toggle (initial state from `display.show_technical_details`).
-- Buttons: Escalate to Vet Expert, Register in BPA (levels 3–5), Download/Share Result Card (PNG), Retake with Guided Coach (tier 1/2), Classify Another Photo.
-
-**Technical details**
-
-- Inference time.
-- Model name.
-- Filename.
-- OOD evaluation status (flagged / valid / disabled according to config).
-- Species soft probability.
-- Optimizer input summary when available.
-- Sharpness/lighting/framing subscores when quality exists.
-
-**OOD trigger box**
-
-Shows which of these fired, with values where available:
-
-- energy > energy threshold
-- MSP < MSP threshold
-- binary confidence below floor
 
 ### 9.7 “Why this breed?” trait comparison
 
@@ -1552,6 +1555,7 @@ Header:
 - Confidence floor slider (**live** for scaled/clamped modes).
 - Show species confidence toggle (**live**).
 - Show species badge toggle (**live**).
+- Show vet escalation warning toggle (**live**; off shows only prediction results).
 - Always show technical details toggle (**live**).
 - Dataset min images slider (**stored only** for training).
 - Raw JSON snapshot of the shared config.
@@ -1957,14 +1961,16 @@ The following report-promised features are now **ACTIVE** and should be describe
 6. **Offline escalation outbox** — `breed-escalation-outbox-v1`, header badge, one-click retry and auto-sync on `/ws` reconnect.
 7. **AI Vision X-Ray** — interactive CBAM spatial mask + winning-head class-activation overlay with opacity/legend.
 8. **68-breed morphological coverage** — all configured cattle/buffalo breeds have eight curated display fields.
-9. **Guided camera capture** — toggleable cattle/buffalo SVG silhouette, direction flip, anatomical landmark pills and three live status pills.
+9. **Guided camera capture** — clean flip-aware AR anatomical HUD (Head & Horns, Hump/Dorsal Ridge, Dewlap, Tail/Rump), 16:10 viewport, compact top HUD and independent lighting/framing/sharpness telemetry.
 10. **Opt-in LAB CLAHE** — pure-JS shadow normalization on the 260×260 canvas; off by default to preserve inference parity.
 11. **BPA registration** — 12-digit ear-tag UID, owner/animal form, herd-session save, scannable QR PNG card and printable ODT.
 12. **Upload hardening + real ODT** — `secure_filename` + `.pt/.onnx` validation; Dev config ODT exports the actual herd session.
+13. **Compact result / advanced details** — the main view shows only essential prediction results; X-Ray, traits, quality, diagnostics, BPA and vet escalation live in the Advanced drawer. Dev can hide the vet warning with `display.show_escalation_warning=false`.
+14. **Upload preparation choice** — Downscale only (no crop) or Frame manually (1:1 cropper), with a one-click reset back to the original image.
 
 ### Verification snapshot (2026-10-27)
 
-- `npm test` in `breed-classifier-react/`: **41/41 pass** (includes the five-level rubric, 260×260 CLAHE dimensions, and 68/68 breed coverage).
+- `npm test` in `breed-classifier-react/`: **42/42 pass** (includes the five-level rubric, 260×260 CLAHE dimensions, 68/68 breed coverage, and pitch-black camera framing rejection).
 - `npm run build`: passes.
 - `python -m src.verify`: **VERIFICATION PASSED** (lite2 + lite4, 50 cattle / 18 buffalo heads, 1280-d features).
 - Flask smoke: `/api/health`, `/api/models`, `/api/predict`, `/api/escalations`, `/api/bpa/qr` → HTTP 200 (escalation creation → 201).

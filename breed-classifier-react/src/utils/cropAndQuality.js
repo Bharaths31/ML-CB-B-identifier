@@ -27,8 +27,12 @@ export const QUALITY_THRESHOLDS = {
   // Fraction of crushed/blocked pixels.
   darkPixelPct: 0.5,
   brightPixelPct: 0.4,
+  // No visible subject when the frame is near-black / crushed / washed out.
+  noSubjectMean: 35,
+  noSubjectDarkPct: 0.65,
+  washedOutMean: 235,
   // Mean Sobel magnitude in the central 70% below which we assume no animal.
-  minCenterEdge: 6,
+  minCenterEdge: 8,
   // Fraction of the outer ring with strong edges -> animal touches the crop.
   borderTouchPct: 0.28,
 };
@@ -184,7 +188,8 @@ function sobelMagnitude(gray, width, height, x, y) {
  * @returns {{overallScore:number,sharpnessScore:number,exposureScore:number,
  *   framingScore:number,meanLuma:number,darkPct:number,brightPct:number,
  *   laplacianVariance:number,centerEdge:number,borderTouch:number,
- *   status:string,flags:string[],isReady:boolean}}
+ *   lightingState:string,framingState:string,sharpnessState:string,
+ *   noSubject:boolean,partialOut:boolean,status:string,flags:string[],isReady:boolean}}
  */
 export function analyzeImageData({ data, width, height }) {
   const { gray, mean, darkPct, brightPct } = toGrayscale(data, width, height);
@@ -267,15 +272,48 @@ export function analyzeImageData({ data, width, height }) {
   if (mean > QUALITY_THRESHOLDS.brightMean || brightPct > QUALITY_THRESHOLDS.brightPixelPct) {
     flags.push("OVEREXPOSED");
   }
-  if (centerEdge < QUALITY_THRESHOLDS.minCenterEdge) {
+
+  // A dark/crushed/washed-out frame with no central edge energy cannot contain
+  // a visible animal. This is deliberately stricter than the old
+  // centerEdge < 6 check, which let pitch-black frames report "framing ready".
+  const noSubject =
+    mean < QUALITY_THRESHOLDS.noSubjectMean ||
+    darkPct > QUALITY_THRESHOLDS.noSubjectDarkPct ||
+    mean > QUALITY_THRESHOLDS.washedOutMean ||
+    centerEdge < QUALITY_THRESHOLDS.minCenterEdge;
+  const partialOut =
+    !noSubject &&
+    borderTouch > QUALITY_THRESHOLDS.borderTouchPct &&
+    borderEdge >= centerEdge;
+
+  if (noSubject) {
     flags.push("NO_SUBJECT_OR_TOO_FAR");
     framingScore = Math.min(framingScore, 15);
-  } else if (borderTouch > QUALITY_THRESHOLDS.borderTouchPct && borderEdge >= centerEdge) {
+  } else if (partialOut) {
     flags.push("PARTIALLY_OUT_OF_FRAME");
     // Keep the score coherent: a frame cannot be "touching the edge" and
     // simultaneously report perfect framing.
     framingScore = Math.min(framingScore, 55);
   }
+
+  const lightingState =
+    mean < QUALITY_THRESHOLDS.darkMean || darkPct > QUALITY_THRESHOLDS.darkPixelPct
+      ? "too_dark"
+      : mean > QUALITY_THRESHOLDS.brightMean || brightPct > QUALITY_THRESHOLDS.brightPixelPct
+      ? "overexposed"
+      : "good";
+
+  const framingState =
+    !noSubject && !partialOut && mean >= QUALITY_THRESHOLDS.noSubjectMean && centerEdge >= QUALITY_THRESHOLDS.minCenterEdge
+      ? "ready"
+      : noSubject || mean < QUALITY_THRESHOLDS.noSubjectMean || centerEdge < QUALITY_THRESHOLDS.minCenterEdge
+      ? "no_subject"
+      : "edge_clipped";
+
+  const sharpnessState =
+    sharpnessScore >= QUALITY_THRESHOLDS.blurScoreMin && mean >= QUALITY_THRESHOLDS.noSubjectMean
+      ? "optimal"
+      : "blurry";
 
   const status = flags[0] || "READY";
   const overallScore = clamp(
@@ -295,6 +333,11 @@ export function analyzeImageData({ data, width, height }) {
     laplacianVariance: Math.round(laplacianVariance),
     centerEdge: Number(centerEdge.toFixed(2)),
     borderTouch: Number(borderTouch.toFixed(3)),
+    lightingState,
+    framingState,
+    sharpnessState,
+    noSubject,
+    partialOut,
     status,
     flags,
     isReady: status === "READY",
@@ -337,13 +380,15 @@ export function analyzeSourceCrop(source, rect) {
   return analyzeImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
 }
 
-export function analyzeCanvas(canvas) {
+/** Explicit quality-gate entry point used by uploads and the live camera. */
+export function analyzeCanvasQuality(canvas) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   return analyzeImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
 }
 
-/** Explicit name used by the upload/camera quality gate. */
-export const analyzeCanvasQuality = analyzeCanvas;
+export function analyzeCanvas(canvas) {
+  return analyzeCanvasQuality(canvas);
+}
 
 /**
  * Render any image data URL into a 260×260 canvas and score it with the same

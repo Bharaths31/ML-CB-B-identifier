@@ -40,14 +40,16 @@ export default function ResultCard({
 
   const maxBreeds = config?.display?.max_breeds ?? (config?.display?.top_k ?? 5);
   const minConf = config?.display?.min_breed_confidence_pct ?? 0;
-  const displayedTop = top
+  const filteredTop = top
     .filter((b) => b.prob * 100 >= minConf)
     .slice(0, Math.max(1, Math.min(3, maxBreeds)));
+  const displayedTop = filteredTop.length ? filteredTop : top.slice(0, 1);
 
   const confidenceMode = config?.display?.confidence_mode || "percentage";
   const confidenceFloor = config?.display?.confidence_floor_pct ?? 80;
   const showSpeciesConfidence = config?.display?.show_species_confidence ?? true;
   const showSpeciesBadge = config?.display?.show_species_badge ?? true;
+  const showEscalationWarning = config?.display?.show_escalation_warning ?? true;
   const displayConfidence = formatBreedConfidence(
     topProb * 100,
     top.slice(0, 3).map((item) => item.prob * 100),
@@ -93,12 +95,14 @@ export default function ResultCard({
                   {isOod ? t("result.oodBadge") : String(species).toUpperCase()}
                 </span>
               )}
-              <span
-                className={`confidence-pill confidence-pill-level-${level}`}
-                title={t(levelMeta.key)}
-              >
-                {t("confidence.levelShort", { level })}
-              </span>
+              {showEscalationWarning && (
+                <span
+                  className={`confidence-pill confidence-pill-level-${level}`}
+                  title={t(levelMeta.key)}
+                >
+                  {t("confidence.levelShort", { level })}
+                </span>
+              )}
               {showSpeciesConfidence && !isOod && (
                 <span className="species-confidence-pill">
                   {t("result.speciesConfidence")}: {Math.round(Number(result.species_confidence) || 0)}%

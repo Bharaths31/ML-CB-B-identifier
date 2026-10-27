@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import ImageCropper from "./ImageCropper.jsx";
 import QualityBadge, { QualityPill } from "./QualityBadge.jsx";
 import { useI18n } from "../i18n/I18nProvider.jsx";
-import { analyzeCanvas, captureVideoFrame } from "../utils/cropAndQuality.js";
+import { analyzeCanvas, captureVideoFrame, QUALITY_THRESHOLDS } from "../utils/cropAndQuality.js";
 import {
   formatBytes,
   optimizeImageTo260,
@@ -395,33 +395,55 @@ export default function CameraCapture({ onCapture, onClose }) {
       })
     : "";
 
+  const lightingKey = !quality
+    ? null
+    : quality.lightingState ||
+      (quality.meanLuma < QUALITY_THRESHOLDS.darkMean
+        ? "too_dark"
+        : quality.meanLuma > QUALITY_THRESHOLDS.brightMean
+        ? "overexposed"
+        : "good");
+
   const lightingStatus = !quality
     ? { key: "unknown", label: "—" }
-    : quality.meanLuma < 45 || quality.darkPct > 0.5
+    : lightingKey === "too_dark"
     ? { key: "dark", label: t("camera.lightDark") }
-    : quality.meanLuma > 225 || quality.brightPct > 0.4
-    ? { key: "bright", label: t("camera.lightBright") }
+    : lightingKey === "overexposed"
+    ? { key: "overexposed", label: t("camera.lightBright") }
     : { key: "good", label: t("camera.lightGood") };
 
   const framingStatus = !quality
     ? { key: "unknown", label: "—" }
-    : quality.status === "NO_SUBJECT_OR_TOO_FAR"
-    ? { key: "far", label: t("camera.frameFar") }
-    : quality.status === "PARTIALLY_OUT_OF_FRAME"
-    ? { key: "clipped", label: t("camera.frameClipped") }
-    : { key: "ready", label: t("camera.frameReady") };
+    : quality.framingState === "ready"
+    ? { key: "ready", label: t("camera.frameAligned") }
+    : quality.framingState === "edge_clipped"
+    ? { key: "edge_clipped", label: t("camera.frameClipped") }
+    : { key: "no_subject", label: t("camera.frameNoSubject") };
 
   const sharpnessStatus = !quality
     ? { key: "unknown", label: "—" }
-    : quality.status === "TOO_BLURRY" || quality.sharpnessScore < 85
-    ? { key: "blurry", label: t("camera.sharpBlurry") }
-    : { key: "optimal", label: t("camera.sharpOptimal") };
+    : quality.sharpnessState === "optimal"
+    ? { key: "optimal", label: t("camera.sharpOptimal") }
+    : { key: "blurry", label: t("camera.sharpBlurry") };
 
   const silhouetteLabel = silhouette === "buffalo"
     ? t("camera.silhouetteBuffalo")
     : silhouette === "cattle"
     ? t("camera.silhouetteCattle")
     : t("camera.silhouetteOff");
+
+  const facingRight = !silhouetteFlipped;
+  const headX = facingRight ? 615 : 185;
+  const headY = 165;
+  const humpX = facingRight ? 480 : 320;
+  const humpY = 145;
+  const dewlapX = facingRight ? 565 : 235;
+  const dewlapY = 285;
+  const tailX = facingRight ? 165 : 635;
+  const tailY = 245;
+  const isBuffaloGuide = silhouette === "buffalo";
+  const guideLabel = isBuffaloGuide ? "━ Dorsal Ridge" : `▲ ${t("camera.landmarkHump")}`;
+  const guideWidth = isBuffaloGuide ? 120 : 86;
 
   return (
     <div className="camera-overlay" onClick={onClose} role="dialog" aria-modal="true">
@@ -617,51 +639,89 @@ export default function CameraCapture({ onCapture, onClose }) {
                         height: videoRect.height,
                       }}
                     >
-                      <span className="camera-target-corner tl" />
-                      <span className="camera-target-corner tr" />
-                      <span className="camera-target-corner bl" />
-                      <span className="camera-target-corner br" />
-                      <span className="camera-fullframe-badge">
-                        {t("camera.fullFrameBadge")}
-                      </span>
+                      <svg
+                        className={`camera-silhouette camera-hud ${silhouette === "off" ? "is-minimal" : ""}`}
+                        viewBox="0 0 800 500"
+                        preserveAspectRatio="xMidYMid meet"
+                        aria-label={silhouette === "off" ? t("camera.minimalGrid") : `${silhouetteLabel} AR guide`}
+                      >
+                        <g className="hud-frame">
+                          <rect className="hud-safe-frame" x="70" y="55" width="660" height="365" rx="16" />
+                          <path className="hud-corner" d="M70 95 V71 Q70 55 86 55 H110" />
+                          <path className="hud-corner" d="M690 55 H714 Q730 55 730 71 V95" />
+                          <path className="hud-corner" d="M70 380 V404 Q70 420 86 420 H110" />
+                          <path className="hud-corner" d="M690 420 H714 Q730 420 730 404 V380" />
+                          <line className="hud-axis" x1="70" y1="175" x2="730" y2="175" />
+                          <line className="hud-axis" x1="70" y1="335" x2="730" y2="335" />
+                          <text className="hud-axis-label" x="742" y="179">DORSAL</text>
+                          <text className="hud-axis-label" x="742" y="339">CHEST</text>
+                        </g>
 
-                      {silhouette !== "off" && (
-                        <svg
-                          className={`camera-silhouette ${silhouette}`}
-                          viewBox="0 0 400 260"
-                          preserveAspectRatio="xMidYMid meet"
-                          aria-label={`${silhouetteLabel} wireframe`}
-                        >
-                          <g transform={silhouetteFlipped ? "translate(400,0) scale(-1,1)" : ""}>
+                        {silhouette !== "off" && (
+                          <g className="hud-zones">
                             <path
-                              className="silhouette-outline"
+                              className="hud-spine"
+                              d={`M ${tailX} ${tailY} Q ${(tailX + humpX) / 2} ${tailY - 80} ${humpX} ${humpY} Q ${(humpX + headX) / 2} ${humpY - 24} ${headX} ${headY}`}
+                            />
+
+                            {/* Head & Horns */}
+                            <circle className="hud-reticle" cx={headX} cy={headY} r="54" />
+                            <path
+                              className="hud-horn-guide"
                               d={
-                                silhouette === "buffalo"
-                                  ? "M55,170 C48,140 62,112 88,105 L96,92 L112,100 L135,96 L210,95 L265,100 L286,74 L300,102 L338,108 C360,112 370,132 362,154 L348,166 L342,206 L326,206 L320,176 L238,178 L230,208 L214,208 L208,178 L118,176 L110,208 L94,208 L88,176 C70,176 58,176 55,170 Z"
-                                  : "M58,168 C50,138 66,108 92,102 L103,70 L122,96 L148,88 L214,86 L262,94 L282,64 L296,96 L334,102 C356,108 366,130 358,152 L344,164 L338,204 L322,204 L316,174 L236,176 L228,206 L212,206 L206,176 L116,174 L108,206 L92,206 L86,174 C68,174 61,174 58,168 Z"
+                                isBuffaloGuide
+                                  ? `M ${headX - 30} ${headY - 20} Q ${headX - 66} ${headY - 32} ${headX - 44} ${headY + 12} M ${headX + 30} ${headY - 20} Q ${headX + 66} ${headY - 32} ${headX + 44} ${headY + 12}`
+                                  : `M ${headX - 30} ${headY - 28} Q ${headX - 58} ${headY - 62} ${headX - 20} ${headY - 64} M ${headX + 30} ${headY - 28} Q ${headX + 58} ${headY - 62} ${headX + 20} ${headY - 64}`
                               }
                             />
-                            <path className="silhouette-horn" d="M103,70 C94,54 90,38 96,24 M103,70 C112,52 120,38 118,22" />
-                            <path className="silhouette-horn" d="M282,64 C272,46 270,30 278,18 M282,64 C290,48 300,34 298,20" />
-                            <path className="silhouette-tail" d="M58,148 C44,158 38,178 42,198" />
-                            <path className="silhouette-dewlap" d="M118,176 C126,190 132,198 128,210" />
+                            <path
+                              className="hud-crosshair"
+                              d={`M ${headX - 14} ${headY + 6} H ${headX + 14} M ${headX} ${headY - 8} V ${headY + 20}`}
+                            />
+                            <g className="hud-label" transform={`translate(${headX}, ${headY - 66})`}>
+                              <rect x="-75" y="-11" width="150" height="22" rx="11" />
+                              <text y="4" textAnchor="middle">◎ {t("camera.landmarkHead")}</text>
+                            </g>
+
+                            {/* Hump / Dorsal Ridge */}
+                            <path
+                              className="hud-hump-guide"
+                              d={
+                                isBuffaloGuide
+                                  ? `M ${humpX - 60} 175 Q ${humpX} 148 ${humpX + 60} 175`
+                                  : `M ${humpX - 55} 175 Q ${humpX} 105 ${humpX + 55} 175`
+                              }
+                            />
+                            <circle className="hud-anchor" cx={humpX} cy="138" r="4" />
+                            <g className="hud-label" transform={`translate(${humpX}, ${humpY - 35})`}>
+                              <rect x={-guideWidth / 2} y="-11" width={guideWidth} height="22" rx="11" />
+                              <text y="4" textAnchor="middle">{guideLabel}</text>
+                            </g>
+
+                            {/* Dewlap */}
+                            <path
+                              className="hud-dewlap-guide"
+                              d={`M ${dewlapX - 28} ${dewlapY - 35} Q ${dewlapX + 12} ${dewlapY} ${dewlapX - 8} ${dewlapY + 40}`}
+                            />
+                            <circle className="hud-anchor" cx={dewlapX} cy={dewlapY} r="4" />
+                            <g className="hud-label" transform={`translate(${dewlapX}, ${dewlapY + 60})`}>
+                              <rect x="-68" y="-11" width="136" height="22" rx="11" />
+                              <text y="4" textAnchor="middle">◡ {t("camera.landmarkDewlap")}</text>
+                            </g>
+
+                            {/* Tail / Rump */}
+                            <path
+                              className="hud-tail-guide"
+                              d={`M ${tailX} 175 Q ${tailX + (facingRight ? 18 : -18)} 255 ${tailX} 345`}
+                            />
+                            <circle className="hud-anchor" cx={tailX} cy={tailY} r="4" />
+                            <g className="hud-label" transform={`translate(${tailX}, 365)`}>
+                              <rect x="-58" y="-11" width="116" height="22" rx="11" />
+                              <text y="4" textAnchor="middle">⫶ Tail / Rump</text>
+                            </g>
                           </g>
-                          <g className="silhouette-landmarks">
-                            <g className="landmark-pill">
-                              <rect x="196" y="52" width="90" height="26" rx="13" />
-                              <text x="241" y="69" textAnchor="middle">{t("camera.landmarkHump")}</text>
-                            </g>
-                            <g className="landmark-pill">
-                              <rect x="42" y="22" width="118" height="26" rx="13" />
-                              <text x="101" y="39" textAnchor="middle">{t("camera.landmarkHead")}</text>
-                            </g>
-                            <g className="landmark-pill">
-                              <rect x="80" y="216" width="124" height="26" rx="13" />
-                              <text x="142" y="233" textAnchor="middle">{t("camera.landmarkDewlap")}</text>
-                            </g>
-                          </g>
-                        </svg>
-                      )}
+                        )}
+                      </svg>
 
                       <div className="camera-status-pills">
                         <span className={`camera-status-pill status-${lightingStatus.key}`}>
@@ -679,24 +739,27 @@ export default function CameraCapture({ onCapture, onClose }) {
 
                   <div className="camera-guidance">
                     <QualityPill quality={quality} />
-                    {autoCapture && readyStreak > 0 && (
-                      <span className="camera-streak" aria-label={t("camera.holdSteady")}>
-                        <svg className="camera-countdown-ring" viewBox="0 0 36 36" aria-hidden="true">
-                          <circle className="ring-bg" cx="18" cy="18" r="15" />
-                          <circle
-                            className="ring-fg"
-                            cx="18"
-                            cy="18"
-                            r="15"
-                            style={{
-                              strokeDasharray: 94.25,
-                              strokeDashoffset: 94.25 * (1 - readyStreak / 3),
-                            }}
-                          />
-                        </svg>
-                        <span>{readyStreak}/3</span>
-                      </span>
-                    )}
+                    <div className="camera-hud-right">
+                      {autoCapture && readyStreak > 0 && (
+                        <span className="camera-streak" aria-label={t("camera.holdSteady")}>
+                          <svg className="camera-countdown-ring" viewBox="0 0 36 36" aria-hidden="true">
+                            <circle className="ring-bg" cx="18" cy="18" r="15" />
+                            <circle
+                              className="ring-fg"
+                              cx="18"
+                              cy="18"
+                              r="15"
+                              style={{
+                                strokeDasharray: 94.25,
+                                strokeDashoffset: 94.25 * (1 - readyStreak / 3),
+                              }}
+                            />
+                          </svg>
+                          <span>{readyStreak}/3</span>
+                        </span>
+                      )}
+                      <span className="camera-zero-crop-badge">{t("camera.zeroCropBadge")}</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -731,18 +794,18 @@ export default function CameraCapture({ onCapture, onClose }) {
                   title={t("camera.silhouette")}
                   aria-label={t("camera.silhouette")}
                 >
-                  <option value="off">◒ {t("camera.silhouetteOff")}</option>
-                  <option value="cattle">◒ {t("camera.silhouetteCattle")}</option>
-                  <option value="buffalo">◒ {t("camera.silhouetteBuffalo")}</option>
+                  <option value="off">◫ {t("camera.silhouetteOff")}</option>
+                  <option value="cattle">◎ {t("camera.silhouetteCattle")}</option>
+                  <option value="buffalo">◎ {t("camera.silhouetteBuffalo")}</option>
                 </select>
                 {silhouette !== "off" && (
                   <button
                     type="button"
-                    className="camera-toggle-btn"
+                    className="camera-toggle-btn camera-facing-btn"
                     onClick={() => setSilhouetteFlipped((value) => !value)}
                     title={t("camera.flipSilhouette")}
                   >
-                    {silhouetteFlipped ? "⬅" : "➔"}
+                    {facingRight ? t("camera.facingRight") : t("camera.facingLeft")}
                   </button>
                 )}
                 <button

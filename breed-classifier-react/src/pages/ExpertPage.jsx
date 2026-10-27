@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getDevInfo, getEscalations, resolveEscalation } from "../api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { useI18n } from "../i18n/I18nProvider.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 
 const FILTERS = ["pending", "verified", "rejected", "all"];
 
@@ -26,8 +27,11 @@ function parseJson(value, fallback) {
 
 function breedOptions(devInfo, species) {
   if (!devInfo) return [];
-  const key = String(species || "").toLowerCase() === "buffalo" ? "buffalo_classes" : "cattle_classes";
-  return Object.keys(devInfo[key] || {}).sort();
+  const isBuffalo = String(species || "").toLowerCase() === "buffalo";
+  const key = isBuffalo ? "buffalo_classes" : "cattle_classes";
+  const knownKey = isBuffalo ? "known_buffalo_classes" : "known_cattle_classes";
+  const source = devInfo[knownKey] || devInfo[key] || {};
+  return Object.keys(source).sort();
 }
 
 function softmaxBars(record) {
@@ -84,14 +88,19 @@ function EscalationCard({ record, devInfo, onResolved, t }) {
     }
     setBusy(true);
     try {
-      await resolveEscalation(record.id, {
+      const response = await resolveEscalation(record.id, {
         status,
         expert_species: status === "verified" ? species.toLowerCase() : null,
         expert_breed: status === "verified" ? resolvedBreed : null,
         expert_notes: notes,
         promote_to_dataset: status === "verified" && promote,
       });
-      setMessage(t("expert.saved"));
+      const active = response?.escalation?.active_learning;
+      if (active && active.promoted === false) {
+        setMessage(active.error || t("expert.activeLearningFailed"));
+      } else {
+        setMessage(t("expert.saved"));
+      }
       onResolved?.();
     } catch (err) {
       setMessage(err.message);
@@ -286,9 +295,19 @@ export default function ExpertPage() {
     setLoading(true);
     setError(null);
     try {
-      const [queue, info] = await Promise.all([getEscalations(status), getDevInfo()]);
-      setData(queue);
-      setDevInfo(info);
+      const [queueResult, infoResult] = await Promise.allSettled([
+        getEscalations(status),
+        getDevInfo(),
+      ]);
+      if (queueResult.status === "fulfilled") {
+        setData(queueResult.value);
+      } else {
+        throw queueResult.reason;
+      }
+      setDevInfo(infoResult.status === "fulfilled" ? infoResult.value : null);
+      if (infoResult.status === "rejected") {
+        setError(infoResult.reason?.message || "Breed class maps could not be loaded.");
+      }
     } catch (err) {
       setError(err.message || "Could not load the expert queue");
     } finally {
@@ -326,6 +345,7 @@ export default function ExpertPage() {
           </div>
           <Link to="/" className="btn btn-outline">{t("expert.back")}</Link>
           <Link to="/dev" className="btn btn-outline">{t("header.dev")}</Link>
+          <ThemeToggle />
         </div>
       </header>
 

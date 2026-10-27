@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   QUALITY_THRESHOLDS,
+  analyzeCanvasQuality,
   analyzeImageData,
   centerSquareRect,
   clampPan,
@@ -198,6 +199,23 @@ test("all-black and all-white frames are flagged for exposure", () => {
   assert.ok(bright.flags.includes("OVEREXPOSED"));
   assert.ok(dark.exposureScore < 50);
   assert.ok(bright.exposureScore < 50);
+});
+
+test("pitch-black canvas is no_subject and never ready", () => {
+  const imageData = buffer(130, 130, () => [0, 0, 0]);
+  const canvas = {
+    width: 130,
+    height: 130,
+    getContext: () => ({
+      getImageData: () => imageData,
+    }),
+  };
+  const report = analyzeCanvasQuality(canvas);
+  assert.equal(report.lightingState, "too_dark");
+  assert.equal(report.framingState, "no_subject");
+  assert.equal(report.sharpnessState, "blurry");
+  assert.equal(report.isReady, false);
+  assert.ok(report.flags.includes("NO_SUBJECT_OR_TOO_FAR"));
 });
 
 test("quality scores stay in 0..100", () => {
