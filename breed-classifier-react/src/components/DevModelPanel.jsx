@@ -10,18 +10,25 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
   const [specLoading, setSpecLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
+  const [activeName, setActiveName] = useState(activeModel || "");
+  const [selecting, setSelecting] = useState("");
+  const [selectMessage, setSelectMessage] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   const loadModelList = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const data = await getModels();
       setModels(data.models || []);
       setDevice(data.device || "cpu");
-      const current = data.active_model || activeModel || data.models?.[0]?.name;
+      const current = data.active_model || activeModel || data.models?.[0]?.name || "";
+      if (current) setActiveName(current);
       if (current && !selectedSpecModel) {
         setSelectedSpecModel(current);
       }
     } catch (err) {
+      setLoadError(err.message || "Failed to load models");
       console.error("Failed to load models:", err);
     } finally {
       setLoading(false);
@@ -30,6 +37,11 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
 
   useEffect(() => {
     loadModelList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModel]);
+
+  useEffect(() => {
+    if (activeModel) setActiveName(activeModel);
   }, [activeModel]);
 
   useEffect(() => {
@@ -49,12 +61,25 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
   }, [selectedSpecModel]);
 
   const handleSelectActive = async (modelName) => {
+    if (selecting || modelName === activeName) return;
+    setSelecting(modelName);
+    setSelectMessage(null);
     try {
-      await selectModel(modelName);
-      onModelChanged?.(modelName);
-      setSelectedSpecModel(modelName);
+      const res = await selectModel(modelName);
+      const nextActive = res?.active_model || modelName;
+      setActiveName(nextActive);
+      setSelectedSpecModel(nextActive);
+      setSelectMessage(`Active model switched to ${nextActive}.`);
+      if (typeof onModelChanged === "function") {
+        await onModelChanged(nextActive);
+      }
+      await loadModelList();
+      setActiveName(nextActive);
+      setSelectedSpecModel(nextActive);
     } catch (err) {
-      alert("Failed to switch model: " + err.message);
+      setSelectMessage(`Failed to switch model: ${err.message}`);
+    } finally {
+      setSelecting("");
     }
   };
 
@@ -100,7 +125,7 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
               <p className="text-muted">No models found in outputs/ directory.</p>
             ) : (
               models.map((m) => {
-                const isActive = (activeModel || "") === m.name;
+                const isActive = (activeName || activeModel || "") === m.name;
                 return (
                   <div key={m.name} className={`model-item-card ${isActive ? "model-active-card" : ""}`}>
                     <div className="model-item-info">
@@ -127,8 +152,9 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
                           type="button"
                           className="btn btn-sm btn-primary"
                           onClick={() => handleSelectActive(m.name)}
+                          disabled={Boolean(selecting)}
                         >
-                          Activate
+                          {selecting === m.name ? "Activating…" : "Activate"}
                         </button>
                       )}
                     </div>
@@ -137,6 +163,9 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
               })
             )}
           </div>
+
+          {loadError && <p className="camera-error-inline">{loadError}</p>}
+          {selectMessage && <p className="upload-status-text">{selectMessage}</p>}
 
           {/* Model Upload Section */}
           <div className="model-upload-box">

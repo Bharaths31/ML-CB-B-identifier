@@ -139,12 +139,12 @@ class ModelManager:
         if name not in self.models:
             raise ValueError(f"Model '{name}' not found")
         db = get_shared_config(socketio)
-        db.set("active_model", name, notify=True)
 
-        # Rebinding the class maps + OOD profile is what keeps the labels and
-        # safety thresholds aligned with the newly selected checkpoint.
+        # Bind state before persisting, so a failed load/class-map binding
+        # cannot leave the shared config pointing at an unusable checkpoint.
         self.bind_class_maps_for_model(name)
         self._bind_ood_detector(name)
+        db.set("active_model", name, notify=True)
 
         if socketio:
             try:

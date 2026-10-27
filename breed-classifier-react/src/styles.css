@@ -4841,3 +4841,10 @@ input[type="range"] {
   .camera-zero-crop-badge { font-size: 10px; padding: 3px 8px; }
   .camera-status-pill { font-size: 10px; padding: 4px 8px; }
 }
+.spec-pill-active {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spec-pill-active strong { font-weight: 700; }

@@ -68,6 +68,9 @@ export default function DevPage() {
             <span className="spec-pill">
               Uptime: <strong>{serverStatus?.uptime ? `${Math.round(serverStatus.uptime)}s` : "0s"}</strong>
             </span>
+            <span className="spec-pill spec-pill-active" title={config?.active_model || serverStatus?.active_model || "default"}>
+              Active: <strong>{config?.active_model || serverStatus?.active_model || "default"}</strong>
+            </span>
           </div>
 
           <Link to="/?mode=camera" className="btn btn-outline capture-test-btn" title="Open the user capture flow">

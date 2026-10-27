@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, jsonify, request
 from werkzeug.utils import secure_filename
 from server.model_manager import get_manager, head_out_features
+from server.utils.logger import get_logger
 from src.config import CHECKPOINT_DIR, IMAGE_SIZE
 
 models_bp = Blueprint('models', __name__)
@@ -148,18 +149,25 @@ def list_models():
 @models_bp.route('/api/select-model', methods=['POST'])
 def select_model():
     manager = get_manager()
-    socketio = request.environ.get('flask.app', None)
     from flask import current_app
     socketio = current_app.extensions.get('socketio')
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     model_name = data.get("model")
     if not model_name:
         return jsonify({"error": "Missing 'model' field"}), 400
     try:
         manager.set_active_model(model_name, socketio=socketio)
-        return jsonify({"status": "ok", "active_model": model_name})
+        return jsonify({
+            "status": "ok",
+            "active_model": manager.get_active_model_name(),
+        })
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger = get_logger()
+        if logger:
+            logger.error(f"Failed to switch model to '{model_name}': {e}")
+        return jsonify({"error": f"Failed to switch model: {e}"}), 500
 
 @models_bp.route('/api/model-spec', methods=['GET'])
 def model_spec():
