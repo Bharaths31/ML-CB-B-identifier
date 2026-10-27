@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { formatBytes } from "../utils/imageOptimizer.js";
 import AdvancedBatchTester from "./AdvancedBatchTester.jsx";
+import AdvancedResultDetails from "./AdvancedResultDetails.jsx";
 
 const FIT_OPTIONS = [
   { fitMode: "stretch", padStyle: "imagenet_mean", label: "optimizer.stretch" },
@@ -14,7 +15,19 @@ const FIT_OPTIONS = [
  * Header-level Advanced panel. Keeps the normal page minimal while exposing
  * the model-input preview, optimizer metadata, fit modes and batch testing.
  */
-export default function AdvancedPanel({ open, onClose, optimizer, model }) {
+export default function AdvancedPanel({
+  open,
+  onClose,
+  optimizer,
+  model,
+  result,
+  config,
+  quality,
+  previewUrl,
+  modelInputUrl,
+  onEscalate,
+  onOpenExpert,
+}) {
   const { t } = useI18n();
   const [view, setView] = useState("model");
 
@@ -108,6 +121,22 @@ export default function AdvancedPanel({ open, onClose, optimizer, model }) {
                       </button>
                     ))}
                   </div>
+
+                  <div className="control-setting-row clahe-row">
+                    <div className="setting-info">
+                      <span className="setting-label">{t("camera.clahe")}</span>
+                      <span className="setting-subtext">{t("camera.claheHint")}</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(optimizer.clahe)}
+                        onChange={(event) => optimizer.setClaheEnabled?.(event.target.checked)}
+                        disabled={optimizer.busy}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
                   {optimizer.error && <p className="camera-error-inline">{optimizer.error}</p>}
                   {optimizer.original?.name && (
                     <p className="advanced-file-name">
@@ -147,6 +176,17 @@ export default function AdvancedPanel({ open, onClose, optimizer, model }) {
               )}
             </>
           )}
+
+          <AdvancedResultDetails
+            result={result}
+            config={config}
+            quality={quality}
+            previewUrl={previewUrl || originalUrl}
+            modelInputUrl={modelInputUrl || modelUrl}
+            optimizerMeta={meta}
+            onEscalate={onEscalate}
+            onOpenExpert={onOpenExpert}
+          />
 
           <AdvancedBatchTester fit={optimizer.fit} model={model} />
         </div>

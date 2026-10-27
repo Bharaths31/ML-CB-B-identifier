@@ -50,6 +50,9 @@ export default function CameraCapture({ onCapture, onClose }) {
   const [flash, setFlash] = useState(false);
   const [captured, setCaptured] = useState(null);
   const [fitMode, setFitMode] = useState("stretch");
+  const [claheOn, setClaheOn] = useState(false);
+  const [silhouette, setSilhouette] = useState("off");
+  const [silhouetteFlipped, setSilhouetteFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
 
@@ -181,11 +184,12 @@ export default function CameraCapture({ onCapture, onClose }) {
   }, [stage, videoDims]);
 
   const optimizeCanvas = useCallback(
-    (canvas, mode, originalDataUrl) =>
+    (canvas, mode, originalDataUrl, clahe = false) =>
       optimizeSourceTo260(canvas, canvas.width, canvas.height, {
         fitMode: mode,
         padStyle: "imagenet_mean",
         allowUpscale: false,
+        clahe,
         originalName: `camera_${Date.now()}.jpg`,
         originalBytes: 0,
         originalDataUrl: originalDataUrl || canvas.toDataURL("image/jpeg", 0.92),
@@ -222,13 +226,14 @@ export default function CameraCapture({ onCapture, onClose }) {
       const rawUrl = best.canvas.toDataURL("image/jpeg", 0.92);
       rawCanvasRef.current = best.canvas;
       rawFileRef.current = null;
-      const optimized = await optimizeCanvas(best.canvas, fitMode, rawUrl);
+      const optimized = await optimizeCanvas(best.canvas, fitMode, rawUrl, claheOn);
       setCaptured({
         rawUrl,
         originalRawUrl: rawUrl,
         optimized,
         quality: best.quality,
         fitMode,
+        clahe: claheOn,
         manuallyCropped: false,
       });
       setReadyStreak(0);
@@ -238,7 +243,7 @@ export default function CameraCapture({ onCapture, onClose }) {
       capturingRef.current = false;
       setBusy(false);
     }
-  }, [facingMode, fitMode, optimizeCanvas]);
+  }, [facingMode, fitMode, claheOn, optimizeCanvas]);
 
   // Live quality gate on the full frame at 4 Hz.
   useEffect(() => {
@@ -279,16 +284,45 @@ export default function CameraCapture({ onCapture, onClose }) {
           fitMode: mode,
           padStyle: "imagenet_mean",
           allowUpscale: false,
+          clahe: claheOn,
           originalDataUrl: originalRawUrl,
         });
       } else if (rawCanvasRef.current) {
-        optimized = await optimizeCanvas(rawCanvasRef.current, mode, originalRawUrl);
+        optimized = await optimizeCanvas(rawCanvasRef.current, mode, originalRawUrl, claheOn);
       }
       if (optimized) {
         setCaptured((current) => (current ? { ...current, optimized, fitMode: mode } : current));
       }
     } catch (err) {
       setError(err?.message || "Optimization failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeClahe = async (next) => {
+    setClaheOn(next);
+    if (!captured || busy) return;
+    setBusy(true);
+    try {
+      const originalRawUrl = captured.originalRawUrl || captured.rawUrl;
+      let optimized;
+      if (rawFileRef.current) {
+        optimized = await optimizeImageTo260(rawFileRef.current, {
+          fitMode,
+          padStyle: "imagenet_mean",
+          allowUpscale: false,
+          clahe: next,
+          originalDataUrl: originalRawUrl,
+        });
+      } else if (rawCanvasRef.current) {
+        optimized = await optimizeCanvas(rawCanvasRef.current, fitMode, originalRawUrl, next);
+      }
+      if (optimized) {
+        setCaptured((current) => (current ? { ...current, optimized, clahe: next } : current));
+      }
+    } catch (err) {
+      setError(err?.message || "Shadow normalization failed");
     } finally {
       setBusy(false);
     }
@@ -302,6 +336,7 @@ export default function CameraCapture({ onCapture, onClose }) {
         fitMode,
         padStyle: "imagenet_mean",
         allowUpscale: false,
+        clahe: claheOn,
         originalDataUrl: dataUrl,
       });
       optimized.meta.manuallyCropped = true;
@@ -360,6 +395,34 @@ export default function CameraCapture({ onCapture, onClose }) {
       })
     : "";
 
+  const lightingStatus = !quality
+    ? { key: "unknown", label: "—" }
+    : quality.meanLuma < 45 || quality.darkPct > 0.5
+    ? { key: "dark", label: t("camera.lightDark") }
+    : quality.meanLuma > 225 || quality.brightPct > 0.4
+    ? { key: "bright", label: t("camera.lightBright") }
+    : { key: "good", label: t("camera.lightGood") };
+
+  const framingStatus = !quality
+    ? { key: "unknown", label: "—" }
+    : quality.status === "NO_SUBJECT_OR_TOO_FAR"
+    ? { key: "far", label: t("camera.frameFar") }
+    : quality.status === "PARTIALLY_OUT_OF_FRAME"
+    ? { key: "clipped", label: t("camera.frameClipped") }
+    : { key: "ready", label: t("camera.frameReady") };
+
+  const sharpnessStatus = !quality
+    ? { key: "unknown", label: "—" }
+    : quality.status === "TOO_BLURRY" || quality.sharpnessScore < 85
+    ? { key: "blurry", label: t("camera.sharpBlurry") }
+    : { key: "optimal", label: t("camera.sharpOptimal") };
+
+  const silhouetteLabel = silhouette === "buffalo"
+    ? t("camera.silhouetteBuffalo")
+    : silhouette === "cattle"
+    ? t("camera.silhouetteCattle")
+    : t("camera.silhouetteOff");
+
   return (
     <div className="camera-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="camera-modal modern-camera-modal" onClick={(event) => event.stopPropagation()}>
@@ -417,6 +480,22 @@ export default function CameraCapture({ onCapture, onClose }) {
                 >
                   {t("optimizer.stretch")}
                 </button>
+              </div>
+
+              <div className="control-setting-row clahe-row">
+                <div className="setting-info">
+                  <span className="setting-label">{t("camera.clahe")}</span>
+                  <span className="setting-subtext">{t("camera.claheHint")}</span>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={claheOn}
+                    onChange={(event) => changeClahe(event.target.checked)}
+                    disabled={busy}
+                  />
+                  <span className="toggle-slider" />
+                </label>
               </div>
 
               <QualityBadge quality={captured.quality} />
@@ -545,6 +624,56 @@ export default function CameraCapture({ onCapture, onClose }) {
                       <span className="camera-fullframe-badge">
                         {t("camera.fullFrameBadge")}
                       </span>
+
+                      {silhouette !== "off" && (
+                        <svg
+                          className={`camera-silhouette ${silhouette}`}
+                          viewBox="0 0 400 260"
+                          preserveAspectRatio="xMidYMid meet"
+                          aria-label={`${silhouetteLabel} wireframe`}
+                        >
+                          <g transform={silhouetteFlipped ? "translate(400,0) scale(-1,1)" : ""}>
+                            <path
+                              className="silhouette-outline"
+                              d={
+                                silhouette === "buffalo"
+                                  ? "M55,170 C48,140 62,112 88,105 L96,92 L112,100 L135,96 L210,95 L265,100 L286,74 L300,102 L338,108 C360,112 370,132 362,154 L348,166 L342,206 L326,206 L320,176 L238,178 L230,208 L214,208 L208,178 L118,176 L110,208 L94,208 L88,176 C70,176 58,176 55,170 Z"
+                                  : "M58,168 C50,138 66,108 92,102 L103,70 L122,96 L148,88 L214,86 L262,94 L282,64 L296,96 L334,102 C356,108 366,130 358,152 L344,164 L338,204 L322,204 L316,174 L236,176 L228,206 L212,206 L206,176 L116,174 L108,206 L92,206 L86,174 C68,174 61,174 58,168 Z"
+                              }
+                            />
+                            <path className="silhouette-horn" d="M103,70 C94,54 90,38 96,24 M103,70 C112,52 120,38 118,22" />
+                            <path className="silhouette-horn" d="M282,64 C272,46 270,30 278,18 M282,64 C290,48 300,34 298,20" />
+                            <path className="silhouette-tail" d="M58,148 C44,158 38,178 42,198" />
+                            <path className="silhouette-dewlap" d="M118,176 C126,190 132,198 128,210" />
+                          </g>
+                          <g className="silhouette-landmarks">
+                            <g className="landmark-pill">
+                              <rect x="196" y="52" width="90" height="26" rx="13" />
+                              <text x="241" y="69" textAnchor="middle">{t("camera.landmarkHump")}</text>
+                            </g>
+                            <g className="landmark-pill">
+                              <rect x="42" y="22" width="118" height="26" rx="13" />
+                              <text x="101" y="39" textAnchor="middle">{t("camera.landmarkHead")}</text>
+                            </g>
+                            <g className="landmark-pill">
+                              <rect x="80" y="216" width="124" height="26" rx="13" />
+                              <text x="142" y="233" textAnchor="middle">{t("camera.landmarkDewlap")}</text>
+                            </g>
+                          </g>
+                        </svg>
+                      )}
+
+                      <div className="camera-status-pills">
+                        <span className={`camera-status-pill status-${lightingStatus.key}`}>
+                          <i aria-hidden="true" /> {t("camera.lighting")}: {lightingStatus.label}
+                        </span>
+                        <span className={`camera-status-pill status-${framingStatus.key}`}>
+                          <i aria-hidden="true" /> {t("camera.animalInFrame")}: {framingStatus.label}
+                        </span>
+                        <span className={`camera-status-pill status-${sharpnessStatus.key}`}>
+                          <i aria-hidden="true" /> {t("camera.sharpness")}: {sharpnessStatus.label}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -593,6 +722,27 @@ export default function CameraCapture({ onCapture, onClose }) {
                     title={t("camera.torch")}
                   >
                     💡 {torchOn ? t("camera.torchOn") : t("camera.torch")}
+                  </button>
+                )}
+                <select
+                  className={`camera-toggle-btn camera-silhouette-select ${silhouette !== "off" ? "is-on" : ""}`}
+                  value={silhouette}
+                  onChange={(event) => setSilhouette(event.target.value)}
+                  title={t("camera.silhouette")}
+                  aria-label={t("camera.silhouette")}
+                >
+                  <option value="off">◒ {t("camera.silhouetteOff")}</option>
+                  <option value="cattle">◒ {t("camera.silhouetteCattle")}</option>
+                  <option value="buffalo">◒ {t("camera.silhouetteBuffalo")}</option>
+                </select>
+                {silhouette !== "off" && (
+                  <button
+                    type="button"
+                    className="camera-toggle-btn"
+                    onClick={() => setSilhouetteFlipped((value) => !value)}
+                    title={t("camera.flipSilhouette")}
+                  >
+                    {silhouetteFlipped ? "⬅" : "➔"}
                   </button>
                 )}
                 <button

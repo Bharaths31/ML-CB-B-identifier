@@ -74,6 +74,10 @@ export default function DevPage() {
             Camera Test
           </Link>
 
+          <Link to="/expert" className="btn btn-outline capture-test-btn" title="Veterinary escalation queue">
+            Vet Portal
+          </Link>
+
           <ThemeToggle />
         </div>
       </header>

@@ -206,7 +206,10 @@ def select_profile():
 
     # Re-initialize OOD detector on manager if enabled
     if manager and db.get("ood.enabled", True):
-        manager.ood_detector = OODDetector(config_path=profile_path)
+        if profile == "auto":
+            manager.ood_detector = OODDetector(model_name=manager.get_active_model_name())
+        else:
+            manager.ood_detector = OODDetector(config_path=profile_path)
         if profile_path and manager.ood_detector.metadata:
             cal = manager.ood_detector.metadata
             db.set("ood.energy_threshold", cal.get("energy_threshold", db.get("ood.energy_threshold")))
@@ -249,7 +252,10 @@ def toggle_ood():
                 candidate = os.path.join(OOD_DIR, selected_profile)
                 if os.path.exists(candidate):
                     profile_path = candidate
-            manager.ood_detector = OODDetector(config_path=profile_path)
+            if selected_profile == "auto":
+                manager.ood_detector = OODDetector(model_name=manager.get_active_model_name())
+            else:
+                manager.ood_detector = OODDetector(config_path=profile_path)
         else:
             manager.ood_detector = None
 

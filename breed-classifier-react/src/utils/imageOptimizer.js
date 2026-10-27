@@ -25,6 +25,9 @@ const DEFAULT_OPTIONS = {
   allowUpscale: false,
   mimeType: "image/jpeg",
   quality: 0.9,
+  clahe: false,
+  claheClipLimit: 2.0,
+  claheGridSize: 8,
 };
 
 const now = () =>
@@ -93,6 +96,161 @@ export function normalizeOptions(options = {}) {
  *   innerHeight:number,padX:number,padY:number,scaleFactor:number,
  *   scaleX:number,scaleY:number,upscaled:boolean,fitMode:string}}
  */
+// ---------------------------------------------------------------------------
+// LAB CLAHE shadow normalization (opt-in; default inference parity preserved)
+// ---------------------------------------------------------------------------
+
+function srgbToLinear(v) {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function linearToSrgb(v) {
+  const c = v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+  return Math.max(0, Math.min(255, Math.round(c * 255)));
+}
+
+// D65 sRGB → XYZ → CIE L* (0..100). We only modify L*, so a/b are untouched.
+function rgbToLabL(r, g, b) {
+  const R = srgbToLinear(r), G = srgbToLinear(g), B = srgbToLinear(b);
+  let y = 0.2126729 * R + 0.7151522 * G + 0.072175 * B;
+  // Y / Yn with Yn = 1.0 for D65 white.
+  return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y;
+}
+
+function labLToRgbScale(r, g, b, oldL, newL) {
+  // Adjust the pixel in linear RGB so its relative luminance matches the new
+  // L*, preserving chroma/hue (the practical Lab-L-only CLAHE transform).
+  const R = srgbToLinear(r), G = srgbToLinear(g), B = srgbToLinear(b);
+  const yOld = 0.2126729 * R + 0.7151522 * G + 0.072175 * B;
+  const yTarget = newL <= 8 ? newL / 903.3 : Math.pow((newL + 16) / 116, 3);
+  if (yOld <= 1e-8) {
+    const grey = linearToSrgb(yTarget);
+    return [grey, grey, grey];
+  }
+  const ratio = yTarget / yOld;
+  return [linearToSrgb(R * ratio), linearToSrgb(G * ratio), linearToSrgb(B * ratio)];
+}
+
+function buildClaheMaps(luma, width, height, clipLimit, gridSize) {
+  const tilesX = Math.max(1, Math.floor(gridSize));
+  const tilesY = Math.max(1, Math.floor(gridSize));
+  const tileW = Math.ceil(width / tilesX);
+  const tileH = Math.ceil(height / tilesY);
+  const maps = [];
+  for (let ty = 0; ty < tilesY; ty++) {
+    for (let tx = 0; tx < tilesX; tx++) {
+      const x0 = tx * tileW;
+      const y0 = ty * tileH;
+      const x1 = Math.min(width, x0 + tileW);
+      const y1 = Math.min(height, y0 + tileH);
+      const hist = new Float64Array(256);
+      let count = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          hist[luma[y * width + x]] += 1;
+          count += 1;
+        }
+      }
+      const limit = Math.max(1, (clipLimit * count) / 256);
+      let excess = 0;
+      for (let i = 0; i < 256; i++) {
+        if (hist[i] > limit) {
+          excess += hist[i] - limit;
+          hist[i] = limit;
+        }
+      }
+      const share = excess / 256;
+      for (let i = 0; i < 256; i++) hist[i] += share;
+
+      const cdf = new Float64Array(256);
+      let acc = 0;
+      const inv = count > 0 ? 1 / count : 1;
+      for (let i = 0; i < 256; i++) {
+        acc += hist[i];
+        cdf[i] = Math.max(0, Math.min(1, acc * inv));
+      }
+      maps.push(cdf);
+    }
+  }
+  return { maps, tilesX, tilesY, tileW, tileH };
+}
+
+function sampleClaheMap(map, bin) {
+  return map[Math.max(0, Math.min(255, bin | 0))];
+}
+
+/**
+ * Apply CLAHE to the luminance channel of an ImageData-like object.
+ * Pure (no canvas required) so Node tests can verify dimensions/output.
+ *
+ * @returns {{data:Uint8ClampedArray,width:number,height:number}}
+ */
+export function applyClaheToImageData(imageData, width, height, clipLimit = 2.0, gridSize = 8) {
+  const w = Number(width) || imageData.width;
+  const h = Number(height) || imageData.height;
+  const src = imageData.data;
+  const out = new Uint8ClampedArray(src.length);
+  const luma = new Uint8Array(w * h);
+  const L = new Float32Array(w * h);
+
+  for (let i = 0, p = 0; i < w * h; i++, p += 4) {
+    L[i] = rgbToLabL(src[p], src[p + 1], src[p + 2]);
+    luma[i] = Math.max(0, Math.min(255, Math.round((L[i] / 100) * 255)));
+  }
+
+  const { maps, tilesX, tilesY, tileW, tileH } = buildClaheMaps(
+    luma, w, h, clipLimit, gridSize
+  );
+
+  for (let y = 0; y < h; y++) {
+    const fy = Math.min(tilesY - 1.001, y / tileH);
+    const ty0 = Math.floor(fy);
+    const ty1 = Math.min(tilesY - 1, ty0 + 1);
+    const wy = fy - ty0;
+    for (let x = 0; x < w; x++) {
+      const fx = Math.min(tilesX - 1.001, x / tileW);
+      const tx0 = Math.floor(fx);
+      const tx1 = Math.min(tilesX - 1, tx0 + 1);
+      const wx = fx - tx0;
+      const bin = luma[y * w + x];
+      const m00 = sampleClaheMap(maps[ty0 * tilesX + tx0], bin);
+      const m10 = sampleClaheMap(maps[ty0 * tilesX + tx1], bin);
+      const m01 = sampleClaheMap(maps[ty1 * tilesX + tx0], bin);
+      const m11 = sampleClaheMap(maps[ty1 * tilesX + tx1], bin);
+      const top = m00 * (1 - wx) + m10 * wx;
+      const bottom = m01 * (1 - wx) + m11 * wx;
+      const newNorm = top * (1 - wy) + bottom * wy;
+      const newL = Math.max(0, Math.min(100, newNorm * 100));
+      const p = (y * w + x) * 4;
+      const [r, g, b] = labLToRgbScale(src[p], src[p + 1], src[p + 2], L[y * w + x], newL);
+      out[p] = r;
+      out[p + 1] = g;
+      out[p + 2] = b;
+      out[p + 3] = src[p + 3];
+    }
+  }
+  return { data: out, width: w, height: h };
+}
+
+/**
+ * Fast in-place LAB CLAHE on a 260×260 canvas context.
+ * Returns the same context for chaining.
+ */
+export function applyCLAHE(ctx, width, height, clipLimit = 2.0, gridSize = 8) {
+  if (!ctx || typeof ctx.getImageData !== "function") {
+    throw new Error("applyCLAHE requires a 2D canvas context");
+  }
+  const w = Math.round(width);
+  const h = Math.round(height);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const result = applyClaheToImageData(imageData, w, h, clipLimit, gridSize);
+  const next = ctx.createImageData ? ctx.createImageData(w, h) : imageData;
+  next.data.set(result.data);
+  ctx.putImageData(next, 0, 0);
+  return ctx;
+}
+
 export function computeOptimizerLayout(width, height, options = {}) {
   if (!width || !height) {
     throw new Error("computeOptimizerLayout requires positive width and height");
@@ -279,6 +437,16 @@ export async function optimizeSourceTo260(source, sourceWidth, sourceHeight, opt
     targetH
   );
 
+  if (opts.clahe) {
+    applyCLAHE(
+      ctx,
+      TARGET_SIZE,
+      TARGET_SIZE,
+      opts.claheClipLimit ?? 2.0,
+      opts.claheGridSize ?? 8
+    );
+  }
+
   const blob = await canvasToBlob(canvas, opts.mimeType, opts.quality);
   const dataUrl = canvas.toDataURL(opts.mimeType, opts.quality);
   const file = new File([blob], safeFileName(options.originalName, opts.mimeType), {
@@ -310,6 +478,7 @@ export async function optimizeSourceTo260(source, sourceWidth, sourceHeight, opt
       upscaled: layout.upscaled,
       fitMode: layout.fitMode,
       padStyle: opts.padStyle,
+      clahe: Boolean(opts.clahe),
       optimizedBytes,
       savingsPct:
         originalBytes > 0

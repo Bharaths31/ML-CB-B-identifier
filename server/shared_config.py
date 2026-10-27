@@ -17,7 +17,7 @@ DEFAULT_APP_CONFIG = {
         "temperature": 1.0,
     },
     "display": {
-        "confidence_mode": "percentage",  # "percentage", "scaled", "badge_only"
+        "confidence_mode": "percentage",  # "percentage", "scaled", "clamped", "badge_only", "hide"
         "confidence_floor_pct": 80.0,
         "top_k": 3,
         "min_breeds": 1,
@@ -25,6 +25,7 @@ DEFAULT_APP_CONFIG = {
         "min_breed_confidence_pct": 5.0,
         "show_species_confidence": True,
         "show_species_badge": True,
+        "show_escalation_warning": True,
         "show_technical_details": False,
         "theme": "dark",  # "dark" or "light"
     },

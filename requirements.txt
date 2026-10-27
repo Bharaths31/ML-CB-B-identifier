@@ -18,7 +18,7 @@ Pillow>=10.0
 requests>=2.31
 
 # --- Serving layer (Flask REST API + Socket.IO realtime) ----------------------
-# Used by server/ (24 REST endpoints) and by the React app via the Vite proxy.
+# Used by server/ (29 REST route rules) and by the React app via the Vite proxy.
 Flask>=3.0
 flask-cors>=4.0
 Flask-SocketIO>=5.3
@@ -35,6 +35,7 @@ onnxruntime>=1.16
 
 # --- Reports (ODT export) -----------------------------------------------------
 odfpy>=1.4.1
+qrcode>=8.0
 
 # --- Optional extras ---------------------------------------------------------
 # TFLite export + TFLite parity check (src/export.py --mode tflite,

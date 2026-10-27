@@ -6,10 +6,14 @@ export function useSocket() {
   const [connected, setConnected] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
   const [predictionEvent, setPredictionEvent] = useState(null);
+  const [oodStatus, setOodStatus] = useState(null);
+  const [modelSwitched, setModelSwitched] = useState(null);
+  const [escalationEvent, setEscalationEvent] = useState(null);
 
   useEffect(() => {
-    // Connect to same host/port, the vite proxy handles /socket.io
-    const socket = io('/', { path: '/socket.io', transports: ['websocket', 'polling'] });
+    // Flask-SocketIO emits on the "/ws" namespace (server/websocket/events.py).
+    // Connecting to "/" here silently missed every server event.
+    const socket = io('/ws', { path: '/socket.io', transports: ['websocket', 'polling'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -23,6 +27,13 @@ export function useSocket() {
     socket.on('prediction_progress', (data) => setPredictionEvent({ type: 'progress', ...data }));
     socket.on('prediction_complete', (data) => setPredictionEvent({ type: 'complete', ...data }));
     socket.on('prediction_error', (data) => setPredictionEvent({ type: 'error', ...data }));
+    socket.on('model_switched', (data) => {
+        setModelSwitched(data);
+        socket.emit('request_status', {});
+    });
+    socket.on('ood_status_changed', (data) => setOodStatus(data));
+    socket.on('escalation_created', (data) => setEscalationEvent({ type: 'created', ...data }));
+    socket.on('escalation_resolved', (data) => setEscalationEvent({ type: 'resolved', ...data }));
     socket.on('model_loaded', (data) => {
         // optionally could trigger a status refresh
         socket.emit('request_status', {});
@@ -31,5 +42,13 @@ export function useSocket() {
     return () => socket.disconnect();
   }, []);
 
-  return { connected, serverStatus, predictionEvent, socket: socketRef };
+  return {
+    connected,
+    serverStatus,
+    predictionEvent,
+    oodStatus,
+    modelSwitched,
+    escalationEvent,
+    socket: socketRef,
+  };
 }

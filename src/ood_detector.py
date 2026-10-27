@@ -7,4 +7,3 @@ This module re-exports them for backwards compatibility.
 from .model import OODDetector
 
 __all__ = ["OODDetector"]
-}

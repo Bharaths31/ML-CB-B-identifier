@@ -142,6 +142,33 @@ def generate_odt_report(results, mode="single"):
         p = P(stylename=body_style, text=f"Predicted Breed: {result['top_breed']} ({result['top_breed_confidence']:.1f}%)")
         doc.text.addElement(p)
 
+        bpa = result.get("bpa") if isinstance(result.get("bpa"), dict) else None
+        if bpa:
+            p = P(stylename=subheading_style, text="Bharat Pashudhan (BPA) Digital Registration")
+            doc.text.addElement(p)
+            bpa_rows = [
+                ("Ear Tag UID", bpa.get("tag", "—")),
+                ("Owner", bpa.get("ownerName") or "—"),
+                ("Village / Taluk", bpa.get("village") or "—"),
+                ("Age", f"{bpa.get('ageYears', 0)} yr {bpa.get('ageMonths', 0)} mo"),
+                ("Sex", bpa.get("sex", "—")),
+                ("Lactation", bpa.get("lactation", "—")),
+                ("Vaccination", bpa.get("vaccination", "—")),
+                ("FLW ID", bpa.get("flwId", "—")),
+                ("Registered", bpa.get("registeredAt", "—")),
+            ]
+            bpa_table = Table(name=f"BPA_{i}", stylename=table_style)
+            bpa_table.addElement(TableColumn(stylename=col_narrow))
+            bpa_table.addElement(TableColumn(stylename=col_wide))
+            for label, value in bpa_rows:
+                row = TableRow()
+                for val in (label, str(value)):
+                    dcell = TableCell(stylename=cell_style)
+                    dcell.addElement(P(stylename=cell_text_style, text=val))
+                    row.addElement(dcell)
+                bpa_table.addElement(row)
+            doc.text.addElement(bpa_table)
+
         p = P(stylename=subheading_style, text="Top 5 Predictions")
         doc.text.addElement(p)
 

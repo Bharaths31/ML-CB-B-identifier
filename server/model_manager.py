@@ -18,29 +18,108 @@ if hasattr(torch.backends, 'nnpack'):
     except Exception:
         pass
 
+def portable_bundle_sort_key(bundle_dir):
+    """Newest-first sort key for a portable export directory.
+
+    ISO-8601 ``exported_at`` strings sort lexicographically, so they are the
+    primary key; filesystem mtime is the fallback (and tie-breaker) when an
+    older bundle has no ``model_info.json``.
+    """
+    exported_at = ""
+    info_path = os.path.join(bundle_dir, "model_info.json")
+    if os.path.exists(info_path):
+        try:
+            with open(info_path) as fh:
+                exported_at = str(json.load(fh).get("exported_at") or "")
+        except Exception:
+            exported_at = ""
+    try:
+        mtime = os.path.getmtime(bundle_dir)
+    except OSError:
+        mtime = 0.0
+    return (exported_at, mtime)
+
+
+def sorted_portable_bundles():
+    """Return portable export directories, newest first."""
+    dirs = [d for d in glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*"))
+            if os.path.isdir(d)]
+    dirs.sort(key=portable_bundle_sort_key, reverse=True)
+    return dirs
+
+
+def read_class_maps_from(bundle_dir):
+    """Read a complete (cattle, buffalo) class-map pair from a directory."""
+    maps = {}
+    for species in ("cattle", "buffalo"):
+        path = os.path.join(bundle_dir, f"{species}_classes.json")
+        if os.path.exists(path):
+            try:
+                with open(path) as fh:
+                    maps[species] = json.load(fh)
+            except Exception:
+                return {}
+    return maps if len(maps) == 2 else {}
+
+
+def head_out_features(module):
+    """Best-effort output width of a breed head (Linear or CosineHead)."""
+    try:
+        last = module[-1]
+    except Exception:
+        last = module
+    out = getattr(last, "out_features", None)
+    if isinstance(out, int):
+        return out
+    weight = getattr(last, "weight", None)
+    if weight is not None and getattr(weight, "shape", None):
+        return int(weight.shape[0])
+    return None
+
+
 class ModelManager:
     """Discovers, loads, and caches models for prediction."""
 
     def __init__(self):
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
+        self.class_map_source = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._load_class_maps()
+        self._discover_models()
+        # Bind the newest class maps to the active checkpoint immediately so
+        # /api/dev-info and the model-spec endpoint agree with inference.
+        active = self.get_active_model_name()
+        if active:
+            self.bind_class_maps_for_model(active)
+        self._bind_ood_detector(active)
+
+    def _bind_ood_detector(self, model_name):
+        """(Re)create the OOD detector for the active model/config."""
         db = get_shared_config()
         ood_enabled = db.get("ood.enabled", OOD_ENABLED)
         selected_prof = db.get("ood.selected_profile", "auto")
+        if not ood_enabled:
+            self.ood_detector = None
+            return None
+
+        if selected_prof == "auto":
+            # Per-model profile resolution was previously skipped at startup,
+            # which silently bound the global fallback instead.
+            self.ood_detector = OODDetector(model_name=model_name) if model_name else OODDetector()
+            return self.ood_detector
+
         prof_path = None
-        if selected_prof != "auto":
-            candidates = [
-                os.path.join(OOD_DIR, selected_prof),
-                os.path.join(PROJECT_ROOT, "outputs", selected_prof)
-            ]
-            for c in candidates:
-                if os.path.exists(c):
-                    prof_path = c
-                    break
-        self.ood_detector = OODDetector(config_path=prof_path) if ood_enabled else None
-        self._load_class_maps()
-        self._discover_models()
+        candidates = [
+            os.path.join(OOD_DIR, selected_prof),
+            os.path.join(PROJECT_ROOT, "outputs", selected_prof),
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                prof_path = candidate
+                break
+        self.ood_detector = OODDetector(config_path=prof_path)
+        return self.ood_detector
 
     def get_active_model_name(self):
         """Return currently configured active model name or sensible default."""
@@ -61,37 +140,234 @@ class ModelManager:
             raise ValueError(f"Model '{name}' not found")
         db = get_shared_config(socketio)
         db.set("active_model", name, notify=True)
+
+        # Rebinding the class maps + OOD profile is what keeps the labels and
+        # safety thresholds aligned with the newly selected checkpoint.
+        self.bind_class_maps_for_model(name)
+        self._bind_ood_detector(name)
+
         if socketio:
             try:
                 socketio.emit("model_switched", {"active_model": name}, namespace="/ws")
             except Exception:
                 pass
+            try:
+                detector = self.ood_detector
+                socketio.emit("ood_status_changed", {
+                    "enabled": db.get("ood.enabled", OOD_ENABLED),
+                    "profile": db.get("ood.selected_profile", "auto"),
+                    "model": name,
+                    "profile_name": getattr(detector, "profile_name", None) if detector else None,
+                    "source_file": getattr(detector, "source_file", None) if detector else None,
+                    "energy_threshold": getattr(detector, "energy_threshold", None) if detector else None,
+                    "msp_threshold": getattr(detector, "msp_threshold", None) if detector else None,
+                }, namespace="/ws")
+            except Exception:
+                pass
         return name
 
     def _load_class_maps(self):
-        """Load breed label maps, prioritizing portable exports to avoid mismatch."""
+        """Load the newest complete class-map pair (constructor default)."""
         logger = get_logger()
-        # 1. Try portable export directories first
-        for portable_dir in glob.glob(os.path.join(PORTABLE_EXPORT_DIR, "*")):
-            for species in ("cattle", "buffalo"):
-                path = os.path.join(portable_dir, f"{species}_classes.json")
-                if os.path.exists(path):
-                    with open(path) as f:
-                        self.class_maps[species] = json.load(f)
-            if len(self.class_maps) == 2:
+        self.class_maps = {}
+        self.class_map_source = None
+        for portable_dir in sorted_portable_bundles():
+            maps = read_class_maps_from(portable_dir)
+            if maps:
+                self.class_maps = maps
+                self.class_map_source = portable_dir
+                if logger:
+                    logger.info(
+                        f"Using class maps from {os.path.basename(portable_dir)} "
+                        f"(cattle={len(maps['cattle'])}, buffalo={len(maps['buffalo'])})"
+                    )
                 break
-                
-        # 2. Fallback to data/splits/ if no portable exports found
+
+        # Fallback to data/splits/ only when no portable bundle is usable.
         if not self.class_maps:
             for species in ("cattle", "buffalo"):
                 path = os.path.join(SPLIT_DIR, f"{species}_classes.json")
                 if os.path.exists(path):
                     with open(path) as f:
                         self.class_maps[species] = json.load(f)
+            if self.class_maps:
+                self.class_map_source = SPLIT_DIR
 
         if logger:
             for sp, cm in self.class_maps.items():
                 logger.info(f"Loaded {sp} class map ({len(cm)} breeds)")
+
+    def _dims_from_path(self, name):
+        """Read head widths from a checkpoint/ONNX file without keeping it."""
+        info = self.models.get(name)
+        if not info:
+            return None
+        if info.get("type") == "onnx":
+            try:
+                import onnxruntime as ort
+                session = ort.InferenceSession(info["path"], providers=["CPUExecutionProvider"])
+                return self._dims_from_onnx(session)
+            except Exception:
+                return None
+        try:
+            ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
+        except Exception:
+            return None
+        state = None
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
+            state = ckpt["state_dict"]
+        elif isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+            state = ckpt["model_state_dict"]
+        elif isinstance(ckpt, dict):
+            state = ckpt
+        if not isinstance(state, dict):
+            return None
+        return self._dims_from_state_dict(state)
+
+    @staticmethod
+    def _dims_from_state_dict(state):
+        def _last_weight(prefix):
+            keys = [k for k in state if k.startswith(prefix) and k.endswith(".weight")]
+
+            def _layer_num(k):
+                try:
+                    return int(k.split(".")[1])
+                except (IndexError, ValueError):
+                    return -1
+
+            keys.sort(key=_layer_num)
+            return keys[-1] if keys else None
+
+        cattle_key = _last_weight("cattle_head.")
+        buffalo_key = _last_weight("buffalo_head.")
+        if not cattle_key or not buffalo_key:
+            return None
+        return {
+            "cattle": int(state[cattle_key].shape[0]),
+            "buffalo": int(state[buffalo_key].shape[0]),
+        }
+
+    @staticmethod
+    def _dims_from_model(model):
+        if not isinstance(model, torch.nn.Module):
+            return None
+        cattle = head_out_features(getattr(model, "cattle_head", None))
+        buffalo = head_out_features(getattr(model, "buffalo_head", None))
+        if cattle is None or buffalo is None:
+            return None
+        return {"cattle": int(cattle), "buffalo": int(buffalo)}
+
+    @staticmethod
+    def _dims_from_onnx(session):
+        dims = {}
+        try:
+            for output in session.get_outputs():
+                shape = output.shape or []
+                if output.name in ("cattle", "buffalo"):
+                    width = next((int(v) for v in reversed(shape) if isinstance(v, int) and v > 0), None)
+                    if width:
+                        dims[output.name] = width
+        except Exception:
+            return None
+        return dims if len(dims) == 2 else None
+
+    def bind_class_maps_for_model(self, name, model=None):
+        """Select class maps whose length matches this checkpoint's heads.
+
+        The previous implementation took the first portable directory returned
+        by ``glob``, which could pair an older 17-buffalo map with an 18-class
+        checkpoint. We now prefer a count-matched bundle and fall back to
+        ``data/splits`` only if no bundle matches.
+        """
+        logger = get_logger()
+        dims = self._dims_from_model(model) if model is not None else None
+        if dims is None and model is not None and not isinstance(model, torch.nn.Module):
+            dims = self._dims_from_onnx(model)
+        if dims is None:
+            dims = self._dims_from_path(name)
+
+        bundles = sorted_portable_bundles()
+        # Prefer the bundle that produced this exact model, then any count match.
+        model_bundle = None
+        if name and name.startswith("portable/"):
+            model_bundle = name.split("portable/", 1)[1]
+        if model_bundle:
+            bundles.sort(key=lambda d: os.path.basename(d) != model_bundle)
+
+        chosen = None
+        for bundle_dir in bundles:
+            maps = read_class_maps_from(bundle_dir)
+            if not maps:
+                continue
+            if dims is None or (
+                len(maps["cattle"]) == dims["cattle"]
+                and len(maps["buffalo"]) == dims["buffalo"]
+            ):
+                chosen = (maps, bundle_dir)
+                break
+
+        if chosen is None:
+            split_maps = {}
+            for species in ("cattle", "buffalo"):
+                path = os.path.join(SPLIT_DIR, f"{species}_classes.json")
+                if os.path.exists(path):
+                    with open(path) as f:
+                        split_maps[species] = json.load(f)
+            if len(split_maps) == 2:
+                chosen = (split_maps, SPLIT_DIR)
+                if dims and (
+                    len(split_maps["cattle"]) != dims["cattle"]
+                    or len(split_maps["buffalo"]) != dims["buffalo"]
+                ):
+                    if logger:
+                        logger.warning(
+                            f"No portable class map matches model '{name}' heads "
+                            f"(cattle={dims['cattle']} buffalo={dims['buffalo']}); "
+                            f"using data/splits fallback "
+                            f"(cattle={len(split_maps['cattle'])} "
+                            f"buffalo={len(split_maps['buffalo'])})."
+                        )
+
+        if chosen:
+            self.class_maps, self.class_map_source = chosen
+            info = self.models.get(name)
+            if info is not None:
+                info["class_map_source"] = self.class_map_source
+                info["num_cattle"] = len(self.class_maps.get("cattle", {}))
+                info["num_buffalo"] = len(self.class_maps.get("buffalo", {}))
+            if logger:
+                logger.info(
+                    f"Bound class maps for '{name}': "
+                    f"cattle={len(self.class_maps.get('cattle', {}))} "
+                    f"buffalo={len(self.class_maps.get('buffalo', {}))} "
+                    f"({os.path.basename(self.class_map_source or 'none')})"
+                )
+        return self.class_maps
+
+    def class_counts(self, name=None):
+        """Dynamic head/class-map counts for the active or requested model."""
+        name = name or self.get_active_model_name()
+        info = self.models.get(name, {}) if name else {}
+        dims = None
+        model = info.get("model")
+        if model is not None:
+            dims = self._dims_from_model(model) or self._dims_from_onnx(model)
+        if dims is None and name:
+            # If maps have already been bound, trust them; otherwise peek.
+            dims = {
+                "cattle": info.get("num_cattle"),
+                "buffalo": info.get("num_buffalo"),
+            }
+            if not dims["cattle"] or not dims["buffalo"]:
+                dims = self._dims_from_path(name)
+        maps = self.class_maps if (not name or name == self.get_active_model_name()) else {}
+        return {
+            "cattle": dims.get("cattle") if dims else len(maps.get("cattle", {})),
+            "buffalo": dims.get("buffalo") if dims else len(maps.get("buffalo", {})),
+            "class_map_cattle": len(maps.get("cattle", {})) if maps else None,
+            "class_map_buffalo": len(maps.get("buffalo", {})) if maps else None,
+            "class_map_source": self.class_map_source if not name or name == self.get_active_model_name() else info.get("class_map_source"),
+        }
 
     def _discover_models(self):
         """Find all available checkpoints."""
@@ -237,6 +513,7 @@ class ModelManager:
                 providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
                 session = ort.InferenceSession(info["path"], providers=providers)
                 info["model"] = session
+                self.bind_class_maps_for_model(name, model=session)
                 elapsed = time.time() - load_start
                 if logger:
                     logger.info(f"ONNX model loaded in {elapsed:.3f}s")
@@ -261,6 +538,7 @@ class ModelManager:
             model.to(self.device)
             model.eval()
             info["model"] = model
+            self.bind_class_maps_for_model(name, model=model)
             elapsed = time.time() - load_start
             n_params = sum(p.numel() for p in model.parameters()) if hasattr(model, "parameters") else 0
             if logger:
@@ -327,6 +605,7 @@ class ModelManager:
         model.to(self.device)
         model.eval()
         info["model"] = model
+        self.bind_class_maps_for_model(name, model=model)
 
         elapsed = time.time() - load_start
         n_params = sum(p.numel() for p in model.parameters())

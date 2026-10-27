@@ -1,7 +1,7 @@
 """Architecture sanity check: load backbone weights and run a forward pass.
 
 Verifies that EfficientNet-Lite{2,4} weights load and the BreedClassifier heads
-produce the expected shapes (binary=2, cattle=57, buffalo=18, features=1280).
+produce the expected shapes (binary=2, cattle=50, buffalo=18, features=1280).
 
 REFERENCES
   - src/model.py: EfficientNetLite, load_backbone_weights, BreedClassifier.

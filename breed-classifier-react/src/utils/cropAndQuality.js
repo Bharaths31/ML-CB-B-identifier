@@ -342,6 +342,31 @@ export function analyzeCanvas(canvas) {
   return analyzeImageData(ctx.getImageData(0, 0, canvas.width, canvas.height));
 }
 
+/** Explicit name used by the upload/camera quality gate. */
+export const analyzeCanvasQuality = analyzeCanvas;
+
+/**
+ * Render any image data URL into a 260×260 canvas and score it with the same
+ * heuristic used by the live camera. This is the authoritative quality report
+ * for uploads and manual crops (whose intermediate crop is 520×520).
+ */
+export async function analyzeDataUrlQuality(dataUrl, size = MODEL_SIZE) {
+  if (!dataUrl || typeof document === "undefined") return null;
+  const image = await loadImage(dataUrl);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  const scale = Math.max(size / image.width, size / image.height);
+  const sw = size / scale;
+  const sh = size / scale;
+  ctx.drawImage(image, (image.width - sw) / 2, (image.height - sh) / 2, sw, sh, 0, 0, size, size);
+  const report = analyzeCanvasQuality(canvas);
+  return { ...report, sampleSize: size };
+}
+
 export function canvasToBlob(canvas, type = "image/jpeg", quality = 0.92) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -399,7 +424,7 @@ export function captureVideoFrame(video, mirrored = false) {
 // Shareable result card (PNG)
 // ---------------------------------------------------------------------------
 
-function roundRect(ctx, x, y, w, h, r) {
+export function roundRect(ctx, x, y, w, h, r) {
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + radius, y);

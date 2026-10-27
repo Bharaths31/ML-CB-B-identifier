@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/verify.py": {
-    "mtime": 1791269733.8397272,
-    "seen": 1791270111.1155381,
-    "ast_hash": "fb29687e362b972c6c0d67ff7639da0b",
+    "mtime": 1793112095.290666,
+    "seen": 1793112317.326134,
+    "ast_hash": "ca7db2dfc6336f494c159caefe220530",
     "semantic_hash": ""
   },
   "test_cache.py": {
@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "requirements.txt": {
-    "mtime": 1792505645.4002078,
-    "seen": 1792505954.9163673,
-    "ast_hash": "39eb32c12aec8b0edc76ee663eb29fe8",
+    "mtime": 1793112156.5054617,
+    "seen": 1793112317.3282535,
+    "ast_hash": "922ae0b12c01862a9ffc483b1e2aaacc",
     "semantic_hash": ""
   },
   "Test results/Screenshot_20260913_135102.png": {
@@ -618,9 +618,9 @@
     "semantic_hash": "ead2047ff15c0c5e2b958599381b8269"
   },
   "breed-classifier-react/src/api.js": {
-    "mtime": 1792494976.7170281,
-    "seen": 1792495679.3574913,
-    "ast_hash": "df67126f285127b47a13b5b4c7c18b21",
+    "mtime": 1793110871.226556,
+    "seen": 1793112317.3255992,
+    "ast_hash": "8cd9999ad79ef69f1cf2d292a388da36",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/Batch.jsx": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/CameraCapture.jsx": {
-    "mtime": 1792494367.3383732,
-    "seen": 1792495679.3575141,
-    "ast_hash": "731a805459d8c10e5fcc75ea222ee725",
+    "mtime": 1793112383.306246,
+    "seen": 1793114117.0314376,
+    "ast_hash": "282423acac18916e033640d5fe806704",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevTools.jsx": {
@@ -672,10 +672,10 @@
     "semantic_hash": "4432a481682a3ab67c3e7a94bb3d68f5"
   },
   "breed-classifier-react/src/hooks/useSocket.js": {
-    "mtime": 1790348209.3719547,
-    "seen": 1790349399.5260172,
-    "ast_hash": "5bdf422e164601bb01848c9c797ddd8e",
-    "semantic_hash": "5bdf422e164601bb01848c9c797ddd8e"
+    "mtime": 1793111160.0360138,
+    "seen": 1793112317.3257499,
+    "ast_hash": "6f7969adee1328296b3e24e5c49f9b96",
+    "semantic_hash": ""
   },
   "breed-classifier-react/src/main.jsx": {
     "mtime": 1792491068.843094,
@@ -690,9 +690,9 @@
     "semantic_hash": ""
   },
   "server/app.py": {
-    "mtime": 1791822303.184397,
-    "seen": 1791873693.315294,
-    "ast_hash": "2c2a258ae29ea2281261ebea350e8b9d",
+    "mtime": 1793112348.2076993,
+    "seen": 1793114117.0318122,
+    "ast_hash": "ee16121b6781033cee9d064de743ba1b",
     "semantic_hash": ""
   },
   "server/config.py": {
@@ -702,9 +702,9 @@
     "semantic_hash": "db0916ce56a12357fafdae39b0e722e5"
   },
   "server/model_manager.py": {
-    "mtime": 1792493781.199044,
-    "seen": 1792495679.3578603,
-    "ast_hash": "e8186a77659c885e0ae067eb5b00d693",
+    "mtime": 1793110794.8176584,
+    "seen": 1793112317.3259935,
+    "ast_hash": "8c247e840b87fcfb7c7c5d3f3383f141",
     "semantic_hash": ""
   },
   "server/routes/config_api.py": {
@@ -714,10 +714,10 @@
     "semantic_hash": "6b43a483617a805029fdadca691fe08f"
   },
   "server/routes/dev.py": {
-    "mtime": 1791269467.18766,
-    "seen": 1791270111.115496,
-    "ast_hash": "d8c337c74fbc0a5610ae1cf6d44de0fc",
-    "semantic_hash": "d8c337c74fbc0a5610ae1cf6d44de0fc"
+    "mtime": 1793110754.5732386,
+    "seen": 1793112317.3260012,
+    "ast_hash": "89a20e5d62ebb1c37beb707031ca6f96",
+    "semantic_hash": ""
   },
   "server/routes/export.py": {
     "mtime": 1791269467.1903646,
@@ -726,9 +726,9 @@
     "semantic_hash": "5de1d241c692ae74c736a89ee081c65e"
   },
   "server/routes/models.py": {
-    "mtime": 1791820616.9648786,
-    "seen": 1791873693.3153582,
-    "ast_hash": "d3d306d2f08cab683ecf41ed526c1d59",
+    "mtime": 1793110663.307753,
+    "seen": 1793112317.326014,
+    "ast_hash": "475009ffe321640d49f185f52fd3bf67",
     "semantic_hash": ""
   },
   "server/routes/predict.py": {
@@ -738,9 +738,9 @@
     "semantic_hash": ""
   },
   "server/services/inference.py": {
-    "mtime": 1792494521.3989205,
-    "seen": 1792495679.3579183,
-    "ast_hash": "6a889d4ba162c2bba9b83455d565f70f",
+    "mtime": 1793112134.0083075,
+    "seen": 1793112317.326034,
+    "ast_hash": "a1a61500a10b64cee4659309e1187fb7",
     "semantic_hash": ""
   },
   "server/services/metadata.py": {
@@ -750,10 +750,10 @@
     "semantic_hash": "ae5c2ba6c4d11a332999c0356bfc20f6"
   },
   "server/services/odt_export.py": {
-    "mtime": 1791269467.211799,
-    "seen": 1791270111.1155076,
-    "ast_hash": "801443bf6b419829651c07a96f10fd6c",
-    "semantic_hash": "801443bf6b419829651c07a96f10fd6c"
+    "mtime": 1793111359.3334503,
+    "seen": 1793112317.326043,
+    "ast_hash": "68eb3826db545a485feeb64855557665",
+    "semantic_hash": ""
   },
   "server/utils/logger.py": {
     "mtime": 1791269467.215729,
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevConfigPanel.jsx": {
-    "mtime": 1791824018.3546417,
-    "seen": 1791873693.3147585,
-    "ast_hash": "a1c6b9767f4eb8e58b277f00d2059091",
+    "mtime": 1793111768.493888,
+    "seen": 1793112317.3256269,
+    "ast_hash": "7259d3c7cabb860a49456c9bafca9b9a",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/DevModelPanel.jsx": {
@@ -858,15 +858,15 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ImageUpload.jsx": {
-    "mtime": 1792499865.6461291,
-    "seen": 1792499945.4534783,
-    "ast_hash": "125493c6f652820d379551af3d8b8e89",
+    "mtime": 1793111797.5143828,
+    "seen": 1793112317.3256543,
+    "ast_hash": "fdb00c8328421e3fe935d4edd9d772c5",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/ResultCard.jsx": {
-    "mtime": 1792494577.311407,
-    "seen": 1792495679.3575716,
-    "ast_hash": "6b83c26233002e4712a9d6317a4190c5",
+    "mtime": 1793112172.5238428,
+    "seen": 1793112317.3257177,
+    "ast_hash": "9e18a72599800f2c5873753787a28a73",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/hooks/useSharedConfig.js": {
@@ -876,21 +876,21 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/pages/DevPage.jsx": {
-    "mtime": 1792491068.843094,
-    "seen": 1792491188.5593123,
-    "ast_hash": "0a8903a3f30d564db0235862b0ee1bd9",
+    "mtime": 1793111192.177592,
+    "seen": 1793112317.3257675,
+    "ast_hash": "b69f7afe2910dc3d8357599330d67d15",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/pages/UserPage.jsx": {
-    "mtime": 1792499857.8975582,
-    "seen": 1792499945.4545557,
-    "ast_hash": "ab1ad4c2c2c1d305ea18d7440e9eb0ba",
+    "mtime": 1793111803.0856693,
+    "seen": 1793112317.3257756,
+    "ast_hash": "78b9cecad8e6fde70b87f92dbe33bc08",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/router.jsx": {
-    "mtime": 1791820908.1737614,
-    "seen": 1791873693.3149233,
-    "ast_hash": "fb087dfe50e257b8fc50e5d58e594a6a",
+    "mtime": 1793111185.802605,
+    "seen": 1793112317.3257792,
+    "ast_hash": "d2953c183ee5fb908757a3da30dcdbfc",
     "semantic_hash": ""
   },
   "run.py": {
@@ -900,9 +900,9 @@
     "semantic_hash": ""
   },
   "server/routes/ood_api.py": {
-    "mtime": 1792495352.6062217,
-    "seen": 1792495679.3578827,
-    "ast_hash": "9d788cd4c8a38bdf62fc2207cef52e1d",
+    "mtime": 1793111699.9613307,
+    "seen": 1793112317.3260183,
+    "ast_hash": "8ed57f517e8afa440607298b8b2eaceb",
     "semantic_hash": ""
   },
   "server/routes/shared_config_api.py": {
@@ -912,9 +912,9 @@
     "semantic_hash": ""
   },
   "server/shared_config.py": {
-    "mtime": 1791823896.7116835,
-    "seen": 1791873693.3154335,
-    "ast_hash": "e868f38405d632aa679e9988fcd27ebc",
+    "mtime": 1793111774.7142086,
+    "seen": 1793112317.3260465,
+    "ast_hash": "fb0a93abbd63a572702c546acdab9606",
     "semantic_hash": ""
   },
   "src/cbam.py": {
@@ -936,9 +936,9 @@
     "semantic_hash": ""
   },
   "src/ood_detector.py": {
-    "mtime": 1791824716.4070315,
-    "seen": 1791873693.3155844,
-    "ast_hash": "fc7284038b04b85d5f7d38a5dd7baf12",
+    "mtime": 1793112266.3360722,
+    "seen": 1793112317.3261125,
+    "ast_hash": "d054ef058bfc642215c47611742c2060",
     "semantic_hash": ""
   },
   "src/traits.py": {
@@ -1008,9 +1008,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/data/breedTraits.js": {
-    "mtime": 1792491068.840944,
-    "seen": 1792491188.5593,
-    "ast_hash": "669d69261fede15a587f1d885523e4b5",
+    "mtime": 1793111336.7145255,
+    "seen": 1793112317.3257377,
+    "ast_hash": "e59cbc4c5bfb183d358c133e61c328ae",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/I18nProvider.jsx": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/i18n/translations.js": {
-    "mtime": 1792499871.501716,
-    "seen": 1792499945.4545424,
-    "ast_hash": "df4a8fa016ece01872b66c1aafcb37a7",
+    "mtime": 1793111141.9117498,
+    "seen": 1793112317.3257582,
+    "ast_hash": "3f8dd9d3c57bab1f794cc64b2ff61269",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/__tests__/cropAndQuality.test.js": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/cropAndQuality.js": {
-    "mtime": 1792495225.6214125,
-    "seen": 1792495679.3576658,
-    "ast_hash": "1545cd57574dc9a7a8adb32b662b6030",
+    "mtime": 1793112213.7932065,
+    "seen": 1793112317.3258114,
+    "ast_hash": "26a9e2906ffe234826762692b9539111",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/sessionStore.js": {
@@ -1068,9 +1068,9 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/utils/imageOptimizer.js": {
-    "mtime": 1792492498.7174673,
-    "seen": 1792493038.4659202,
-    "ast_hash": "401c36ca45da4e9117b7e57bbc632351",
+    "mtime": 1793110910.7977169,
+    "seen": 1793112317.3258188,
+    "ast_hash": "ed8b067b12b69239c2b36dbb0e69389d",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/AdvancedBatchTester.jsx": {
@@ -1080,15 +1080,15 @@
     "semantic_hash": ""
   },
   "breed-classifier-react/src/components/AdvancedPanel.jsx": {
-    "mtime": 1792494601.6338391,
-    "seen": 1792495679.3575032,
-    "ast_hash": "66e63c9edb763259590f1c5f549df2ad",
+    "mtime": 1793111284.0685444,
+    "seen": 1793112317.3256097,
+    "ast_hash": "fe2d82e1ac043e54f60dea4c357861aa",
     "semantic_hash": ""
   },
   "breed-classifier-react/src/hooks/useImageOptimizer.js": {
-    "mtime": 1792495575.7677853,
-    "seen": 1792495679.3576,
-    "ast_hash": "4457c0d0fb8cded9aabca2a6870f5549",
+    "mtime": 1793110941.8601763,
+    "seen": 1793112317.3257415,
+    "ast_hash": "3e1fd0ed428a91b0587c8b6b9e6f10c9",
     "semantic_hash": ""
   },
   "src/ood_calibration.py": {
@@ -1290,15 +1290,75 @@
     "semantic_hash": ""
   },
   "REPORTS.md": {
-    "mtime": 1792505098.48797,
-    "seen": 1792505173.568115,
-    "ast_hash": "81ef27459531bb5d74dc8e535770af6e",
+    "mtime": 1792506034.2717886,
+    "seen": 1793112317.3279088,
+    "ast_hash": "74aa1016d7e3eb84295910665d5218bb",
     "semantic_hash": ""
   },
   "docs/react-web.md": {
     "mtime": 1792505814.908108,
     "seen": 1792505954.916345,
     "ast_hash": "e9fcd816407d9765110644e89db0a3bd",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/components/BpaRegistrationModal.jsx": {
+    "mtime": 1793111060.6246545,
+    "seen": 1793112317.3256183,
+    "ast_hash": "b0563762f9e428236be64aa0a1444f00",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/pages/ExpertPage.jsx": {
+    "mtime": 1793111180.0486434,
+    "seen": 1793112317.3257716,
+    "ast_hash": "9dd514c4fb2b13fdba9d9530ddbe400b",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/utils/__tests__/breedTraits.test.js": {
+    "mtime": 1793111414.5008006,
+    "seen": 1793112317.3257825,
+    "ast_hash": "c39719c1d2ca172f9e4b5b3c8be7de88",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/utils/__tests__/clahe.test.js": {
+    "mtime": 1793111414.4968004,
+    "seen": 1793112317.3257864,
+    "ast_hash": "f9a958cb392a0ad0b52908989b1af65e",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/utils/__tests__/confidence.test.js": {
+    "mtime": 1793111414.4958003,
+    "seen": 1793112317.3257904,
+    "ast_hash": "72b752f30cf9d33afaac4c809ef5a063",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/utils/confidence.js": {
+    "mtime": 1793110849.5055737,
+    "seen": 1793112317.3258069,
+    "ast_hash": "619748add5ae6704c7e150bcf4730561",
+    "semantic_hash": ""
+  },
+  "breed-classifier-react/src/utils/escalationQueue.js": {
+    "mtime": 1793110959.206705,
+    "seen": 1793112317.325815,
+    "ast_hash": "becd93084d9e223572599ec7ef4c0a0a",
+    "semantic_hash": ""
+  },
+  "server/routes/escalations.py": {
+    "mtime": 1793112434.593971,
+    "seen": 1793114117.0318303,
+    "ast_hash": "8f653d67632d27f77cafcf9e4471599a",
+    "semantic_hash": ""
+  },
+  "server/services/escalation_db.py": {
+    "mtime": 1793110725.827654,
+    "seen": 1793112317.3260307,
+    "ast_hash": "ff3a0e7a3b0f98f7fb3dc41acefd6f97",
+    "semantic_hash": ""
+  },
+  "PROJECT_SOURCE_OF_TRUTH.md": {
+    "mtime": 1793112233.2524207,
+    "seen": 1793112317.3278897,
+    "ast_hash": "4fe2929f8f0b3389316128f323e949b4",
     "semantic_hash": ""
   }
 }

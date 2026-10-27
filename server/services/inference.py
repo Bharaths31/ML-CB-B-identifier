@@ -1,5 +1,7 @@
 import time
 import io
+import base64
+import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
@@ -16,6 +18,209 @@ TRANSFORM = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225]),
 ])
+
+
+# ---------------------------------------------------------------------------
+# Five-level confidence rubric (report Module 6)
+# ---------------------------------------------------------------------------
+CONFIDENCE_BANDS = (
+    (0.85, 5, "very_high"),
+    (0.75, 4, "high"),
+    (0.60, 3, "moderate"),
+    (0.40, 2, "low"),
+    (0.00, 1, "very_low"),
+)
+
+
+def confidence_level(confidence, is_ood=False):
+    """Map joint soft-routed confidence C=P(species)*P(breed|species) to 1..5."""
+    if is_ood:
+        return 1
+    c = float(confidence or 0.0)
+    for threshold, level, _band in CONFIDENCE_BANDS:
+        if c >= threshold:
+            return level
+    return 1
+
+
+def confidence_band(level):
+    for _threshold, candidate, band in CONFIDENCE_BANDS:
+        if candidate == level:
+            return band
+    return "very_low"
+
+
+# ---------------------------------------------------------------------------
+# Explainability: CBAM spatial attention + class-activation heatmap
+# ---------------------------------------------------------------------------
+
+def _install_xray_capture(model):
+    """Attach non-destructive hooks before a forward pass.
+
+    ``avg_pool`` receives the final convolutional feature map F ([1,C,H,W]),
+    and ``attention.spatial_attention`` exposes the CBAM 7x7 spatial gate.
+    Every hook is removed immediately after the forward pass.
+    """
+    captured = {}
+    handles = []
+
+    avg_pool = getattr(model, "avg_pool", None)
+    if avg_pool is not None:
+        def _pool_hook(_module, inputs):
+            if inputs:
+                captured["features"] = inputs[0].detach()
+        handles.append(avg_pool.register_forward_pre_hook(_pool_hook))
+
+    attention = getattr(model, "attention", None)
+    spatial = getattr(attention, "spatial_attention", None)
+    if spatial is not None:
+        def _spatial_hook(module, inputs, _output):
+            try:
+                x = inputs[0]
+                with torch.no_grad():
+                    avg = torch.mean(x, dim=1, keepdim=True)
+                    mx = torch.amax(x, dim=1, keepdim=True)
+                    att = module.conv(torch.cat([avg, mx], dim=1))
+                    if getattr(module, "identity_init", False):
+                        mask = 1.0 + (2.0 * torch.sigmoid(att) - 1.0)
+                    else:
+                        mask = torch.sigmoid(att)
+                    captured["spatial_mask"] = mask.detach()
+            except Exception:
+                pass
+        handles.append(spatial.register_forward_hook(_spatial_hook))
+
+    return captured, handles
+
+
+def _remove_hooks(handles):
+    for handle in handles:
+        try:
+            handle.remove()
+        except Exception:
+            pass
+
+
+def _normalize_map(arr):
+    arr = np.asarray(arr, dtype=np.float32)
+    if arr.size == 0:
+        return np.zeros((IMAGE_SIZE, IMAGE_SIZE), dtype=np.float32)
+    arr = np.maximum(arr, 0.0)
+    lo, hi = np.percentile(arr, [2.0, 99.0])
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi - lo < 1e-6:
+        return np.zeros_like(arr, dtype=np.float32)
+    return np.clip((arr - lo) / (hi - lo), 0.0, 1.0)
+
+
+def _colorize(norm, alpha=0.86):
+    """Turbo/Jet RGBA heatmap; alpha is proportional to activation."""
+    try:
+        from matplotlib import colormaps
+        rgba = colormaps["turbo"](norm)
+    except Exception:
+        # Minimal turbo-like fallback (blue → cyan → green → yellow → red).
+        stops = np.array([
+            [0.19, 0.07, 0.23], [0.10, 0.50, 0.85], [0.12, 0.83, 0.55],
+            [0.95, 0.86, 0.20], [0.85, 0.15, 0.10],
+        ], dtype=np.float32)
+        pos = np.linspace(0, 1, len(stops))
+        rgba = np.zeros(norm.shape + (4,), dtype=np.float32)
+        for c in range(3):
+            rgba[..., c] = np.interp(norm, pos, stops[:, c])
+        rgba[..., 3] = 1.0
+    rgba = (np.clip(rgba, 0, 1) * 255).astype(np.uint8)
+    fade = np.clip((norm - 0.06) / 0.94, 0, 1) ** 1.15
+    rgba[..., 3] = (fade * 255 * alpha).astype(np.uint8)
+    return rgba
+
+
+def _rgba_data_url(rgba):
+    image = Image.fromarray(rgba, mode="RGBA")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def _quadrant_metadata(norm):
+    h, w = norm.shape
+    half_h, half_w = h // 2, w // 2
+    blocks = {
+        "top_left": float(norm[:half_h, :half_w].mean()),
+        "top_right": float(norm[:half_h, half_w:].mean()),
+        "bottom_left": float(norm[half_h:, :half_w].mean()),
+        "bottom_right": float(norm[half_h:, half_w:].mean()),
+    }
+    total = sum(blocks.values()) or 1.0
+    peak_y, peak_x = np.unravel_index(int(np.argmax(norm)), norm.shape)
+    return {
+        "dominant_quadrant": max(blocks, key=blocks.get),
+        "quadrant_scores": {k: round(v / total, 4) for k, v in blocks.items()},
+        "peak_px": [int(peak_x), int(peak_y)],
+    }
+
+
+def _build_xray_payload(model, captured, combined, n_cattle, size=IMAGE_SIZE):
+    """Project the winning head's linear weights onto F and encode heatmaps."""
+    feats = captured.get("features")
+    mask = captured.get("spatial_mask")
+    if feats is None:
+        return {
+            "attention_map_b64": None,
+            "spatial_attention_b64": None,
+            "attention_meta": {"source": "unavailable"},
+        }
+
+    try:
+        top_idx = int(torch.argmax(combined).item())
+        head = model.cattle_head if top_idx < n_cattle else model.buffalo_head
+        class_idx = top_idx if top_idx < n_cattle else top_idx - n_cattle
+        last = head[-1]
+        weights = getattr(last, "weight", None)
+        fmap = feats[0].float()  # [C,H,W]
+        if weights is not None and weights.shape[-1] == fmap.shape[0]:
+            cam = torch.einsum("c,chw->hw", weights[class_idx].float(), fmap)
+        else:
+            # Fallback: L2 activation norm across channels.
+            cam = torch.linalg.vector_norm(fmap, dim=0)
+        cam = torch.relu(cam)
+        cam = F.interpolate(
+            cam[None, None], size=(size, size), mode="bilinear", align_corners=False
+        )[0, 0].cpu().numpy()
+        cam_norm = _normalize_map(cam)
+
+        spatial_norm = None
+        if mask is not None:
+            spatial = F.interpolate(
+                mask.float(), size=(size, size), mode="bilinear", align_corners=False
+            )[0, 0].cpu().numpy()
+            spatial_norm = _normalize_map(spatial)
+
+        cam_url = _rgba_data_url(_colorize(cam_norm))
+        spatial_url = _rgba_data_url(_colorize(spatial_norm, alpha=0.72)) if spatial_norm is not None else None
+
+        meta = {
+            "source": "cbam_spatial+linear_cam" if spatial_norm is not None else "linear_cam",
+            "feature_grid": [int(feats.shape[-2]), int(feats.shape[-1])],
+            "cbam_grid": [int(mask.shape[-2]), int(mask.shape[-1])] if mask is not None else None,
+            "winning_class_index": class_idx,
+            "winning_species": "cattle" if top_idx < n_cattle else "buffalo",
+            **_quadrant_metadata(cam_norm),
+        }
+        return {
+            "attention_map_b64": cam_url,
+            "spatial_attention_b64": spatial_url,
+            "attention_meta": meta,
+        }
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.warning(f"Attention extraction skipped: {exc}")
+        return {
+            "attention_map_b64": None,
+            "spatial_attention_b64": None,
+            "attention_meta": {"source": "error", "error": str(exc)},
+        }
+
 
 def predict_image(manager, image_bytes, model_name=None, socketio=None, filename="unknown"):
     """Run prediction on raw image bytes. Returns result dict."""
@@ -72,27 +277,32 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         binary_logits = torch.tensor(out_dict.get("binary", ort_outs[0])[0])
         cattle_logits = torch.tensor(out_dict.get("cattle", ort_outs[1])[0])
         buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
+        xray_captured = {}
     else:
-        with torch.no_grad():
-            first_param = next(model.parameters(), None)
-            if first_param is not None and first_param.dtype == torch.float16:
-                tensor = tensor.half()
-            else:
-                tensor = tensor.float()
+        xray_captured, xray_handles = _install_xray_capture(model)
+        try:
+            with torch.no_grad():
+                first_param = next(model.parameters(), None)
+                if first_param is not None and first_param.dtype == torch.float16:
+                    tensor = tensor.half()
+                else:
+                    tensor = tensor.float()
 
-            tensor = tensor.to(manager.device)
-            out = model(tensor)
+                tensor = tensor.to(manager.device)
+                out = model(tensor)
+        finally:
+            _remove_hooks(xray_handles)
 
-            if isinstance(out, (tuple, list)):
-                binary_logits = out[0][0].float()
-                cattle_logits = out[1][0].float()
-                buffalo_logits = out[2][0].float()
-            elif isinstance(out, dict):
-                binary_logits = out["binary"][0].float()
-                cattle_logits = out["cattle"][0].float()
-                buffalo_logits = out["buffalo"][0].float()
-            else:
-                raise ValueError(f"Unexpected model output structure: {type(out)}")
+        if isinstance(out, (tuple, list)):
+            binary_logits = out[0][0].float()
+            cattle_logits = out[1][0].float()
+            buffalo_logits = out[2][0].float()
+        elif isinstance(out, dict):
+            binary_logits = out["binary"][0].float()
+            cattle_logits = out["cattle"][0].float()
+            buffalo_logits = out["buffalo"][0].float()
+        else:
+            raise ValueError(f"Unexpected model output structure: {type(out)}")
 
     inference_time = time.time() - inference_start
 
@@ -161,7 +371,16 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     total_time = time.time() - predict_start
 
     top_breed_name = top5[0]["breed"] if top5 else "Unknown"
-    top_breed_conf = (top5[0]["confidence"] / 100.0) if top5 else 0.0
+    top1_combined = float(combined.max().item()) if not is_ood else 0.0
+    top_breed_conf = top1_combined
+    level = confidence_level(top_breed_conf, is_ood=is_ood)
+
+    xray = _build_xray_payload(model, xray_captured, combined, n_cattle) \
+        if info.get("type") != "onnx" else {
+            "attention_map_b64": None,
+            "spatial_attention_b64": None,
+            "attention_meta": {"source": "onnx_unavailable"},
+        }
 
     result = {
         "species": species_name,
@@ -171,7 +390,10 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         "top_breed": top_breed_name,
         "predicted_breed": top_breed_name,
         "confidence": top_breed_conf,
-        "top_breed_confidence": top5[0]["confidence"] if top5 else 0,
+        "top_breed_confidence": round(top_breed_conf * 100, 2),
+        "confidence_level": level,
+        "confidence_band": confidence_band(level),
+        "confidence_action": f"confidence.level{level}.action",
         "top5_breeds": top5,
         "top_k": [{"breed": b["breed"], "prob": b["confidence"] / 100.0} for b in top5],
         "model_used": model_name,
@@ -182,7 +404,10 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         "ood": is_ood,
         "is_ood": is_ood,
         "ood_score": round(ood_score, 2) if is_ood else None,
-        "ood_details": ood_details
+        "ood_details": ood_details,
+        "attention_map_b64": xray.get("attention_map_b64"),
+        "spatial_attention_b64": xray.get("spatial_attention_b64"),
+        "attention_meta": xray.get("attention_meta"),
     }
 
     result["_raw_binary_probs"] = [round(p, 6) for p in binary_probs.tolist()]

@@ -38,6 +38,8 @@ from server.routes.export import export_bp
 from server.routes.config_api import config_bp
 from server.routes.shared_config_api import shared_config_bp
 from server.routes.ood_api import ood_bp
+from server.routes.escalations import escalations_bp
+from server.services.escalation_db import get_escalation_db
 from server.shared_config import get_shared_config
 
 # Import websocket events
@@ -61,6 +63,8 @@ def create_app():
     # Store socketio in app extensions so routes can access it
     app.extensions['socketio'] = socketio
     get_shared_config(socketio)
+    # Create the expert-escalation SQLite schema eagerly (idempotent).
+    get_escalation_db()
 
     # Register blueprints
     app.register_blueprint(models_bp)
@@ -70,6 +74,7 @@ def create_app():
     app.register_blueprint(config_bp)
     app.register_blueprint(shared_config_bp)
     app.register_blueprint(ood_bp)
+    app.register_blueprint(escalations_bp)
     
     # Register websocket namespace
     socketio.on_namespace(SystemEventsNamespace('/ws'))

@@ -20,11 +20,17 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
   const [cropped, setCropped] = useState(null); // { file, dataUrl }
   const [result, setResult] = useState(null);
   const [fit, setFit] = useState(initialFit);
+  const [clahe, setClahe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   const requestRef = useRef(0);
   const resultRef = useRef(null);
+  const claheRef = useRef(false);
+
+  useEffect(() => {
+    claheRef.current = clahe;
+  }, [clahe]);
 
   const release = useCallback(() => {
     if (resultRef.current) {
@@ -49,6 +55,7 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
       try {
         const next = await optimizeImageTo260(sourceFile, {
           ...nextFit,
+          clahe: claheRef.current,
           allowUpscale: false,
         });
         if (requestId !== requestRef.current) {
@@ -101,6 +108,18 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
     [cropped, original, run]
   );
 
+  const setClaheEnabled = useCallback(
+    async (enabled) => {
+      const next = Boolean(enabled);
+      claheRef.current = next;
+      setClahe(next);
+      const source = cropped?.file || original?.file;
+      if (!source) return null;
+      return run(source, fit, { croppedSource: Boolean(cropped) });
+    },
+    [cropped, original, fit, run]
+  );
+
   const applyCrop = useCallback(
     async (file) => {
       if (!file) return null;
@@ -116,6 +135,13 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
     [fit, run]
   );
 
+  /** Drop a manual crop and re-optimize the original upload (downscale only). */
+  const clearCrop = useCallback(async () => {
+    setCropped(null);
+    if (!original?.file) return null;
+    return run(original.file, fit, { croppedSource: false });
+  }, [original, fit, run]);
+
   /** Adopt an already-optimized camera capture (no full-resolution original). */
   const adoptResult = useCallback(
     (file, dataUrl, meta) => {
@@ -125,6 +151,10 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
       setResult({ file, dataUrl, meta });
       if (meta?.fitMode) {
         setFit({ fitMode: meta.fitMode, padStyle: meta.padStyle || "imagenet_mean" });
+      }
+      if (typeof meta?.clahe === "boolean") {
+        claheRef.current = meta.clahe;
+        setClahe(meta.clahe);
       }
       setError(null);
       setBusy(false);
@@ -139,6 +169,8 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
     setCropped(null);
     setResult(null);
     setFit(DEFAULT_FIT);
+    claheRef.current = false;
+    setClahe(false);
     setError(null);
     setBusy(false);
   }, [release]);
@@ -148,11 +180,14 @@ export function useImageOptimizer(initialFit = DEFAULT_FIT) {
     cropped,
     result,
     fit,
+    clahe,
     busy,
     error,
     loadFile,
     setFitMode,
+    setClaheEnabled,
     applyCrop,
+    clearCrop,
     adoptResult,
     reset,
     hasOriginal: Boolean(original),

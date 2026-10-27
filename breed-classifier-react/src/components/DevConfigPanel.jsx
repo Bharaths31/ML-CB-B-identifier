@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { exportOdt, downloadBlob } from "../api.js";
+import { readSession, sessionToOdtResults } from "../utils/sessionStore.js";
 
 export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }) {
   const [exporting, setExporting] = useState(false);
@@ -33,7 +34,12 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
   const handleExportOdt = async () => {
     try {
       setExporting(true);
-      const blob = await exportOdt([], "summary");
+      const entries = readSession();
+      const results = sessionToOdtResults(entries);
+      const blob = await exportOdt(
+        results,
+        results.length > 0 ? "batch" : "summary"
+      );
       downloadBlob(blob, "classification_report.odt");
     } catch (err) {
       alert("Export failed: " + err.message);
@@ -212,7 +218,9 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
             >
               <option value="percentage">Direct Percentage (Raw Softmax × Species Prob)</option>
               <option value="scaled">Presenter Scaled (Rescaled above minimum floor)</option>
+              <option value="clamped">Floor Minimum % (Clamp low scores)</option>
               <option value="badge_only">Badge Only (High / Moderate / Low categorical badge)</option>
+              <option value="hide">Hide Confidence (show status only)</option>
             </select>
           </div>
 
@@ -247,6 +255,39 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
                 type="checkbox"
                 checked={display.show_species_confidence ?? true}
                 onChange={(e) => handleDisplayChange("show_species_confidence", e.target.checked)}
+              />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+
+          <div className="control-setting-row">
+            <div className="setting-info">
+              <span className="setting-label">Show Species Badge</span>
+              <span className="setting-subtext">Display the CATTLE / BUFFALO species pill on the result card.</span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={display.show_species_badge ?? true}
+                onChange={(e) => handleDisplayChange("show_species_badge", e.target.checked)}
+              />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+
+          <div className="control-setting-row">
+            <div className="setting-info">
+              <span className="setting-label">Show Vet Escalation Warning</span>
+              <span className="setting-subtext">
+                When off, the result view only shows prediction results; Level 1–2 vet escalation
+                prompts and the manual escalate button are hidden.
+              </span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={display.show_escalation_warning ?? true}
+                onChange={(e) => handleDisplayChange("show_escalation_warning", e.target.checked)}
               />
               <span className="toggle-slider" />
             </label>

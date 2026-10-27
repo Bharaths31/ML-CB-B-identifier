@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import UserPage from "./pages/UserPage.jsx";
 import DevPage from "./pages/DevPage.jsx";
+import ExpertPage from "./pages/ExpertPage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -10,6 +11,10 @@ const router = createBrowserRouter([
   {
     path: "/dev",
     element: <DevPage />,
+  },
+  {
+    path: "/expert",
+    element: <ExpertPage />,
   },
 ]);
 

@@ -1,10 +1,27 @@
-// Thin API layer — talks to the test_model.py backend (default port 8501).
-// Vite proxies /api -> http://localhost:8501 during development.
+// Thin API layer — talks to the Flask backend (port 5000 via the Vite proxy).
+// The standalone test_model.py GUI on 8501 is a separate application.
+
+async function readJsonResponse(response, fallbackMessage) {
+  let data = {};
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+  if (!response.ok || data.error) {
+    const error = new Error(
+      data.error || `${fallbackMessage} (HTTP ${response.status})`
+    );
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+  return data;
+}
 
 export async function getModels() {
   const r = await fetch("/api/models");
-  if (!r.ok) throw new Error("Failed to load models");
-  return r.json();
+  return readJsonResponse(r, "Failed to load models");
 }
 
 export async function predict(file, model, filename) {
@@ -28,12 +45,12 @@ export async function predict(file, model, filename) {
 
 export async function getDevInfo() {
   const r = await fetch("/api/dev-info");
-  return r.json();
+  return readJsonResponse(r, "Failed to load breed class maps");
 }
 
 export async function getModelSpec(modelName) {
   const r = await fetch("/api/model-spec?model=" + encodeURIComponent(modelName));
-  return r.json();
+  return readJsonResponse(r, "Failed to load model specification");
 }
 
 export async function getImageInfo(file, filename) {
@@ -41,12 +58,12 @@ export async function getImageInfo(file, filename) {
   form.append("image", file);
   form.append("filename", filename);
   const r = await fetch("/api/image-info", { method: "POST", body: form });
-  return r.json();
+  return readJsonResponse(r, "Failed to read image metadata");
 }
 
 export async function getPresenterConfig() {
   const r = await fetch("/api/presenter-config");
-  return r.json();
+  return readJsonResponse(r, "Failed to load presenter config");
 }
 
 export async function savePresenterConfig(cfg) {
@@ -55,7 +72,7 @@ export async function savePresenterConfig(cfg) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(cfg),
   });
-  return r.json();
+  return readJsonResponse(r, "Failed to save presenter config");
 }
 
 // --- Shared Configuration DB API ---
@@ -100,7 +117,7 @@ export async function selectOODProfile(profile) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile }),
   });
-  return r.json();
+  return readJsonResponse(r, "Failed to select OOD profile");
 }
 
 export async function toggleOOD(enabled) {
@@ -109,7 +126,7 @@ export async function toggleOOD(enabled) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ enabled }),
   });
-  return r.json();
+  return readJsonResponse(r, "Failed to toggle OOD");
 }
 
 export async function updateOODThresholds(thresholds) {
@@ -118,14 +135,14 @@ export async function updateOODThresholds(thresholds) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(thresholds),
   });
-  return r.json();
+  return readJsonResponse(r, "Failed to update OOD thresholds");
 }
 
 export async function uploadOODProfile(file) {
   const form = new FormData();
   form.append("file", file);
   const r = await fetch("/api/ood/upload", { method: "POST", body: form });
-  return r.json();
+  return readJsonResponse(r, "Failed to upload OOD profile");
 }
 
 export async function getOODDataDirs() {
@@ -154,7 +171,7 @@ export async function selectModel(modelName) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: modelName }),
   });
-  return r.json();
+  return readJsonResponse(r, "Failed to switch model");
 }
 
 export async function uploadModel(file, filename) {
@@ -162,11 +179,12 @@ export async function uploadModel(file, filename) {
   form.append("model_file", file);
   form.append("filename", filename || file.name);
   const r = await fetch("/api/upload-model", { method: "POST", body: form });
-  return r.json();
+  return readJsonResponse(r, "Model upload failed");
 }
 
 export async function getLogs() {
   const r = await fetch("/api/logs");
+  if (!r.ok) throw new Error(`Failed to load logs (HTTP ${r.status})`);
   return r.text();
 }
 
@@ -190,4 +208,40 @@ export function downloadBlob(blob, filename) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// --- Expert escalation / active-learning queue ---
+export async function createEscalation(payload) {
+  const r = await fetch("/api/escalations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return readJsonResponse(r, "Escalation queue failed");
+}
+
+export async function getEscalations(status = "all") {
+  const r = await fetch(`/api/escalations?status=${encodeURIComponent(status)}`);
+  return readJsonResponse(r, "Failed to load escalations");
+}
+
+export async function resolveEscalation(id, payload) {
+  const r = await fetch(`/api/escalations/${encodeURIComponent(id)}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return readJsonResponse(r, "Could not resolve escalation");
+}
+
+// --- Bharat Pashudhan (BPA) QR matrix ---
+export async function getBpaQrMatrix(data) {
+  const r = await fetch("/api/bpa/qr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data }),
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok || body.error) throw new Error(body.error || "QR generation failed");
+  return body;
 }

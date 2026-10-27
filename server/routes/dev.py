@@ -30,6 +30,35 @@ def image_info():
         
     return jsonify(meta)
 
+@dev_bp.route('/api/bpa/qr', methods=['POST'])
+def bpa_qr():
+    """Return a QR module matrix for the BPA digital card canvas.
+
+    Rendering the matrix on the client keeps the health card fully drawable
+    offline (only the matrix request needs the API).
+    """
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("data") or "").strip()
+    if not text:
+        return jsonify({"error": "Missing 'data' string"}), 400
+    try:
+        import qrcode
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=1,
+            border=2,
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        matrix = [[1 if cell else 0 for cell in row] for row in qr.get_matrix()]
+        return jsonify({"matrix": matrix, "version": qr.version, "size": len(matrix)})
+    except ImportError:
+        return jsonify({"error": "qrcode package is not installed"}), 501
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
 @dev_bp.route('/api/logs', methods=['GET'])
 def logs():
     logger = get_logger()

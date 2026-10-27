@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ImageCropper from "./ImageCropper.jsx";
 import { useI18n } from "../i18n/I18nProvider.jsx";
+import { analyzeDataUrlQuality } from "../utils/cropAndQuality.js";
 
 /**
  * Minimal upload surface. It only shows the original image and the actions a
@@ -17,16 +18,34 @@ export default function ImageUpload({
   framed = false,
   onFileSelected,
   onApplyCrop,
+  onClearCrop,
   onClear,
   onClassify,
   analyzing = false,
   canClassify = false,
   showClassify = true,
+  modelInputUrl = null,
+  onQuality,
 }) {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [editing, setEditing] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Score the actual 260x260 model input after each upload/optimization so the
+  // result card never shows a stale camera quality report.
+  useEffect(() => {
+    if (!modelInputUrl) return undefined;
+    let cancelled = false;
+    analyzeDataUrlQuality(modelInputUrl)
+      .then((report) => {
+        if (!cancelled) onQuality?.(report);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [modelInputUrl, onQuality]);
 
   const handleDragOver = (event) => {
     event.preventDefault();
@@ -56,9 +75,18 @@ export default function ImageUpload({
     onFileSelected?.(file);
   };
 
-  const handleConfirmCrop = (file) => {
+  const handleConfirmCrop = async (file, dataUrl, report) => {
     setEditing(false);
-    onApplyCrop?.(file);
+    let qualityReport = report;
+    if (dataUrl) {
+      try {
+        qualityReport = await analyzeDataUrlQuality(dataUrl);
+      } catch {
+        qualityReport = report;
+      }
+    }
+    onQuality?.(qualityReport || null);
+    onApplyCrop?.(file, qualityReport || report);
   };
 
   if (editing && original) {
@@ -92,15 +120,34 @@ export default function ImageUpload({
 
           {error && <p className="camera-error-inline">{error}</p>}
 
+          <div className="framing-mode-block">
+            <span className="framing-mode-label">{t("upload.imagePreparation")}</span>
+            <div className="framing-mode-toggle" role="group" aria-label={t("upload.imagePreparation")}>
+              <button
+                type="button"
+                className={`framing-mode-btn ${!framed ? "is-on" : ""}`}
+                onClick={() => {
+                  if (framed) onClearCrop?.();
+                }}
+                disabled={busy || !framed}
+              >
+                {t("upload.downscaleOnly")}
+              </button>
+              <button
+                type="button"
+                className={`framing-mode-btn ${framed ? "is-on" : ""}`}
+                onClick={() => setEditing(true)}
+                disabled={busy}
+              >
+                {t("upload.frameManually")}
+              </button>
+            </div>
+            <p className="framing-mode-hint">
+              {framed ? t("upload.framedHint") : t("upload.downscaleHint")}
+            </p>
+          </div>
+
           <div className="preview-actions">
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => setEditing(true)}
-              disabled={busy}
-            >
-              {t("optimizer.adjust")}
-            </button>
             <button type="button" className="btn btn-secondary" onClick={onClear} disabled={busy}>
               {t("actions.remove")}
             </button>
@@ -116,7 +163,6 @@ export default function ImageUpload({
 
           {showClassify && onClassify && (
             <div className="upload-classify-block">
-              {framed && <p className="upload-classify-note">{t("upload.framedHint")}</p>}
               <button
                 type="button"
                 className="btn btn-primary btn-large btn-full classify-framed-btn"

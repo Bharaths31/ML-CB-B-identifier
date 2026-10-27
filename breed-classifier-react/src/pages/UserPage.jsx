@@ -19,6 +19,17 @@ import {
   sessionStats,
   thumbnailFromDataUrl,
 } from "../utils/sessionStore.js";
+import { analyzeDataUrlQuality } from "../utils/cropAndQuality.js";
+import {
+  OUTBOX_EVENT,
+  buildEscalationPayload,
+  getBrowserGps,
+  isPermanentEscalationError,
+  outboxCount,
+  enqueueEscalation,
+  syncOutbox,
+} from "../utils/escalationQueue.js";
+import { createEscalation } from "../api.js";
 
 export default function UserPage() {
   const { t } = useI18n();
@@ -33,7 +44,6 @@ export default function UserPage() {
   const optimizer = useImageOptimizer();
   const selectedFile = optimizer.result?.file || null;
   const previewUrl = optimizer.original?.dataUrl || null;
-  const optimizerMeta = optimizer.result?.meta || null;
 
   const [quality, setQuality] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -42,6 +52,8 @@ export default function UserPage() {
   const [session, setSession] = useState(() => readSession());
   const [sessionOpen, setSessionOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [queuedEscalations, setQueuedEscalations] = useState(() => outboxCount());
+  const [syncNotice, setSyncNotice] = useState(null);
 
   const { connected, serverStatus, predictionEvent, socket } = useSocket();
   const { config } = useSharedConfig(socket);
@@ -53,16 +65,60 @@ export default function UserPage() {
     setError(null);
   }, [optimizer.result?.file]);
 
+  // The 260x260 model input is also the authoritative quality-gate canvas.
+  // Recomputing after every upload/crop/camera frame removes the stale-camera
+  // quality bug (the report needs subscores for the actual evaluated image).
+  useEffect(() => {
+    const dataUrl = optimizer.result?.dataUrl;
+    if (!dataUrl) return undefined;
+    let cancelled = false;
+    analyzeDataUrlQuality(dataUrl)
+      .then((report) => {
+        if (!cancelled) setQuality(report);
+      })
+      .catch(() => {
+        if (!cancelled) setQuality(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [optimizer.result?.dataUrl]);
+
+  useEffect(() => {
+    const refresh = () => setQueuedEscalations(outboxCount());
+    window.addEventListener(OUTBOX_EVENT, refresh);
+    return () => window.removeEventListener(OUTBOX_EVENT, refresh);
+  }, []);
+
+  const flushEscalations = async ({ silent = false } = {}) => {
+    if (!outboxCount()) return;
+    const result = await syncOutbox();
+    setQueuedEscalations(result.remaining);
+    if (!silent && result.synced > 0) {
+      setSyncNotice(t("escalation.synced", { count: result.synced }));
+      setTimeout(() => setSyncNotice(null), 5000);
+    }
+  };
+
+  // Auto-sync once the /ws namespace reconnects (offline queue replay).
+  useEffect(() => {
+    if (connected) flushEscalations({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
+
   const handleImageSelected = (file) => {
     setPredictionResult(null);
     setError(null);
+    setQuality(null);
     optimizer.loadFile(file);
   };
 
-  const handleApplyCrop = async (file) => {
-    // Clear the old result immediately, before the new optimization finishes.
+  const handleApplyCrop = async (file, report = null) => {
+    // Clear the old result and stale quality immediately, before the new
+    // optimization finishes.
     setPredictionResult(null);
     setError(null);
+    setQuality(report);
     return optimizer.applyCrop(file);
   };
 
@@ -119,6 +175,31 @@ export default function UserPage() {
 
   const stats = sessionStats(session);
 
+  const handleEscalate = async (resultToEscalate, { manual = false } = {}) => {
+    const gps = await getBrowserGps();
+    const payload = buildEscalationPayload({
+      result: resultToEscalate || predictionResult,
+      imageB64: optimizer.result?.dataUrl || previewUrl,
+      quality,
+      filename: optimizer.original?.name || selectedFile?.name || "capture.jpg",
+      gps,
+    });
+    payload.manual_escalation = Boolean(manual);
+    try {
+      await createEscalation(payload);
+      setSyncNotice(t("escalation.queuedOnline"));
+    } catch (err) {
+      if (isPermanentEscalationError(err)) {
+        setError(err.message || t("escalation.rejected"));
+      } else {
+        enqueueEscalation(payload);
+        setQueuedEscalations(outboxCount());
+        setSyncNotice(t("escalation.queuedOffline"));
+      }
+    }
+    setTimeout(() => setSyncNotice(null), 6000);
+  };
+
   return (
     <div className="user-page-container">
       <header className="site-header">
@@ -153,6 +234,24 @@ export default function UserPage() {
             <span className="chip-label">{t("header.model")}:</span>
             <span className="chip-value">{activeModelDisplay}</span>
           </div>
+
+          {queuedEscalations > 0 && (
+            <button
+              type="button"
+              className="escalation-outbox-badge"
+              onClick={() => flushEscalations()}
+              title={t("escalation.syncTitle")}
+            >
+              <span aria-hidden="true">⇅</span>
+              {t("escalation.offlineBadge", { count: queuedEscalations })}
+            </button>
+          )}
+
+          <Link to="/expert" className="btn btn-outline vet-portal-btn">
+            {t("header.expertPortal")}
+          </Link>
+
+          {syncNotice && <span className="sync-notice">{syncNotice}</span>}
 
           <button
             type="button"
@@ -216,11 +315,14 @@ export default function UserPage() {
                   framed={Boolean(optimizer.cropped)}
                   onFileSelected={handleImageSelected}
                   onApplyCrop={handleApplyCrop}
+                  onClearCrop={optimizer.clearCrop}
                   onClear={handleClear}
                   onClassify={handleRunPrediction}
                   analyzing={analyzing}
                   canClassify={Boolean(selectedFile) && !optimizer.busy && !analyzing}
                   showClassify={!predictionResult}
+                  modelInputUrl={optimizer.result?.dataUrl || null}
+                  onQuality={setQuality}
                 />
               )}
 
@@ -260,7 +362,7 @@ export default function UserPage() {
               onRetake={handleRetake}
               quality={quality}
               previewUrl={previewUrl}
-              optimizerMeta={optimizerMeta}
+              onOpenAdvanced={() => setAdvancedOpen(true)}
             />
           </section>
         )}
@@ -282,6 +384,15 @@ export default function UserPage() {
         onClose={() => setAdvancedOpen(false)}
         optimizer={optimizer}
         model={activeModelId}
+        result={predictionResult}
+        config={config}
+        quality={quality}
+        previewUrl={previewUrl}
+        modelInputUrl={optimizer.result?.dataUrl || previewUrl}
+        onEscalate={handleEscalate}
+        onOpenExpert={() => {
+          window.location.href = "/expert";
+        }}
       />
     </div>
   );
