@@ -125,8 +125,11 @@ ML-CB-B-identifier/
 ├── test_model.py               # 🔬 Standalone web GUI for testing exported models
 ├── create_training_zip.py      # Lightweight training-only zip
 ├── create_test_eval_zip.py     # Creates zip of test split images for evaluation
-├── setup_venv.py               # Automated venv creation & dependency install
-├── setup.sh                    # Shell helper for quick env setup (Linux/macOS)
+├── setup_venv.py               # Smart venv/dependency installer (Linux/macOS/Windows)
+├── setup.sh                    # Linux/macOS wrapper: activate venv + status report
+├── setup.ps1                   # Windows PowerShell wrapper
+├── setup.bat                   # Windows batch wrapper
+├── scripts/status_report.py    # git/VERSION/model/venv status report
 ├── efficientnet_lite2.pth      # Pre-trained ImageNet backbone weights (included in repo)
 ├── efficientnet_lite4.pth      # Pre-trained ImageNet backbone weights (included in repo)
 ├── flutter_app/                # Flutter client (loads assets/models/model.tflite)
@@ -178,9 +181,21 @@ git clone https://github.com/Bharaths31/ML-CB-B-identifier
 cd ML-CB-B-identifier
 ```
 
-**Step 4 — Run the automated pipeline**
+**Step 4 — Run the automated setup**
 
-The `local_train.py` script handles **all remaining setup** automatically — virtual environment creation, dependency installation, Kaggle download, and training. Jump to [Automated Training](#automated-training-local_trainpy).
+```powershell
+powershell -ExecutionPolicy Bypass -File setup.ps1
+# or: setup.bat
+```
+
+The smart setup creates/reuses `.venv`, installs only missing/outdated packages,
+handles CPU/GPU PyTorch selection, activates the environment and prints a
+project status report (git, VERSION.txt, active/newest model, venv health).
+
+Then run the full pipeline (or use `local_train.py` to do setup + training):
+```powershell
+python local_train.py
+```
 
 If you prefer manual setup, see [Manual Setup — Windows](#manual-setup--windows).
 
@@ -223,9 +238,23 @@ git clone https://github.com/Bharaths31/ML-CB-B-identifier
 cd ML-CB-B-identifier
 ```
 
-**Step 4 — Run the automated pipeline**
+**Step 4 — Run the automated setup**
 
-The `local_train.py` script handles all remaining setup automatically. Jump to [Automated Training](#automated-training-local_trainpy).
+```bash
+bash setup.sh
+# or, to only inspect what is missing:
+bash setup.sh --check
+```
+
+The smart setup creates/reuses `.venv`, installs only missing/outdated packages,
+handles CPU/GPU PyTorch selection, activates the environment in the current
+shell and prints a project status report (git, VERSION.txt, active/newest model,
+venv health).
+
+Then run the full pipeline (or use `local_train.py` to do setup + training):
+```bash
+python local_train.py
+```
 
 If you prefer manual setup, see [Manual Setup — Linux / macOS](#manual-setup--linux--macos).
 
@@ -730,6 +759,7 @@ python -m src.data_pipeline
 **Step 5 — Verify architecture:**
 ```cmd
 python -m src.verify
+python scripts\status_report.py
 ```
 
 **Step 6 — Train:**
@@ -776,6 +806,7 @@ python -m src.data_pipeline
 **Step 5 — Verify architecture:**
 ```bash
 python -m src.verify
+python scripts/status_report.py
 ```
 
 **Step 6 — Train:**
@@ -1094,6 +1125,15 @@ is **A** (or **B**), with **C** showing rare-breed over-prediction.
 ---
 
 ## Changelog
+
+**2026-10-28 — Smart cross-platform setup + status reporting**
+
+- Added idempotent `setup_venv.py` logic: reuse existing venv, verify pip, detect missing/outdated packages, install only those, and reinstall PyTorch only when missing/broken/outdated/backend-mismatched.
+- Added robust failure handling for missing pip, permissions, network/proxy errors, timeouts, old Python, and Windows/Linux path differences.
+- Added `setup.sh` Linux/macOS wrapper that activates `.venv` and always runs a project status report.
+- Added Windows `setup.ps1` and `setup.bat` wrappers with the same behaviour.
+- Added `scripts/status_report.py` (and `--json`) covering git status, `VERSION.txt`, active/newest model, venv activation/health, torch/CUDA, and missing/outdated requirements.
+- Updated `requirements.txt` with build/bootstrap tools (`setuptools`, `wheel`) and notes for the smart installer.
 
 **2026-10-27 — Expert escalation, 5-level confidence, X-Ray, BPA, AR camera HUD, compact results**
 

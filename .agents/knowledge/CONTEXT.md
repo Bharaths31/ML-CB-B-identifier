@@ -165,8 +165,10 @@ Mini Project/
 ├── create_test_eval_zip.py     # Creates zip of test split images for evaluation
 ├── local_train.py              # Fully automated local training pipeline (setup → train → export)
 ├── test_model.py               # Standalone PyTorch model testing GUI server (http://localhost:8501)
-├── setup.sh                    # Shell script helper for environment setup
-├── setup_venv.py               # Automated virtual environment setup script
+├── setup.sh                    # Linux/macOS wrapper: activate venv + status report
+├── setup.ps1 / setup.bat       # Windows wrappers with identical behaviour
+├── setup_venv.py               # Smart, idempotent venv/dependency installer
+├── scripts/status_report.py    # git/VERSION/model/venv status report
 ├── .gitignore                  # Git ignore rules (includes outputs, venv, cache)
 ├── efficientnet_lite{2,4}.pth  # Pretrained ImageNet backbone weights
 ├── requirements.txt            # Python dependencies (core, serving, export, reports)
@@ -679,6 +681,25 @@ python local_train.py --quarter-data   # 25% data
 python local_train.py --smoke-test     # Smoke test (seconds)
 ```
 
+### Smart Setup (recommended, re-runnable)
+```bash
+# Linux / macOS
+bash setup.sh                 # create/reuse venv, install only missing/outdated deps
+bash setup.sh --check         # inspect without changing anything
+bash setup.sh --cpu           # force CPU PyTorch
+bash setup.sh --reinstall     # repair torch + refresh all requirements
+```
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File setup.ps1
+setup.bat                     # wrapper
+```
+The wrapper activates `.venv` and every run ends with
+`scripts/status_report.py` (git status, VERSION.txt, active/newest model, venv
+and requirement health). `setup_venv.py` is idempotent, checks installed
+versions before installing, handles missing pip/network/permission failures,
+and only reinstalls PyTorch when broken, outdated, or backend-mismatched.
+
 ### Model Testing GUI
 ```bash
 python test_model.py                   # → http://localhost:8501
@@ -983,6 +1004,14 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 ---
 
 ## 16. Changelog
+
+### 2026-10-28 — Smart cross-platform setup + status reporting
+
+- `setup_venv.py` is now idempotent and smart: reuses an existing venv, ensures pip, compares installed versions, installs only missing/outdated requirements, and reinstalls PyTorch only when missing/broken/outdated/backend-mismatched.
+- Handles missing pip (`ensurepip`), permissions, network/proxy failures, command timeouts, old Python, and Windows/Linux paths with actionable messages.
+- `setup.sh` activates `.venv` and always finishes with a status report; `setup.ps1` / `setup.bat` provide the Windows equivalent.
+- `scripts/status_report.py` reports git branch/dirty state, `VERSION.txt`, active and newest model, venv activation/health, torch/CUDA, and missing/outdated packages (`--json` supported).
+- `requirements.txt` adds build/bootstrap tools (`setuptools`, `wheel`).
 
 ### 2026-10-27 — Expert escalation, five-level confidence, X-Ray, BPA, AR camera HUD, compact result
 

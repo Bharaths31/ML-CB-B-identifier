@@ -54,6 +54,14 @@ The active backend for the React app is **`server/app.py` on port 5000**, not `t
 ### 1.1 Canonical launch commands
 
 ```bash
+# Smart setup / update (Linux/macOS)
+bash setup.sh
+bash setup.sh --check
+python scripts/status_report.py
+
+# Windows
+# powershell -ExecutionPolicy Bypass -File setup.ps1
+
 # Full app: Flask (5000) + React Vite (5173)
 python run.py
 
@@ -164,6 +172,9 @@ FLUTTER APP
 | `train_model.py` | High-level CLI wrapper around `src.train` + post-training export/OOD/config sync. | ACTIVE |
 | `local_train.py` | Fully automated pipeline: env → dataset → verify → train → export → OOD. | ACTIVE |
 | `run.py` | Starts Flask + Vite, health checks, opens browser. | ACTIVE |
+| `setup_venv.py` | Smart idempotent venv/dependency installer with version diffing + error recovery. | ACTIVE |
+| `setup.sh`, `setup.ps1`, `setup.bat` | Platform wrappers: activate venv and run the status report. | ACTIVE |
+| `scripts/status_report.py` | Git/VERSION/model/venv/package status report (`--json` supported). | ACTIVE |
 | `server/app.py` | Flask app factory, blueprints, Socket.IO, `/api/health`. | ACTIVE |
 | `server/model_manager.py` | Discovery, class-map loading, lazy loading, active-model switch, OOD recalibration. | ACTIVE |
 | `server/services/inference.py` | Server-side preprocessing, inference, OOD, soft routing, display filtering. | ACTIVE |
@@ -1695,6 +1706,25 @@ ood_thresholds.json      # when calibration ran
 
 ## 13. Runbook
 
+### 13.0 Smart setup / status
+
+```bash
+# Linux / macOS — create or update the venv, install only what is missing
+bash setup.sh
+bash setup.sh --check          # inspect only
+bash setup.sh --cpu            # force CPU PyTorch
+bash setup.sh --reinstall      # repair torch + refresh all requirements
+
+# Windows
+powershell -ExecutionPolicy Bypass -File setup.ps1
+setup.bat
+```
+
+- `setup_venv.py` is idempotent: it reuses `.venv`, ensures pip, compares installed versions, installs only missing/outdated requirements, and reinstalls PyTorch only when needed.
+- Handles missing pip, permissions, network/proxy failures, timeouts, old Python, and platform-specific paths.
+- Both wrappers activate the venv and finish with `scripts/status_report.py`.
+- Status report covers git branch/dirty state, `VERSION.txt`, active/newest model, venv/torch/CUDA health, and missing/outdated requirements. Use `--json` for machine-readable output.
+
 ### 13.1 Train
 
 ```bash
@@ -1975,6 +2005,7 @@ The following report-promised features are now **ACTIVE** and should be describe
 15. **Quality-state hardening** — `analyzeCanvasQuality` exposes independent lighting/framing/sharpness states; pitch-black or washed-out frames report `No Subject` and never auto-capture as `Ready`.
 16. **Model selection reliability** — immediate local active state, `Activating…` feedback, awaited config refresh, JSON switch errors and an Active model pill in `/dev`.
 17. **Theme consistency** — shared theme tokens across `/`, `/dev`, `/expert`; ThemeToggle on all three; guarded localStorage; no undefined `--card` token.
+18. **Smart setup + status** — idempotent `setup_venv.py`, Linux/macOS `setup.sh`, Windows `setup.ps1`/`setup.bat`, missing/outdated-only installs, and `scripts/status_report.py` (git/version/model/venv).
 
 ### Verification snapshot (2026-10-27)
 

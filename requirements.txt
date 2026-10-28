@@ -2,7 +2,13 @@
 # BreedID Livestock Vision — Python dependencies
 # Install:  python -m pip install -r requirements.txt
 # The React web app has its own dependencies (breed-classifier-react/package.json).
+# The smart installer in setup_venv.py installs only missing/outdated packages.
 # =============================================================================
+
+# --- Build/bootstrap tools ---------------------------------------------------
+# Needed by some source installs and older virtual environments.
+setuptools>=68.0
+wheel>=0.41
 
 # --- Core deep learning & computer vision -----------------------------------
 torch>=2.1.0
