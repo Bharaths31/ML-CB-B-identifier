@@ -27,6 +27,27 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
 - [Installation](#installation)
   - [Windows](#windows)
   - [Linux / macOS](#linux--macos)
+- [Environment Setup & Update](#environment-setup--update)
+  - [Linux / macOS](#environment-setup--linux--macos)
+  - [Windows](#environment-setup--windows)
+  - [Installer Flags (`setup_venv.py`)](#installer-flags-setup_venvpy)
+  - [Status Report](#status-report)
+  - [Setup Troubleshooting](#setup-troubleshooting)
+- [Git Remote Setup & Updates](#git-remote-setup--updates)
+  - [Inspect the Current Remote](#inspect-the-current-remote)
+  - [Point at a Different Remote](#point-at-a-different-remote)
+  - [Pull / Push Workflow](#pull--push-workflow)
+  - [Authentication](#authentication)
+  - [Git Troubleshooting](#git-troubleshooting)
+- [Runner Reference — Every Entry Point](#runner-reference--every-entry-point)
+  - [Unified Launcher (`run.py`)](#unified-launcher-runpy)
+  - [Backend Only (`server/app.py`)](#backend-only-serverapppy)
+  - [React Frontend (`breed-classifier-react/`)](#react-frontend-breed-classifier-react)
+  - [Standalone Tester (`test_model.py`)](#standalone-tester-test_modelpy)
+  - [Automated Training (`local_train.py`)](#automated-training-local_trainpy)
+  - [Training Wrapper (`train_model.py`)](#training-wrapper-train_modelpy)
+  - [Core Training (`python -m src.train`)](#core-training-python--m-srctrain)
+  - [Evaluation, Export, Parity & Verify](#evaluation-export-parity--verify)
 - [Kaggle API Setup](#kaggle-api-setup)
 - [Automated Training (`local_train.py`)](#automated-training-local_trainpy)
   - [Data Modes](#data-modes)
@@ -257,6 +278,495 @@ python local_train.py
 ```
 
 If you prefer manual setup, see [Manual Setup — Linux / macOS](#manual-setup--linux--macos).
+
+---
+
+## Environment Setup & Update
+
+The repository uses a **smart, idempotent** setup flow. Running it again on an
+existing machine is safe: it reuses `.venv`, checks installed versions, and
+installs only missing/outdated packages. It does not wipe a working environment.
+
+| File | Purpose |
+|---|---|
+| `setup.sh` | Linux/macOS wrapper: run installer, activate venv, print status report |
+| `setup.ps1` | Windows PowerShell wrapper with the same behaviour |
+| `setup.bat` | Windows batch wrapper |
+| `setup_venv.py` | Core installer: venv creation, package diffing, PyTorch backend selection, error handling |
+| `scripts/status_report.py` | Git / VERSION.txt / model / venv / package health report |
+
+### Environment Setup — Linux / macOS
+
+```bash
+# 1) Install system prerequisites (Ubuntu / Debian)
+sudo apt update
+sudo apt install python3 python3-venv python3-dev python3-pip git -y
+
+# macOS with Homebrew
+brew install python@3.11 git
+
+# 2) Create or update the venv and dependencies
+cd ML-CB-B-identifier
+bash setup.sh
+
+# 3) The wrapper activates .venv for its own verification/status run.
+# To keep the venv active in your current shell, source it:
+source .venv/bin/activate
+# (or run `source setup.sh` instead of `bash setup.sh` to keep activation)
+
+# 4) Verify
+python -m src.verify
+python scripts/status_report.py
+```
+
+Useful setup modes:
+
+```bash
+bash setup.sh --check                 # show missing/outdated packages, change nothing
+bash setup.sh --cpu                   # force CPU PyTorch
+bash setup.sh --gpu                   # force GPU PyTorch (defaults to cu124)
+bash setup.sh --cuda-tag cu121        # explicit PyTorch CUDA wheel tag
+bash setup.sh --reinstall             # repair torch + refresh all requirements
+bash setup.sh --no-verify             # skip src.verify
+bash setup.sh --report                # run status report from setup_venv.py too
+```
+
+Updating an existing install:
+
+```bash
+cd ML-CB-B-identifier
+bash setup.sh --check        # inspect first
+bash setup.sh                # installs only what changed
+source .venv/bin/activate
+python scripts/status_report.py
+```
+
+### Environment Setup — Windows
+
+Open **PowerShell** as a regular user (not Administrator):
+
+```powershell
+# 1) Prerequisites
+python --version              # Python 3.10+
+git --version
+
+# 2) Create or update the venv and dependencies
+cd ML-CB-B-identifier
+powershell -ExecutionPolicy Bypass -File setup.ps1
+
+# Or use the batch wrapper:
+setup.bat
+
+# 3) Activate manually in a new PowerShell window
+.\.venv\Scripts\Activate.ps1
+
+# CMD alternative:
+.venv\Scripts\activate.bat
+
+# 4) Verify
+python -m src.verify
+python scripts\status_report.py
+```
+
+Windows setup modes are identical:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File setup.ps1 --check
+powershell -ExecutionPolicy Bypass -File setup.ps1 --cpu
+powershell -ExecutionPolicy Bypass -File setup.ps1 --cuda-tag cu121
+powershell -ExecutionPolicy Bypass -File setup.ps1 --reinstall
+```
+
+If PowerShell blocks scripts, use the per-process bypass shown above or run
+`setup.bat`. Do not permanently weaken the machine-wide execution policy.
+
+### Installer Flags (`setup_venv.py`)
+
+`setup.sh` and `setup.ps1` forward all flags to this script.
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--check` | off | Report missing/outdated packages and PyTorch health; change nothing |
+| `--cpu` / `--force-cpu` | off | Force CPU PyTorch wheels |
+| `--gpu` / `--force-gpu` | off | Force GPU PyTorch (cu124 unless overridden) |
+| `--cuda-tag TAG` | auto | Explicit wheel tag: `cu118`, `cu121`, `cu124`, or `cpu` |
+| `--reinstall` | off | Reinstall PyTorch and refresh all requirements |
+| `--no-verify` | off | Skip `python -m src.verify` |
+| `--report` | off | Run `scripts/status_report.py` after setup |
+
+What the installer does internally:
+
+1. Checks Python `>= 3.10`.
+2. Reuses `.venv` when valid; creates it only when missing.
+3. Ensures pip exists (falls back to `ensurepip`).
+4. Reads `requirements.txt` and compares installed versions.
+5. Detects NVIDIA/CUDA and selects the matching PyTorch wheel.
+6. Reinstalls PyTorch only if missing, broken, outdated, or backend-mismatched.
+7. Installs only missing/outdated non-PyTorch packages.
+8. Runs verification unless `--no-verify`.
+9. Prints OS-specific activation instructions.
+
+### Status Report
+
+Every `setup.sh`, `setup.ps1`, and `setup.bat` run ends with this report. It can
+also be run manually with the venv active:
+
+```bash
+python scripts/status_report.py
+python scripts/status_report.py --json
+```
+
+Windows:
+
+```powershell
+python scripts\status_report.py
+python scripts\status_report.py --json
+```
+
+The report covers:
+
+- Git branch, HEAD commit, ahead/behind, dirty/clean state and change counts
+- `VERSION.txt` value and trailing-newline status
+- Active model from `outputs/app_config.json` and whether its file exists
+- Newest checkpoint and newest portable export
+- Whether the current Python is a venv, its path/version and pip version
+- Torch version and CUDA availability
+- Missing/outdated `requirements.txt` packages
+
+### Setup Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `No module named venv` | Linux Python venv package missing | `sudo apt install python3-venv python3-dev` |
+| `Permission denied` creating `.venv` | Project folder not writable | Move/clone into your home directory or fix ownership |
+| `pip` missing | Broken/partial venv | Run `python -m ensurepip --upgrade`, then re-run setup |
+| Network/proxy timeout | PyPI/PyTorch unreachable | Set proxy env vars, retry, or use `--cpu` |
+| CUDA wheel downloads but `torch.cuda.is_available()` is false | Driver/CUDA mismatch | Check `nvidia-smi`; use a supported tag (`--cuda-tag cu121`) or `--cpu` |
+| Existing venv is corrupted | Interrupted install | `bash setup.sh --reinstall` (or Windows equivalent) |
+| PowerShell script blocked | Execution policy | Use `-ExecutionPolicy Bypass` for the command only |
+| `wheel`/other package shown as missing | Not installed in venv | Re-run setup; it installs only that package |
+
+---
+
+## Git Remote Setup & Updates
+
+All commands below are identical on Linux/macOS and Windows. Use PowerShell,
+CMD, or a terminal. Example repository URL:
+`https://github.com/Bharaths31/ML-CB-B-identifier.git`.
+
+### Inspect the Current Remote
+
+```bash
+git remote -v
+git status
+git branch --show-current
+git log -1 --oneline
+```
+
+### Point at a Different Remote
+
+Change `origin` to your fork/new repository:
+
+```bash
+git remote set-url origin https://github.com/<your-user>/<your-repo>.git
+git remote -v
+```
+
+SSH instead of HTTPS:
+
+```bash
+git remote set-url origin git@github.com:<your-user>/<your-repo>.git
+```
+
+Keep the original project as `upstream`:
+
+```bash
+git remote add upstream https://github.com/Bharaths31/ML-CB-B-identifier.git
+# if it already exists:
+git remote set-url upstream https://github.com/Bharaths31/ML-CB-B-identifier.git
+git fetch upstream
+```
+
+Rename an old remote or remove a duplicate:
+
+```bash
+git remote rename origin old-origin
+git remote remove old-origin
+```
+
+### Pull / Push Workflow
+
+Commit or stash local work before pulling:
+
+```bash
+git status
+git add -A
+git commit -m "Describe your change"
+# or: git stash push -u -m "wip before pull"
+
+git fetch origin
+git pull --rebase origin main
+git push -u origin main
+```
+
+Sync a fork from upstream:
+
+```bash
+git fetch upstream
+git checkout main
+git merge --ff-only upstream/main
+git push origin main
+```
+
+If your default branch is not `main`, substitute `master` or the branch shown by
+`git branch --show-current`.
+
+### Authentication
+
+**HTTPS:** use a GitHub Personal Access Token (PAT) as the password, or install
+Git Credential Manager. Never commit tokens to the repository.
+
+**SSH:**
+
+```bash
+ssh-keygen -t ed25519 -C "you@example.com"
+# Linux/macOS
+cat ~/.ssh/id_ed25519.pub
+# Windows PowerShell
+Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub
+```
+
+Add the public key to GitHub → Settings → SSH and GPG keys, then test:
+
+```bash
+ssh -T git@github.com
+```
+
+### Git Troubleshooting
+
+| Error | Cause | Fix |
+|---|---|---|
+| `remote origin already exists` | Adding a remote that exists | Use `git remote set-url origin <url>` |
+| `Authentication failed` | Wrong password/PAT or expired token | Use a PAT or SSH key |
+| `Updates were rejected` / non-fast-forward | Remote has newer commits | `git pull --rebase origin main`, resolve, push |
+| `divergent branches` | Local and remote histories differ | Rebase/merge intentionally; never force-push shared branches blindly |
+| `detected dubious ownership` | Git safe-directory protection | `git config --global --add safe.directory <path>` |
+| `src refspec main does not match any` | No commit/branch yet | Commit first, confirm `git branch --show-current` |
+| Remote points at old repo | Repository moved/forked | `git remote set-url origin <new-url>` |
+
+> Do not commit `.venv/`, `outputs/`, `data/raw/`, credentials, or local logs;
+> the repository `.gitignore` already excludes them.
+
+---
+
+## Runner Reference — Every Entry Point
+
+| Runner | Main job | Typical command |
+|---|---|---|
+| `setup.sh` / `setup.ps1` / `setup.bat` | Create/update venv, install only needed packages, activate, report | `bash setup.sh` / `setup.ps1` |
+| `setup_venv.py` | Core installer and dependency diffing | `python setup_venv.py --check` |
+| `scripts/status_report.py` | Git/version/model/venv health report | `python scripts/status_report.py` |
+| `run.py` | Launch Flask API + React Vite together | `python run.py` |
+| `server/app.py` | Run only the Flask API | `python server/app.py --port 5000` |
+| `breed-classifier-react/` | React dev/build/test scripts | `npm run dev` |
+| `test_model.py` | Standalone tester GUI/API | `python test_model.py` |
+| `local_train.py` | Fully automated setup → data → train → export | `python local_train.py --quarter-data` |
+| `train_model.py` | Training wrapper with post-export/OOD | `python train_model.py --half-data` |
+| `src.train` | Core training engine | `python -m src.train --backbone lite2` |
+| `src.evaluate` | Validation/test evaluation + confusion matrices | `python -m src.evaluate` |
+| `src.export` | Portable/ONNX/FP16/INT8/TFLite exports | `python -m src.export --mode onnx` |
+| `src.parity_check` | FP32 vs INT8 artifact parity | `python -m src.parity_check --checkpoint <pt> --synthetic 8` |
+| `src.verify` | Backbone + head-shape sanity check | `python -m src.verify` |
+| `src.data_pipeline` | Generate/refresh splits and class maps | `python -m src.data_pipeline` |
+
+### Unified Launcher (`run.py`)
+
+Starts the **Flask API** and **React/Vite frontend**, waits for health checks,
+prints URLs, opens the browser, and shuts both processes down on `Ctrl+C`.
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--backend-port N` | `5000` | Flask API port |
+| `--frontend-port N` | `5173` | React/Vite port |
+| `--backend-only` | off | Start only Flask; do not start Vite or open a browser |
+| `--frontend-only` | off | Start only Vite; do not start Flask |
+| `--no-browser` | off | Do not auto-open a browser |
+| `--open-dev` | off | Also open `/dev` alongside `/` |
+
+Linux / macOS:
+
+```bash
+source .venv/bin/activate
+python run.py
+python run.py --no-browser
+python run.py --backend-only --backend-port 5001
+python run.py --frontend-only --frontend-port 5174
+python run.py --open-dev
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python run.py
+python run.py --no-browser
+python run.py --backend-only --backend-port 5001
+python run.py --open-dev
+```
+
+Behaviour:
+
+- Uses `.venv/bin/python` (Linux/macOS) or `.venv\Scripts\python.exe` (Windows) when present.
+- If a port is already in use, it reuses the existing service instead of failing.
+- Backend command is `python server/app.py --port <port>`.
+- Frontend command is `npm run dev -- --port <port>` from `breed-classifier-react/`.
+- Health checks: `/api/health` for Flask and `/` for Vite.
+- URLs: `http://localhost:5173/`, `http://localhost:5173/dev`, `http://localhost:5000/api/health`.
+- Requires `npm install` in `breed-classifier-react/` once; `setup.sh` does not install Node modules.
+
+### Backend Only (`server/app.py`)
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--port N` | `5000` | API port |
+| `--debug` | off | Flask debug mode / reloader |
+
+```bash
+# Linux / macOS
+python server/app.py --port 5000
+python server/app.py --port 5000 --debug
+
+# Windows
+python server\app.py --port 5000
+```
+
+### React Frontend (`breed-classifier-react/`)
+
+```bash
+cd breed-classifier-react
+npm install                 # first time / after package.json changes
+npm run dev                 # http://localhost:5173
+npm run dev -- --port 5174
+npm test                    # 42 utility tests
+npm run build               # production bundle in dist/
+npm run preview             # preview the production build
+```
+
+Windows PowerShell is identical (`cd breed-classifier-react; npm run dev`).
+
+### Standalone Tester (`test_model.py`)
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--port N` | `8501` | Tester HTTP port |
+| `--no-browser` | off | Do not auto-open the browser |
+| `--dev` | on | Full developer view, metadata, logs, presenter settings |
+| `--present` | off | Clean presenter view; hides raw arrays and disables ODT export |
+
+```bash
+python test_model.py
+python test_model.py --port 9000 --no-browser
+python test_model.py --present
+```
+
+This is independent of `server/app.py`; it uses its own ModelManager and API.
+
+### Automated Training (`local_train.py`)
+
+Flags shown are the commonly used ones; run `python local_train.py --help` for
+the full list.
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--quarter-data` | off | Use 25% of images per breed |
+| `--half-data` | off | Use 50% of images per breed |
+| `--full-data` | off | Use all images |
+| `--smoke-test` | off | Tiny dataset, one epoch per phase |
+| `--backbone {lite2,lite4}` | `lite2` | Backbone architecture |
+| `--attention {cbam,se}` | `cbam` | Attention type |
+| `--dataset-mode {atharvadarpude,algsoch,both}` | `atharvadarpude` | Dataset source |
+| `--phase1-epochs N` / `--phase2-epochs N` / `--phase3-epochs N` | 8/80/10 | Phase overrides |
+| `--batch-size N` | auto | Training batch size |
+| `--min-images-per-breed N` | auto | Filter tiny classes / dynamic head sizing |
+| `--augment-preset {none,light}` | `light` | Augmentation preset |
+| `--cosine-head` | off | ArcFace/cosine breed heads |
+| `--include-qat` | off | Optional QAT phase 3 |
+| `--set-active` | off | Activate the new model in `outputs/app_config.json` |
+| `--skip-download` / `--skip-setup` / `--skip-verify` / `--skip-export` / `--skip-inventory` | off | Skip pipeline stages |
+| `--run-tag TAG` / `--exec-id ID` | auto | Output/run log naming |
+
+```bash
+python local_train.py --quarter-data
+python local_train.py --half-data --set-active
+python local_train.py --full-data --set-active
+python local_train.py --skip-setup --skip-download --quarter-data
+python local_train.py --smoke-test
+```
+
+### Training Wrapper (`train_model.py`)
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--quarter-data` / `--half-data` / `--full-data` / `--smoke-test` | off | Data mode |
+| `--backbone {lite2,lite4}` | `lite2` | Backbone |
+| `--attention {cbam,se}` | `cbam` | Attention |
+| `--phase1-epochs N` / `--phase2-epochs N` | 8/80 | Epoch overrides |
+| `--batch-size N` / `--num-workers N` | 64/4 | DataLoader controls |
+| `--device {cuda,cpu}` | auto | Force device |
+| `--augment-preset {none,light}` | `none` | Augmentation |
+| `--export-formats LIST` | `portable,onnx,float16` | Post-train exports |
+| `--no-export` / `--no-ood-calibrate` | off | Skip post-processing |
+| `--set-active` | off | Activate new model |
+| `--run-tag TAG` | auto | Output naming |
+
+```bash
+python train_model.py --half-data --set-active
+python train_model.py --quarter-data --export-formats portable,onnx
+```
+
+### Core Training (`python -m src.train`)
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--backbone {lite2,lite4}` | `lite2` | Backbone |
+| `--attention {cbam,se}` | `cbam` | Attention |
+| `--data PATH` / `--split-dir PATH` | `data/raw` / `data/splits` | Data roots |
+| `--batch-size N` / `--num-workers N` | 64/4 | DataLoader |
+| `--device {cuda,cpu}` | auto | Force device |
+| `--phase1-epochs N` / `--phase2-epochs N` / `--phase3-epochs N` | 8/80/10 | Epochs |
+| `--include-qat` | off | Optional QAT phase |
+| `--augment-preset {none,light}` / `--augment-all` / `--no-augment` | `none` | Augmentation |
+| `--mix`, `--flip`, `--color-jitter`, `--randaugment`, `--rrc` | off | Individual transforms |
+| `--pad-to-square` | off | Preserve full-body aspect via padding |
+| `--cosine-head` | off | Cosine/ArcFace heads |
+| `--trait-weight F` | 0.0 | Training-only trait heads |
+| `--hard-pairs PATH` | off | Confusion-pair hard negatives |
+| `--contrastive-weight F` | 0.2 | SupCon loss |
+| `--logit-adjust` | off | Optional extra long-tail correction |
+| `--dedup-splits` | off | Near-duplicate-aware splits |
+| `--no-compile` | off | Disable `torch.compile` |
+| `--export-dir PATH` / `--no-export` | portable / off | Portable export control |
+| `--no-ood-calibrate` / `--ood-percentile F` | off / 95 | OOD calibration |
+| `--run-tag TAG` / `--exec-id ID` | auto | Output naming |
+
+```bash
+python -m src.train --backbone lite2 --quarter-data --no-compile
+python -m src.train --smoke-test --no-compile
+python -m src.train --backbone lite2 --augment-preset light
+```
+
+### Evaluation, Export, Parity & Verify
+
+| Runner | Common flags | Example |
+|---|---|---|
+| `src.evaluate` | `--backbone`, `--checkpoint`, `--split-dir`, `--device`, `--run-tag` | `python -m src.evaluate --checkpoint outputs/checkpoints/x.pt` |
+| `src.export` | `--mode {portable,onnx,float16,onnx-int8,tflite,int8}`, `--checkpoint`, `--calibration-images`, `--skip-app-assets` | `python -m src.export --mode portable` |
+| `src.parity_check` | `--checkpoint`, `--onnx`, `--onnx-int8`, `--tflite`, `--synthetic N`, `--tolerance` | `python -m src.parity_check --checkpoint x.pt --synthetic 8` |
+| `src.verify` | none | `python -m src.verify` |
+| `src.data_pipeline` | no required flags | `python -m src.data_pipeline` |
+
+> Every runner supports `--help`, e.g. `python run.py --help`,
+> `python setup_venv.py --help`, `python local_train.py --help`.
 
 ---
 

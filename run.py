@@ -17,6 +17,7 @@ import sys
 import time
 import signal
 import socket
+import shutil
 import argparse
 import webbrowser
 import subprocess
@@ -52,10 +53,20 @@ def is_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
 
 def get_python_executable() -> str:
     """Resolve virtual environment python if present."""
-    venv_python = os.path.join(PROJECT_ROOT, ".venv", "bin", "python")
+    if sys.platform == "win32":
+        venv_python = os.path.join(PROJECT_ROOT, ".venv", "Scripts", "python.exe")
+    else:
+        venv_python = os.path.join(PROJECT_ROOT, ".venv", "bin", "python")
     if os.path.isfile(venv_python) and os.access(venv_python, os.X_OK):
         return venv_python
     return sys.executable
+
+
+def get_npm_executable() -> str:
+    """Resolve npm, including the Windows .cmd shim."""
+    if sys.platform == "win32":
+        return shutil.which("npm.cmd") or shutil.which("npm") or "npm.cmd"
+    return shutil.which("npm") or "npm"
 
 def wait_for_service(url: str, timeout_sec: float = 20.0, service_name: str = "Service") -> bool:
     """Poll an HTTP endpoint until it answers 200 OK or timeout expires."""
