@@ -179,6 +179,18 @@ def main():
                 print("[Error] npm not found on PATH. Install Node.js (https://nodejs.org) "
                       "or run with --backend-only.")
                 shutdown()
+            node_modules_dir = os.path.join(FRONTEND_DIR, "node_modules")
+            if not os.path.isdir(node_modules_dir):
+                print("[*] Frontend dependencies not found. Installing packages (npm install)...")
+                install_cmd = build_npm_command(npm_bin, ["install"])
+                try:
+                    res = subprocess.run(install_cmd, cwd=FRONTEND_DIR)
+                    if res.returncode != 0:
+                        print("[Error] Failed to install frontend dependencies. Please run 'npm install' in breed-classifier-react.")
+                        shutdown()
+                except Exception as e:
+                    print(f"[Error] Failed to execute npm install: {e}")
+                    shutdown()
             npm_cmd = build_npm_command(
                 npm_bin, ["run", "dev", "--", "--port", str(args.frontend_port)]
             )
