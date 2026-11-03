@@ -107,13 +107,18 @@ check("i18n.hero", "Big-4 species/gender/age labels in ta + hi",
   heroMissing.length ? `untranslated: ${heroMissing.join(", ")}` : `${HERO_KEYS.length} labels localized`,
   { labels: HERO_KEYS.length, missing: heroMissing.length });
 
-const traitFieldFailures = Object.entries(TRAIT_FIELDS_I18N)
-  .filter(([, v]) => !TAMIL.test(v.ta || "") || !DEVANAGARI.test(v.hi || ""))
-  .map(([k]) => k);
-check("i18n.traits.fields", "All 7 trait field labels localized",
-  Object.keys(TRAIT_FIELDS_I18N).length === 7 && traitFieldFailures.length === 0,
-  traitFieldFailures.length ? `missing: ${traitFieldFailures.join(", ")}` : "hump/horn/coat/ear/dewlap/face/size",
-  { fields: Object.keys(TRAIT_FIELDS_I18N).length });
+const MODEL_TRAIT_FIELDS = ["hump", "horn", "coat", "ear", "dewlap", "face", "size"];
+const traitFieldFailures = MODEL_TRAIT_FIELDS
+  .filter((field) => {
+    const entry = TRAIT_FIELDS_I18N[field];
+    return !entry || !TAMIL.test(entry.ta || "") || !DEVANAGARI.test(entry.hi || "");
+  });
+check("i18n.traits.fields", "All 7 model trait labels localized",
+  traitFieldFailures.length === 0,
+  traitFieldFailures.length
+    ? `missing: ${traitFieldFailures.join(", ")}`
+    : `${MODEL_TRAIT_FIELDS.length} model traits + ${Object.keys(TRAIT_FIELDS_I18N).length - MODEL_TRAIT_FIELDS.length} display-only field(s)`,
+  { fields: Object.keys(TRAIT_FIELDS_I18N).length, model_fields: MODEL_TRAIT_FIELDS.length });
 
 const untranslatedTraitValues = Object.entries(TRAIT_VALUES_I18N)
   .filter(([, v]) => !TAMIL.test(v.ta || "") || !DEVANAGARI.test(v.hi || "")).length;

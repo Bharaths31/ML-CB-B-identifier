@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-<<<<<<< Updated upstream:vet-portal/src/ExpertPage.jsx
 import { getDevInfo, getEscalations, resolveEscalation } from "../../breed-classifier-react/src/api.js";
 import { useSocket } from "../../breed-classifier-react/src/hooks/useSocket.js";
 import { useI18n } from "../../breed-classifier-react/src/i18n/I18nProvider.jsx";
 import ThemeToggle from "../../breed-classifier-react/src/components/ThemeToggle.jsx";
+import LanguageToggle from "../../breed-classifier-react/src/components/LanguageToggle.jsx";
 
 const MAIN_APP_URL = import.meta.env.VITE_MAIN_APP_URL || "http://localhost:5173";
 const DEV_APP_URL = import.meta.env.VITE_DEV_APP_URL || `${MAIN_APP_URL}/dev`;
-=======
-import { Link } from "react-router-dom";
-import { getDevInfo, getEscalations, resolveEscalation } from "../api.js";
-import { useSocket } from "../hooks/useSocket.js";
-import { useI18n } from "../i18n/I18nProvider.jsx";
-import ThemeToggle from "../components/ThemeToggle.jsx";
-import LanguageToggle from "../components/LanguageToggle.jsx";
->>>>>>> Stashed changes:breed-classifier-react/src/pages/ExpertPage.jsx
 
 const FILTERS = ["pending", "verified", "rejected", "all"];
 
@@ -354,14 +346,9 @@ export default function ExpertPage() {
             <span className={`status-dot ${connected ? "status-online" : "status-offline"}`} />
             <span className="status-text">{connected ? t("header.connected") : t("header.reconnecting")}</span>
           </div>
-<<<<<<< Updated upstream:vet-portal/src/ExpertPage.jsx
           <a href={MAIN_APP_URL} className="btn btn-outline">{t("expert.back")}</a>
           <a href={DEV_APP_URL} className="btn btn-outline">{t("header.dev")}</a>
-=======
-          <Link to="/" className="btn btn-outline">{t("expert.back")}</Link>
-          <Link to="/dev" className="btn btn-outline">{t("header.dev")}</Link>
           <LanguageToggle />
->>>>>>> Stashed changes:breed-classifier-react/src/pages/ExpertPage.jsx
           <ThemeToggle />
         </div>
       </header>
