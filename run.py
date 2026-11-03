@@ -62,11 +62,25 @@ def get_python_executable() -> str:
     return sys.executable
 
 
-def get_npm_executable() -> str:
-    """Resolve npm, including the Windows .cmd shim."""
+def get_npm_executable():
+    """Resolve npm, including the Windows .cmd shim. Returns None if not found."""
     if sys.platform == "win32":
-        return shutil.which("npm.cmd") or shutil.which("npm") or "npm.cmd"
-    return shutil.which("npm") or "npm"
+        return shutil.which("npm.cmd") or shutil.which("npm")
+    return shutil.which("npm")
+
+
+def build_npm_command(npm_bin: str, args: list) -> list:
+    """Build an argv that Windows can actually execute.
+
+    subprocess.Popen(list) with shell=False goes through CreateProcess, which
+    only appends .exe when searching PATH and cannot launch .cmd/.bat shims on
+    its own. Route those through the command interpreter explicitly.
+    """
+    if sys.platform == "win32" and npm_bin.lower().endswith((".cmd", ".bat")):
+        comspec = os.environ.get("COMSPEC") or "cmd.exe"
+        return [comspec, "/c", npm_bin, *args]
+    return [npm_bin, *args]
+
 
 def wait_for_service(url: str, timeout_sec: float = 20.0, service_name: str = "Service") -> bool:
     """Poll an HTTP endpoint until it answers 200 OK or timeout expires."""
@@ -160,13 +174,28 @@ def main():
             print(f"[!] Port {args.frontend_port} is already in use. Reusing existing frontend server.")
         else:
             print(f"[*] Starting React Vite frontend on port {args.frontend_port}...")
-            npm_cmd = ["npm", "run", "dev", "--", "--port", str(args.frontend_port)]
-            frontend_proc = subprocess.Popen(
-                npm_cmd,
-                cwd=FRONTEND_DIR,
-                stdout=None,
-                stderr=None,
+            npm_bin = get_npm_executable()
+            if not npm_bin:
+                print("[Error] npm not found on PATH. Install Node.js (https://nodejs.org) "
+                      "or run with --backend-only.")
+                shutdown()
+            npm_cmd = build_npm_command(
+                npm_bin, ["run", "dev", "--", "--port", str(args.frontend_port)]
             )
+            frontend_env = os.environ.copy()
+            frontend_env["PYTHONPATH"] = PROJECT_ROOT
+            try:
+                frontend_proc = subprocess.Popen(
+                    npm_cmd,
+                    cwd=FRONTEND_DIR,
+                    env=frontend_env,
+                    stdout=None,
+                    stderr=None,
+                )
+            except FileNotFoundError:
+                print(f"[Error] Failed to launch npm ({npm_bin}). "
+                      "Ensure Node.js is installed and on PATH.")
+                shutdown()
             procs.append(frontend_proc)
 
             frontend_ready = wait_for_service(
