@@ -738,9 +738,13 @@ def main(argv=None):
                 traceback.print_exc()
 
     print_scorecard(vv)
-    path = write_reports(vv)
-    print(f"  Markdown report: {os.path.relpath(path, PROJECT_ROOT)}")
-    print(f"  JSON report:     {os.path.relpath(REPORT_JSON, PROJECT_ROOT)}\n")
+    if args.suite:
+        print("  Partial run (--suite): review report not rewritten. "
+              "Run the full suite to refresh outputs/metrics/vv_review_report.md.\n")
+    else:
+        path = write_reports(vv)
+        print(f"  Markdown report: {os.path.relpath(path, PROJECT_ROOT)}")
+        print(f"  JSON report:     {os.path.relpath(REPORT_JSON, PROJECT_ROOT)}\n")
 
     return 1 if vv.failed else 0
 
