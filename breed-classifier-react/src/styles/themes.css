@@ -1683,3 +1683,43 @@ img { max-width: 100%; }
   font-size: 12px;
 }
 .dev-subnav-bar a.dev-nav-link:first-of-type { margin-left: 0; }
+
+/* Mobile touch-target completion (photo action, language + theme pills) */
+@media (max-width: 767px) {
+  .photo-guide-strip .btn {
+    height: 44px;
+    min-height: 44px;
+  }
+  .lang-toggle {
+    height: auto;
+    min-height: 48px;
+    padding: 2px;
+  }
+  .lang-toggle-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+  .theme-switcher {
+    height: auto;
+    min-height: 48px;
+    padding: 4px 8px;
+    gap: 2px;
+  }
+  .theme-switcher-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .theme-switcher-swatch {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .photo-guide-strip button.btn.btn-sm {
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+}
