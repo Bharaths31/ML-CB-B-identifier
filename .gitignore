@@ -14,6 +14,20 @@ outputs/
 data/splits/
 data/raw/
 
+# Whitelist configurations, labels, OOD profiles, and metrics
+!outputs/app_config.json
+!outputs/ood_thresholds.json
+!outputs/ood/
+!outputs/ood/*.json
+!outputs/metrics/
+!outputs/metrics/**
+!outputs/export/
+!outputs/export/labels_*.txt
+!outputs/export/portable/
+!outputs/export/portable/**/
+outputs/export/portable/**/*.pt
+!outputs/export/portable/**/*.json
+!outputs/logs/presenter_config.json
 
 # Compressed archives
 *.zip
