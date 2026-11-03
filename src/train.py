@@ -694,11 +694,9 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
             if trait_module is not None and trait_weight > 0:
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
-                from .traits import evaluate_traits
+                from .model import evaluate_traits
                 val_traits = evaluate_traits(model, trait_module, val_loader,
                                              trait_targets, device, max_batches)
-            if device.type == "cuda":
-                torch.cuda.empty_cache()
                 log_event("trait_accuracy", category="training", epoch=epoch,
                           phase=phase,
                           train={k: v for k, v in trait_stats.items()},

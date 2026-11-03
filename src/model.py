@@ -469,10 +469,6 @@ def build_attention(kind, channels):
 import json
 import os
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 from .config import (NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, TRAIT_FIELDS,
                      TRAIT_FILE)
 
@@ -714,13 +710,7 @@ def evaluate_traits(model, trait_module, loader, targets, device,
 # =======================================================================
 import datetime
 import glob
-import json
-import os
 import re
-import time
-
-import torch
-import torch.nn.functional as F
 
 from .config import (
     OOD_DIR,

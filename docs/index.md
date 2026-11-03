@@ -41,6 +41,9 @@ python test_model.py
 | [Model Tester GUI](model-tester.md) | `test_model.py` — visual testing tool |
 | [Post-hoc Attributes](attributes.md) | Gender, age group & morphological traits with no retraining (CLIP + heuristic) |
 | [Breed Knowledge & Farmer Advisory](breed-knowledge.md) | Offline ICAR/NBAGR knowledge base, gender/age-specific advisory, REST endpoints |
+| [Image Quality & OOD Explainer](image-quality.md) | Pre-inference blur/exposure/framing gate with trilingual farmer tips |
+| [Verification & Validation](verification.md) | `tests/run_vv_suite.py` — architecture, Big-4, OOD, knowledge, i18n, themes, latency |
+| [Veterinary Portal](../vet-portal/README.md) | Standalone expert review app on port 5174 |
 | [Web Application](react-web.md) | React app — capture, framing, optimizer, sessions, dev control plane |
 | [Architecture](architecture.md) | Model architecture and data flow |
 | [Data Pipeline](data-pipeline.md) | Dataset layout, augmentation, splits |

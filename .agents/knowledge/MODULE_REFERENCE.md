@@ -138,13 +138,18 @@ Constants only, no functions. Side effect: creates output/log directories on imp
   `makeSessionEntry`, `sessionStats`, `sessionToCsv`, `sessionToJson`,
   `sessionToOdtResults`, `thumbnailFromDataUrl`, `downloadTextFile`
 - `hooks/` — `useImageOptimizer`, `useSharedConfig`, `useSocket`
-- `components/` — 20 components: user surface (`UserPage`, `ImageUpload`,
-  `CameraCapture`, `ImageCropper`, `ResultCard`, `TraitComparison`,
-  `QualityBadge`, `HerdSessionDrawer`, `AdvancedPanel`,
-  `AdvancedBatchTester`, `LanguageToggle`, `ThemeToggle`) and dev surface
-  (`DevPage`, `DevModelPanel`, `DevOODPanel`, `DevConfigPanel`, `DevTools`,
-  `Batch`, `SingleImage`, `ResultsPanel`, `ModelSelect`,
-  `PredictionProgress`, `App`)
+- `components/` — current user surface: `ResultWorkspace`, `HeroFourGrid`,
+  `TraitChecklist`, `FarmerAdvisoryCard`, `BreedEncyclopedia`, `VoiceReaderButton`,
+  `PhotoGuidance`, `PhotoGuideModal`, `EstimatedAttributes`, `FarmerAdvisory`,
+  `TraitComparison`, `QualityBadge`, `HerdSessionDrawer`, `ImageUpload`,
+  `CameraCapture`, `ImageCropper`, `AdvancedPanel`, `AdvancedBatchTester`,
+  `AdvancedResultDetails`, `LanguageToggle`, `ThemeSwitcher`; dev surface:
+  `DevPage`, `DevModelPanel`, `DevOODPanel`, `DevConfigPanel`, `DevDatasetPanel`.
+  The standalone expert queue lives in `vet-portal/src/ExpertPage.jsx`.
+- `i18n/` — `LanguageContext` (reactive en/ta/hi, `tBreed`, `tDynamic`,
+  `renderAdvisory`, `speakText`), `translations.js`, `dictionaries.js`.
+- `styles/themes.css` — Field Parchment / Obsidian Loam / Clinical Slate /
+  Night Telemetry, native-script typography, mobile 44px/safe-area rules.
 
 ### External entry points
 - `test_model.py` — stdlib HTTP tester + built-in GUI, 17 endpoints, `--dev` /

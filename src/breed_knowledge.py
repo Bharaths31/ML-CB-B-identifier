@@ -1116,7 +1116,6 @@ def _male_young(entry, species, adv):
 
 
 def _calf(entry, species, adv, gender):
-    feed = entry["feeding_and_care"]
     adv["headline"] = (
         f"{entry['display_name']} calf — the first 90 days decide growth, "
         "immunity and lifetime yield."

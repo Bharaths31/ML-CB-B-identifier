@@ -4,6 +4,13 @@
 
 ---
 
+> **Nov 2026 feature snapshot**: post-hoc Big-4 + traits, 68-breed farmer
+> knowledge/advisory, image-quality gate + human OOD explainer, en/ta/hi UI
+> with TTS, 4 bespoke themes, mobile-first header/sheet, standalone Vet Portal
+> (port 5174) and the V&V suite (python -m tests.run_vv_suite).
+> See docs/verification.md, docs/breed-knowledge.md, docs/attributes.md
+> and docs/image-quality.md.
+
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
@@ -32,7 +39,7 @@
 | **Goal** | Classify images of Indian cattle (50 breeds) and buffalo (18 breeds, 68 total) using a lightweight, mobile-deployable CNN |
 | **Model** | EfficientNet-Lite{2,4} backbone + CBAM/SE attention + deeper binary head (1280→512→256→2) + 2 breed heads + training-only projection head for SupCon |
 | **Stack** | Python 3.11+, PyTorch >= 2.1.0, Custom PyTorch inference GUI (test_model.py) |
-| **Web app** | React 18 + Vite 5 + React Router 7 (`breed-classifier-react/`) — public app (`/`), developer control plane (`/dev`) and veterinary expert portal (`/expert`) |
+| **Web app** | React 18 + Vite 5 (`breed-classifier-react/`): public app (`/`) and developer control plane (`/dev`); standalone veterinary portal in `vet-portal/` (port 5174) |
 | **Serving** | Flask REST API + Socket.IO (`server/`, port 5000), `/ws` realtime namespace, and the standalone tester (`test_model.py`, port 8501) |
 | **Expert workflow** | SQLite escalation queue (`outputs/escalations.db`), offline outbox, active-learning promotion to `data/raw/` + manifest |
 | **Explainability** | CBAM spatial mask + class-activation heatmap in `/api/predict` and the Advanced X-Ray overlay |
@@ -129,13 +136,13 @@ Mini Project/
 │   └── utils/logger.py         # session logger
 ├── breed-classifier-react/     # React 18 + Vite web application
 │   └── src/
-│       ├── pages/              # UserPage (/), DevPage (/dev), ExpertPage (/expert)
+│       ├── pages/              # UserPage (/), DevPage (/dev); ExpertPage is in vet-portal/
 │       ├── components/         # camera HUD, cropper, compact result, Advanced details, BPA modal…
 │       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
 │       ├── utils/              # cropAndQuality, imageOptimizer (CLAHE), sessionStore,
 │       │                       # confidence rubric, escalation outbox, result helpers
 │       ├── data/breedTraits.js  # 68 curated breeds x 8 trait fields
-│       └── i18n/               # EN + தமிழ் translations
+│       └── i18n/               # EN / Tamil / Hindi (LanguageContext + dictionaries)
 ├── flutter_app/                # Android/web edge client (TFLite + TF.js engines)
 ├── REPORTS.md                  # project technical report (architecture + non-ML feature inventory)
 ├── PLAN_REACT_CAMERA_AND_FEATURES.md  # React capture/optimizer/advanced-panel design + plan
@@ -850,7 +857,7 @@ React 18 + Vite 5 + React Router 7 + socket.io-client, in `breed-classifier-reac
 |---|---|---|
 | `/` | `UserPage` | Public app: upload/downscale-or-frame, live AR camera, compact result, herd session, Advanced details |
 | `/dev` | `DevPage` | Developer control plane: model activation, OOD lab, shared config, logs |
-| `/expert` | `ExpertPage` | Veterinary review: escalation queue, X-Ray, Top-3, OOD/quality telemetry, active-learning promotion |
+| `vet-portal` (5174) | `ExpertPage` | Veterinary review: escalation queue, X-Ray, Top-3, OOD/quality telemetry, active-learning promotion |
 
 Key client modules:
 
@@ -864,22 +871,21 @@ Key client modules:
 - `utils/escalationQueue.js` — offline outbox (`breed-escalation-outbox-v1`).
 - `utils/sessionStore.js` — herd session persistence, statistics, CSV/JSON/ODT.
 - `utils/resultHelpers.js` — shared Top-k/OOD/quality display helpers.
-- `hooks/useImageOptimizer.js` — keeps the original separate from the optimized
+- `hooks/useImageOptimizer.js` — keeps the original separate from the optimized 260x260 result.
   260x260 result; supports `clearCrop()` for downscale-only.
 - `components/CameraCapture.jsx` — AR anatomical HUD (Cattle/Buffalo/Minimal),
   flip-aware Head & Horns / Hump-Dorsal / Dewlap / Tail-Rump zones and status pills.
 - `components/AdvancedPanel.jsx` — model-input/original preview, fit modes,
   batch tester and `AdvancedResultDetails` (X-Ray, traits, quality, diagnostics,
   BPA, escalation).
-- `components/ResultCard.jsx` — compact main result only.
+- `components/ResultWorkspace.jsx` — Big-4 hero grid, trait checklist, farmer/public tabs, report card.
 - `components/BpaRegistrationModal.jsx` — BPA ear tag + QR health card.
 - `components/ImageCropper.jsx` — shared 1:1 framing cropper; pan works on
   **both** axes.
-- `i18n/` — EN + தமிழ்; `styles.css` — 5 themes via CSS custom properties,
-  consistently applied across `/`, `/dev` and `/expert`.
+- `i18n/` — English + தமிழ் + हिन्दी via reactive `LanguageContext`; localized breeds, traits, advisory and TTS.
+  consistently applied across `/`, `/dev` and the standalone vet portal.
 
-Client tests: `npm test` (node --test) — **42 tests** across
-`utils/__tests__/{cropAndQuality,imageOptimizer,sessionStore,confidence,clahe,breedTraits}.test.js`.
+Client tests: `npm test` (node --test) — **56 tests** including the i18n dictionary contract.
 
 **Current active web features (2026-10-27):**
 
@@ -1024,7 +1030,7 @@ tool if converter PTQ drops > 2 pt — the artifact is NOT a TFLite/ORT model.
 - **Upload preparation** — Downscale only vs Frame manually, with `clearCrop()` returning to the original.
 - **Model/serving fixes** — count-matched class maps, dynamic `/api/model-spec`, per-model OOD binding, `/ws` namespace parity, secure upload, robust model activation with immediate UI state.
 - **Theming** — consistent tokens across `/`, `/dev`, `/expert`; ThemeToggle available on all three; guarded localStorage.
-- **Tests/docs** — 42 frontend tests; source-of-truth and knowledge base synchronized.
+- **Tests/docs** - 56 frontend tests (incl. i18n contract); V&V suite 30 PASS / 1 WARN; source-of-truth and knowledge base synchronized.
 
 ### 2026-10-20 — React capture/optimizer, Advanced panel, manual OOD recalibration, project report
 

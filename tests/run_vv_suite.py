@@ -549,7 +549,7 @@ def suite_ood_quality(vv):
            not_animal["code"] == "not_animal" and unclear["code"] == "unclear_features"
            and "No cow or buffalo" in not_animal["message"]["en"]
            and "horns, hump, coat" in unclear["message"]["en"],
-           f"not_animal + unclear_features with trilingual copy",
+           "not_animal + unclear_features with trilingual copy",
            metric={"codes": [not_animal["code"], unclear["code"]]})
 
 

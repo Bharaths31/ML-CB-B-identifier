@@ -13,13 +13,46 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
 | **Export** | TFLite INT8, ONNX Runtime INT8, ONNX, FP16, Portable bundle |
 | **Dataset** | Kaggle: `atharvadarpude` (clean primary) & `algsoch` (multi-dataset support) |
 
+## What’s new (2026-11)
+
+- **Five outputs, not just a breed:** Species, Top-5 breed, Gender, Age Group
+  (Calf/Young/Adult) and seven morphological traits (`hump`, `horn`, `coat`,
+  `ear`, `dewlap`, `face`, `size`). Trait/gender/age run post-hoc — **no
+  retraining** and ONNX stays intact.
+- **Farmer knowledge base:** all 68 breeds (plus crossbred classes) with local
+  names, native tract, utility, yield/fat, feeding, climate resilience, market
+  price and schemes. `GET /api/breed-knowledge/...` and
+  `POST /api/advisory-recalculate` answer in well under 10 ms; the UI toggles
+  gender/age without re-running the model. See [docs/breed-knowledge.md](docs/breed-knowledge.md).
+- **Pre-inference quality gate:** Laplacian blur, exposure, resolution and
+  aspect checks with English/Tamil/Hindi retake tips, plus an OOD explainer that
+  distinguishes “no animal” from “animal but unclear features”. See
+  [docs/image-quality.md](docs/image-quality.md).
+- **Trilingual UI + voice:** English, தமிழ் and हिन्दी, native-script fonts,
+  speech synthesis (`en-IN` / `ta-IN` / `hi-IN`), and four field-instrument
+  themes (Field Parchment default, Obsidian Loam, Clinical Slate, Night
+  Telemetry) with persisted preference.
+- **Mobile-first UX:** 100dvh layout, safe-area insets, 44 px touch targets,
+  16 px inputs, compact header + bottom sheet, mobile copy/actions for the
+  upload well. Desktop layout is unchanged above 768 px.
+- **Standalone Veterinary Portal:** the expert queue now runs as its own Vite
+  app in `vet-portal/` (port 5174). `python run.py` starts it automatically;
+  `--no-vet` skips it. See [vet-portal/README.md](vet-portal/README.md).
+- **V&V suite:** `python -m tests.run_vv_suite` prints a scorecard and writes
+  `outputs/metrics/vv_review_report.md`. Latest: **30 PASS / 0 FAIL / 1 WARN**;
+  real buffalo data reaches **90.0 % species** and **61.8 % top-5**. See
+  [docs/verification.md](docs/verification.md).
+
+**One-command start:** `python run.py` → User `http://localhost:5173`, Dev
+`/dev`, Vet Portal `http://localhost:5174`, API `http://localhost:5000`.
+
 > 📄 **Full technical report** — architecture, implementation details, React frontend breakdown and the complete inventory of non-ML product features: [`REPORTS.md`](REPORTS.md)
 
 ---
 
 ## Table of Contents
 
-- [Project Technical Report](REPORTS.md)
+- [What's new (2026-11)](#whats-new-2026-11)
 
 - [Architecture & Data Flow](#architecture--data-flow)
 - [Directory Structure](#directory-structure)
@@ -113,9 +146,9 @@ ML-CB-B-identifier/
 │   ├── services/               # inference + attention X-Ray, metadata, ODT, escalation SQLite
 │   ├── websocket/events.py     # live status/config/prediction/escalation events on /ws
 │   └── utils/logger.py         # session logger
-├── breed-classifier-react/     # React 18 + Vite web app (public page + dev + expert portal)
+├── breed-classifier-react/     # React 18 + Vite web app (user `/` + developer `/dev`)
 │   └── src/
-│       ├── pages/              # UserPage (/), DevPage (/dev), ExpertPage (/expert)
+│       ├── pages/              # UserPage (/), DevPage (/dev); ExpertPage moved to vet-portal/
 │       ├── components/         # camera HUD, cropper, compact result, Advanced details, BPA modal…
 │       ├── hooks/              # useSocket, useSharedConfig, useImageOptimizer
 │       ├── utils/              # cropAndQuality, imageOptimizer (CLAHE), sessionStore,
@@ -566,7 +599,9 @@ ssh -T git@github.com
 | `setup.sh` / `setup.ps1` / `setup.bat` | Create/update venv, install only needed packages, activate, report | `bash setup.sh` / `setup.ps1` |
 | `setup_venv.py` | Core installer and dependency diffing | `python setup_venv.py --check` |
 | `scripts/status_report.py` | Git/version/model/venv health report | `python scripts/status_report.py` |
-| `run.py` | Launch Flask API + React Vite together | `python run.py` |
+| `run.py` | Launch Flask API + user SPA + standalone Vet Portal | `python run.py` |
+| `vet-portal/` | Separate veterinary review app (port 5174) | `cd vet-portal && npm run dev` |
+| `tests/run_vv_suite.py` | V&V scorecard + review report | `python -m tests.run_vv_suite` |
 | `server/app.py` | Run only the Flask API | `python server/app.py --port 5000` |
 | `breed-classifier-react/` | React dev/build/test scripts | `npm run dev` |
 | `test_model.py` | Standalone tester GUI/API | `python test_model.py` |
@@ -581,14 +616,17 @@ ssh -T git@github.com
 
 ### Unified Launcher (`run.py`)
 
-Starts the **Flask API** and **React/Vite frontend**, waits for health checks,
-prints URLs, opens the browser, and shuts both processes down on `Ctrl+C`.
+Starts the **Flask API**, the **farmer/developer React app** and the
+**standalone Vet Portal**, waits for health checks, prints URLs, opens the
+browser, and shuts every process down on `Ctrl+C`.
 
 | Flag | Default | What it does |
 |---|---|---|
 | `--backend-port N` | `5000` | Flask API port |
 | `--frontend-port N` | `5173` | React/Vite port |
-| `--backend-only` | off | Start only Flask; do not start Vite or open a browser |
+| `--vet-port N` | `5174` | Standalone Vet Portal port |
+| `--no-vet` | off | Do not start the Vet Portal |
+| `--backend-only` | off | Start only Flask; do not start Vite/Vet or open a browser |
 | `--frontend-only` | off | Start only Vite; do not start Flask |
 | `--no-browser` | off | Do not auto-open a browser |
 | `--open-dev` | off | Also open `/dev` alongside `/` |
@@ -600,7 +638,8 @@ source .venv/bin/activate
 python run.py
 python run.py --no-browser
 python run.py --backend-only --backend-port 5001
-python run.py --frontend-only --frontend-port 5174
+python run.py --no-vet
+python run.py --vet-port 5180
 python run.py --open-dev
 ```
 
@@ -611,6 +650,7 @@ Windows PowerShell:
 python run.py
 python run.py --no-browser
 python run.py --backend-only --backend-port 5001
+python run.py --no-vet
 python run.py --open-dev
 ```
 
@@ -620,9 +660,12 @@ Behaviour:
 - If a port is already in use, it reuses the existing service instead of failing.
 - Backend command is `python server/app.py --port <port>`.
 - Frontend command is `npm run dev -- --port <port>` from `breed-classifier-react/`.
-- Health checks: `/api/health` for Flask and `/` for Vite.
-- URLs: `http://localhost:5173/`, `http://localhost:5173/dev`, `http://localhost:5000/api/health`.
-- Requires `npm install` in `breed-classifier-react/` once; `setup.sh` does not install Node modules.
+- Vet Portal command is `npm run dev -- --port <port>` from `vet-portal/` (skipped when `node_modules` is missing).
+- Health checks: `/api/health` for Flask, `/` for both Vite apps.
+- URLs: `http://localhost:5173/`, `http://localhost:5173/dev`,
+  `http://localhost:5174/` (Vet Portal) and `http://localhost:5000/api/health`.
+- Requires `npm install` once in both `breed-classifier-react/` and `vet-portal/`;
+  `setup.sh` does not install Node modules.
 
 ### Backend Only (`server/app.py`)
 
@@ -1016,39 +1059,42 @@ python test_model.py --no-browser
 
 ## React Web Application
 
-A React 18 + Vite application (`breed-classifier-react/`) with three surfaces:
-a public capture-and-classify page (`/`), a developer control plane (`/dev`),
-and a veterinary expert review portal (`/expert`).
+A React 18 + Vite application with two surfaces — a public farmer page (`/`)
+and a developer control plane (`/dev`) — plus a **standalone** veterinary
+review portal in `vet-portal/` (port 5174). `python run.py` starts all three.
 
 ```bash
-# terminal 1 — backend
-python server/app.py --port 5000
+# one command: API + user app + vet portal
+python run.py                 # 5173 (user/dev), 5174 (vet), 5000 (API)
 
-# terminal 2 — web app
+# or run the web app alone
 cd breed-classifier-react
 npm install
-npm run dev          # http://localhost:5173
-npm test             # 42 client unit tests
-npm run build        # static production bundle
+npm run dev                   # http://localhost:5173
+npm test                      # 56 client unit tests
+npm run build                 # static production bundle
+
+# standalone vet portal
+cd vet-portal && npm install && npm run dev
 ```
 
 | Surface | What it does |
 |---|---|
-| **Upload** | Original image plus **Downscale only** vs **Frame manually** preparation; explicit *Identify / Identify Framed Breed* action |
-| **Live camera** | Full-frame AR HUD with Cattle/Buffalo/Minimal guides, flip-aware Head & Horns / Hump-Dorsal / Dewlap / Tail-Rump targets, on-device quality gate, auto-capture, burst-3, torch, Pad/Stretch and opt-in CLAHE |
-| **Quality gate** | Independent `lightingState` / `framingState` / `sharpnessState`; dark or empty frames report `No Subject`, never a false `Ready` |
-| **Zero-crop optimizer** | Every image becomes exactly 260×260 client-side (stretch, or ImageNet-mean / ambient-blur / black pad); optional LAB CLAHE shadow normalization |
-| **Compact result** | Species, breed, confidence, level pill, Top-3 and essential actions only; details move to Advanced |
-| **Advanced panel** | Model-input preview, fit modes, X-Ray, full Top-5, morphology matrix, quality subscores, diagnostics, BPA registration and vet escalation |
-| **Confidence rubric** | Five levels from joint soft-routed confidence `C=P(species)×P(breed|species)`, with Level 1–2 escalation and `display.show_escalation_warning` toggle |
-| **AI Vision X-Ray** | CBAM spatial-attention mask + class-activation heatmap overlay with opacity control |
-| **Expert portal** | `/expert` queue metrics, 260×260 image + heatmap, Top-3 bars, OOD/quality telemetry, searchable breed confirmation, notes, active-learning promotion |
-| **Offline escalation** | `breed-escalation-outbox-v1` local queue with header badge, retry and auto-sync on `/ws` reconnect |
-| **BPA registration** | 12-digit Bharat Pashudhan ear-tag UID, owner/animal form, herd-session save, scannable QR PNG card and printable ODT |
-| **Herd session** | Persistent log with statistics and CSV / JSON / ODT export, plus a shareable PNG result card |
-| **Developer control plane** | Model registry + spec viewer with robust activation feedback, OOD lab (manual folder recalibration), shared config, live logs |
-| **Extras** | 68-breed morphology coverage, 5 themes, EN / தமிழ் localisation, original-filename provenance |
+| **Five outputs** | Species, Top-5 breed, Gender, Age Group and seven morphological traits; gender/age are editable and re-run the advisory instantly |
+| **Farmer advisory** | Milk/fat/income, fodder calculator, vaccination calendar, market price and government schemes; public tab adds native tract, heritage and climate resilience |
+| **Trait checklist** | Tick the visible hump/horn/coat/ear/dewlap/face/size traits to confirm the prediction |
+| **Quality gate** | Pre-inference blur/exposure/resolution/aspect checks with English, Tamil and Hindi retake tips |
+| **OOD explainer** | Distinguishes "no animal detected" from "animal present but breed features unclear" in all three languages |
+| **Upload / camera** | Original image plus Downscale only vs Frame manually; full-frame AR camera, auto-capture, burst-3, torch and CLAHE |
+| **Mobile-first** | 100dvh, safe-area insets, 44 px targets, 16 px inputs, compact header + bottom sheet, tap/camera upload well |
+| **Trilingual + voice** | EN / தமிழ் / हिन्दी with native-script fonts and `speechSynthesis` readout of the result |
+| **4 themes** | Field Parchment (default), Obsidian Loam, Clinical Slate, Night Telemetry — persisted in localStorage |
+| **Report card** | Printable/downloadable "Pashu Aadhaar" summary with photo, Big-4, feeding and schemes |
+| **Advanced panel** | Model-input preview, fit modes, X-Ray, full Top-5, diagnostics, BPA registration and escalation |
+| **Herd session** | Persistent log with statistics and CSV / JSON / ODT export |
+| **Developer control plane** | Model registry, OOD lab, shared config, dataset inventory, live logs, and the Vet Portal link |
 
+> Full guide: [`docs/react-web.md`](docs/react-web.md) · project report: [`REPORTS.md`](REPORTS.md)
 > Full guide: [`docs/react-web.md`](docs/react-web.md) · project report: [`REPORTS.md`](REPORTS.md)
 
 ---

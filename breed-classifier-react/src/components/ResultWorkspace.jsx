@@ -126,7 +126,7 @@ export default function ResultWorkspace({
   };
 
   const reportLabels = useMemo(() => ({
-    "report.title": t("result.downloadCard"),
+    "report.title": t("report.title"),
     "hero.species": t("hero.species"),
     "hero.breed": t("hero.breed"),
     "hero.gender": t("hero.gender"),

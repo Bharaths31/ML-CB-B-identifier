@@ -35,8 +35,7 @@ from .config import (ATTRIBUTES_CLIP_CACHE_DIR, ATTRIBUTES_CLIP_ENABLED,
                      ATTRIBUTES_CLIP_MODEL_ID, ATTRIBUTES_CLIP_TEMPERATURE,
                      ATTRIBUTES_ENABLED, ATTRIBUTES_FAST_MODE, TRAIT_FIELDS,
                      ATTRIBUTES_CLIP_ALLOW_DOWNLOAD)
-from .trait_labels import (TRAIT_DISPLAY, TRAIT_GENERIC_LABELS,  # re-exported
-                           humanize_trait)
+from .trait_labels import humanize_trait
 
 # ---------------------------------------------------------------------------
 #  Labels & human-readable trait vocabulary
@@ -70,25 +69,6 @@ DAIRY_BREEDS = {
     "murrah", "surti", "nili_ravi", "jaffarabadi", "bhadawari", "nagpuri",
     "pandharpuri", "chilika",
 }
-
-
-def humanize_trait(field, token):
-    """Map a snake_case vocabulary token to a display string."""
-    if token is None:
-        return "Unknown"
-    table = TRAIT_DISPLAY.get(field, {})
-    if token in table:
-        return table[token]
-    generic = TRAIT_GENERIC_LABELS.get(field, [])
-    if token.startswith("class_"):
-        try:
-            idx = int(token.split("_", 1)[1])
-        except (IndexError, ValueError):
-            return token
-        if 0 <= idx < len(generic):
-            return generic[idx]
-        return f"{field.title()} class {idx}"
-    return token.replace("_", " ").title()
 
 
 def decode_traits(trait_logits, vocab):

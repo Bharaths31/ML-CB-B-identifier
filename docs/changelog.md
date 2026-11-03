@@ -1,5 +1,35 @@
 # 16. Changelog
 
+### 2026-11-03 — V&V suite, real-data validation, mobile UX, 4 themes, standalone Vet Portal
+
+- **Verification & Validation suite** (`python -m tests.run_vv_suite`): six
+  suites covering checkpoint/tensor integrity, the Big-4 API contract,
+  OOD/quality safety, 68-breed knowledge/advisory switching, en/ta/hi script
+  parity, 4 theme token sets and CPU/GPU latency budgets. Writes
+  `outputs/metrics/vv_review_report.md`; latest **30 PASS / 0 FAIL / 1 WARN**.
+- **Real buffalo validation** on `atharvadarpude/indian-buffalo-dataset`
+  (2,785 images, 17 breeds, downloaded via `data_collection.py`):
+  **90.0 % species**, **61.8 % top-5**, 18.2 % top-1 (3.3× chance), 19.1 %
+  OOD abstentions on diagram/non-animal source files (WARN).
+- **Mobile-first UI**: 100dvh, safe-area insets, zero horizontal overflow at
+  320/390/430 px, 44 px touch targets, 16 px form text, compact header with a
+  bottom sheet, tap/camera upload well and responsive tabs/callouts/footer.
+- **Bespoke 4-theme system**: Field Parchment (default), Obsidian Loam,
+  Clinical Slate, Night Telemetry. Flat surfaces, no gradients/neon/purple,
+  Plus Jakarta Sans + JetBrains Mono + Noto Tamil/Devanagari.
+- **Trilingual reactive UI** (en/ta/hi) with localized breeds, traits,
+  gender/age, advisory prose and native-script TTS voices.
+- **Standalone Vet Portal** moved to `vet-portal/` (port 5174), launched by
+  `run.py` and linked from Developer Settings; `/expert` removed from the
+  farmer app.
+- **Post-hoc five outputs**: Big-4 + traits, farmer knowledge base, image
+  quality gate and human OOD explainer (see dedicated docs).
+- **Cleanup**: removed the unrouted legacy React tree (`App`, `SingleImage`,
+  `Batch`, `DevTools`, `ResultsPanel`, `ModelSelect`, `PredictionProgress`,
+  `ResultCard`), turned `src/traits.py` into a compatibility shim over
+  `src.model`, and fixed CUDA-only trait logging that could raise
+  `NameError` when trait heads were disabled.
+
 ### 2026-10-20 — React capture & zero-crop optimizer, Advanced panel, manual OOD recalibration
 
 - **Zero-crop 260×260 client optimizer** (`breed-classifier-react/src/utils/imageOptimizer.js`):

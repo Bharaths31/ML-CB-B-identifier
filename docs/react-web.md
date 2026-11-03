@@ -9,7 +9,7 @@ workflows use.
 |---|---|
 | Stack | React 18 (hooks only), Vite 5, React Router 7, `socket.io-client`, hand-written CSS design system |
 | Routes | `/` → public app (`UserPage`), `/dev` → developer control plane (`DevPage`) |
-| Styling | 5 themes (`dark`, `light`, `emerald`, `sunset`, `cyber`) via CSS custom properties, persisted |
+| Styling | **4 bespoke themes** (`field-parchment` default, `obsidian-loam`, `clinical-slate`, `night-telemetry`) via CSS custom properties, persisted in `agri_theme` |
 | Languages | English + தமிழ் (`src/i18n/`), persisted, no external service |
 | Tests | `npm test` → `node --test`, 30 tests across 3 spec files (no test framework dependency) |
 | Build | `npm run build` → static bundle served by any web server; dev proxy forwards `/api` and `/socket.io` to the backend |
@@ -52,13 +52,12 @@ file / camera
                  ↓
         POST /api/predict  (image, model, original filename)
                  ↓
-        ResultCard
-          ├─ 3-tier confidence banner (verified / look-alike / abstention)
-          ├─ ranked breeds + top-1/top-2 margin
-          ├─ “Why this breed?” trait matrix (44 breeds × 8 fields)
-          ├─ capture-quality badge
-          ├─ shareable PNG result card
-          └─ technical diagnostics (model, OOD thresholds, file name, latency)
+        ResultWorkspace
+          - Big-4 species / breed / gender / age cards
+          - editable gender/age (advisory recalculates instantly)
+          - trait checklist + farmer / public advisory tabs
+          - quality gate + OOD explainer + printable report card
+          - technical diagnostics
                  ↓
         Herd session log (localStorage) → CSV / JSON / ODT export
 ```
@@ -163,7 +162,6 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 | `src/components/ImageCropper.jsx` | Shared 1:1 framing cropper (both-axis pan, zoom, quality) |
 | `src/components/AdvancedPanel.jsx` | Model input, metadata, fit modes, batch entry point |
 | `src/components/AdvancedBatchTester.jsx` | Batch inference with the selected configuration |
-| `src/components/ResultCard.jsx` | Tiers, trait matrix, quality badge, share card, diagnostics |
 | `src/components/ResultWorkspace.jsx` | User results: Big-4 hero grid, trait checklist, dual-persona tabs, report card |
 | `src/components/HeroFourGrid.jsx` | Species / Breed / Gender / Age cards with editable, recalculating pills |
 | `src/components/TraitChecklist.jsx` | Explainable-AI chips the farmer can tick to confirm morphology |
@@ -173,12 +171,17 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 | `src/components/PhotoGuideModal.jsx` | Three-card "how to snap" guide (side profile, daylight, one animal) |
 | `src/components/EstimatedAttributes.jsx`, `FarmerAdvisory.jsx`, `PhotoGuidance.jsx` | Advanced-drawer attribute, advisory and quality/OOD panels |
 | `src/utils/reportCard.js` | Printable "Pashu Aadhaar" farmer report card (no PDF dependency) |
+| `src/i18n/LanguageContext.jsx` | Reactive `lang/t/tBreed/tDynamic/renderAdvisory/speakText`; persists `agri_lang` |
+| `src/i18n/dictionaries.js` | 70 breed names, trait values, dynamic terms + localized advisory templates |
+| `src/styles/themes.css` | 4 themes, native-script typography, mobile/touch rules, split-color switcher |
+| `src/components/ThemeSwitcher.jsx` | 4-theme pill persisted under `agri_theme` |
+| `../vet-portal/` | Standalone Veterinary Review Portal (own Vite app, port 5174) |
 | `src/components/TraitComparison.jsx` | Shared look-alike trait table |
 | `src/components/QualityBadge.jsx` | 0–100 sharpness / lighting / framing breakdown |
 | `src/components/HerdSessionDrawer.jsx` | Session log, statistics, CSV/JSON/ODT export |
 | `src/components/DevOODPanel.jsx` | OOD laboratory incl. manual folder recalibration |
 | `src/components/DevModelPanel.jsx` | Model registry and spec viewer |
-| `src/components/ThemeToggle.jsx`, `LanguageToggle.jsx` | 5 themes, EN/தமிழ் |
+| `src/components/ThemeToggle.jsx`, `LanguageToggle.jsx` | 4 themes + `ThemeSwitcher`; EN / Tamil / Hindi (reactive `LanguageContext`) |
 | `src/hooks/useImageOptimizer.js` | Original vs optimized state, fit config, crop lifecycle |
 | `src/hooks/useSharedConfig.js`, `useSocket.js` | Server settings and realtime events |
 | `src/utils/imageOptimizer.js` | 260×260 zero-crop optimizer |
