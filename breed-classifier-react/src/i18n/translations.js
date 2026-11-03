@@ -1257,3 +1257,23 @@ Object.assign(TRANSLATIONS.hi, {
   "spec.input": "इनपुट विनिर्देश",
   "spec.value.input": "साइड / 3-क्वार्टर प्रोफ़ाइल",
 });
+
+/* Mobile navigation + upload copy (v3) */
+Object.assign(TRANSLATIONS.en, {
+  "mobile.menu": "Menu",
+  "mobile.close": "Close",
+  "upload.tapSelect": "Tap to select a photo",
+  "upload.tapHint": "or take a photo with the camera",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "mobile.menu": "மெனு",
+  "mobile.close": "மூடு",
+  "upload.tapSelect": "படத்தைத் தேர்ந்தெடுக்க தட்டவும்",
+  "upload.tapHint": "அல்லது கேமராவில் படம் எடுக்கவும்",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "mobile.menu": "मेनू",
+  "mobile.close": "बंद करें",
+  "upload.tapSelect": "फ़ोटो चुनने के लिए टैप करें",
+  "upload.tapHint": "या कैमरे से फ़ोटो लें",
+});

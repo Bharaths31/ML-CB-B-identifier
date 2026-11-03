@@ -9,6 +9,9 @@ import { getLogs } from "../api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { useSharedConfig } from "../hooks/useSharedConfig.js";
 
+const VET_PORTAL_URL =
+  import.meta.env.VITE_VET_PORTAL_URL || "http://localhost:5174";
+
 export default function DevPage() {
   const [activeTab, setActiveTab] = useState("models"); // 'models' | 'ood' | 'config' | 'logs'
   const [logs, setLogs] = useState("");
@@ -78,9 +81,15 @@ export default function DevPage() {
             Camera Test
           </Link>
 
-          <Link to="/expert" className="btn btn-outline capture-test-btn" title="Veterinary escalation queue">
-            Vet Portal
-          </Link>
+          <a
+            href={VET_PORTAL_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-outline capture-test-btn"
+            title="Open the standalone Veterinary Review Portal"
+          >
+            Vet Portal ↗
+          </a>
 
           <ThemeToggle />
         </div>

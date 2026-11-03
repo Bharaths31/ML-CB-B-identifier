@@ -54,6 +54,7 @@ export default function UserPage() {
   const [sessionOpen, setSessionOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [queuedEscalations, setQueuedEscalations] = useState(() => outboxCount());
   const [syncNotice, setSyncNotice] = useState(null);
 
@@ -288,10 +289,6 @@ export default function UserPage() {
               {t("advanced.open")}
             </button>
 
-            <Link to="/expert" className="ghost-btn vet-portal-btn">
-              {t("header.expertPortal")}
-            </Link>
-
             <Link to="/dev" className="ghost-btn dev-portal-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -303,8 +300,113 @@ export default function UserPage() {
             <LanguageToggle />
             <ThemeToggle />
           </div>
+
+          <div className="mobile-header-actions">
+            <span
+              className={`mobile-status ${connected ? "is-online" : "is-offline"}`}
+              title={connected ? t("header.connected") : t("header.reconnecting")}
+            >
+              <span className={`telemetry-dot ${connected ? "online" : "offline"}`} />
+              {connected ? t("header.connected") : t("header.reconnecting")}
+            </span>
+            <button
+              type="button"
+              className="mobile-menu-trigger"
+              aria-label={t("mobile.menu")}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                   stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
+
+      {mobileMenuOpen && (
+        <div
+          className="mobile-sheet-overlay"
+          role="presentation"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <section
+            className="mobile-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("mobile.menu")}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className="mobile-sheet-handle" aria-hidden="true" />
+            <header className="mobile-sheet-head">
+              <div>
+                <strong>{t("app.title")}</strong>
+                <span>{shortModel(activeModelDisplay)}</span>
+              </div>
+              <button
+                type="button"
+                className="mobile-sheet-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label={t("mobile.close")}
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="mobile-sheet-status">
+              <span className={`telemetry-dot ${connected ? "online" : "offline"}`} />
+              {connected ? t("header.connected") : t("header.reconnecting")}
+              <span className="mobile-sheet-sep" aria-hidden="true">·</span>
+              {t("session.tab")}: {stats.total}
+            </div>
+
+            <div className="mobile-sheet-actions">
+              <button
+                type="button"
+                className="mobile-sheet-action"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setAdvancedOpen(true);
+                }}
+              >
+                ⚙ {t("advanced.open")}
+              </button>
+              <button
+                type="button"
+                className="mobile-sheet-action"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setSessionOpen(true);
+                }}
+              >
+                ▤ {t("session.tab")}
+              </button>
+              <Link
+                to="/dev"
+                className="mobile-sheet-action"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t("header.dev")}
+              </Link>
+              {queuedEscalations > 0 && (
+                <button
+                  type="button"
+                  className="mobile-sheet-action"
+                  onClick={() => flushEscalations()}
+                >
+                  ⇅ {t("escalation.syncTitle")}
+                </button>
+              )}
+            </div>
+
+            <div className="mobile-sheet-controls">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
+          </section>
+        </div>
+      )}
 
       <main className="user-main-content">
         <section className="input-panel-section">

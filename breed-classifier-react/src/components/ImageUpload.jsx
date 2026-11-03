@@ -223,14 +223,25 @@ export default function ImageUpload({
           </div>
           <div className="dropzone-text">
             <h3 className="dropzone-title">{t("upload.dropzoneTitle")}</h3>
-            <p className="dropzone-subtitle">
+            <p className="dropzone-subtitle dropzone-copy-desktop">
               {t("upload.dropzoneSubtitle", { browse: "" }).trimEnd()}{" "}
               <span className="highlight-text">{t("upload.browse")}</span>
             </p>
-            <p className="dropzone-hint">{t("upload.hint")}</p>
+            <p className="dropzone-subtitle dropzone-copy-mobile">
+              {t("upload.tapSelect")}
+            </p>
+            <p className="dropzone-hint dropzone-hint-desktop">{t("upload.hint")}</p>
+            <p className="dropzone-hint dropzone-hint-mobile">{t("upload.tapHint")}</p>
           </div>
 
           <div className="dropzone-actions" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="btn dropzone-browse"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t("upload.browse")}
+            </button>
             <button
               type="button"
               className="btn btn-outline btn-sm"

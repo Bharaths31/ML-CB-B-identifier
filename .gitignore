@@ -58,6 +58,8 @@ data/tmp_extract/
 breed-classifier-react/node_modules/
 breed-classifier-react/dist/
 breed-classifier-react/dist-ssr/
+vet-portal/node_modules/
+vet-portal/dist/
 breed-classifier-react/*.local
 breed-classifier-react/.env
 breed-classifier-react/.env.*
