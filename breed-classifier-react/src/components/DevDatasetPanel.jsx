@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { getDatasetInventory } from "../api.js";
 import { BREED_DATASET_COUNTS, DATASET_SUMMARY } from "../data/breedDatasetCounts.js";
+import { useI18n } from "../i18n/I18nProvider.jsx";
 
 export default function DevDatasetPanel() {
+  const { t, tBreed, tDynamic } = useI18n();
   const [breeds, setBreeds] = useState(BREED_DATASET_COUNTS || []);
   const [summary, setSummary] = useState(DATASET_SUMMARY || null);
   const [loading, setLoading] = useState(false);
@@ -101,7 +103,7 @@ export default function DevDatasetPanel() {
     return Math.max(...breeds.map((b) => b.count || 0), 1);
   }, [breeds]);
 
-  // Export CSV
+  // {t("dev.dataset.exportCsv")}
   const handleExportCSV = () => {
     const headers = [
       "Rank",
@@ -205,7 +207,7 @@ export default function DevDatasetPanel() {
       {/* KPI Summary Cards */}
       <div className="dev-kpi-grid">
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Atharvadarpude Total Images</span>
+          <span className="dev-kpi-label">{t("dev.dataset.kpiTotal")}</span>
           <div className="dev-kpi-value">{totalImgs.toLocaleString()}</div>
           <span className="dev-kpi-sub">
             Cattle: <strong>{cattleImgs.toLocaleString()}</strong> ({summary?.bySpecies?.cattle?.percentage || "76.2"}%) | Buffalo:{" "}
@@ -214,7 +216,7 @@ export default function DevDatasetPanel() {
         </div>
 
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Registered Indian Breeds</span>
+          <span className="dev-kpi-label">{t("dev.dataset.kpiBreeds")}</span>
           <div className="dev-kpi-value">{breeds.length}</div>
           <span className="dev-kpi-sub">
             <strong>{cattleCount} Cattle</strong> (8,531 imgs) + <strong>{buffaloCount} Buffalo</strong> (2,668 imgs)
@@ -222,7 +224,7 @@ export default function DevDatasetPanel() {
         </div>
 
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Top Represented Breed</span>
+          <span className="dev-kpi-label">{t("dev.dataset.kpiTop")}</span>
           <div className="dev-kpi-value" style={{ fontSize: "1.28rem", color: "var(--primary, #2563eb)" }}>
             {breeds[0]?.name || "Gir"} (Cattle)
           </div>
@@ -261,7 +263,7 @@ export default function DevDatasetPanel() {
             <input
               type="text"
               className="dev-input search-box-input"
-              placeholder="Search Atharvadarpude breeds by name, state, or traits..."
+              placeholder={t("dev.dataset.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -284,21 +286,21 @@ export default function DevDatasetPanel() {
               className={`segmented-btn ${speciesFilter === "all" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("all")}
             >
-              All Breeds (68)
+              {t("dev.dataset.allSpecies")}
             </button>
             <button
               type="button"
               className={`segmented-btn ${speciesFilter === "cattle" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("cattle")}
             >
-              🐄 Cattle (50)
+              🐄 {t("hero.cattle")} (50)
             </button>
             <button
               type="button"
               className={`segmented-btn ${speciesFilter === "buffalo" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("buffalo")}
             >
-              🐃 Buffalo (18)
+              🐃 {t("hero.buffalo")} (18)
             </button>
           </div>
 
@@ -309,7 +311,7 @@ export default function DevDatasetPanel() {
               className={`segmented-btn ${tierFilter === "all" ? "active" : ""}`}
               onClick={() => setTierFilter("all")}
             >
-              All Tiers
+              {t("dev.dataset.allTiers")}
             </button>
             <button
               type="button"
@@ -378,13 +380,13 @@ export default function DevDatasetPanel() {
           <table className="dev-comp-table breed-inventory-table">
             <thead>
               <tr>
-                <th style={{ width: "6%" }}># Rank</th>
-                <th style={{ width: "22%" }}>Breed Name & Identifier</th>
-                <th style={{ width: "11%" }}>Species</th>
-                <th style={{ width: "23%" }}>Dataset Images & Share</th>
-                <th style={{ width: "12%" }}>Shot Tier</th>
-                <th style={{ width: "12%" }}>Origin / State</th>
-                <th style={{ width: "14%" }}>Key Morphological Trait</th>
+                <th style={{ width: "6%" }}># {t("dev.dataset.rank")}</th>
+                <th style={{ width: "22%" }}>{t("dev.dataset.breed")}</th>
+                <th style={{ width: "11%" }}>{t("dev.dataset.species")}</th>
+                <th style={{ width: "23%" }}>{t("dev.dataset.count")} & {t("dev.dataset.share")}</th>
+                <th style={{ width: "12%" }}>{t("dev.dataset.tier")}</th>
+                <th style={{ width: "12%" }}>{t("dev.dataset.origin")}</th>
+                <th style={{ width: "14%" }}>{t("dev.dataset.keyTrait")}</th>
               </tr>
             </thead>
             <tbody>
@@ -421,7 +423,7 @@ export default function DevDatasetPanel() {
                       {/* Breed Name & Key */}
                       <td>
                         <div className="breed-title-cell">
-                          <span className="breed-name-text">{breed.name}</span>
+                          <span className="breed-name-text">{tBreed(breed.key || breed.name)}</span>
                           <div className="breed-tags-row">
                             <code className="breed-key-tag">{breed.key}</code>
                             <span className="badge badge-canonical" title="ICAR-NBAGR Registered Canonical Breed">
@@ -434,7 +436,7 @@ export default function DevDatasetPanel() {
                       {/* Species */}
                       <td>
                         <span className={`badge ${breed.species === "cattle" ? "badge-cattle" : "badge-buffalo"}`}>
-                          {breed.species === "cattle" ? "🐄 Cattle" : "🐃 Buffalo"}
+                          {breed.species === "cattle" ? `🐄 ${t("hero.cattle")}` : `🐃 ${t("hero.buffalo")}`}
                         </span>
                       </td>
 

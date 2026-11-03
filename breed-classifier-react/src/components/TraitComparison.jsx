@@ -8,7 +8,7 @@ import { compareTraits, getBreedTraits } from "../data/breedTraits.js";
  * surfaces explain the same prediction in the same way.
  */
 export default function TraitComparison({ breeds, defaultOpen = false }) {
-  const { t } = useI18n();
+  const { t, tBreed, tTrait, tTraitValue } = useI18n();
   // null = follow the caller's tier default; a click then takes over.
   const [open, setOpen] = useState(null);
   const breedKey = (breeds || []).join("|");
@@ -50,16 +50,16 @@ export default function TraitComparison({ breeds, defaultOpen = false }) {
                   <tr>
                     <th>{t("result.trait")}</th>
                     {comparison.breeds.map((b) => (
-                      <th key={b.key}>{b.name}</th>
+                      <th key={b.key}>{tBreed(b.key || b.name)}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {comparison.rows.map((row) => (
                     <tr key={row.key} className={row.differs ? "trait-row-differs" : ""}>
-                      <th scope="row">{row.label}</th>
+                      <th scope="row">{tTrait(row.key) || row.label}</th>
                       {row.values.map((value, i) => (
-                        <td key={`${row.key}-${i}`}>{value || "—"}</td>
+                        <td key={`${row.key}-${i}`}>{tTraitValue(row.key, value) || value || "—"}</td>
                       ))}
                     </tr>
                   ))}

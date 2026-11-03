@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+<<<<<<< Updated upstream:vet-portal/src/ExpertPage.jsx
 import { getDevInfo, getEscalations, resolveEscalation } from "../../breed-classifier-react/src/api.js";
 import { useSocket } from "../../breed-classifier-react/src/hooks/useSocket.js";
 import { useI18n } from "../../breed-classifier-react/src/i18n/I18nProvider.jsx";
@@ -6,6 +7,14 @@ import ThemeToggle from "../../breed-classifier-react/src/components/ThemeToggle
 
 const MAIN_APP_URL = import.meta.env.VITE_MAIN_APP_URL || "http://localhost:5173";
 const DEV_APP_URL = import.meta.env.VITE_DEV_APP_URL || `${MAIN_APP_URL}/dev`;
+=======
+import { Link } from "react-router-dom";
+import { getDevInfo, getEscalations, resolveEscalation } from "../api.js";
+import { useSocket } from "../hooks/useSocket.js";
+import { useI18n } from "../i18n/I18nProvider.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
+import LanguageToggle from "../components/LanguageToggle.jsx";
+>>>>>>> Stashed changes:breed-classifier-react/src/pages/ExpertPage.jsx
 
 const FILTERS = ["pending", "verified", "rejected", "all"];
 
@@ -266,7 +275,7 @@ function EscalationCard({ record, devInfo, onResolved, t }) {
 
         {resolved && (
           <div className="expert-resolved">
-            <strong>{record.status === "verified" ? "Verified" : "Rejected"}</strong>
+            <strong>{record.status === "verified" ? t("expert.verified") : t("expert.rejected")}</strong>
             {record.expert_species && (
               <span>
                 {" "}
@@ -274,7 +283,7 @@ function EscalationCard({ record, devInfo, onResolved, t }) {
               </span>
             )}
             {record.expert_notes && <p>{record.expert_notes}</p>}
-            {record.reviewed_at && <small>Reviewed {new Date(record.reviewed_at).toLocaleString()}</small>}
+            {record.reviewed_at && <small>{t("expert.reviewedAt", { date: new Date(record.reviewed_at).toLocaleString() })}</small>}
           </div>
         )}
 
@@ -345,8 +354,14 @@ export default function ExpertPage() {
             <span className={`status-dot ${connected ? "status-online" : "status-offline"}`} />
             <span className="status-text">{connected ? t("header.connected") : t("header.reconnecting")}</span>
           </div>
+<<<<<<< Updated upstream:vet-portal/src/ExpertPage.jsx
           <a href={MAIN_APP_URL} className="btn btn-outline">{t("expert.back")}</a>
           <a href={DEV_APP_URL} className="btn btn-outline">{t("header.dev")}</a>
+=======
+          <Link to="/" className="btn btn-outline">{t("expert.back")}</Link>
+          <Link to="/dev" className="btn btn-outline">{t("header.dev")}</Link>
+          <LanguageToggle />
+>>>>>>> Stashed changes:breed-classifier-react/src/pages/ExpertPage.jsx
           <ThemeToggle />
         </div>
       </header>
@@ -375,7 +390,7 @@ export default function ExpertPage() {
               </button>
             ))}
             <button type="button" className="btn btn-sm btn-outline" onClick={() => load(filter)} disabled={loading}>
-              Refresh
+              {t("actions.refresh")}
             </button>
           </div>
         </div>

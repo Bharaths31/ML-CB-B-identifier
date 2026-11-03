@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/I18nProvider.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getBpaQrMatrix, exportOdt, downloadBlob } from "../api.js";
 import { loadImage, shareOrDownloadCanvas, roundRect } from "../utils/cropAndQuality.js";
@@ -14,9 +15,23 @@ export function generateBpaTag() {
   return digits;
 }
 
-const SEXES = ["Female", "Male"];
-const LACTATION = ["Not applicable", "Lactating", "Dry", "Pregnant", "Heifer"];
-const VACCINATION = ["FMD vaccinated", "HS/BQ vaccinated", "Both", "Unknown"];
+const SEXES = [
+  { key: "Female", labelKey: "advisory.female" },
+  { key: "Male", labelKey: "advisory.male" },
+];
+const LACTATION = [
+  { key: "Not applicable", labelKey: "bpa.lactation.notApplicable" },
+  { key: "Lactating", labelKey: "bpa.lactation.lactating" },
+  { key: "Dry", labelKey: "bpa.lactation.dry" },
+  { key: "Pregnant", labelKey: "bpa.lactation.pregnant" },
+  { key: "Heifer", labelKey: "bpa.lactation.heifer" },
+];
+const VACCINATION = [
+  { key: "FMD vaccinated", labelKey: "bpa.vaccination.fmd" },
+  { key: "HS/BQ vaccinated", labelKey: "bpa.vaccination.hsbq" },
+  { key: "Both", labelKey: "bpa.vaccination.both" },
+  { key: "Unknown", labelKey: "bpa.vaccination.unknown" },
+];
 
 export default function BpaRegistrationModal({
   open,
@@ -27,6 +42,7 @@ export default function BpaRegistrationModal({
   location,
   modelInputUrl,
 }) {
+  const { t, tBreed, tDynamic } = useI18n();
   const [tag, setTag] = useState(() => generateBpaTag());
   const [customTag, setCustomTag] = useState(false);
   const [ownerName, setOwnerName] = useState("");
@@ -78,7 +94,7 @@ export default function BpaRegistrationModal({
 
   const validateTag = () => {
     if (!/^\d{12}$/.test(tag)) {
-      setNotice("The BPA ear-tag UID must be exactly 12 digits.");
+      setNotice(t("bpa.tagValidation"));
       return false;
     }
     return true;
@@ -106,7 +122,7 @@ export default function BpaRegistrationModal({
     if (!validateTag()) return;
     const reg = registration();
     if (savedRef.current === tag) {
-      setNotice(`Registration ${tag} is already saved in the herd session.`);
+      setNotice(t("bpa.alreadySavedNotice", { tag }));
       return reg;
     }
     const entry = makeSessionEntry({
@@ -119,7 +135,7 @@ export default function BpaRegistrationModal({
     entry.id = `bpa_${tag}_${Date.now()}`;
     addSessionEntry(entry);
     savedRef.current = tag;
-    setNotice(`Registration ${tag} saved to the herd session.`);
+    setNotice(t("bpa.savedToHerdNotice", { tag }));
     return reg;
   };
 
@@ -253,9 +269,9 @@ export default function BpaRegistrationModal({
       };
       const blob = await exportOdt(payload, "single");
       downloadBlob(blob, `bpa_${reg.tag}.odt`);
-      setNotice("Printable ODT registration card generated.");
+      setNotice(t("bpa.odtReady"));
     } catch (err) {
-      setNotice(err?.message || "Could not generate the ODT card.");
+      setNotice(err?.message || t("bpa.odtError"));
     } finally {
       setBusy(false);
     }
@@ -266,8 +282,8 @@ export default function BpaRegistrationModal({
       <section className="advanced-panel bpa-modal" onClick={(event) => event.stopPropagation()}>
         <header className="advanced-head">
           <div>
-            <h3>Register in BPA (Bharat Pashudhan)</h3>
-            <p>National Digital Livestock Mission ear-tag registration and health card.</p>
+            <h3>{t("bpa.title")}</h3>
+            <p>{t("bpa.subtitle")}</p>
           </div>
           <button type="button" className="camera-close-icon" onClick={onClose} aria-label="Close">
             ✕
@@ -277,32 +293,32 @@ export default function BpaRegistrationModal({
         <div className="advanced-body bpa-body">
           <div className="bpa-summary">
             <div>
-              <span>Species</span>
-              <strong>{species}</strong>
+              <span>{t("hero.species")}</span>
+              <strong>{tDynamic("species", species) || species}</strong>
             </div>
             <div>
-              <span>Predicted breed</span>
-              <strong>{breed}</strong>
+              <span>{t("bpa.predictedBreed")}</span>
+              <strong>{tBreed(breed)}</strong>
             </div>
             <div>
-              <span>Confidence</span>
+              <span>{t("result.confidence")}</span>
               <strong>
-                {confidence}% · Level {level}
+                {confidence}% · {t("confidence.levelShort", { level })}
               </strong>
             </div>
             <div>
-              <span>Top-3</span>
+              <span>{t("bpa.top3")}</span>
               <strong>
                 {(result?.top5_breeds || result?.top_k || [])
                   .slice(0, 3)
-                  .map((item) => item.breed)
+                  .map((item) => tBreed(item.breed))
                   .join(" · ") || "—"}
               </strong>
             </div>
           </div>
 
           <label className="form-label" htmlFor="bpa-tag">
-            BPA / NDLM Ear Tag UID (12 digits)
+            {t("bpa.earTagLabel")}
           </label>
           <div className="bpa-tag-row">
             <input
@@ -314,65 +330,65 @@ export default function BpaRegistrationModal({
               maxLength={12}
             />
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setTag(generateBpaTag())}>
-              Regenerate
+              {t("bpa.regenerate")}
             </button>
             <label className="bpa-inline-check">
               <input type="checkbox" checked={customTag} onChange={(event) => setCustomTag(event.target.checked)} />
-              Type custom
+              {t("bpa.typeCustom")}
             </label>
           </div>
 
           <div className="bpa-form-grid">
             <label>
-              Owner name
+              {t("bpa.ownerName")}
               <input className="form-input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
             </label>
             <label>
-              Village / Taluk
+              {t("bpa.villageTaluk")}
               <input className="form-input" value={locationText} onChange={(e) => setLocationText(e.target.value)} />
             </label>
             <label>
-              Age (years)
+              {t("bpa.ageYears")}
               <input className="form-input" type="number" min="0" value={ageYears} onChange={(e) => setAgeYears(e.target.value)} />
             </label>
             <label>
-              Age (months)
+              {t("bpa.ageMonths")}
               <input className="form-input" type="number" min="0" max="11" value={ageMonths} onChange={(e) => setAgeMonths(e.target.value)} />
             </label>
             <label>
-              Sex
+              {t("attributes.gender")}
               <select className="form-select" value={sex} onChange={(e) => setSex(e.target.value)}>
                 {SEXES.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item.key} value={item.key}>{t(item.labelKey)}</option>
                 ))}
               </select>
             </label>
             <label>
-              Lactation status
+              {t("bpa.lactationStatus")}
               <select className="form-select" value={lactation} onChange={(e) => setLactation(e.target.value)}>
                 {LACTATION.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item.key} value={item.key}>{t(item.labelKey)}</option>
                 ))}
               </select>
             </label>
             <label>
-              Vaccination
+              {t("advisory.health")}
               <select className="form-select" value={vaccination} onChange={(e) => setVaccination(e.target.value)}>
                 {VACCINATION.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item.key} value={item.key}>{t(item.labelKey)}</option>
                 ))}
               </select>
             </label>
             <label>
-              FLW ID
+              {t("bpa.flwId")}
               <input className="form-input" value="FLW-TN-SALEM-01" readOnly />
             </label>
           </div>
 
           <p className="bpa-gps">
-            GPS: {location?.gps_lat != null && location?.gps_lng != null
+            {t("expert.gps")}: {location?.gps_lat != null && location?.gps_lng != null
               ? `${Number(location.gps_lat).toFixed(5)}, ${Number(location.gps_lng).toFixed(5)}`
-              : "not captured"} ·{" "}
+              : t("bpa.notCaptured")} ·{" "}
             {new Date().toLocaleString()}
           </p>
 
@@ -380,16 +396,16 @@ export default function BpaRegistrationModal({
 
           <div className="cropper-actions bpa-actions">
             <button type="button" className="btn btn-outline" onClick={onClose} disabled={busy}>
-              Cancel
+              {t("actions.cancel")}
             </button>
             <button type="button" className="btn btn-secondary" onClick={saveToHerd} disabled={busy}>
-              Save to Herd Session
+              {t("bpa.saveToHerd")}
             </button>
             <button type="button" className="btn btn-outline" onClick={downloadOdt} disabled={busy}>
-              Download ODT
+              {t("bpa.downloadOdt")}
             </button>
             <button type="button" className="btn btn-primary" onClick={downloadPng} disabled={busy}>
-              {busy ? "Generating…" : "Download PNG Health Card"}
+              {busy ? t("actions.processing") : t("bpa.downloadCard")}
             </button>
           </div>
         </div>

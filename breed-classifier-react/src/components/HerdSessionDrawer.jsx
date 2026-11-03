@@ -10,7 +10,7 @@ import {
 } from "../utils/sessionStore.js";
 
 export default function HerdSessionDrawer({ open, entries, onClose, onCleared }) {
-  const { t } = useI18n();
+  const { t, tBreed, tDynamic } = useI18n();
   if (!open) return null;
 
   const stats = sessionStats(entries);
@@ -93,11 +93,11 @@ export default function HerdSessionDrawer({ open, entries, onClose, onCleared })
                 </div>
                 <div className="session-row-main">
                   <div className="session-row-title">
-                    <strong>{e.breed}</strong>
+                    <strong>{tBreed(e.breed)}</strong>
                     <span className="session-conf">{Math.round((e.confidence || 0) * 100)}%</span>
                   </div>
                   <div className="session-row-meta">
-                    <span className={`session-species ${String(e.species).toLowerCase()}`}>{e.species}</span>
+                    <span className={`session-species ${String(e.species).toLowerCase()}`}>{tDynamic("species", e.species) || e.species}</span>
                     {e.isOod && <span className="session-ood">OOD</span>}
                     {e.qualityScore != null && <span>{e.qualityScore}/100</span>}
                     <span>{new Date(e.timestamp).toLocaleTimeString()}</span>

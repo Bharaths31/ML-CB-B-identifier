@@ -121,6 +121,7 @@ export const TRAIT_FIELDS_I18N = {
   dewlap: B("Dewlap", "தாடைத் தோல் (அலைதாடி)", "गलकंबल"),
   face: B("Face profile", "முக வடிவம்", "चेहरा"),
   size: B("Body size", "உடல் அமைப்பு", "शरीर का आकार"),
+  origin: B("Origin", "தாயகம் / பூர்வீகம்", "उत्पत्ति स्थल"),
 };
 
 export const TRAIT_VALUES_I18N = {
@@ -199,6 +200,73 @@ export const TRAIT_VALUES_I18N = {
   "Small-Medium": B("Small-Medium", "சிறிய-நடுத்தர", "छोटा-मध्यम"),
   "Medium-Large": B("Medium-Large", "நடுத்தர-பெரிய", "मध्यम-बड़ा"),
   Large: B("Large", "பெரிய", "बड़ा"),
+  // Added morphology variants
+  Absent: B("Absent", "இல்லை", "अनुपस्थित"),
+  Prominent: B("Prominent", "தெளிவான திமில்", "प्रमुख कूबड़"),
+  "Very large": B("Very large", "மிகப் பெரிய", "बहुत बड़ा"),
+  "Moderate, compact": B("Moderate, compact", "நடுத்தர, கச்சிதமான திமில்", "मध्यम, सुगठित"),
+  "Medium to large": B("Medium to large", "நடுத்தர-பெரிய", "मध्यम से बड़ा"),
+  "Very small (dwarf)": B("Very small (dwarf)", "மிகச் சிறிய (குள்ள இனம்)", "अति छोटा (बौना)"),
+  "Very small": B("Very small", "மிகச் சிறிய", "अति छोटा"),
+  "Large and pendulous": B("Large and pendulous", "பெரிய, தொங்கும் தாடைத் தோல்", "बड़ा और लटकता गलकंबल"),
+  "Loose and pendulous": B("Loose and pendulous", "தளர்வான, தொங்கும் தாடைத் தோல்", "ढीला और लटकता"),
+  "Moderate to large": B("Moderate to large", "நடுத்தர முதல் பெரிய தாடைத் தோல்", "मध्यम से बड़ा"),
+  Tight: B("Tight", "இறுக்கமான (சிறிய) தாடைத் தோல்", "सख्त / छोटा"),
+  Long: B("Long", "நீண்ட", "लंबा"),
+  "Long, drooping": B("Long, drooping", "நீண்ட, தொங்கும் காதுகள்", "लंबे, लटकते कान"),
+  "Long, pendulous, folded": B("Long, pendulous, folded", "நீண்ட, தொங்கும் மடிந்த காதுகள்", "लंबे, लटकते, मुड़े कान"),
+  "Long, tapering": B("Long, tapering", "நீண்ட, கூம்பும் காதுகள்", "लंबे, नुकीले कान"),
+  "Medium, drooping": B("Medium, drooping", "நடுத்தர, தொங்கும் காதுகள்", "मध्यम, लटकते कान"),
+  Straight: B("Straight", "நேரான", "सीधा"),
+  Broad: B("Broad", "அகலமான", "चौड़ा"),
+  "Broad forehead": B("Broad forehead", "அகன்ற நெற்றி", "चौड़ा माथा"),
+  "Convex forehead, long face": B("Convex forehead, long face", "குவிந்த நெற்றி, நீண்ட முகம்", "उभरा माथा, लंबा चेहरा"),
+  "Long, straight": B("Long, straight", "நீண்ட, நேரான முகம்", "लंबा और सीधा चेहरा"),
+  "Short, broad forehead": B("Short, broad forehead", "குட்டையான, அகன்ற நெற்றி", "छोटा, चौड़ा माथा"),
+  "Short, broad": B("Short, broad", "குட்டையான, அகன்ற முகம்", "छोटा, चौड़ा चेहरा"),
+  Variable: B("Variable", "மாறுபடக்கூடியது", "परिवर्तनीय"),
+  "Long, backward and upward": B("Long, backward and upward", "நீண்ட, பின்னோக்கி மற்றும் மேல்நோக்கிய கொம்புகள்", "लंबे, पीछे और ऊपर मुड़े सींग"),
+  "Long, curved outward and back": B("Long, curved outward and back", "நீண்ட, வெளிப்புறம் வளைந்து பின்னோக்கிய கொம்புகள்", "लंबे, बाहर और पीछे मुड़े सींग"),
+  "Long, flat, backward": B("Long, flat, backward", "நீண்ட, தட்டையான, பின்னோக்கிய கொம்புகள்", "लंबे, सपाट, पीछे मुड़े सींग"),
+  "Long, flat, drooping": B("Long, flat, drooping", "நீண்ட, தட்டையான, கீழ்நோக்கி தொங்கும் கொம்புகள்", "लंबे, सपाट, नीचे लटकते सींग"),
+  "Long, flat, upward": B("Long, flat, upward", "நீண்ட, தட்டையான, மேல்நோக்கிய கொம்புகள்", "लंबे, सपाट, ऊपर मुड़े सींग"),
+  "Long, outward": B("Long, outward", "நீண்ட, வெளிப்புற கொம்புகள்", "लंबे, बाहर की ओर सींग"),
+  "Long, sweeping": B("Long, sweeping", "நீண்ட, பரந்த வளைவு கொம்புகள்", "लंबे, फैले हुए सींग"),
+  "Long, tapering, upward": B("Long, tapering, upward", "நீண்ட, கூரான, மேல்நோக்கிய கொம்புகள்", "लंबे, नुकीले, ऊपर मुड़े सींग"),
+  "Lyre-shaped, curving up and in": B("Lyre-shaped, curving up and in", "யாழ் வடிவம், மேல் மற்றும் உள்நோக்கி வளைந்தவை", "वीणा आकार, ऊपर और अंदर मुड़े"),
+  "Medium, backward": B("Medium, backward", "நடுத்தர, பின்னோக்கிய கொம்புகள்", "मध्यम, पीछे मुड़े सींग"),
+  "Medium, outward": B("Medium, outward", "நடுத்தர, வெளிப்புற கொம்புகள்", "मध्यम, बाहर की ओर सींग"),
+  "Short, curved upward": B("Short, curved upward", "குறுகிய, மேல்நோக்கி வளைந்தவை", "छोटे, ऊपर मुड़े सींग"),
+  "Short, curving outward": B("Short, curving outward", "குறுகிய, வெளிப்புறம் வளைந்தவை", "छोटे, बाहर मुड़े सींग"),
+  "Short, outward": B("Short, outward", "குறுகிய, வெளிப்புற கொம்புகள்", "छोटे, बाहर की ओर सींग"),
+  "Short, stout, outward": B("Short, stout, outward", "குறுகிய, தடிமனான வெளிப்புற கொம்புகள்", "छोटे, मोटे, बाहर की ओर सींग"),
+  "Short, thick, outward": B("Short, thick, outward", "குறுகிய, தடித்த வெளிப்புற கொம்புகள்", "छोटे, मोटे, बाहर की ओर सींग"),
+  "Sickle-shaped, curved back": B("Sickle-shaped, curved back", "அரிவாள் வடிவம், பின்னோக்கி வளைந்தவை", "दरांती आकार, पीछे मुड़े"),
+  "Small, curved": B("Small, curved", "சிறிய, வளைந்த கொம்புகள்", "छोटे, मुड़े सींग"),
+  "Spiral, backward": B("Spiral, backward", "சுருள், பின்னோக்கிய கொம்புகள்", "घुमावदार, पीछे मुड़े सींग"),
+  "Tightly curled, spiral": B("Tightly curled, spiral", "இறுக்கமாக சுருண்ட கொம்புகள்", "कसकर मुड़े, चक्राकार सींग"),
+  "Very long, sword-shaped": B("Very long, sword-shaped", "மிக நீண்ட, வாள் வடிவ கொம்புகள்", "अति लंबे, तलवार आकार सींग"),
+  "Black and white or brown": B("Black and white or brown", "கருப்பு-வெள்ளை அல்லது பழுப்பு", "काला-सफ़ेद या भूरा"),
+  "Black and white patches": B("Black and white patches", "கருப்பு-வெள்ளைத் திட்டுகள்", "काले और सफ़ेद धब्बे"),
+  "Black and white": B("Black and white", "கருப்பு மற்றும் வெள்ளை", "काला और सफ़ेद"),
+  "Black to brown": B("Black to brown", "கருப்பு முதல் பழுப்பு வரை", "काला से भूरा"),
+  "Black with copper sheen": B("Black with copper sheen", "செம்பு பளபளப்புடன் கருப்பு நிறம்", "तांबे जैसी चमक के साथ काला"),
+  "Black with white face/leg markings": B("Black with white face/leg markings", "முக/கால் வெள்ளை அடையாளங்களுடன் கருப்பு", "सफ़ेद चेहरे/पैरों के साथ काला"),
+  "Black, brown or grey": B("Black, brown or grey", "கருப்பு, பழுப்பு அல்லது சாம்பல்", "काला, भूरा या धूसर"),
+  "Deep red to dark brown": B("Deep red to dark brown", "அடர் சிவப்பு முதல் அடர் பழுப்பு வரை", "गहरा लाल से गहरा भूरा"),
+  "Grey to white": B("Grey to white", "சாம்பல் முதல் வெள்ளை வரை", "धूसर से सफ़ेद"),
+  "Grey with white patches": B("Grey with white patches", "வெள்ளைத் திட்டுகளுடன் சாம்பல்", "सफ़ेद धब्बों के साथ धूसर"),
+  "Red and white patches": B("Red and white patches", "சிவப்பு-வெள்ளைத் திட்டுகள்", "लाल और सफ़ेद धब्बे"),
+  "Red with white patches": B("Red with white patches", "வெள்ளைத் திட்டுகளுடன் சிவப்பு", "सफ़ेद धब्बों के साथ लाल"),
+  "Red, brown or spotted": B("Red, brown or spotted", "சிவப்பு, பழுப்பு அல்லது புள்ளிகள்", "लाल, भूरा या चितकबरा"),
+  "Reddish brown with white speckles": B("Reddish brown with white speckles", "வெள்ளிப் புள்ளிகளுடன் செம்பழுப்பு", "सफ़ेद बूंदों के साथ लाल-भूरा"),
+  "Reddish brown": B("Reddish brown", "செம்பழுப்பு நிறம்", "लाल-भूरा रंग"),
+  "Reddish brown, sometimes white patches": B("Reddish brown, sometimes white patches", "செம்பழுப்பு, சில சமயம் வெள்ளைத் திட்டுகள்", "लाल-भूरा, कभी-कभी सफ़ेद धब्बे"),
+  "Silver grey to iron grey": B("Silver grey to iron grey", "வெள்ளி சாம்பல் முதல் இரும்பு சாம்பல் வரை", "चांदी जैसा धूसर से गहरा धूसर"),
+  "White to fawn": B("White to fawn", "வெள்ளை முதல் மான் நிறம் வரை", "सफ़ेद से हल्का पीला"),
+  "White to grey": B("White to grey", "வெள்ளை முதல் சாம்பல் வரை", "सफ़ेद से धूसर"),
+  "White to light grey": B("White to light grey", "வெள்ளை முதல் வெளிர் சாம்பல் வரை", "सफ़ेद से हल्का धूसर"),
+  "White, grey or brown": B("White, grey or brown", "வெள்ளை, சாம்பல் அல்லது பழுப்பு", "सफ़ेद, धूसर या भूरा"),
 };
 
 export function localizeTraitValue(field, value, lang = "en") {
@@ -206,9 +274,9 @@ export function localizeTraitValue(field, value, lang = "en") {
   if (lang === "en") return value;
   const direct = TRAIT_VALUES_I18N[value];
   if (direct) return direct[lang] || value;
-  const token = String(value).toLowerCase().replace(/[\s/&,()-]+/g, "_").replace(/^_+|_+$/g, "");
+  const token = String(value).toLowerCase().replace(/[\s/&,()—–-]+/g, "_").replace(/^_+|_+$/g, "");
   const byToken = Object.values(TRAIT_VALUES_I18N).find(
-    (entry) => entry.en.toLowerCase().replace(/[\s/&,()-]+/g, "_").replace(/^_+|_+$/g, "") === token
+    (entry) => entry.en.toLowerCase().replace(/[\s/&,()—–-]+/g, "_").replace(/^_+|_+$/g, "") === token
   );
   return byToken ? byToken[lang] || value : value;
 }
@@ -219,6 +287,8 @@ export const DYNAMIC_I18N = {
   species: {
     Cattle: B("Cattle", "மாடு (பசு/காளை)", "गाय / गोवंश"),
     Buffalo: B("Buffalo", "எருமை", "भैंस"),
+    cattle: B("Cattle", "மாடு (பசு/காளை)", "गाय / गोवंश"),
+    buffalo: B("Buffalo", "எருமை", "भैंस"),
     Unknown: B("Unknown", "தெரியவில்லை", "अज्ञात"),
   },
   gender: {
@@ -236,10 +306,10 @@ export const DYNAMIC_I18N = {
     Adult: B("Adult", "வளர்ந்த", "वयस्क"),
   },
   utility: {
-    "Milch (Dairy)": B("Milch (Dairy)", "பால் மாடு (டெயரி)", "दूध (डेयरी)"),
+    "Milch (Dairy)": B("Milch (Dairy)", "கறவை மாடு (பால் பண்ணை)", "दुधारू (डेयरी)"),
     "Draught (Work)": B("Draught (Work)", "இழுவை வேலை", "भारवाहन (कार्य)"),
-    "Dual-Purpose": B("Dual-Purpose", "இரட்டை நோக்கம்", "दोहरा उद्देश्य"),
-    "Ornamental / Dwarf Dairy": B("Ornamental / Dwarf Dairy", "அலங்கார / குள்ள பால்", "सजावटी / बौना दूध"),
+    "Dual-Purpose": B("Dual-Purpose", "இரட்டை நோக்கம் (பால் மற்றும் உழைப்பு)", "दोहरा उद्देश्य"),
+    "Ornamental / Dwarf Dairy": B("Ornamental / Dwarf Dairy", "அலங்கார / குள்ள கறவை இனம்", "सजावटी / बौना दुधारू"),
   },
   quality: {
     blurry: B("Blurry", "மங்கலானது", "धुंधला"),
@@ -265,7 +335,12 @@ export const DYNAMIC_I18N = {
 export function localizeDynamic(kind, value, lang = "en") {
   const table = DYNAMIC_I18N[kind];
   if (!table || value == null) return value;
-  const entry = table[value];
+  let entry = table[value];
+  if (!entry) {
+    const lower = String(value).toLowerCase().trim();
+    const hitKey = Object.keys(table).find((k) => k.toLowerCase() === lower);
+    if (hitKey) entry = table[hitKey];
+  }
   return entry ? entry[lang] || entry.en : value;
 }
 
@@ -288,14 +363,14 @@ const ADVISORY = {
       "தினமும் 2-3 முறை நிலையான நேரத்தில் பால் கறக்கவும்; கறந்த பிறகு தீவனம் கொடுக்கவும்.",
       `5 லிட்டருக்கு மேல் ஒவ்வொரு லிட்டருக்கும் 0.4 கிலோ தீவனம் கூடுதலாக (இந்த இனத்திற்கு சுமார் ${extra} கிலோ).`,
       "தினமும் 50-75 கிராம் தாது உப்பு கலவை, 30-50 கிராம் சாதாரண உப்பு; பால் சுரப்பு காலத்தில் கால்சியம்.",
-      "மஸ்டிடிஸ் தடுப்பு: மடியை கழுவி உலர்த்தவும், கறந்த பிறகு காம்பு மூழ்கவும், உலர்ந்த படுக்கை.",
-      "கன்று போடுவதற்கு 60 நாட்கள் முன்பு பால் நிறுத்தவும்.",
+      "மடிநோய் (மஸ்டிடிஸ்) தடுப்பு: மடியை கழுவி உலர்த்தவும், கறந்த பிறகு காம்பு மூழ்கவும், உலர்ந்த படுக்கை.",
+      "கன்று ஈனுவதற்கு 60 நாட்கள் முன் கறவையை நிறுத்தவும் (வறட்சிக் காலம்).",
     ],
     actionsFemaleYoung: (afc) => [
       "வளர்ச்சிக்கு நல்ல பச்சைத் தீவனம் + 1-1.5 கிலோ தீவனம் + தாது உப்பு கலவை தினமும்.",
-      `முதல் கன்றுக்கு இலக்கு: ${afc}.`,
+      `முதல் ஈற்றுக்கான வயது இலக்கு: ${afc}.`,
       "மாதம் ஒருமுறை எடை அல்லது மார்பு அளவு எடுக்கவும்; நாளொன்றுக்கு 400-600 கிராம் வளர்ச்சி.",
-      "முதல் சூடு அறிகுறிகளை (அமைதியின்மை, சளி, மற்றவற்றின் மீது ஏறுதல்) கவனித்து தேதியைப் பதிவு செய்யவும்.",
+      "முதல் பருவ அறிகுறிகளை (சினைப் பருவம்: அமைதியின்மை, சளி, மற்றவற்றின் மீது ஏறுதல்) கவனித்து தேதியைப் பதிவு செய்யவும்.",
       "கருவூட்டலுக்கு முன் காலாண்டு குடல் புழு நீக்கம் மற்றும் FMD/HS/BQ தடுப்பூசி.",
     ],
     actionsMaleAdult: [
@@ -308,12 +383,12 @@ const ADVISORY = {
     actionsMaleYoung: [
       "நிலையான வளர்ச்சிக்கு தீவனம் (நாளொன்றுக்கு 0.5-0.7 கிலோ); முதிர்ச்சிக்கு முன் கொழுப்பேற்ற வேண்டாம்.",
       "12-18 மாதங்களில் முடிவு: இனப்பெருக்கக் காளையா, உழைப்பு மாடா, விற்பனையா.",
-      "உழைப்புக்காக வளர்த்தால் தகுதியான கால்நடை மருத்துவரால் கால்நடை அறுவை செய்யவும்.",
+      "உழைப்புக்காக வளர்த்தால் தகுதியான கால்நடை மருத்துவரால் விதை நீக்கம் / ஆண்மை நீக்கம் (அடிப்பு) செய்யவும்.",
       "சிறு வயதிலிருந்தே தினமும் கையாளவும் — பழக்கமான மாடு பாதுகாப்பானது, அதிக விலை.",
       "FMD/HS/BQ தடுப்பூசி மற்றும் காலாண்டு புழு நீக்கம்.",
     ],
     actionsCalf: [
-      "கால்ஸ்ட்ரம்: பிறந்த 1-2 மணி நேரத்தில் 1-2 லிட்டர், பின்னர் உடல் எடையின் 10% தினமும் 3 நாட்கள்.",
+      "சீம்பால் (கால்ஸ்ட்ரம்): பிறந்த 1-2 மணி நேரத்தில் 1-2 லிட்டர், பின்னர் உடல் எடையின் 10% தினமும் 3 நாட்கள்.",
       "10, 30, 60 நாட்களில் புழு நீக்கம்; பின்னர் 3 மாதங்களுக்கு ஒருமுறை.",
       "2 வது வாரத்திலிருந்து கன்று தீவனம் (18-20% புரதம்); 8-12 வாரங்களில் தாய்ப்பால் நிறுத்தம்.",
       "தடுப்பூசி: 4-6 மாதங்களில் FMD, 6 மாதங்களில் HS/BQ (பின்னர் ஆண்டுதோறும்); பெண் கன்றுகளுக்கு 4-8 மாதங்களில் புருசெல்லோசிஸ்.",
@@ -326,7 +401,7 @@ const ADVISORY = {
       "புருசெல்லோசிஸ் — பெண் கன்றுகளுக்கு 4-8 மாதங்களில் ஒருமுறை",
     ],
     watchAdult: [
-      "மஸ்டிடிஸ் — தினமும் மடியை சரிபார்க்கவும், மாதம் ஒருமுறை CMT",
+      "மடிநோய் (மஸ்டிடிஸ்) — தினமும் மடியை சரிபார்க்கவும், மாதம் ஒருமுறை CMT",
       "கன்று போட்ட பின் கால்சியம் குறைபாடு",
       "பால் சுரப்பின் தொடக்கத்தில் உணவு மறுப்பு",
       "3 கருவூட்டல்களுக்கு மேல் கருத்தரிக்கவில்லை என்றால் மருத்துவர் பரிசோதனை",
@@ -400,7 +475,7 @@ const ADVISORY = {
       "FMD/HS/BQ टीका और हर तीन माह कृमिनाशन।",
     ],
     actionsCalf: [
-      "कोलोस्ट्रम: जन्म के 1-2 घंटे में 1-2 लीटर, फिर 3 दिन तक शरीर के वजन का 10% दूध।",
+      "खीस (कोलोस्ट्रम): जन्म के 1-2 घंटे में 1-2 लीटर, फिर 3 दिन तक शरीर के वजन का 10% खीस पिलाएँ।",
       "10, 30 और 60 दिन पर कृमिनाशन; फिर हर 3 महीने।",
       "दूसरे हफ्ते से काफ स्टार्टर (18-20% प्रोटीन); 8-12 हफ्ते में दूध छुड़ाएँ।",
       "टीका: 4-6 माह में FMD, 6 माह में HS/BQ (फिर सालाना); मादा बछड़ों को 4-8 माह में ब्रुसेलोसिस।",
@@ -413,7 +488,7 @@ const ADVISORY = {
       "ब्रुसेलोसिस — मादा बछड़ों को 4-8 माह में एक बार",
     ],
     watchAdult: [
-      "मास्टाइटिस — रोज़ थन जाँचें, महीने में CMT",
+      "थनैला रोग (मास्टाइटिस) — रोज़ थन जाँचें, महीने में CMT",
       "ब्याने के बाद कैल्शियम की कमी",
       "दूध शुरू होते समय भूख कम लगना",
       "3 बार से अधिक गर्भाधान में सफलता न हो तो पशु चिकित्सक जाँच",

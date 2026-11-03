@@ -5,6 +5,8 @@ import DevOODPanel from "../components/DevOODPanel.jsx";
 import DevConfigPanel from "../components/DevConfigPanel.jsx";
 import DevDatasetPanel from "../components/DevDatasetPanel.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import LanguageToggle from "../components/LanguageToggle.jsx";
+import { useI18n } from "../i18n/I18nProvider.jsx";
 import { getLogs } from "../api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { useSharedConfig } from "../hooks/useSharedConfig.js";
@@ -13,6 +15,7 @@ const VET_PORTAL_URL =
   import.meta.env.VITE_VET_PORTAL_URL || "http://localhost:5174";
 
 export default function DevPage() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState("models"); // 'models' | 'ood' | 'config' | 'logs'
   const [logs, setLogs] = useState("");
   const [logsLoading, setLogsLoading] = useState(false);
@@ -48,11 +51,11 @@ export default function DevPage() {
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            User App View
+            {t("dev.userAppView")}
           </Link>
           <div className="dev-title-block">
-            <h1 className="dev-heading">Developer Control Plane</h1>
-            <span className="dev-subheading">Model Architecture, OOD Safety & Parameter DB</span>
+            <h1 className="dev-heading">{t("dev.title")}</h1>
+            <span className="dev-subheading">{t("dev.subtitle")}</span>
           </div>
         </div>
 
@@ -64,16 +67,16 @@ export default function DevPage() {
 
           <div className="system-spec-pills">
             <span className="spec-pill">
-              Device: <strong>{serverStatus?.device?.toUpperCase() || "CPU"}</strong>
+              {t("dev.device")}: <strong>{serverStatus?.device?.toUpperCase() || "CPU"}</strong>
             </span>
             <span className="spec-pill">
-              Models: <strong>{serverStatus?.models_count || 0}</strong>
+              {t("dev.models")}: <strong>{serverStatus?.models_count || 0}</strong>
             </span>
             <span className="spec-pill">
-              Uptime: <strong>{serverStatus?.uptime ? `${Math.round(serverStatus.uptime)}s` : "0s"}</strong>
+              {t("dev.uptime")}: <strong>{serverStatus?.uptime ? `${Math.round(serverStatus.uptime)}s` : "0s"}</strong>
             </span>
             <span className="spec-pill spec-pill-active" title={config?.active_model || serverStatus?.active_model || "default"}>
-              Active: <strong>{config?.active_model || serverStatus?.active_model || "default"}</strong>
+              {t("dev.active")}: <strong>{config?.active_model || serverStatus?.active_model || "default"}</strong>
             </span>
           </div>
 
@@ -91,6 +94,7 @@ export default function DevPage() {
             Vet Portal ↗
           </a>
 
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
@@ -109,7 +113,7 @@ export default function DevPage() {
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            Model Checkpoints
+            {t("dev.tabs.models")}
           </button>
 
           <button
@@ -121,7 +125,7 @@ export default function DevPage() {
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             </svg>
-            Dataset Breeds
+            {t("dev.tabs.dataset")}
           </button>
 
           <button
@@ -134,7 +138,7 @@ export default function DevPage() {
               <line x1="12" y1="9" x2="12" y2="13"></line>
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            OOD Safety Profiles
+            {t("dev.tabs.ood")}
           </button>
 
           <button
@@ -146,7 +150,7 @@ export default function DevPage() {
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
-            Shared Database
+            {t("dev.tabs.config")}
           </button>
 
           <button
@@ -161,7 +165,7 @@ export default function DevPage() {
               <line x1="16" y1="17" x2="8" y2="17"></line>
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
-            System Logs
+            {t("dev.tabs.logs")}
           </button>
         </nav>
 

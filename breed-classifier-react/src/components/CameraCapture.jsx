@@ -442,7 +442,7 @@ export default function CameraCapture({ onCapture, onClose }) {
   const tailX = facingRight ? 165 : 635;
   const tailY = 245;
   const isBuffaloGuide = silhouette === "buffalo";
-  const guideLabel = isBuffaloGuide ? "━ Dorsal Ridge" : `▲ ${t("camera.landmarkHump")}`;
+  const guideLabel = isBuffaloGuide ? `━ ${t("camera.landmarkDorsalRidge")}` : `▲ ${t("camera.landmarkHump")}`;
   const guideWidth = isBuffaloGuide ? 120 : 86;
 
   return (
@@ -653,8 +653,8 @@ export default function CameraCapture({ onCapture, onClose }) {
                           <path className="hud-corner" d="M690 420 H714 Q730 420 730 404 V380" />
                           <line className="hud-axis" x1="70" y1="175" x2="730" y2="175" />
                           <line className="hud-axis" x1="70" y1="335" x2="730" y2="335" />
-                          <text className="hud-axis-label" x="742" y="179">DORSAL</text>
-                          <text className="hud-axis-label" x="742" y="339">CHEST</text>
+                          <text className="hud-axis-label" x="742" y="179">{t("camera.landmarkDorsal")}</text>
+                          <text className="hud-axis-label" x="742" y="339">{t("camera.landmarkChest")}</text>
                         </g>
 
                         {silhouette !== "off" && (
@@ -717,7 +717,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                             <circle className="hud-anchor" cx={tailX} cy={tailY} r="4" />
                             <g className="hud-label" transform={`translate(${tailX}, 365)`}>
                               <rect x="-58" y="-11" width="116" height="22" rx="11" />
-                              <text y="4" textAnchor="middle">⫶ Tail / Rump</text>
+                              <text y="4" textAnchor="middle">⫶ {t("camera.landmarkTail")}</text>
                             </g>
                           </g>
                         )}

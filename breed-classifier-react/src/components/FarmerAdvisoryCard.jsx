@@ -112,7 +112,7 @@ export default function FarmerAdvisoryCard({ advisory, loading, latencyMs }) {
         </div>
         {Array.isArray(localized.schemes) && (
           <div className="advisory-schemes">
-            <span className="advisory-card-kicker">{t("localized.schemes")}</span>
+            <span className="advisory-card-kicker">{t("advisory.schemes")}</span>
             <ul>
               {localized.schemes.slice(0, 4).map((scheme, index) => (
                 <li key={index}>{scheme}</li>
