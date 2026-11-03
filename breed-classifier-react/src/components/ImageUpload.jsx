@@ -207,11 +207,18 @@ export default function ImageUpload({
             }
           }}
         >
+          <span className="dropzone-corner tl" aria-hidden="true" />
+          <span className="dropzone-corner tr" aria-hidden="true" />
+          <span className="dropzone-corner bl" aria-hidden="true" />
+          <span className="dropzone-corner br" aria-hidden="true" />
           <div className="dropzone-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-              <path d="M12 12v9" />
-              <path d="m16 16-4-4-4 4" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M3 8V5a2 2 0 0 1 2-2h3" />
+              <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+              <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
+              <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+              <circle cx="12" cy="12" r="3.5" />
+              <path d="M12 8.5V7M12 17v-1.5M8.5 12H7M17 12h-1.5" />
             </svg>
           </div>
           <div className="dropzone-text">

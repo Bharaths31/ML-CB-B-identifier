@@ -13,6 +13,7 @@ ENV/
 outputs/
 data/splits/
 data/raw/
+data/external/
 
 # Whitelist configurations, labels, OOD profiles, and metrics
 !outputs/app_config.json

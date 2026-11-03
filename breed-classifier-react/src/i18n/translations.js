@@ -1228,3 +1228,32 @@ export {
   localizeAdvisory,
   localizeScheme,
 } from "./dictionaries.js";
+
+/* Header / spec-strip strings (v2 layout) */
+Object.assign(TRANSLATIONS.en, {
+  "header.modelCopied": "Model name copied",
+  "spec.target": "Classification Target",
+  "spec.value.target": "Cattle & Buffalo (68 breeds)",
+  "spec.ood": "OOD Detection",
+  "spec.value.ood": "Active (Soft-routed)",
+  "spec.input": "Input Spec",
+  "spec.value.input": "Side / 3-Quarter Profile",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "header.modelCopied": "மாதிரி பெயர் நகலெடுக்கப்பட்டது",
+  "spec.target": "வகைப்படுத்தும் இலக்கு",
+  "spec.value.target": "மாடு & எருமை (68 இனங்கள்)",
+  "spec.ood": "OOD கண்டறிதல்",
+  "spec.value.ood": "செயலில் (மென்மை வழிமாற்றம்)",
+  "spec.input": "உள்ளீட்டு விவரம்",
+  "spec.value.input": "பக்கவாட்டு / 3-கால் தோற்றம்",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "header.modelCopied": "मॉडल नाम कॉपी किया गया",
+  "spec.target": "वर्गीकरण लक्ष्य",
+  "spec.value.target": "गाय और भैंस (68 नस्लें)",
+  "spec.ood": "OOD पहचान",
+  "spec.value.ood": "सक्रिय (सॉफ्ट-रूटेड)",
+  "spec.input": "इनपुट विनिर्देश",
+  "spec.value.input": "साइड / 3-क्वार्टर प्रोफ़ाइल",
+});

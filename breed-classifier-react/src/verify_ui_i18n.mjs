@@ -164,11 +164,12 @@ check("i18n.dynamic", "Species / gender / age dynamic values localized",
 
 /* 6 — theme tokens -------------------------------------------------------- */
 const themeCss = fs.readFileSync(path.join(HERE, "styles", "themes.css"), "utf8");
-const THEMES = ["emerald-obsidian", "meadow-daylight", "earthy-harvest", "aqua-pasture"];
+const THEMES = ["field-parchment", "obsidian-loam", "clinical-slate", "night-telemetry"];
 const REQUIRED_VARS = [
-  "--bg-primary", "--bg-secondary", "--bg-tertiary", "--border-subtle",
-  "--border-focus", "--text-primary", "--text-secondary", "--text-muted",
-  "--accent-primary", "--accent-secondary", "--accent-gradient",
+  "--bg-canvas", "--bg-surface", "--bg-elevated", "--bg-recessed",
+  "--text-primary", "--text-secondary", "--text-muted",
+  "--border-subtle", "--border-focus",
+  "--accent-primary", "--accent-secondary", "--accent-surface", "--status-ok",
 ];
 const themeProblems = [];
 for (const id of THEMES) {
@@ -185,8 +186,10 @@ for (const id of THEMES) {
 }
 check("themes.tokens", "4 themes define the full token set",
   themeProblems.length === 0 && themeCss.includes("Noto Sans Tamil")
-    && themeCss.includes("Noto Sans Devanagari"),
-  themeProblems.length ? themeProblems.slice(0, 6).join(" ; ") : "emerald-obsidian / meadow-daylight / earthy-harvest / aqua-pasture",
+    && themeCss.includes("Noto Sans Devanagari")
+    && themeCss.includes("Plus Jakarta Sans")
+    && themeCss.includes("JetBrains Mono"),
+  themeProblems.length ? themeProblems.slice(0, 6).join(" ; ") : "field-parchment / obsidian-loam / clinical-slate / night-telemetry",
   { themes: THEMES.length, variables: REQUIRED_VARS.length });
 
 /* ------------------------------------------------------------------------ */

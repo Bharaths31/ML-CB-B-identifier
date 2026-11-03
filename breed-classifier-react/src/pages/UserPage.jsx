@@ -180,6 +180,19 @@ export default function UserPage() {
   };
 
   const stats = sessionStats(session);
+  const shortModel = (value) => {
+    if (!value) return t("header.defaultModel");
+    return value.length > 24 ? `${value.slice(0, 14)}…${value.slice(-4)}` : value;
+  };
+  const copyModel = () => {
+    try {
+      navigator.clipboard?.writeText(activeModelDisplay);
+      setSyncNotice(t("header.modelCopied"));
+      setTimeout(() => setSyncNotice(null), 2500);
+    } catch {
+      /* clipboard can be blocked; the tooltip still shows the full hash */
+    }
+  };
 
   const handleEscalate = async (resultToEscalate, { manual = false } = {}) => {
     const gps = await getBrowserGps();
@@ -209,77 +222,87 @@ export default function UserPage() {
   return (
     <div className="user-page-container">
       <header className="site-header">
-        <div className="header-brand">
-          <div className="brand-icon-wrapper">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a4 4 0 0 1 4 4c0 .88-.29 1.7-.78 2.36l.28.28a6 6 0 0 1 1.76 4.24V17a3 3 0 0 1-3 3H9.74a3 3 0 0 1-3-3v-4.12a6 6 0 0 1 1.76-4.24l.28-.28A3.99 3.99 0 0 1 8 6a4 4 0 0 1 4-4Z" />
-            </svg>
-          </div>
-          <div className="brand-info">
-            <h1 className="brand-title">{t("app.title")}</h1>
-            <span className="brand-subtitle">{t("app.subtitle")}</span>
-          </div>
-        </div>
-
-        <div className="header-nav-right">
-          <div className="status-badge" title={connected ? t("header.connected") : t("header.reconnecting")}>
-            <span className={`status-dot ${connected ? "status-online" : "status-offline"}`} />
-            <span className="status-text">{connected ? t("header.connected") : t("header.reconnecting")}</span>
+        <div className="utility-bar">
+          <div className="brand-zone">
+            <div className="brand-emblem" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M12 2a4 4 0 0 1 4 4c0 .88-.29 1.7-.78 2.36l.28.28a6 6 0 0 1 1.76 4.24V17a3 3 0 0 1-3 3H9.74a3 3 0 0 1-3-3v-4.12a6 6 0 0 1 1.76-4.24l.28-.28A3.99 3.99 0 0 1 8 6a4 4 0 0 1 4-4Z" />
+              </svg>
+            </div>
+            <div className="brand-text">
+              <h1 className="brand-title">{t("app.title")}</h1>
+              <span className="brand-divider" aria-hidden="true">|</span>
+              <span className="brand-subtitle">{t("app.subtitle")}</span>
+            </div>
           </div>
 
-          <button
-            type="button"
-            className="advanced-trigger"
-            onClick={() => setAdvancedOpen(true)}
-            title={t("advanced.title")}
-          >
-            ⚙ {t("advanced.open")}
-          </button>
-
-          <div className="model-chip" title={`${t("header.model")}: ${activeModelDisplay}`}>
-            <span className="chip-label">{t("header.model")}:</span>
-            <span className="chip-value">{activeModelDisplay}</span>
+          <div className="telemetry-zone">
+            <div className="system-pill" role="group" aria-label="System telemetry">
+              <span className="telemetry-item" title={connected ? t("header.connected") : t("header.reconnecting")}>
+                <span className={`telemetry-dot ${connected ? "online" : "offline"}`} />
+                {connected ? t("header.connected") : t("header.reconnecting")}
+              </span>
+              <span className="telemetry-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="telemetry-item telemetry-model"
+                title={`${t("header.model")}: ${activeModelDisplay} — click to copy`}
+                onClick={copyModel}
+              >
+                {shortModel(activeModelDisplay)}
+              </button>
+              <span className="telemetry-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="telemetry-item"
+                onClick={() => setSessionOpen(true)}
+                title={t("actions.openSession")}
+              >
+                {t("session.tab")}: {stats.total}
+              </button>
+            </div>
           </div>
 
-          {queuedEscalations > 0 && (
+          <div className="utility-zone">
+            {queuedEscalations > 0 && (
+              <button
+                type="button"
+                className="escalation-outbox-badge"
+                onClick={() => flushEscalations()}
+                title={t("escalation.syncTitle")}
+              >
+                <span aria-hidden="true">⇅</span>
+                {queuedEscalations}
+              </button>
+            )}
+
+            {syncNotice && <span className="sync-notice">{syncNotice}</span>}
+
             <button
               type="button"
-              className="escalation-outbox-badge"
-              onClick={() => flushEscalations()}
-              title={t("escalation.syncTitle")}
+              className="advanced-trigger"
+              onClick={() => setAdvancedOpen(true)}
+              title={t("advanced.title")}
             >
-              <span aria-hidden="true">⇅</span>
-              {t("escalation.offlineBadge", { count: queuedEscalations })}
+              <span aria-hidden="true">⚙</span>
+              {t("advanced.open")}
             </button>
-          )}
 
-          <Link to="/expert" className="btn btn-outline vet-portal-btn">
-            {t("header.expertPortal")}
-          </Link>
+            <Link to="/expert" className="ghost-btn vet-portal-btn">
+              {t("header.expertPortal")}
+            </Link>
 
-          {syncNotice && <span className="sync-notice">{syncNotice}</span>}
+            <Link to="/dev" className="ghost-btn dev-portal-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t("header.dev")}
+            </Link>
 
-          <button
-            type="button"
-            className="session-trigger"
-            onClick={() => setSessionOpen(true)}
-            title={t("actions.openSession")}
-          >
-            <span className="session-trigger-icon" aria-hidden="true">▤</span>
-            <span className="session-trigger-label">{t("session.tab")}</span>
-            <span className="session-trigger-count">{stats.total}</span>
-          </button>
-
-          <LanguageToggle />
-          <ThemeToggle />
-
-          <Link to="/dev" className="btn btn-outline dev-portal-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            {t("header.dev")}
-          </Link>
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -371,6 +394,22 @@ export default function UserPage() {
               )}
             </div>
           </div>
+          {!predictionResult && (
+            <div className="spec-strip" aria-label="System specification">
+              <div className="spec-item">
+                <span className="spec-label">{t("spec.target")}</span>
+                <span className="spec-value">{t("spec.value.target")}</span>
+              </div>
+              <div className="spec-item">
+                <span className="spec-label">{t("spec.ood")}</span>
+                <span className="spec-value">{t("spec.value.ood")}</span>
+              </div>
+              <div className="spec-item">
+                <span className="spec-label">{t("spec.input")}</span>
+                <span className="spec-value">{t("spec.value.input")}</span>
+              </div>
+            </div>
+          )}
         </section>
 
         {predictionResult && (
@@ -388,8 +427,11 @@ export default function UserPage() {
         )}
       </main>
 
-      <footer className="site-footer">
-        <p>{t("footer.text")}</p>
+      <footer className="site-footer status-bar">
+        <span className="footer-specs">{t("footer.text")}</span>
+        <span className="footer-meta">
+          {shortModel(activeModelDisplay)} · {(serverStatus?.device || "cpu").toUpperCase()} · v2
+        </span>
       </footer>
 
       <HerdSessionDrawer

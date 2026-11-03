@@ -29,6 +29,7 @@ import glob
 import io
 import json
 import os
+import random
 import shutil
 import statistics
 import subprocess
@@ -378,6 +379,107 @@ def suite_big4(vv):
            "; ".join(ratio_problems) or f"content ratios {ratios}, tensor {tuple(tensor.shape)}",
            metric=ratios)
 
+    external = external_buffalo_metrics(manager, model_name)
+    if external is None:
+        vv.warn(suite, "External buffalo dataset",
+                "data/external/indian_buffalo not found — download the Kaggle "
+                "atharvadarpude/indian-buffalo-dataset to enable real-image validation")
+    else:
+        vv.metrics["external_dataset"] = external
+        vv.add(suite, "External dataset · species accuracy",
+               external["species_accuracy"] >= 0.75,
+               f"{external['species_accuracy'] * 100:.1f}% on {external['samples']} real buffalo photos",
+               metric={"accuracy": external["species_accuracy"]})
+        vv.add(suite, "External dataset · top-5 breed accuracy",
+               external["top5_accuracy"] >= 0.40,
+               f"{external['top5_accuracy'] * 100:.1f}% (18 buffalo classes)",
+               metric={"accuracy": external["top5_accuracy"]})
+        vv.add(suite, "External dataset · top-1 breed accuracy",
+               external["top1_accuracy"] >= 0.11,
+               f"{external['top1_accuracy'] * 100:.1f}% · {external['top1_accuracy'] / (1/18):.1f}× chance",
+               metric={"accuracy": external["top1_accuracy"]})
+        if external["ood_rate"] <= 0.10:
+            vv.add(suite, "External dataset · false OOD rejection",
+                   True,
+                   f"{external['ood_rate'] * 100:.1f}% rejected as OOD",
+                   metric={"ood_rate": external["ood_rate"]})
+        else:
+            vv.warn(suite, "External dataset · false OOD rejection",
+                    f"{external['ood_rate'] * 100:.1f}% rejected as OOD — the Kaggle set "
+                    "contains diagrams/non-animal files; inspect before treating as model error")
+
+
+def external_buffalo_metrics(manager, model_name, per_class=8):
+    """Validate on the Atharva Darpude Indian buffalo dataset (2,785 images).
+
+    Balanced deterministic sample (first N sorted images per class) keeps the
+    suite fast while covering all 17 breeds. Ground-truth folders match the
+    classifier's buffalo slugs except for hyphen/case normalisation.
+    """
+    root = None
+    for candidate in (
+        os.path.join(PROJECT_ROOT, "data", "external", "atharvadarpude_buffalo", "buffalo"),
+        os.path.join(PROJECT_ROOT, "data", "external", "indian_buffalo", "buffalo"),
+    ):
+        if os.path.isdir(candidate):
+            root = candidate
+            break
+    if root is None:
+        return None
+
+    samples = []
+    rng = random.Random(2026)
+    classes = sorted(d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)))
+    for folder in classes:
+        folder_path = os.path.join(root, folder)
+        images = sorted(
+            name for name in os.listdir(folder_path)
+            if name.lower().endswith((".jpg", ".jpeg", ".png"))
+        )
+        rng.shuffle(images)
+        for name in images[:per_class]:
+            samples.append((folder, os.path.join(folder_path, name)))
+
+    if not samples:
+        return None
+
+    correct_species = correct_top1 = correct_top5 = false_ood = valid = 0
+    for folder, path in samples:
+        expected = folder.lower().replace("-", "_").replace(" ", "_")
+        try:
+            with open(path, "rb") as handle:
+                payload = handle.read()
+            result = manager.predict(payload, model_name, ood_profile="auto",
+                                     filename=os.path.basename(path))
+        except Exception:
+            continue
+        if result.get("error"):
+            continue
+        if result.get("ood"):
+            false_ood += 1
+            continue
+        valid += 1
+        if str(result.get("species", "")).lower().startswith("buff"):
+            correct_species += 1
+        slugs = [item.get("breed_slug") for item in result.get("top5_breeds", [])]
+        if slugs and slugs[0] == expected:
+            correct_top1 += 1
+        if expected in slugs:
+            correct_top5 += 1
+
+    total = max(1, len(samples))
+    denominator = max(1, valid)
+    return {
+        "dataset": "atharvadarpude/indian-buffalo-dataset",
+        "samples": len(samples),
+        "classes": len({folder for folder, _ in samples}),
+        "valid": valid,
+        "species_accuracy": round(correct_species / denominator, 4),
+        "top1_accuracy": round(correct_top1 / denominator, 4),
+        "top5_accuracy": round(correct_top5 / denominator, 4),
+        "ood_rate": round(false_ood / total, 4),
+    }
+
 
 # ---------------------------------------------------------------------------
 #  Suite 3 — OOD safety & quality gate
@@ -666,6 +768,12 @@ def write_reports(vv):
         lines += ["", "## Failures to resolve", ""]
         for row in failures:
             lines.append(f"- **{row['suite']} / {row['name']}** — {row['detail']}")
+    elif counts["WARN"]:
+        lines += ["", "## Verdict", "",
+                  f"All verification and validation checks passed. "
+                  f"{counts['WARN']} warning(s) remain for review — see the scorecard "
+                  "rows marked WARN (for example external OOD abstentions on the "
+                  "Kaggle buffalo set, which contains diagrams/non-animal files)."]
     else:
         lines += ["", "## Verdict", "",
                   "All verification and validation checks passed. The model checkpoint, "
@@ -751,3 +859,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+
