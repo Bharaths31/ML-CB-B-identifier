@@ -11,8 +11,7 @@ export default function DevDatasetPanel() {
   // Filters & sorting
   const [searchQuery, setSearchQuery] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState("all"); // 'all' | 'cattle' | 'buffalo'
-  const [tierFilter, setTierFilter] = useState("all"); // 'all' | 'many_shot' | 'medium_shot' | 'few_shot' | 'pending'
-  const [canonicalOnly, setCanonicalOnly] = useState(false);
+  const [tierFilter, setTierFilter] = useState("all"); // 'all' | 'many_shot' | 'medium_shot' | 'few_shot'
   const [sortBy, setSortBy] = useState("count_desc"); // 'count_desc' | 'count_asc' | 'name_asc' | 'name_desc'
 
   const fetchInventory = async () => {
@@ -25,16 +24,20 @@ export default function DevDatasetPanel() {
       }
       if (data?.totals || data?.total_images) {
         setSummary({
-          totalImages: data.total_images || data.totals?.images || 0,
-          totalBreeds: data.total_breeds || data.totals?.breeds || data.breeds?.length || 0,
+          datasetName: data.dataset || "Atharvadarpude Indian Cattle & Buffalo Dataset",
+          datasetSlugs: data.dataset_slugs || [
+            "atharvadarpude/indian-cattle-image-dataset",
+            "atharvadarpude/indian-buffalo-dataset",
+          ],
+          totalImages: data.total_images || data.totals?.images || 11199,
+          totalBreeds: data.total_breeds || data.totals?.breeds || 68,
           canonicalBreeds: data.canonical_breeds_count || 68,
           bySpecies: data.by_species || data.totals?.by_species || {},
           shotTiers: data.shot_tiers || {},
         });
       }
     } catch (err) {
-      console.warn("Using offline breed dataset cache:", err.message);
-      // fallback to precomputed data
+      console.warn("Using offline Atharvadarpude dataset cache:", err.message);
       setBreeds(BREED_DATASET_COUNTS || []);
       setSummary(DATASET_SUMMARY || null);
     } finally {
@@ -72,11 +75,6 @@ export default function DevDatasetPanel() {
       result = result.filter((b) => b.tier_code === tierFilter);
     }
 
-    // Canonical only
-    if (canonicalOnly) {
-      result = result.filter((b) => b.is_canonical);
-    }
-
     // Sorting
     result.sort((a, b) => {
       if (sortBy === "count_desc") {
@@ -95,15 +93,15 @@ export default function DevDatasetPanel() {
     });
 
     return result;
-  }, [breeds, searchQuery, speciesFilter, tierFilter, canonicalOnly, sortBy]);
+  }, [breeds, searchQuery, speciesFilter, tierFilter, sortBy]);
 
-  // Max count for the relative visual percentage bar
+  // Max count for relative visual bar
   const maxCount = useMemo(() => {
     if (!breeds.length) return 1;
     return Math.max(...breeds.map((b) => b.count || 0), 1);
   }, [breeds]);
 
-  // Export CSV function
+  // Export CSV
   const handleExportCSV = () => {
     const headers = [
       "Rank",
@@ -113,9 +111,9 @@ export default function DevDatasetPanel() {
       "Dataset Images",
       "Dataset Share (%)",
       "Shot Tier",
-      "Canonical Model Class",
-      "Origin",
-      "Key Distinguisher",
+      "Origin / State",
+      "Key Morphological Trait",
+      "Kaggle Dataset Source",
     ];
 
     const rows = filteredBreeds.map((b, idx) => [
@@ -126,9 +124,9 @@ export default function DevDatasetPanel() {
       b.count,
       b.percentage || 0,
       `"${b.tier}"`,
-      b.is_canonical ? "Yes" : "No",
       `"${(b.origin || "").replace(/"/g, '""')}"`,
       `"${(b.distinguisher || "").replace(/"/g, '""')}"`,
+      `"${b.dataset_source || ""}"`,
     ]);
 
     const csvContent =
@@ -137,7 +135,10 @@ export default function DevDatasetPanel() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `breed_dataset_inventory_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      "download",
+      `atharvadarpude_breed_dataset_inventory_${new Date().toISOString().slice(0, 10)}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -145,7 +146,9 @@ export default function DevDatasetPanel() {
 
   const cattleCount = breeds.filter((b) => b.species === "cattle").length;
   const buffaloCount = breeds.filter((b) => b.species === "buffalo").length;
-  const totalImgs = summary?.totalImages || breeds.reduce((acc, b) => acc + (b.count || 0), 0);
+  const totalImgs = summary?.totalImages || 11199;
+  const cattleImgs = summary?.bySpecies?.cattle?.images || 8531;
+  const buffaloImgs = summary?.bySpecies?.buffalo?.images || 2668;
 
   return (
     <div className="dev-panel-content">
@@ -153,10 +156,19 @@ export default function DevDatasetPanel() {
       <div className="panel-header-block">
         <div className="title-row-between">
           <div>
-            <h2 className="panel-title">Dataset Inventory & Breed Image Distribution</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <h2 className="panel-title" style={{ margin: 0 }}>
+                Atharvadarpude Dataset Inventory & Breed Distribution
+              </h2>
+              <span className="badge badge-info" style={{ fontSize: "0.74rem" }}>
+                Kaggle Atharvadarpude
+              </span>
+            </div>
             <p className="panel-description">
-              Comprehensive list of all Indian cattle and buffalo breeds catalogued in the project,
-              ranked by dataset image volume from highest to lowest.
+              Primary project dataset by <strong>Atharva Darpude</strong> comprising{" "}
+              <strong>50 Indian Cattle breeds</strong> (<code>atharvadarpude/indian-cattle-image-dataset</code>) and{" "}
+              <strong>18 Indian Buffalo breeds</strong> (<code>atharvadarpude/indian-buffalo-dataset</code>),
+              arranged by dataset image volume from highest to lowest.
             </p>
           </div>
           <div className="header-actions-row">
@@ -177,7 +189,7 @@ export default function DevDatasetPanel() {
               type="button"
               className="btn btn-sm btn-primary"
               onClick={handleExportCSV}
-              title="Download CSV table of all breeds and image counts"
+              title="Download CSV table of Atharvadarpude breed image counts"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -193,52 +205,47 @@ export default function DevDatasetPanel() {
       {/* KPI Summary Cards */}
       <div className="dev-kpi-grid">
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Total Dataset Images</span>
+          <span className="dev-kpi-label">Atharvadarpude Total Images</span>
           <div className="dev-kpi-value">{totalImgs.toLocaleString()}</div>
           <span className="dev-kpi-sub">
-            Cattle: {summary?.bySpecies?.cattle?.images?.toLocaleString() || "17,087"} (
-            {summary?.bySpecies?.cattle?.percentage || "98.2"}%) | Buffalo:{" "}
-            {summary?.bySpecies?.buffalo?.images?.toLocaleString() || "320"} (
-            {summary?.bySpecies?.buffalo?.percentage || "1.8"}%)
+            Cattle: <strong>{cattleImgs.toLocaleString()}</strong> ({summary?.bySpecies?.cattle?.percentage || "76.2"}%) | Buffalo:{" "}
+            <strong>{buffaloImgs.toLocaleString()}</strong> ({summary?.bySpecies?.buffalo?.percentage || "23.8"}%)
           </span>
         </div>
 
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Catalogued Breeds</span>
+          <span className="dev-kpi-label">Registered Indian Breeds</span>
           <div className="dev-kpi-value">{breeds.length}</div>
           <span className="dev-kpi-sub">
-            {cattleCount} Cattle + {buffaloCount} Buffalo ({summary?.canonicalBreeds || 68} Canonical Classes)
+            <strong>{cattleCount} Cattle</strong> (8,531 imgs) + <strong>{buffaloCount} Buffalo</strong> (2,668 imgs)
           </span>
         </div>
 
         <div className="dev-kpi-card">
           <span className="dev-kpi-label">Top Represented Breed</span>
-          <div className="dev-kpi-value" style={{ fontSize: "1.25rem", color: "var(--primary, #2563eb)" }}>
-            {breeds[0]?.name || "Gir"}
+          <div className="dev-kpi-value" style={{ fontSize: "1.28rem", color: "var(--primary, #2563eb)" }}>
+            {breeds[0]?.name || "Gir"} (Cattle)
           </div>
           <span className="dev-kpi-sub">
-            {breeds[0]?.count?.toLocaleString() || 1121} images (
-            {breeds[0]?.percentage || 6.44}% of dataset)
+            <strong>{breeds[0]?.count?.toLocaleString() || 686}</strong> images (
+            {breeds[0]?.percentage || 6.13}% of total dataset)
           </span>
         </div>
 
         <div className="dev-kpi-card">
-          <span className="dev-kpi-label">Training Tiers</span>
+          <span className="dev-kpi-label">Training Imbalance Tiers</span>
           <div className="dev-tier-pills-row">
             <span className="badge badge-success" title="Many-shot (>100 images)">
-              Many: {breeds.filter((b) => b.count >= 100).length}
+              Many (&gt;100): {breeds.filter((b) => b.count >= 100).length}
             </span>
             <span className="badge badge-warning" title="Medium-shot (30-100 images)">
-              Med: {breeds.filter((b) => b.count >= 30 && b.count < 100).length}
+              Med (30-100): {breeds.filter((b) => b.count >= 30 && b.count < 100).length}
             </span>
             <span className="badge badge-info" title="Few-shot (<30 images)">
-              Few: {breeds.filter((b) => b.count > 0 && b.count < 30).length}
-            </span>
-            <span className="badge badge-neutral" title="Pending collection (0 images)">
-              0: {breeds.filter((b) => !b.count).length}
+              Few (&lt;30): {breeds.filter((b) => b.count > 0 && b.count < 30).length}
             </span>
           </div>
-          <span className="dev-kpi-sub">Sampler rebalances rare breeds automatically</span>
+          <span className="dev-kpi-sub">Managed via Effective-Number Sampler (β=0.99)</span>
         </div>
       </div>
 
@@ -254,7 +261,7 @@ export default function DevDatasetPanel() {
             <input
               type="text"
               className="dev-input search-box-input"
-              placeholder="Search by breed name, origin, or key feature..."
+              placeholder="Search Atharvadarpude breeds by name, state, or traits..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -277,21 +284,21 @@ export default function DevDatasetPanel() {
               className={`segmented-btn ${speciesFilter === "all" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("all")}
             >
-              All ({breeds.length})
+              All Breeds (68)
             </button>
             <button
               type="button"
               className={`segmented-btn ${speciesFilter === "cattle" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("cattle")}
             >
-              🐄 Cattle ({cattleCount})
+              🐄 Cattle (50)
             </button>
             <button
               type="button"
               className={`segmented-btn ${speciesFilter === "buffalo" ? "active" : ""}`}
               onClick={() => setSpeciesFilter("buffalo")}
             >
-              🐃 Buffalo ({buffaloCount})
+              🐃 Buffalo (18)
             </button>
           </div>
 
@@ -318,27 +325,9 @@ export default function DevDatasetPanel() {
               onClick={() => setTierFilter("medium_shot")}
               title="30-100 images"
             >
-              30-100
-            </button>
-            <button
-              type="button"
-              className={`segmented-btn ${tierFilter === "few_shot" ? "active" : ""}`}
-              onClick={() => setTierFilter("few_shot")}
-              title="<30 images"
-            >
-              &lt;30
+              30-100 imgs
             </button>
           </div>
-
-          {/* Canonical Toggle */}
-          <label className="toggle-label" style={{ fontSize: "0.85rem", cursor: "pointer", userSelect: "none" }}>
-            <input
-              type="checkbox"
-              checked={canonicalOnly}
-              onChange={(e) => setCanonicalOnly(e.target.checked)}
-            />
-            Canonical 68 Classes Only
-          </label>
 
           {/* Sort Selector */}
           <div className="sort-select-wrap">
@@ -364,10 +353,10 @@ export default function DevDatasetPanel() {
       <div className="dev-results-meta">
         <span>
           Showing <strong>{filteredBreeds.length}</strong> of <strong>{breeds.length}</strong> breeds
-          {speciesFilter !== "all" && ` (${speciesFilter})`}
+          {speciesFilter !== "all" && ` (${speciesFilter === "cattle" ? "Cattle Dataset" : "Buffalo Dataset"})`}
           {searchQuery && ` matching "${searchQuery}"`}
         </span>
-        {(searchQuery || speciesFilter !== "all" || tierFilter !== "all" || canonicalOnly) && (
+        {(searchQuery || speciesFilter !== "all" || tierFilter !== "all" || sortBy !== "count_desc") && (
           <button
             type="button"
             className="btn btn-sm btn-link"
@@ -375,7 +364,6 @@ export default function DevDatasetPanel() {
               setSearchQuery("");
               setSpeciesFilter("all");
               setTierFilter("all");
-              setCanonicalOnly(false);
               setSortBy("count_desc");
             }}
           >
@@ -390,12 +378,12 @@ export default function DevDatasetPanel() {
           <table className="dev-comp-table breed-inventory-table">
             <thead>
               <tr>
-                <th style={{ width: "5%" }}># Rank</th>
-                <th style={{ width: "22%" }}>Breed Name</th>
-                <th style={{ width: "10%" }}>Species</th>
-                <th style={{ width: "24%" }}>Dataset Images & Share</th>
+                <th style={{ width: "6%" }}># Rank</th>
+                <th style={{ width: "22%" }}>Breed Name & Identifier</th>
+                <th style={{ width: "11%" }}>Species</th>
+                <th style={{ width: "23%" }}>Dataset Images & Share</th>
                 <th style={{ width: "12%" }}>Shot Tier</th>
-                <th style={{ width: "13%" }}>Origin Region</th>
+                <th style={{ width: "12%" }}>Origin / State</th>
                 <th style={{ width: "14%" }}>Key Morphological Trait</th>
               </tr>
             </thead>
@@ -407,7 +395,7 @@ export default function DevDatasetPanel() {
                   </td>
                 </tr>
               ) : (
-                filteredBreeds.map((breed, idx) => {
+                filteredBreeds.map((breed) => {
                   const barWidth = Math.max(Math.round(((breed.count || 0) / maxCount) * 100), 2);
                   const isTop3 = breed.rank <= 3 && sortBy === "count_desc";
 
@@ -436,11 +424,9 @@ export default function DevDatasetPanel() {
                           <span className="breed-name-text">{breed.name}</span>
                           <div className="breed-tags-row">
                             <code className="breed-key-tag">{breed.key}</code>
-                            {breed.is_canonical && (
-                              <span className="badge badge-canonical" title="Official 50 Cattle / 18 Buffalo model class">
-                                Canonical 68
-                              </span>
-                            )}
+                            <span className="badge badge-canonical" title="ICAR-NBAGR Registered Canonical Breed">
+                              Canonical Class
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -483,9 +469,7 @@ export default function DevDatasetPanel() {
                               ? "badge-success"
                               : breed.tier_code === "medium_shot"
                               ? "badge-warning"
-                              : breed.tier_code === "few_shot"
-                              ? "badge-info"
-                              : "badge-neutral"
+                              : "badge-info"
                           }`}
                         >
                           {breed.tier}
@@ -502,7 +486,7 @@ export default function DevDatasetPanel() {
                       {/* Distinguisher / Trait */}
                       <td>
                         <span className="trait-snippet-text" title={breed.distinguisher}>
-                          {breed.distinguisher || breed.coat || breed.horn || "—"}
+                          {breed.distinguisher || "Recognized indigenous breed of India."}
                         </span>
                       </td>
                     </tr>
@@ -516,4 +500,3 @@ export default function DevDatasetPanel() {
     </div>
   );
 }
-
