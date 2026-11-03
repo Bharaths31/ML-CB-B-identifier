@@ -80,20 +80,6 @@ export default function DevPage() {
             </span>
           </div>
 
-          <Link to="/?mode=camera" className="btn btn-outline capture-test-btn" title="Open the user capture flow">
-            Camera Test
-          </Link>
-
-          <a
-            href={VET_PORTAL_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-outline capture-test-btn"
-            title="Open the standalone Veterinary Review Portal"
-          >
-            Vet Portal ↗
-          </a>
-
           <LanguageToggle />
           <ThemeToggle />
         </div>
@@ -167,6 +153,19 @@ export default function DevPage() {
             </svg>
             {t("dev.tabs.logs")}
           </button>
+
+          <Link to="/?mode=camera" className="dev-nav-btn dev-nav-link" title="Open the user capture flow">
+            Camera Test
+          </Link>
+          <a
+            href={VET_PORTAL_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="dev-nav-btn dev-nav-link"
+            title="Open the standalone Veterinary Review Portal"
+          >
+            Vet Portal ↗
+          </a>
         </nav>
 
         {/* Tab Panels */}

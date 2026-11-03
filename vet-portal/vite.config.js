@@ -22,7 +22,20 @@ export default defineConfig({
     fs: { allow: [REPO] },
     proxy: {
       "/api": "http://localhost:5000",
-      "/socket.io": { target: "http://localhost:5000", ws: true },
+      "/socket.io": {
+        target: "http://localhost:5000",
+        ws: true,
+        configure: (proxy) => {
+          proxy.on("error", (err) => {
+            const code = err.code || "";
+            if (["ECONNRESET", "ECONNABORTED", "EPIPE"].includes(code)
+                || /ECONNRESET|ECONNABORTED|EPIPE/.test(err.message || "")) {
+              return;
+            }
+            console.error("[vet socket proxy]", err.message);
+          });
+        },
+      },
     },
   },
   resolve: {

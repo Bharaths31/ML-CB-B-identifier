@@ -38,6 +38,7 @@ def _find_project_root() -> str:
 
 PROJECT_ROOT = _find_project_root()
 FRONTEND_DIR = os.path.join(PROJECT_ROOT, "breed-classifier-react")
+VET_PORTAL_DIR = os.path.join(PROJECT_ROOT, "vet-portal")
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 try:
@@ -110,10 +111,13 @@ def main():
     parser.add_argument("--backend-only", action="store_true", help="Launch only the Flask API server")
     parser.add_argument("--frontend-only", action="store_true", help="Launch only the Vite React frontend")
     parser.add_argument("--open-dev", action="store_true", help="Open developer page in browser alongside user page")
+    parser.add_argument("--vet-port", type=int, default=5174, help="Port for the standalone Vet Portal")
+    parser.add_argument("--no-vet", action="store_true", help="Do not start the standalone Vet Portal")
     args = parser.parse_args()
 
     python_bin = get_python_executable()
     procs = []
+    vet_available = False
 
     def shutdown(signum=None, frame=None):
         print("\n\nShutting down all servers gracefully...")
@@ -218,6 +222,45 @@ def main():
             if not frontend_ready:
                 print("[!] Warning: Frontend healthcheck timed out.")
 
+    # 2b. Standalone Vet Portal (separate Vite app on its own port)
+    if not args.backend_only and not args.no_vet:
+        if not os.path.isdir(VET_PORTAL_DIR):
+            print("[!] Vet portal directory missing; skipping.")
+        elif is_port_in_use(args.vet_port):
+            print(f"[!] Port {args.vet_port} is already in use. Reusing existing Vet Portal.")
+            vet_available = True
+        else:
+            vet_npm = get_npm_executable()
+            if not vet_npm:
+                print("[!] npm not found; skipping Vet Portal.")
+            elif not os.path.isdir(os.path.join(VET_PORTAL_DIR, "node_modules")):
+                print("[!] Vet Portal dependencies missing. Run: cd vet-portal && npm install")
+            else:
+                print(f"[*] Starting standalone Vet Portal on port {args.vet_port}...")
+                vet_cmd = build_npm_command(
+                    vet_npm, ["run", "dev", "--", "--port", str(args.vet_port)]
+                )
+                vet_env = os.environ.copy()
+                vet_env["PYTHONPATH"] = PROJECT_ROOT
+                try:
+                    vet_proc = subprocess.Popen(
+                        vet_cmd,
+                        cwd=VET_PORTAL_DIR,
+                        env=vet_env,
+                        stdout=None,
+                        stderr=None,
+                    )
+                    procs.append(vet_proc)
+                    vet_available = True
+                    if not wait_for_service(
+                        f"http://localhost:{args.vet_port}/",
+                        timeout_sec=15.0,
+                        service_name="Vet Portal",
+                    ):
+                        print("[!] Warning: Vet Portal healthcheck timed out.")
+                except FileNotFoundError:
+                    print("[!] Failed to launch the Vet Portal; run it manually from vet-portal/.")
+
     # 3. Banner & Browser Launch
     user_url = f"http://localhost:{args.frontend_port}/"
     dev_url = f"http://localhost:{args.frontend_port}/dev"
@@ -227,6 +270,8 @@ def main():
     print("  SERVICES RUNNING & READY:")
     print(f"  * User Portal:       {user_url}")
     print(f"  * Developer Portal:  {dev_url}")
+    if vet_available:
+        print(f"  * Vet Portal:        http://localhost:{args.vet_port}/  (separate app)")
     print(f"  * Backend REST API:  {api_url}")
     print("  * Shared Config DB:  outputs/app_config.json")
     print("-" * 68)
