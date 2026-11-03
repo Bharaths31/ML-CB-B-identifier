@@ -21,7 +21,10 @@ export function I18nProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("lang", lang === "ta" ? "ta-IN" : "en");
+    document.documentElement.setAttribute(
+      "lang",
+      lang === "ta" ? "ta-IN" : lang === "hi" ? "hi-IN" : "en-IN"
+    );
   }, [lang]);
 
   const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);

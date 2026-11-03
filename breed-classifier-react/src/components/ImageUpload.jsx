@@ -16,6 +16,7 @@ export default function ImageUpload({
   busy = false,
   error = null,
   framed = false,
+  quality = null,
   onFileSelected,
   onApplyCrop,
   onClearCrop,
@@ -26,11 +27,13 @@ export default function ImageUpload({
   showClassify = true,
   modelInputUrl = null,
   onQuality,
+  onOpenGuide,
 }) {
   const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [editing, setEditing] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Score the actual 260x260 model input after each upload/optimization so the
   // result card never shows a stale camera quality report.
@@ -119,6 +122,8 @@ export default function ImageUpload({
           </div>
 
           {error && <p className="camera-error-inline">{error}</p>}
+
+          {quality && <QualityBadges quality={quality} />}
 
           <div className="framing-mode-block">
             <span className="framing-mode-label">{t("upload.imagePreparation")}</span>
@@ -217,6 +222,23 @@ export default function ImageUpload({
             </p>
             <p className="dropzone-hint">{t("upload.hint")}</p>
           </div>
+
+          <div className="dropzone-actions" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              📷 {t("photoGuide.camera")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onOpenGuide?.()}
+            >
+              📸 {t("photoGuide.button")}
+            </button>
+          </div>
         </div>
       )}
 
@@ -230,6 +252,57 @@ export default function ImageUpload({
         style={{ display: "none" }}
         onChange={handleFileInput}
       />
+
+      {/* Direct mobile camera capture (opens the rear camera on phones). */}
+      <input
+        id="image-camera-input"
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={handleFileInput}
+      />
+    </div>
+  );
+}
+
+function QualityBadges({ quality }) {
+  const { t } = useI18n();
+  const metrics = [
+    {
+      key: "sharpness",
+      label: t("quality.badge.sharpness"),
+      value: quality.sharpnessScore,
+      ok: quality.sharpnessScore >= 60 && !quality.flags?.includes("TOO_BLURRY"),
+    },
+    {
+      key: "lighting",
+      label: t("quality.badge.lighting"),
+      value: quality.exposureScore,
+      ok: quality.exposureScore >= 60,
+    },
+    {
+      key: "aspect",
+      label: t("quality.badge.aspect"),
+      value: quality.framingScore,
+      ok: quality.framingScore >= 60,
+    },
+  ];
+
+  return (
+    <div className="quality-badge-row" aria-live="polite">
+      {metrics.map((metric) => (
+        <span
+          key={metric.key}
+          className={`quality-badge ${metric.ok ? "quality-badge-ok" : "quality-badge-warn"}`}
+          title={`${metric.label}: ${Math.round(metric.value ?? 0)}/100`}
+        >
+          <span aria-hidden="true">{metric.ok ? "✓" : "!"}</span>
+          {metric.label}
+          <em>{metric.ok ? t("quality.badge.pass") : t("quality.badge.check")}</em>
+        </span>
+      ))}
     </div>
   );
 }

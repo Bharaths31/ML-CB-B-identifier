@@ -48,6 +48,27 @@ export async function getDatasetInventory() {
   return readJsonResponse(r, "Failed to load dataset inventory");
 }
 
+export async function getBreedKnowledge(species, breed) {
+  const r = await fetch(
+    `/api/breed-knowledge/${encodeURIComponent(species)}/${encodeURIComponent(breed)}`
+  );
+  return readJsonResponse(r, "Failed to load breed knowledge");
+}
+
+export async function recalculateAdvisory({ species, breed, gender, ageGroup }) {
+  const r = await fetch("/api/advisory-recalculate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      species,
+      breed,
+      gender: gender || null,
+      age_group: ageGroup || null,
+    }),
+  });
+  return readJsonResponse(r, "Failed to update advisory");
+}
+
 export async function getDevInfo() {
   const r = await fetch("/api/dev-info");
   return readJsonResponse(r, "Failed to load breed class maps");

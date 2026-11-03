@@ -1,0 +1,4678 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "generated_at": "2026-11-03T07:25:02+00:00",
+    "source": "src/breed_knowledge.py",
+    "breed_count": 68,
+    "extra_crossbred_classes": [
+      "holstein_friesian",
+      "jersey"
+    ],
+    "data_policy": "Curated entries follow NBAGR/ICAR breed descriptions and Indian feeding norms; 'regional_default' entries are regional estimates. Prices, yields and vaccination timings vary — confirm locally."
+  },
+  "Cattle": {
+    "amritmahal": {
+      "slug": "amritmahal",
+      "display_name": "Amritmahal",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Amritmahal",
+        "hi": "अमृतमहल",
+        "ta": "அமிர்தமகால்"
+      },
+      "origin_region": "Chitradurga, Hassan and Mysuru districts, Karnataka",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 900 kg",
+        "lactation_kg_range": [
+          400,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Backward Curved.",
+        "Lean grey draft breed; horns sweep back more tightly than Hallikar."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹35,000 - ₹70,000",
+      "price_range_inr": [
+        35000,
+        70000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Hallikar-family draft cattle; the name comes from the Mysore army's cattle department.",
+      "size_class": "medium"
+    },
+    "ayrshire": {
+      "slug": "ayrshire",
+      "display_name": "Ayrshire",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Ayrshire",
+        "hi": "आयरशायर",
+        "ta": "Ayrshire"
+      },
+      "origin_region": "Ayrshire, Scotland; kept on Indian temperate / high-altitude farms",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "12 - 18 L/day",
+        "daily_liters_range": [
+          12,
+          18
+        ],
+        "lactation_yield": "3000 - 5000 kg",
+        "lactation_kg_range": [
+          3000,
+          5000
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "3.5% - 4.2%",
+        "fat_range": [
+          3.5,
+          4.2
+        ],
+        "beta_casein": "A1/A2 mixed (Bos taurus type) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red & White coat · Absent / Flat hump.",
+        "Horns: Upward Curved.",
+        "Build: Minimal dewlap, Straight Profile face, Medium-Large body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Tropical Indian plains",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Temperate breed — heat stress above 28-30 °C; best in hill/cool zones.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹45,000 - ₹90,000",
+      "price_range_inr": [
+        45000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Temperate Bos taurus breed, best suited to cool highlands and crossbreeding programmes.",
+      "size_class": "large"
+    },
+    "bachaur": {
+      "slug": "bachaur",
+      "display_name": "Bachaur",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Bachaur",
+        "hi": "बछौर",
+        "ta": "பசௌர்"
+      },
+      "origin_region": "Darbhanga, Madhubani and Sitamarhi, Bihar (Nepal border belt)",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White-Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Narrow & Straight face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Compact all-white draft breed of the north Bihar plains.",
+      "size_class": "medium"
+    },
+    "badri": {
+      "slug": "badri",
+      "display_name": "Badri",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Badri",
+        "hi": "बद्री",
+        "ta": "பத்ரி"
+      },
+      "origin_region": "Chamoli, Rudraprayag and Pauri Garhwal, Uttarakhand",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "500 - 900 kg",
+        "lactation_kg_range": [
+          500,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black / Brown / Grey coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Small dewlap, Short & Straight face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "High-altitude / cool-humid",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Cold and monsoon protection; hooves soften in wet hill pastures.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Hill breed; small, sure-footed and tolerant of cold, humid Himalayan conditions.",
+      "size_class": "small"
+    },
+    "bargur": {
+      "slug": "bargur",
+      "display_name": "Bargur",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Bargur",
+        "hi": "बरगूर",
+        "ta": "பர்கூர்"
+      },
+      "origin_region": "Bargur hills, Krishnagiri and Erode, Tamil Nadu",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Brown with White Patches coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Curved.",
+        "Brown-and-white hill breed with long horns; smaller than Kangayam."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Brown-and-white hill cattle used for ploughing and light transport.",
+      "size_class": "small"
+    },
+    "bhelai": {
+      "slug": "bhelai",
+      "display_name": "Bhelai",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Bhelai",
+        "hi": "भेलाई",
+        "ta": "Bhelai"
+      },
+      "origin_region": "Bhagalpur and Banka, Bihar",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Medium, Upward Curved.",
+        "Build: Moderate dewlap, Long & Narrow face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹22,000 - ₹45,000",
+      "price_range_inr": [
+        22000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Rare Bihar draft type; production figures are regional estimates.",
+      "size_class": "medium"
+    },
+    "dagri": {
+      "slug": "dagri",
+      "display_name": "Dagri",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Dagri",
+        "hi": "डागरी",
+        "ta": "Dagri"
+      },
+      "origin_region": "Panchmahal and Dahod, Gujarat",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Grey draft breed from the Panchmahal hills; compact and hardy."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Grey draft breed from the Panchmahal hills; hardy on low-input grazing.",
+      "size_class": "small"
+    },
+    "dangi": {
+      "slug": "dangi",
+      "display_name": "Dangi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Dangi",
+        "hi": "डांगी",
+        "ta": "Dangi"
+      },
+      "origin_region": "Ahmednagar, Nashik and Pune, Maharashtra",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Spotted coat · Medium hump.",
+        "Horns: Short, Upward.",
+        "Heavy dewlap and spotted red/brown coat in a rain-tolerant draft breed."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Rain-tolerant draft breed with a heavy dewlap and spotted coat.",
+      "size_class": "medium"
+    },
+    "deoni": {
+      "slug": "deoni",
+      "display_name": "Deoni",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Deoni",
+        "hi": "देवनी",
+        "ta": "தேவனி"
+      },
+      "origin_region": "Latur, Osmanabad and Parbhani, Maharashtra; Bidar, Karnataka",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "4 - 7 L/day",
+        "daily_liters_range": [
+          4,
+          7
+        ],
+        "lactation_yield": "900 - 1500 kg",
+        "lactation_kg_range": [
+          900,
+          1500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Spotted coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Irregular black-and-white patching is the quickest visual cue."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Black-and-white patched dual-purpose breed of the Deccan plateau.",
+      "size_class": "large"
+    },
+    "gangatari": {
+      "slug": "gangatari",
+      "display_name": "Gangatari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Gangatari",
+        "hi": "गंगातरी",
+        "ta": "Gangatari"
+      },
+      "origin_region": "Ballia, Ghazipur and eastern Uttar Pradesh",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "700 - 1200 kg",
+        "lactation_kg_range": [
+          700,
+          1200
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Light Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Medium, Curved.",
+        "Build: Moderate dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Eastern-UP dual-purpose type; figures are regional estimates.",
+      "size_class": "medium"
+    },
+    "gaolao": {
+      "slug": "gaolao",
+      "display_name": "Gaolao",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Gaolao",
+        "hi": "गाओलाओ",
+        "ta": "Gaolao"
+      },
+      "origin_region": "Wardha, Nagpur and Amravati, Maharashtra; Balaghat, Madhya Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1100 kg",
+        "lactation_kg_range": [
+          600,
+          1100
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short & Stumpy.",
+        "Build: Moderate dewlap, Long & Narrow face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "White-grey draft breed of the Vidarbha region; good heat tolerance.",
+      "size_class": "medium"
+    },
+    "ghumsari": {
+      "slug": "ghumsari",
+      "display_name": "Ghumsari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Ghumsari",
+        "hi": "घुमुसरी",
+        "ta": "Ghumsari"
+      },
+      "origin_region": "Ganjam and adjoining districts, Odisha",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "450 - 900 kg",
+        "lactation_kg_range": [
+          450,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Greyish White coat · Medium hump.",
+        "Horns: Short, Curved.",
+        "Build: Moderate dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹22,000 - ₹45,000",
+      "price_range_inr": [
+        22000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Rare Odisha draft breed; figures are regional estimates.",
+      "size_class": "small"
+    },
+    "gir": {
+      "slug": "gir",
+      "display_name": "Gir",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Gir",
+        "hi": "गीर",
+        "ta": "கிர்"
+      },
+      "origin_region": "Saurashtra — Junagadh, Amreli, Bhavnagar and Porbandar, Gujarat",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "8 - 12 L/day",
+        "daily_liters_range": [
+          8,
+          12
+        ],
+        "lactation_yield": "1800 - 3000 kg",
+        "lactation_kg_range": [
+          1800,
+          3000
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red Mottled coat · Large / Prominent hump.",
+        "Horns: Curved Backward.",
+        "Convex forehead + long pendulous ears give Gir its distinctive dolichocephalic profile."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Excellent heat tolerance; tick resistance is moderate — check ears and udder weekly in humid Saurashtra.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹45,000 - ₹100,000",
+      "price_range_inr": [
+        45000,
+        100000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "India's flagship dairy zebu; A2 beta-casein is typical and verified by lab test, not by sight.",
+      "size_class": "large"
+    },
+    "hallikar": {
+      "slug": "hallikar",
+      "display_name": "Hallikar",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Hallikar",
+        "hi": "हल्लीकर",
+        "ta": "ஹல்லிகர்"
+      },
+      "origin_region": "Tumakuru, Mysuru and Mandya, Karnataka",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Curved.",
+        "Long backward-sweeping horns on a lean grey draft frame."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Lean grey draft breed; long backward-sweeping horns and great stamina.",
+      "size_class": "medium"
+    },
+    "hariana": {
+      "slug": "hariana",
+      "display_name": "Hariana",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Hariana",
+        "hi": "हरियाणा",
+        "ta": "ஹரியானா"
+      },
+      "origin_region": "Rohtak, Hisar, Jind and Gurugram, Haryana; western Uttar Pradesh",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1800 kg",
+        "lactation_kg_range": [
+          1000,
+          1800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White-Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "White/grey dual-purpose frame with short horns; taller than Tharparkar."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Tall white-grey dual-purpose breed; widely used in crossbreeding.",
+      "size_class": "large"
+    },
+    "himachali_pahari": {
+      "slug": "himachali_pahari",
+      "display_name": "Himachali Pahari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Himachali Pahari",
+        "hi": "हिमाचली पहाड़ी",
+        "ta": "Himachali Pahari"
+      },
+      "origin_region": "Kangra, Mandi and Shimla hills, Himachal Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Small hump.",
+        "Horns: Medium, Curved.",
+        "Build: Minimal dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "High-altitude / cool-humid",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Cold and monsoon protection; hooves soften in wet hill pastures.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹45,000",
+      "price_range_inr": [
+        20000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Hill draft type of Himachal Pradesh; figures are regional estimates.",
+      "size_class": "small"
+    },
+    "kangayam": {
+      "slug": "kangayam",
+      "display_name": "Kangayam",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Kangayam",
+        "hi": "कांगायम",
+        "ta": "கங்கையம்"
+      },
+      "origin_region": "Erode, Tiruppur, Karur and Dindigul, Tamil Nadu",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 900 kg",
+        "lactation_kg_range": [
+          400,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Curved.",
+        "Compact draft build with tight dewlap and short upward horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹35,000 - ₹75,000",
+      "price_range_inr": [
+        35000,
+        75000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Tamil Nadu's premier draft breed, prized for heat tolerance and sure footing.",
+      "size_class": "medium"
+    },
+    "kankrej": {
+      "slug": "kankrej",
+      "display_name": "Kankrej",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Kankrej",
+        "hi": "कांकरेज",
+        "ta": "காங்க்ரேஜ்"
+      },
+      "origin_region": "Banaskantha and Kutch, Gujarat; Jalore and Barmer, Rajasthan",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1200 - 2000 kg",
+        "lactation_kg_range": [
+          1200,
+          2000
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Silver Grey coat · Large (Cervicothoracic) hump.",
+        "Horns: Lyre-Shaped.",
+        "Lyre-shaped horns and a silver-grey coat; known for the fast 'Bhare' gait."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹80,000",
+      "price_range_inr": [
+        40000,
+        80000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Silver-grey dual-purpose breed famous for the fast 'Bhare' gait.",
+      "size_class": "large"
+    },
+    "kenkatha": {
+      "slug": "kenkatha",
+      "display_name": "Kenkatha",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Kenkatha",
+        "hi": "केनकाथा",
+        "ta": "Kenkatha"
+      },
+      "origin_region": "Bundelkhand — Jhansi and Banda, Uttar Pradesh; Chhatarpur, Madhya Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Greyish White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Forward Curved.",
+        "Build: Moderate dewlap, Short & Concave face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹22,000 - ₹45,000",
+      "price_range_inr": [
+        22000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Bundelkhand draft breed; compact, tough and low-maintenance.",
+      "size_class": "small"
+    },
+    "khariar": {
+      "slug": "khariar",
+      "display_name": "Khariar",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Khariar",
+        "hi": "खरियार",
+        "ta": "Khariar"
+      },
+      "origin_region": "Nuapada and Kalahandi, Odisha",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 3 L/day",
+        "daily_liters_range": [
+          2,
+          3
+        ],
+        "lactation_yield": "350 - 700 kg",
+        "lactation_kg_range": [
+          350,
+          700
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Odisha draft breed; similar to Hariana but with a shorter face."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹40,000",
+      "price_range_inr": [
+        20000,
+        40000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Odisha draft breed similar to Hariana but smaller and shorter-faced.",
+      "size_class": "small"
+    },
+    "kherigarh": {
+      "slug": "kherigarh",
+      "display_name": "Kherigarh",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Kherigarh",
+        "hi": "खेरीगढ़",
+        "ta": "Kherigarh"
+      },
+      "origin_region": "Lakhimpur Kheri and Sitapur, Uttar Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "450 - 900 kg",
+        "lactation_kg_range": [
+          450,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Light draft breed from the Kheri region; compact compared with Nagori."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Light draft breed from the Kheri region of Uttar Pradesh.",
+      "size_class": "medium"
+    },
+    "khillari": {
+      "slug": "khillari",
+      "display_name": "Khillari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Khillari",
+        "hi": "खिल्लारी",
+        "ta": "கில்லாரி"
+      },
+      "origin_region": "Solapur, Ahmednagar and Satara, Maharashtra",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Curved.",
+        "Build: Moderate dewlap, Long & Narrow face, Medium-Large body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Fast, spirited draft breed of the Deccan; used for bullock-cart racing.",
+      "size_class": "large"
+    },
+    "konkan_kapila": {
+      "slug": "konkan_kapila",
+      "display_name": "Konkan Kapila",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Konkan Kapila",
+        "hi": "कोंकण कपिला",
+        "ta": "கோங்கன் கபிலா"
+      },
+      "origin_region": "Sindhudurg, Ratnagiri and Raigad, Maharashtra; Goa",
+      "utility_type": "Ornamental / Dwarf Dairy",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 800 kg",
+        "lactation_kg_range": [
+          300,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 6.0%",
+        "fat_range": [
+          4.5,
+          6.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Small body — avoid overfeeding; excess concentrate causes fatty liver and fertility problems in dwarf breeds.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹60,000",
+      "price_range_inr": [
+        25000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "State livestock development board — small-holder and backyard dairy support"
+      ],
+      "data_confidence": "curated",
+      "note": "Small Konkan coast breed; noted for rich milk and humid-climate tolerance.",
+      "size_class": "small"
+    },
+    "kosali": {
+      "slug": "kosali",
+      "display_name": "Kosali",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Kosali",
+        "hi": "कोसली",
+        "ta": "கோசலி"
+      },
+      "origin_region": "Chhattisgarh plains — Bilaspur, Raipur and Durg",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "700 - 1200 kg",
+        "lactation_kg_range": [
+          700,
+          1200
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Chhattisgarh dual-purpose breed; emerging dairy use in the central plains.",
+      "size_class": "small"
+    },
+    "krishna_valley": {
+      "slug": "krishna_valley",
+      "display_name": "Krishna Valley",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Krishna Valley",
+        "hi": "कृष्णा वैली",
+        "ta": "கிருஷ்ணா வேலி"
+      },
+      "origin_region": "Bagalkot, Vijayapura and Belagavi, Karnataka",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "4 - 6 L/day",
+        "daily_liters_range": [
+          4,
+          6
+        ],
+        "lactation_yield": "900 - 1500 kg",
+        "lactation_kg_range": [
+          900,
+          1500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Stumpy.",
+        "Build: Large & Pendulous dewlap, Long & Narrow face, Large body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹35,000 - ₹70,000",
+      "price_range_inr": [
+        35000,
+        70000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Heavy draft breed of the Krishna river valley; also gives fair milk.",
+      "size_class": "large"
+    },
+    "ladakhi": {
+      "slug": "ladakhi",
+      "display_name": "Ladakhi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Ladakhi",
+        "hi": "लद्दाखी",
+        "ta": "லடாக்கி"
+      },
+      "origin_region": "Leh and Kargil, Ladakh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 700 kg",
+        "lactation_kg_range": [
+          300,
+          700
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Minimal dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "High-altitude / cool-humid",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Extreme cold tolerance, poor heat tolerance; move to cooler shade above 30 °C and protect from rain.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "High-altitude breed; extremely cold tolerant, small and hardy.",
+      "size_class": "small"
+    },
+    "lakhimi": {
+      "slug": "lakhimi",
+      "display_name": "Lakhimi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Lakhimi",
+        "hi": "लखिमी",
+        "ta": "லக்ஷ்மி"
+      },
+      "origin_region": "Brahmaputra valley, Assam",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "700 - 1200 kg",
+        "lactation_kg_range": [
+          700,
+          1200
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Assam dual-purpose breed adapted to high rainfall and humidity.",
+      "size_class": "small"
+    },
+    "malnad_gidda": {
+      "slug": "malnad_gidda",
+      "display_name": "Malnad Gidda",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Malnad Gidda",
+        "hi": "मालनाड गिड्डा",
+        "ta": "மல்னாடு கிட்டா"
+      },
+      "origin_region": "Shivamogga, Chikkamagaluru and Uttara Kannada, Karnataka",
+      "utility_type": "Ornamental / Dwarf Dairy",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 800 kg",
+        "lactation_kg_range": [
+          300,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 6.0%",
+        "fat_range": [
+          4.5,
+          6.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Dwarf hill breed from the Western Ghats; coat colour is highly variable."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Small body — avoid overfeeding; excess concentrate causes fatty liver and fertility problems in dwarf breeds.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹45,000",
+      "price_range_inr": [
+        20000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "State livestock development board — small-holder and backyard dairy support"
+      ],
+      "data_confidence": "curated",
+      "note": "Western Ghats dwarf breed; grazes on hilly terrain and gives fat-rich milk.",
+      "size_class": "small"
+    },
+    "malvi": {
+      "slug": "malvi",
+      "display_name": "Malvi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Malvi",
+        "hi": "मालवी",
+        "ta": "மால்வி"
+      },
+      "origin_region": "Ujjain, Indore, Dewas and Shajapur, Madhya Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1100 kg",
+        "lactation_kg_range": [
+          600,
+          1100
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Draft breed with a prominent hump and a straight, long face."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Malwa plateau draft breed with a prominent hump and long face.",
+      "size_class": "medium"
+    },
+    "mewati": {
+      "slug": "mewati",
+      "display_name": "Mewati",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Mewati",
+        "hi": "मेवाती",
+        "ta": "மேவாதி"
+      },
+      "origin_region": "Alwar, Bharatpur and Dholpur, Rajasthan; Mewat, Haryana",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "4 - 6 L/day",
+        "daily_liters_range": [
+          4,
+          6
+        ],
+        "lactation_yield": "900 - 1500 kg",
+        "lactation_kg_range": [
+          900,
+          1500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Dual-purpose breed; close to Hariana but heavier through the body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Heavier cousin of Hariana from the Mewat belt; dual-purpose.",
+      "size_class": "large"
+    },
+    "motu": {
+      "slug": "motu",
+      "display_name": "Motu",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Motu",
+        "hi": "मोतू",
+        "ta": "Motu"
+      },
+      "origin_region": "Koraput and Malkangiri, Odisha",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Minimal dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹40,000",
+      "price_range_inr": [
+        20000,
+        40000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Rare Koraput draft type; figures are regional estimates.",
+      "size_class": "small"
+    },
+    "nagori": {
+      "slug": "nagori",
+      "display_name": "Nagori",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Nagori",
+        "hi": "नागोरी",
+        "ta": "நாகோரி"
+      },
+      "origin_region": "Nagaur, Jodhpur and Bikaner, Rajasthan",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Tall, long-faced draft breed with a white/grey coat."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Tall, long-faced white-grey draft breed of the Thar desert.",
+      "size_class": "large"
+    },
+    "nari": {
+      "slug": "nari",
+      "display_name": "Nari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Nari",
+        "hi": "नारी",
+        "ta": "Nari"
+      },
+      "origin_region": "Patan and Mehsana, north Gujarat",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "450 - 900 kg",
+        "lactation_kg_range": [
+          450,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹22,000 - ₹45,000",
+      "price_range_inr": [
+        22000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Rare north-Gujarat draft type; figures are regional estimates.",
+      "size_class": "medium"
+    },
+    "nimari": {
+      "slug": "nimari",
+      "display_name": "Nimari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Nimari",
+        "hi": "निमाड़ी",
+        "ta": "நிமாரி"
+      },
+      "origin_region": "Khandwa, Khargone and Burhanpur, Madhya Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1100 kg",
+        "lactation_kg_range": [
+          600,
+          1100
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Curved Backward.",
+        "Red-and-white patched draft breed; distinct from the solid red Sindhi."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹50,000",
+      "price_range_inr": [
+        25000,
+        50000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Red-and-white patched Nimar draft breed.",
+      "size_class": "medium"
+    },
+    "ongole": {
+      "slug": "ongole",
+      "display_name": "Ongole",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Ongole",
+        "hi": "ओंगोल",
+        "ta": "ஓங்கோல்"
+      },
+      "origin_region": "Prakasam, Guntur and Nellore, Andhra Pradesh",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1800 kg",
+        "lactation_kg_range": [
+          1000,
+          1800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Stumpy.",
+        "Massive hump and muscular white frame; ancestor of the Brahman breed."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹45,000 - ₹90,000",
+      "price_range_inr": [
+        45000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Massive-humped white breed; ancestor of the American Brahman.",
+      "size_class": "large"
+    },
+    "poda_thirupu": {
+      "slug": "poda_thirupu",
+      "display_name": "Poda Thirupu",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Poda Thirupu",
+        "hi": "पोडा तिरुपु",
+        "ta": "Poda Thirupu"
+      },
+      "origin_region": "Srikakulam and Vizianagaram, Andhra Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 600 kg",
+        "lactation_kg_range": [
+          300,
+          600
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹15,000 - ₹35,000",
+      "price_range_inr": [
+        15000,
+        35000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Rare small Andhra draft type; figures are regional estimates.",
+      "size_class": "medium"
+    },
+    "ponwar": {
+      "slug": "ponwar",
+      "display_name": "Ponwar",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Ponwar",
+        "hi": "पोनवार",
+        "ta": "Ponwar"
+      },
+      "origin_region": "Pilibhit and Shahjahanpur, Uttar Pradesh",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.0%",
+        "fat_range": [
+          4.5,
+          5.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black & White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Long, Curved.",
+        "Build: Minimal dewlap, Long & Narrow face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹40,000",
+      "price_range_inr": [
+        20000,
+        40000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Terai draft breed of Pilibhit; compact and hardy.",
+      "size_class": "medium"
+    },
+    "pulikulam": {
+      "slug": "pulikulam",
+      "display_name": "Pulikulam",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Pulikulam",
+        "hi": "पुलिकुलम",
+        "ta": "புலிக்குளம்"
+      },
+      "origin_region": "Madurai, Sivaganga and Virudhunagar, Tamil Nadu",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 600 kg",
+        "lactation_kg_range": [
+          300,
+          600
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Madurai-belt draft breed associated with Jallikattu; very hardy.",
+      "size_class": "medium"
+    },
+    "punganur": {
+      "slug": "punganur",
+      "display_name": "Punganur",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Punganur",
+        "hi": "पुंगनूर",
+        "ta": "பூங்கனூர்"
+      },
+      "origin_region": "Chittoor and Palamaner, Andhra Pradesh",
+      "utility_type": "Ornamental / Dwarf Dairy",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 900 kg",
+        "lactation_kg_range": [
+          400,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.0% - 6.0%",
+        "fat_range": [
+          4.0,
+          6.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "One of the smallest cattle breeds in the world; dwarf stature is decisive."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Small body — avoid overfeeding; excess concentrate causes fatty liver and fertility problems in dwarf breeds.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹80,000",
+      "price_range_inr": [
+        30000,
+        80000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "State livestock development board — small-holder and backyard dairy support"
+      ],
+      "data_confidence": "curated",
+      "note": "One of the world's smallest cattle breeds; premium pet/orphan-calf value.",
+      "size_class": "small"
+    },
+    "purnea": {
+      "slug": "purnea",
+      "display_name": "Purnea",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Purnea",
+        "hi": "पूर्णिया",
+        "ta": "Purnea"
+      },
+      "origin_region": "Purnea, Katihar and Araria, Bihar",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1100 kg",
+        "lactation_kg_range": [
+          600,
+          1100
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹22,000 - ₹45,000",
+      "price_range_inr": [
+        22000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Eastern Bihar draft breed suited to humid, flood-prone plains.",
+      "size_class": "small"
+    },
+    "rathi": {
+      "slug": "rathi",
+      "display_name": "Rathi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Rathi",
+        "hi": "राठी",
+        "ta": "ராத்தி"
+      },
+      "origin_region": "Bikaner, Ganganagar and Hanumangarh, Rajasthan",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "6 - 9 L/day",
+        "daily_liters_range": [
+          6,
+          9
+        ],
+        "lactation_yield": "1500 - 2500 kg",
+        "lactation_kg_range": [
+          1500,
+          2500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Spotted coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Brown-and-white patched coat with long ears and a prominent hump."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹80,000",
+      "price_range_inr": [
+        40000,
+        80000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Thar-desert dairy breed with brown-and-white patches and long ears.",
+      "size_class": "medium"
+    },
+    "red_kandhari": {
+      "slug": "red_kandhari",
+      "display_name": "Red Kandhari",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Red Kandhari",
+        "hi": "लाल कंधारी",
+        "ta": "ரெட் கந்தாரி"
+      },
+      "origin_region": "Nanded, Parbhani and Hingoli, Maharashtra",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1200 kg",
+        "lactation_kg_range": [
+          600,
+          1200
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Large & Pendulous dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Deep-red draft breed of the Marathwada region.",
+      "size_class": "medium"
+    },
+    "red_sindhi": {
+      "slug": "red_sindhi",
+      "display_name": "Red Sindhi",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Red Sindhi",
+        "hi": "लाल सिंधी",
+        "ta": "ரெட் சிந்தி"
+      },
+      "origin_region": "Sindh (Pakistan); Indian herds in Gujarat, Rajasthan and Kerala",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "7 - 10 L/day",
+        "daily_liters_range": [
+          7,
+          10
+        ],
+        "lactation_yield": "1500 - 2500 kg",
+        "lactation_kg_range": [
+          1500,
+          2500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short & Thick.",
+        "Darker, more uniform red coat and a shorter, thicker horn set than Sahiwal."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹85,000",
+      "price_range_inr": [
+        40000,
+        85000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Uniform red dairy zebu; heat tolerant and widely used in crossbreeding.",
+      "size_class": "medium"
+    },
+    "sahiwal": {
+      "slug": "sahiwal",
+      "display_name": "Sahiwal",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Sahiwal",
+        "hi": "साहीवाल",
+        "ta": "சாஹிவால்"
+      },
+      "origin_region": "Firozpur, Amritsar and Patiala belt, Punjab; also Rajasthan and Haryana",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "8 - 12 L/day",
+        "daily_liters_range": [
+          8,
+          12
+        ],
+        "lactation_yield": "2000 - 3000 kg",
+        "lactation_kg_range": [
+          2000,
+          3000
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Stumpy.",
+        "Deep red coat with loose skin and a long face separates Sahiwal from Red Sindhi."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Strong heat tolerance and tick resistance; prone to bloat on lush legume fodder, introduce greens gradually.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹50,000 - ₹110,000",
+      "price_range_inr": [
+        50000,
+        110000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "India's best dairy zebu; deep red coat, loose skin and a long face.",
+      "size_class": "large"
+    },
+    "shweta_kapila": {
+      "slug": "shweta_kapila",
+      "display_name": "Shweta Kapila",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Shweta Kapila",
+        "hi": "श्वेता कपिला",
+        "ta": "Shweta Kapila"
+      },
+      "origin_region": "Konkan coast, Maharashtra (recently registered breed)",
+      "utility_type": "Ornamental / Dwarf Dairy",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 900 kg",
+        "lactation_kg_range": [
+          400,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Upward.",
+        "Build: Moderate dewlap, Straight Profile face, Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "Small body — avoid overfeeding; excess concentrate causes fatty liver and fertility problems in dwarf breeds.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹55,000",
+      "price_range_inr": [
+        25000,
+        55000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "State livestock development board — small-holder and backyard dairy support",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Recently registered white Kapila type from the Konkan coast; limited data.",
+      "size_class": "medium"
+    },
+    "siri": {
+      "slug": "siri",
+      "display_name": "Siri",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Siri",
+        "hi": "सिरी",
+        "ta": "சிரி"
+      },
+      "origin_region": "Sikkim, Darjeeling (West Bengal) and the Bhutan border",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "700 - 1200 kg",
+        "lactation_kg_range": [
+          700,
+          1200
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Spotted coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Himalayan hill breed with a heavy head and long curved horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "High-altitude / cool-humid",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Cold and monsoon protection; hooves soften in wet hill pastures.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Himalayan dual-purpose breed with a heavy head and long curved horns.",
+      "size_class": "small"
+    },
+    "tharparkar": {
+      "slug": "tharparkar",
+      "display_name": "Tharparkar",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Tharparkar",
+        "hi": "थारपारकर",
+        "ta": "தார்பார்க்கர்"
+      },
+      "origin_region": "Jodhpur, Barmer and Jaisalmer, Rajasthan; Rann of Kutch",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "6 - 10 L/day",
+        "daily_liters_range": [
+          6,
+          10
+        ],
+        "lactation_yield": "1500 - 2500 kg",
+        "lactation_kg_range": [
+          1500,
+          2500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: White coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Lyre-Shaped.",
+        "Light grey coat with long tapering horns is typical of the Thar desert breed."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹85,000",
+      "price_range_inr": [
+        40000,
+        85000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Light-grey Thar desert breed; tolerates heat and scarce water.",
+      "size_class": "large"
+    },
+    "thutho": {
+      "slug": "thutho",
+      "display_name": "Thutho",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Thutho",
+        "hi": "थुथो",
+        "ta": "Thutho"
+      },
+      "origin_region": "Mokokchung and Wokha, Nagaland",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "1 - 3 L/day",
+        "daily_liters_range": [
+          1,
+          3
+        ],
+        "lactation_yield": "300 - 700 kg",
+        "lactation_kg_range": [
+          300,
+          700
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Build: Minimal dewlap, Straight Profile face, Small / Compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "High-altitude / cool-humid",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Cold and monsoon protection; hooves soften in wet hill pastures.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹20,000 - ₹45,000",
+      "price_range_inr": [
+        20000,
+        45000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Nagaland hill draft type; figures are regional estimates.",
+      "size_class": "small"
+    },
+    "umblachery": {
+      "slug": "umblachery",
+      "display_name": "Umblachery",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Umblachery",
+        "hi": "उम्बलाचेरी",
+        "ta": "உம்பளச்சேரி"
+      },
+      "origin_region": "Thanjavur, Nagapattinam and Tiruvarur, Tamil Nadu",
+      "utility_type": "Draught (Work)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 800 kg",
+        "lactation_kg_range": [
+          400,
+          800
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 5.5%",
+        "fat_range": [
+          4.5,
+          5.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Grey coat · Well-Developed (Cervicothoracic) hump.",
+        "Horns: Short, Backward.",
+        "Grey paddy-field breed with a compact frame and short horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "15 - 20",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "1.5 - 2.5",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "40 - 60",
+        "notes": "On working days add 0.5-1 kg concentrate and allow 2 rest days a week; feed roughage first, then concentrate.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Grey paddy-field breed of the Cauvery delta; compact and short-horned.",
+      "size_class": "medium"
+    },
+    "vechur": {
+      "slug": "vechur",
+      "display_name": "Vechur",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Vechur",
+        "hi": "वेचूर",
+        "ta": "வீச்சூர்"
+      },
+      "origin_region": "Kottayam and Thrissur, Kerala",
+      "utility_type": "Ornamental / Dwarf Dairy",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 900 kg",
+        "lactation_kg_range": [
+          400,
+          900
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.5% - 6.0%",
+        "fat_range": [
+          4.5,
+          6.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Small hump.",
+        "Horns: Short, Upward.",
+        "Compact Kerala dwarf breed; smaller and finer-boned than Punganur."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Small body — avoid overfeeding; excess concentrate causes fatty liver and fertility problems in dwarf breeds.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Humid-tropical adapted; very small body loses heat poorly in direct sun, so provide shade and ventilation.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹35,000 - ₹100,000",
+      "price_range_inr": [
+        35000,
+        100000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "State livestock development board — small-holder and backyard dairy support"
+      ],
+      "data_confidence": "curated",
+      "note": "Kerala dwarf breed (among the world's smallest); A2 milk commands a premium.",
+      "size_class": "small"
+    },
+    "holstein_friesian": {
+      "slug": "holstein_friesian",
+      "display_name": "Holstein Friesian",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Holstein Friesian",
+        "hi": "होलस्टीन फ्रीजियन",
+        "ta": "ஹோல்ஸ்டீன் பிரீஸியன்"
+      },
+      "origin_region": "Holstein-Friesian origin (Netherlands); crossbred herds across India",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "15 - 25 L/day",
+        "daily_liters_range": [
+          15,
+          25
+        ],
+        "lactation_yield": "4000 - 7000 kg",
+        "lactation_kg_range": [
+          4000,
+          7000
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "3.5% - 4.2%",
+        "fat_range": [
+          3.5,
+          4.2
+        ],
+        "beta_casein": "A1/A2 mixed (Bos taurus type) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black & White coat · Absent / Flat hump.",
+        "Horns: Short.",
+        "Build: Minimal dewlap, Straight Profile face, Large body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "22 - 30",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "55 - 80",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Tropical Indian plains",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Poor heat tolerance; needs fans/foggers and cool drinking water in Indian summers.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹55,000 - ₹120,000",
+      "price_range_inr": [
+        55000,
+        120000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "High-yield temperate cross; needs cooling, balanced TMR and careful breeding.",
+      "size_class": "large"
+    },
+    "jersey": {
+      "slug": "jersey",
+      "display_name": "Jersey",
+      "species": "Cattle",
+      "local_names": {
+        "en": "Jersey",
+        "hi": "जर्सी",
+        "ta": "ஜெர்சி"
+      },
+      "origin_region": "Jersey Island origin; crossbred herds across India",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "10 - 16 L/day",
+        "daily_liters_range": [
+          10,
+          16
+        ],
+        "lactation_yield": "2500 - 4500 kg",
+        "lactation_kg_range": [
+          2500,
+          4500
+        ],
+        "lactation_length_days": "280 - 305 (cattle)",
+        "fat_percentage": "4.0% - 5.0%",
+        "fat_range": [
+          4.0,
+          5.0
+        ],
+        "beta_casein": "A1/A2 mixed (Bos taurus type) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Fawn coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Build: Minimal dewlap, Short & Concave face, Small-Medium body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "8 - 12",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.0 - 1.5",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "30 - 45",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Tropical Indian plains",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "Moderate heat tolerance; smaller frame copes better than HF but still needs shade and water.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 2.5-3.5 m² covered area per adult."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹90,000",
+      "price_range_inr": [
+        40000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Smaller crossbred milch type; better heat tolerance and fat than HF cross.",
+      "size_class": "small"
+    }
+  },
+  "Buffalo": {
+    "banni": {
+      "slug": "banni",
+      "display_name": "Banni",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Banni",
+        "hi": "बन्नी",
+        "ta": "பன்னி"
+      },
+      "origin_region": "Banni grassland, Kutch, Gujarat",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1600 kg",
+        "lactation_kg_range": [
+          1000,
+          1600
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Lyre-Shaped.",
+        "Hardy Banni grassland buffalo; horns curve less tightly than Murrah."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Saline-grassland adapted; tolerates poor fodder but needs clean water.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹45,000 - ₹90,000",
+      "price_range_inr": [
+        45000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Hardy Kutch grassland buffalo; thrives on sparse, saline grazing.",
+      "size_class": "large"
+    },
+    "bargur": {
+      "slug": "bargur",
+      "display_name": "Bargur",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Bargur",
+        "hi": "बरगूर",
+        "ta": "பர்கூர்"
+      },
+      "origin_region": "Bargur hills, Tamil Nadu — listed as a buffalo class in the training data; verify against source imagery",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1000 kg",
+        "lactation_kg_range": [
+          600,
+          1000
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.0% - 7.0%",
+        "fat_range": [
+          6.0,
+          7.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "The training data lists 'Bargur' as a buffalo class; confirm the animal is a buffalo before acting.",
+        "Buffalo frame: black to brown coat, backswept horns, deep barrel.",
+        "Treat all production figures here as low-confidence until verified locally."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Listed as a buffalo class in the training data; verify against source imagery.",
+      "size_class": "medium"
+    },
+    "bhadwari": {
+      "slug": "bhadwari",
+      "display_name": "Bhadwari",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Bhadwari",
+        "hi": "भदावरी",
+        "ta": "பதாவரி"
+      },
+      "origin_region": "Etawah and Agra, Uttar Pradesh; Bhind and Morena, Madhya Pradesh",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "4 - 7 L/day",
+        "daily_liters_range": [
+          4,
+          7
+        ],
+        "lactation_yield": "800 - 1500 kg",
+        "lactation_kg_range": [
+          800,
+          1500
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "8.0% - 12.0%",
+        "fat_range": [
+          8.0,
+          12.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Red-Brown coat · Absent / Flat hump.",
+        "Horns: Stumpy.",
+        "Copper-coloured sheen on a black coat; known for high-fat milk."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Very heat tolerant; high-fat milk. Tick control is important in the Bundelkhand summer.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹90,000",
+      "price_range_inr": [
+        40000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Highest-fat Indian buffalo (8-12%); copper sheen on a black coat, ideal for ghee.",
+      "size_class": "medium"
+    },
+    "chhattisgarhi": {
+      "slug": "chhattisgarhi",
+      "display_name": "Chhattisgarhi",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Chhattisgarhi",
+        "hi": "छत्तीसगढ़ी",
+        "ta": "சத்தீஸ்கர்"
+      },
+      "origin_region": "Chhattisgarh plains",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "4 - 6 L/day",
+        "daily_liters_range": [
+          4,
+          6
+        ],
+        "lactation_yield": "800 - 1200 kg",
+        "lactation_kg_range": [
+          800,
+          1200
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.0% - 7.5%",
+        "fat_range": [
+          6.0,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Central Indian dairy breed; medium frame with curved horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Watch heat stress in May-June and cold stress in December-January.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹35,000 - ₹70,000",
+      "price_range_inr": [
+        35000,
+        70000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Central Indian dual-purpose buffalo; medium frame, curved horns.",
+      "size_class": "medium"
+    },
+    "chilika": {
+      "slug": "chilika",
+      "display_name": "Chilika",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Chilika",
+        "hi": "चिलिका",
+        "ta": "சிலிகா"
+      },
+      "origin_region": "Chilika lagoon belt — Puri, Khordha and Ganjam, Odisha",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "3 - 6 L/day",
+        "daily_liters_range": [
+          3,
+          6
+        ],
+        "lactation_yield": "700 - 1200 kg",
+        "lactation_kg_range": [
+          700,
+          1200
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Small coastal buffalo from the Chilika lagoon; short curved horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "11 - 16",
+        "dry_fodder_kg_per_day": "2 - 3",
+        "concentrate_kg_per_day": "1.5 - 2.0",
+        "mineral_mixture_g_per_day": "40 - 60",
+        "water_liters_per_day": "40 - 60",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Small coastal buffalo from the Chilika lagoon belt.",
+      "size_class": "small"
+    },
+    "gojri": {
+      "slug": "gojri",
+      "display_name": "Gojri",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Gojri",
+        "hi": "गोजरी",
+        "ta": "கோஜ்ரி"
+      },
+      "origin_region": "Rajasthan and Gujarat (migratory pastoral herds)",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "4 - 6 L/day",
+        "daily_liters_range": [
+          4,
+          6
+        ],
+        "lactation_yield": "800 - 1200 kg",
+        "lactation_kg_range": [
+          800,
+          1200
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.0% - 7.5%",
+        "fat_range": [
+          6.0,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Migratory pastoral breed; coat can be black or brown."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Migratory pastoral buffalo; black or brown coat, good scavenging ability.",
+      "size_class": "medium"
+    },
+    "jaffarabadi": {
+      "slug": "jaffarabadi",
+      "display_name": "Jaffarabadi",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Jaffarabadi",
+        "hi": "जाफराबादी",
+        "ta": "ஜாஃபராபாதி"
+      },
+      "origin_region": "Junagadh, Gir Somnath and Kutch, Gujarat",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "8 - 12 L/day",
+        "daily_liters_range": [
+          8,
+          12
+        ],
+        "lactation_yield": "1800 - 2700 kg",
+        "lactation_kg_range": [
+          1800,
+          2700
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 8.0%",
+        "fat_range": [
+          6.5,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Heavy & Drooping.",
+        "Long flat horns that droop beside the face; heavier than Murrah."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Good heat tolerance; heavy body needs shade and generous water. Susceptible to foot problems in wet, muddy yards.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹70,000 - ₹160,000",
+      "price_range_inr": [
+        70000,
+        160000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Heaviest Indian buffalo breed; long flat drooping horns.",
+      "size_class": "large"
+    },
+    "kalahandi": {
+      "slug": "kalahandi",
+      "display_name": "Kalahandi",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Kalahandi",
+        "hi": "कालाहांडी",
+        "ta": "கலாஹண்டி"
+      },
+      "origin_region": "Kalahandi and Nuapada, Odisha",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "3 - 5 L/day",
+        "daily_liters_range": [
+          3,
+          5
+        ],
+        "lactation_yield": "600 - 1000 kg",
+        "lactation_kg_range": [
+          600,
+          1000
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Odisha breed with a medium frame and gently curved horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹60,000",
+      "price_range_inr": [
+        30000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Odisha dairy buffalo; medium frame with gently curved horns.",
+      "size_class": "medium"
+    },
+    "luit": {
+      "slug": "luit",
+      "display_name": "Luit",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Luit",
+        "hi": "लुइत",
+        "ta": "லுயித்"
+      },
+      "origin_region": "Brahmaputra valley, Assam",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "3 - 6 L/day",
+        "daily_liters_range": [
+          3,
+          6
+        ],
+        "lactation_yield": "600 - 1000 kg",
+        "lactation_kg_range": [
+          600,
+          1000
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curved.",
+        "Brahmaputra valley breed; compact with a deep body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High humidity raises foot-rot, tick and mastitis risk; provide dry bedding.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹30,000 - ₹65,000",
+      "price_range_inr": [
+        30000,
+        65000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Brahmaputra valley buffalo; compact with a deep body, suited to humid Assam.",
+      "size_class": "medium"
+    },
+    "marathwada": {
+      "slug": "marathwada",
+      "display_name": "Marathwada",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Marathwada",
+        "hi": "मराठवाड़ा",
+        "ta": "மராத்வாடா"
+      },
+      "origin_region": "Latur, Nanded and Parbhani, Maharashtra",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1500 kg",
+        "lactation_kg_range": [
+          1000,
+          1500
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 8.0%",
+        "fat_range": [
+          6.5,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Flat & Curved.",
+        "Marathwada dairy type; close to Nagpuri but with shorter horns."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹85,000",
+      "price_range_inr": [
+        40000,
+        85000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Marathwada dairy type; close to Nagpuri with shorter horns.",
+      "size_class": "medium"
+    },
+    "mehsana": {
+      "slug": "mehsana",
+      "display_name": "Mehsana",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Mehsana",
+        "hi": "मेहसाणा",
+        "ta": "மெஹ்சானா"
+      },
+      "origin_region": "Mehsana, Banaskantha and Sabarkantha, Gujarat",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "7 - 11 L/day",
+        "daily_liters_range": [
+          7,
+          11
+        ],
+        "lactation_yield": "1500 - 2200 kg",
+        "lactation_kg_range": [
+          1500,
+          2200
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Lyre-Shaped.",
+        "Murrah–Surti cross type with spiralled horns and a lighter frame."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹55,000 - ₹120,000",
+      "price_range_inr": [
+        55000,
+        120000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Murrah-Surti cross type; lighter frame, spiralled horns, steady yielder.",
+      "size_class": "large"
+    },
+    "murrah": {
+      "slug": "murrah",
+      "display_name": "Murrah",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Murrah",
+        "hi": "मुर्राह",
+        "ta": "முர்ரா"
+      },
+      "origin_region": "Rohtak, Hisar, Jind and Bhiwani, Haryana; Patiala, Punjab",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "8 - 14 L/day",
+        "daily_liters_range": [
+          8,
+          14
+        ],
+        "lactation_yield": "1800 - 2800 kg",
+        "lactation_kg_range": [
+          1800,
+          2800
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 8.0%",
+        "fat_range": [
+          6.5,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Jet Black coat · Absent / Flat hump.",
+        "Horns: Tightly Curled.",
+        "Tightly curled horns on a massive jet-black frame; the classic dairy buffalo."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot summer, cool winter (irrigated plains)",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Heat-tolerant but wallows to cool down; keep shade and water. Watch for mastitis in humid months.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹70,000 - ₹160,000",
+      "price_range_inr": [
+        70000,
+        160000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "India's premier dairy buffalo; tightly curled horns on a jet-black frame.",
+      "size_class": "large"
+    },
+    "nagpuri": {
+      "slug": "nagpuri",
+      "display_name": "Nagpuri",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Nagpuri",
+        "hi": "नागपुरी",
+        "ta": "நாகபுரி"
+      },
+      "origin_region": "Nagpur, Wardha and Amravati, Maharashtra",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1500 kg",
+        "lactation_kg_range": [
+          1000,
+          1500
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 8.0%",
+        "fat_range": [
+          6.5,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Long & Flat.",
+        "Long flat horns swept back; taller and leaner than Murrah."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹85,000",
+      "price_range_inr": [
+        40000,
+        85000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Tall, lean Vidarbha buffalo with long flat swept-back horns.",
+      "size_class": "medium"
+    },
+    "nili_ravi": {
+      "slug": "nili_ravi",
+      "display_name": "Nili-Ravi",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Nili-Ravi",
+        "hi": "नीली रावी",
+        "ta": "நீலி ராவி"
+      },
+      "origin_region": "Firozpur and Amritsar, Punjab; Rajasthan; Punjab (Pakistan)",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "8 - 12 L/day",
+        "daily_liters_range": [
+          8,
+          12
+        ],
+        "lactation_yield": "1800 - 2500 kg",
+        "lactation_kg_range": [
+          1800,
+          2500
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.0% - 7.5%",
+        "fat_range": [
+          6.0,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Short, Curled.",
+        "White markings on the face and legs are the quickest cue."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹60,000 - ₹130,000",
+      "price_range_inr": [
+        60000,
+        130000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Punjab dairy buffalo; white face and leg markings are the quickest cue.",
+      "size_class": "large"
+    },
+    "other_buffalo": {
+      "slug": "other_buffalo",
+      "display_name": "Other / Non-descript Buffalo",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Other / Non-descript Buffalo",
+        "hi": "मिश्रित भैंस",
+        "ta": "கலப்பு எருமை"
+      },
+      "origin_region": "Non-descript / mixed buffalo across India",
+      "utility_type": "Dual-Purpose",
+      "milk_yield": {
+        "daily_liters": "4 - 7 L/day",
+        "daily_liters_range": [
+          4,
+          7
+        ],
+        "lactation_yield": "800 - 1400 kg",
+        "lactation_kg_range": [
+          800,
+          1400
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.0% - 7.5%",
+        "fat_range": [
+          6.0,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Typical buffalo frame of the Other / Non-descript Buffalo breed.",
+        "Non-descript buffalo; use the generic buffalo advisory and confirm locally.",
+        "Confirm age, sex and breed with a local veterinarian or extension officer."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "25 - 34",
+        "dry_fodder_kg_per_day": "5 - 7",
+        "concentrate_kg_per_day": "2.5 - 3.5",
+        "mineral_mixture_g_per_day": "60 - 90",
+        "water_liters_per_day": "65 - 95",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "regional_default"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Tropical Indian plains",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "General tropical management; adjust shade and water to local climate.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹90,000",
+      "price_range_inr": [
+        40000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care",
+        "NBAGR / ICAR breed conservation unit — registration and elite germplasm support"
+      ],
+      "data_confidence": "regional_default",
+      "note": "Non-descript buffalo; use the generic buffalo advisory and confirm locally.",
+      "size_class": "large"
+    },
+    "pandharpuri": {
+      "slug": "pandharpuri",
+      "display_name": "Pandharpuri",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Pandharpuri",
+        "hi": "पंढरपुरी",
+        "ta": "பந்தர்புரி"
+      },
+      "origin_region": "Solapur, Kolhapur and Sangli, Maharashtra",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "5 - 8 L/day",
+        "daily_liters_range": [
+          5,
+          8
+        ],
+        "lactation_yield": "1000 - 1600 kg",
+        "lactation_kg_range": [
+          1000,
+          1600
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 8.0%",
+        "fat_range": [
+          6.5,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black coat · Absent / Flat hump.",
+        "Horns: Long, Curved.",
+        "Exceptionally long sword-shaped horns are the defining feature."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot semi-arid / tropical savanna",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Provide shade and water in summer; monitor ticks after monsoon.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹40,000 - ₹90,000",
+      "price_range_inr": [
+        40000,
+        90000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Long sword-shaped horns are the defining feature of this Solapur breed.",
+      "size_class": "medium"
+    },
+    "surti": {
+      "slug": "surti",
+      "display_name": "Surti",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Surti",
+        "hi": "सुरती",
+        "ta": "சுரதி"
+      },
+      "origin_region": "Anand, Kheda and Vadodara, Gujarat",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "6 - 9 L/day",
+        "daily_liters_range": [
+          6,
+          9
+        ],
+        "lactation_yield": "1200 - 1800 kg",
+        "lactation_kg_range": [
+          1200,
+          1800
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "6.5% - 7.5%",
+        "fat_range": [
+          6.5,
+          7.5
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Black-Grey coat · Absent / Flat hump.",
+        "Horns: Sickle-Shaped.",
+        "Sickle-shaped horns and two white chevrons on the neck are characteristic."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot arid / semi-arid",
+        "tick_parasite_resistance": "High",
+        "disease_notes": "Tolerates 40-45 °C and scarce water; shade and mineral salt are still essential.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹50,000 - ₹100,000",
+      "price_range_inr": [
+        50000,
+        100000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Sickle-shaped horns and two white chevrons on the neck.",
+      "size_class": "medium"
+    },
+    "toda": {
+      "slug": "toda",
+      "display_name": "Toda",
+      "species": "Buffalo",
+      "local_names": {
+        "en": "Toda",
+        "hi": "तोडा",
+        "ta": "தோடா"
+      },
+      "origin_region": "Nilgiri hills, Tamil Nadu",
+      "utility_type": "Milch (Dairy)",
+      "milk_yield": {
+        "daily_liters": "2 - 4 L/day",
+        "daily_liters_range": [
+          2,
+          4
+        ],
+        "lactation_yield": "400 - 700 kg",
+        "lactation_kg_range": [
+          400,
+          700
+        ],
+        "lactation_length_days": "300 - 320 (buffalo)",
+        "fat_percentage": "7.0% - 8.0%",
+        "fat_range": [
+          7.0,
+          8.0
+        ],
+        "beta_casein": "A2/A2 typical (zebu/buffalo) — confirm by lab test"
+      },
+      "physical_markers": [
+        "Body: Greyish Black coat · Absent / Flat hump.",
+        "Horns: Semicircular (Half-moon).",
+        "Small Nilgiri hill buffalo with short horns and a compact body."
+      ],
+      "feeding_and_care": {
+        "green_fodder_kg_per_day": "18 - 24",
+        "dry_fodder_kg_per_day": "4 - 5",
+        "concentrate_kg_per_day": "2.0 - 3.0",
+        "mineral_mixture_g_per_day": "50 - 75",
+        "water_liters_per_day": "50 - 75",
+        "notes": "Split concentrate into 2-3 feeds; add 0.4 kg concentrate per litre of milk above 5 L/day.",
+        "data_source": "curated"
+      },
+      "climate_and_disease_resistance": {
+        "heat_tolerance": "Hot-humid coastal",
+        "tick_parasite_resistance": "Moderate",
+        "disease_notes": "High-rainfall Nilgiri adaptation; watch for foot rot and liver fluke in wet grazing.",
+        "suitable_for_smallholders": true,
+        "housing": "Shade + dry floor; 3-4 m² covered area per adult, more for buffalo."
+      },
+      "estimated_market_price_inr": "₹25,000 - ₹60,000",
+      "price_range_inr": [
+        25000,
+        60000
+      ],
+      "govt_schemes": [
+        "Rashtriya Gokul Mission (RGM) — indigenous breed conservation, AI and Gokul Gram",
+        "Dairy Infrastructure Development Fund (DIDF) — dairy processing and chilling",
+        "National Livestock Mission (NLM) — fodder development and entrepreneurship support",
+        "NADCP — free FMD and brucellosis vaccination",
+        "Kisan Credit Card (KCC-AH) — working capital for fodder, feed and veterinary care"
+      ],
+      "data_confidence": "curated",
+      "note": "Small Nilgiri hill buffalo; high-fat milk from low-input grazing.",
+      "size_class": "medium"
+    }
+  }
+}

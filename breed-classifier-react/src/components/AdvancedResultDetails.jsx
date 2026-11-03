@@ -6,6 +6,9 @@ import { normalizeTop, oodTriggers, qualityHintKey } from "../utils/resultHelper
 import { getBrowserGps } from "../utils/escalationQueue.js";
 import { statusMeta } from "./QualityBadge.jsx";
 import TraitComparison from "./TraitComparison.jsx";
+import EstimatedAttributes from "./EstimatedAttributes.jsx";
+import FarmerAdvisory from "./FarmerAdvisory.jsx";
+import PhotoGuidance from "./PhotoGuidance.jsx";
 import BpaRegistrationModal from "./BpaRegistrationModal.jsx";
 
 /**
@@ -99,6 +102,8 @@ export default function AdvancedResultDetails({
         </div>
       )}
 
+      <PhotoGuidance result={result} />
+
       {isOod && (
         <div className="ood-trigger-box">
           <h4>{t("result.trigger")}</h4>
@@ -147,6 +152,14 @@ export default function AdvancedResultDetails({
             })}
           </div>
         </section>
+      )}
+
+      {!isOod && (result.gender || result.age_group || (result.traits && Object.keys(result.traits).length > 0)) && (
+        <EstimatedAttributes result={result} />
+      )}
+
+      {!isOod && result.knowledge && !result.knowledge.skipped && !result.knowledge.error && (
+        <FarmerAdvisory result={result} />
       )}
 
       {modelInput && (

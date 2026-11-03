@@ -50,6 +50,7 @@ from .config import (ALLOW_HUE, AUG_COLOR_JITTER, AUG_HORIZONTAL_FLIP,
                      SMOKE_SAMPLES_PER_BREED, SPLIT_DIR, TEST_RATIO,
                      TRAIN_PAD_TO_SQUARE, TRAIN_RESIZE, VAL_MIN_WARN, VAL_RATIO,
                      IMAGENET_MEAN, IMAGENET_STD, CUTMIX_MIXUP_PROB)
+from .preprocess import PadToSquare as _PadToSquare
 
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -607,28 +608,10 @@ def prepare_smoke_splits(data_root=RAW_DATA_DIR, split_dir=SPLIT_DIR,
 # Eval chain must stay in sync with test_model.py + Flutter preprocessor.
 # =======================================================================
 
-class _PadToSquare:
-    """Resize the LONG side to ``size`` and pad the short side to a square.
-
-    A 4:3 photo loses ~25% of its width to CenterCrop; padding keeps the whole
-    body. Fill is the ImageNet mean in 8-bit, which becomes ~0 after Normalize.
-    """
-
-    def __init__(self, size, fill=None):
-        self.size = size
-        self.fill = fill or tuple(int(round(m * 255)) for m in IMAGENET_MEAN)
-
-    def __call__(self, img):
-        w, h = img.size
-        scale = self.size / max(w, h)
-        nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
-        resized = img.resize((nw, nh), Image.BILINEAR)
-        canvas = Image.new("RGB", (self.size, self.size), self.fill)
-        canvas.paste(resized, ((self.size - nw) // 2, (self.size - nh) // 2))
-        return canvas
-
-    def __repr__(self):
-        return f"PadToSquare({self.size}, fill={self.fill})"
+# `_PadToSquare` is imported at the top of this module from ``src/preprocess``.
+# It keeps the whole animal in frame: a 4:3 photo loses ~25% of its width to
+# CenterCrop, while padding resizes the long side and fills the short side with
+# the ImageNet mean (which becomes ~0 after Normalize).
 
 
 def resolve_breed_augment(breed, base_augment):

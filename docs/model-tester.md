@@ -98,19 +98,56 @@ python test_model.py --no-browser
 ```json
 {
   "species": "Cattle",
-  "species_confidence": 90.07,
+  "species_confidence": 98.4,
   "top_breed": "Gir",
-  "top_breed_confidence": 45.2,
+  "top_breed_confidence": 91.2,
   "top5_breeds": [
-    {"breed": "Gir", "confidence": 45.2},
-    {"breed": "Sahiwal", "confidence": 22.1},
-    {"breed": "Red Sindhi", "confidence": 12.8},
-    {"breed": "Tharparkar", "confidence": 8.4},
-    {"breed": "Kankrej", "confidence": 5.1}
+    {"breed": "Gir", "confidence": 91.2},
+    {"breed": "Sahiwal", "confidence": 3.1},
+    {"breed": "Red Sindhi", "confidence": 1.8},
+    {"breed": "Tharparkar", "confidence": 1.1},
+    {"breed": "Kankrej", "confidence": 0.6}
   ],
-  "model_used": "lite2_phase2_best"
+  "gender": {
+    "label": "Female (Cow)",
+    "short_label": "Female",
+    "confidence": 86.5,
+    "method": "clip_zeroshot",
+    "note": "Visual estimation from body/udder profile"
+  },
+  "age_group": {
+    "label": "Adult (> 3 yrs)",
+    "short_label": "Adult",
+    "confidence": 89.1,
+    "method": "clip_zeroshot",
+    "note": "Visual stage estimate; verify via dentition (teeth) for exact age"
+  },
+  "traits": {
+    "hump": "Large / Prominent",
+    "horn": "Curved (Half-moon)",
+    "ear": "Long & Pendulous",
+    "dewlap": "Large & Pendulous",
+    "size": "Medium-Large"
+  },
+  "knowledge": {
+    "headline": "Gir adult female — protect lactation: 8 - 12 L/day ...",
+    "priority_actions": ["Milk 2-3 times a day ..."],
+    "nutrition": {"green_fodder": "22 - 30 kg/day", "...": "..."},
+    "production": {"milk": {"daily_yield": "8 - 12 L/day", "...": "..."}},
+    "economics": {"market_price": "₹45,000 - ₹100,000", "schemes": ["..."]},
+    "disclaimer": "General guidance only — confirm with your veterinarian ..."
+  },
+  "ood": false,
+  "model_used": "lite2_phase2_best_v26_1012-2332_f9ce"
 }
 ```
+
+The same enriched payload (`gender`, `age_group`, `traits`, `knowledge`, plus
+`traits_detail` / `attributes_meta` for developer views) is returned by the
+Flask server's `POST /api/predict` in `server/routes/predict.py`. See
+[docs/attributes.md](attributes.md) for how each attribute is produced and
+[docs/breed-knowledge.md](breed-knowledge.md) for the advisory engine and the
+`/api/breed-knowledge/...` + `/api/advisory-recalculate` endpoints.
 
 ---
 

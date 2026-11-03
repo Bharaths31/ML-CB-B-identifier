@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ImageUpload from "../components/ImageUpload.jsx";
 import CameraCapture from "../components/CameraCapture.jsx";
-import ResultCard from "../components/ResultCard.jsx";
+import ResultWorkspace from "../components/ResultWorkspace.jsx";
+import PhotoGuideModal from "../components/PhotoGuideModal.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
 import HerdSessionDrawer from "../components/HerdSessionDrawer.jsx";
@@ -52,6 +53,7 @@ export default function UserPage() {
   const [session, setSession] = useState(() => readSession());
   const [sessionOpen, setSessionOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [queuedEscalations, setQueuedEscalations] = useState(() => outboxCount());
   const [syncNotice, setSyncNotice] = useState(null);
 
@@ -283,6 +285,18 @@ export default function UserPage() {
 
       <main className="user-main-content">
         <section className="input-panel-section">
+          <div className="photo-guide-strip">
+            <span className="photo-guide-strip-text">
+              📸 {t("photoGuide.subtitle")}
+            </span>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setGuideOpen(true)}
+            >
+              {t("photoGuide.button")}
+            </button>
+          </div>
           <div className="card-box">
             <div className="card-tab-nav">
               <button
@@ -317,6 +331,7 @@ export default function UserPage() {
                   busy={optimizer.busy}
                   error={optimizer.error}
                   framed={Boolean(optimizer.cropped)}
+                  quality={quality}
                   onFileSelected={handleImageSelected}
                   onApplyCrop={handleApplyCrop}
                   onClearCrop={optimizer.clearCrop}
@@ -327,6 +342,7 @@ export default function UserPage() {
                   showClassify={!predictionResult}
                   modelInputUrl={optimizer.result?.dataUrl || null}
                   onQuality={setQuality}
+                  onOpenGuide={() => setGuideOpen(true)}
                 />
               )}
 
@@ -359,13 +375,13 @@ export default function UserPage() {
 
         {predictionResult && (
           <section className="results-panel-section">
-            <ResultCard
+            <ResultWorkspace
               result={predictionResult}
-              config={config}
-              onReset={handleClear}
-              onRetake={handleRetake}
               quality={quality}
               previewUrl={previewUrl}
+              filename={optimizer.original?.name || selectedFile?.name}
+              onReset={handleClear}
+              onRetake={handleRetake}
               onOpenAdvanced={() => setAdvancedOpen(true)}
             />
           </section>
@@ -382,6 +398,8 @@ export default function UserPage() {
         onClose={() => setSessionOpen(false)}
         onCleared={() => setSession([])}
       />
+
+      <PhotoGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       <AdvancedPanel
         open={advancedOpen}

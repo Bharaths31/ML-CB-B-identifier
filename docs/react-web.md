@@ -164,6 +164,15 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 | `src/components/AdvancedPanel.jsx` | Model input, metadata, fit modes, batch entry point |
 | `src/components/AdvancedBatchTester.jsx` | Batch inference with the selected configuration |
 | `src/components/ResultCard.jsx` | Tiers, trait matrix, quality badge, share card, diagnostics |
+| `src/components/ResultWorkspace.jsx` | User results: Big-4 hero grid, trait checklist, dual-persona tabs, report card |
+| `src/components/HeroFourGrid.jsx` | Species / Breed / Gender / Age cards with editable, recalculating pills |
+| `src/components/TraitChecklist.jsx` | Explainable-AI chips the farmer can tick to confirm morphology |
+| `src/components/FarmerAdvisoryCard.jsx` | Milk, feeding, market value, schemes, vaccination, warnings |
+| `src/components/BreedEncyclopedia.jsx` | Native tract, heritage, climate resilience, conservation note |
+| `src/components/VoiceReaderButton.jsx` | `speechSynthesis` readout in en-IN / ta-IN / hi-IN |
+| `src/components/PhotoGuideModal.jsx` | Three-card "how to snap" guide (side profile, daylight, one animal) |
+| `src/components/EstimatedAttributes.jsx`, `FarmerAdvisory.jsx`, `PhotoGuidance.jsx` | Advanced-drawer attribute, advisory and quality/OOD panels |
+| `src/utils/reportCard.js` | Printable "Pashu Aadhaar" farmer report card (no PDF dependency) |
 | `src/components/TraitComparison.jsx` | Shared look-alike trait table |
 | `src/components/QualityBadge.jsx` | 0–100 sharpness / lighting / framing breakdown |
 | `src/components/HerdSessionDrawer.jsx` | Session log, statistics, CSV/JSON/ODT export |

@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, IMAGE_SIZE, OOD_DIR
-from src.model import BreedClassifier, OODDetector
+from src.model import BreedClassifier, OODDetector, attach_trait_heads
 from src.config import OOD_ENABLED
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config
@@ -602,6 +602,23 @@ class ModelManager:
         model_keys = set(model.state_dict().keys())
         filtered = {k: v for k, v in state.items() if k in model_keys}
         model.load_state_dict(filtered, strict=False)
+
+        # Trait heads (hump/horn/coat/ear/dewlap/face/size) are auxiliary and
+        # were excluded from export, but the trained tensors remain in the
+        # checkpoint. Rebuild them from the state_dict shapes.
+        try:
+            trait_heads = attach_trait_heads(model, state)
+            if trait_heads is not None and logger:
+                meta = trait_heads.trait_meta
+                logger.info(
+                    f"Attached trait heads ({len(meta['fields'])} fields, "
+                    f"in={meta['in_dim']}, hidden={meta['hidden_dim']}, "
+                    f"vocab={meta['source']})"
+                )
+        except Exception as exc:  # optional: never break model loading
+            if logger:
+                logger.warning(f"Trait heads unavailable: {exc}")
+
         model.to(self.device)
         model.eval()
         info["model"] = model

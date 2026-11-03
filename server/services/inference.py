@@ -5,19 +5,20 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from torchvision import transforms
-from src.config import EVAL_MATCH_TRAIN_RESOLUTION, TRAIN_RESIZE, IMAGE_SIZE, SPECIES_LABELS
+from src.config import IMAGE_SIZE, SPECIES_LABELS
+from src.config import INFERENCE_PAD_TO_SQUARE
+from src.preprocess import inference_transform
+from src.model import predict_traits
+from src.attributes_zeroshot import build_attribute_report
+from src.breed_knowledge import get_farmer_advisory
+from src.image_quality import analyze_image_quality, explain_ood_for_user
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config
 
-_EVAL_RESIZE = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
-TRANSFORM = transforms.Compose([
-    transforms.Resize(_EVAL_RESIZE),
-    transforms.CenterCrop(IMAGE_SIZE),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+# Whole-animal preprocessing (PadToSquare) by default; see src/preprocess.py.
+# Set BREEDID_PAD_TO_SQUARE=0 for parity with the exported ONNX preprocessor.
+TRANSFORM = inference_transform(pad=INFERENCE_PAD_TO_SQUARE)
+_PREPROCESS_DESC = "PadToSquare" if INFERENCE_PAD_TO_SQUARE else "Resize+CenterCrop"
 
 
 # ---------------------------------------------------------------------------
@@ -248,10 +249,22 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
             logger.error(f"Invalid image: {e}")
         return {"error": f"Invalid image: {e}"}
 
+    # --- Pre-inference quality gate (a few ms, no model) -------------------
+    # Purely advisory: a blurry photo still gets a best-effort prediction plus
+    # trilingual retake tips, so a farmer is never left without an answer.
+    quality = analyze_image_quality(img)
+    if logger and quality.get("issues"):
+        logger.info(
+            f"Quality gate: score={quality['score']} "
+            f"issues={','.join(quality['issues'])} "
+            f"({quality['sharpness_score']} lap-var, mean luma {quality['mean_luminance']}, "
+            f"{quality['latency_ms']} ms)"
+        )
+
     if socketio:
         socketio.emit('prediction_progress', {
             'stage': 'preprocessing', 
-            'detail': f'Resizing {img.width}x{img.height} to {IMAGE_SIZE}x{IMAGE_SIZE}'
+            'detail': f'{_PREPROCESS_DESC}: {img.width}x{img.height} → {IMAGE_SIZE}x{IMAGE_SIZE}'
         }, namespace='/ws')
 
     tensor = TRANSFORM(img).unsqueeze(0)
@@ -278,6 +291,7 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         cattle_logits = torch.tensor(out_dict.get("cattle", ort_outs[1])[0])
         buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
         xray_captured = {}
+        pooled_features = None
     else:
         xray_captured, xray_handles = _install_xray_capture(model)
         try:
@@ -297,10 +311,15 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
             binary_logits = out[0][0].float()
             cattle_logits = out[1][0].float()
             buffalo_logits = out[2][0].float()
+            pooled_features = None
         elif isinstance(out, dict):
             binary_logits = out["binary"][0].float()
             cattle_logits = out["cattle"][0].float()
             buffalo_logits = out["buffalo"][0].float()
+            # Pooled 1280-d features for the attach_trait_heads module.
+            pooled_features = out.get("features")
+            if pooled_features is not None:
+                pooled_features = pooled_features[0:1].float()
         else:
             raise ValueError(f"Unexpected model output structure: {type(out)}")
 
@@ -317,6 +336,15 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     if ood_active and manager.ood_detector is not None:
         is_ood, ood_score, ood_details = manager.ood_detector.is_ood(
             binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
+        )
+
+    # Farmer-facing OOD explanation: "not an animal" vs "animal but unclear
+    # breed", merged with the quality tips. Raw energy/MSP stays in .technical.
+    ood_explanation = explain_ood_for_user(is_ood, ood_details, quality)
+    if logger and ood_explanation["code"] not in ("ok",):
+        logger.info(
+            f"OOD explainer: {ood_explanation['code']} "
+            f"(msp={ood_details.get('msp')}, energy={ood_details.get('energy')})"
         )
 
     binary_probs = F.softmax(binary_logits, dim=0)
@@ -355,6 +383,7 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
             display_name = breed.replace("_", " ").title()
             candidates.append({
                 "breed": display_name,
+                "breed_slug": breed,
                 "confidence": round(prob * 100, 2),
             })
 
@@ -382,6 +411,49 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
             "attention_meta": {"source": "onnx_unavailable"},
         }
 
+    # --- Post-hoc attributes: traits + gender + age ------------------------
+    # Runs only after the breed decision; skipped for OOD inputs. The runtime
+    # toggles live in the shared config so the UI can flip Fast Mode live.
+    attributes_start = time.time()
+    trait_logits, trait_vocab, trait_meta = {}, {}, {
+        "available": False, "reason": "onnx" if info.get("type") == "onnx" else "no_trait_heads"}
+    if pooled_features is not None and not is_ood:
+        trait_logits, trait_meta = predict_traits(model, pooled_features)
+        trait_vocab = getattr(getattr(model, "trait_heads", None), "vocab", {})
+    attributes = build_attribute_report(
+        img,
+        species=species_name,
+        breed=top_breed_name,
+        is_ood=is_ood,
+        trait_logits=trait_logits,
+        trait_vocab=trait_vocab,
+        trait_meta=trait_meta,
+        fast_mode=bool(db.get("attributes.fast_mode", False)),
+        clip_enabled=bool(db.get("attributes.clip_enabled", True)),
+        enabled=bool(db.get("attributes.enabled", True)),
+    )
+    attributes_time = time.time() - attributes_start
+
+    # --- Farmer / general-public advisory ---------------------------------
+    # Pure dictionary lookup (no model): ~0.01 ms, so it is safe to attach to
+    # every prediction. Skipped for OOD inputs and for breeds without a slug.
+    knowledge_start = time.time()
+    top_slug = (top5[0].get("breed_slug") if top5 else None)
+    if is_ood or not top_slug:
+        knowledge = {"skipped": True,
+                     "reason": "out_of_distribution" if is_ood else "unknown_breed"}
+    else:
+        try:
+            knowledge = get_farmer_advisory(
+                species_name, top_slug,
+                attributes["gender"].get("short_label"),
+                attributes["age_group"].get("short_label"),
+            )
+        except Exception as exc:  # advisory must never fail a prediction
+            knowledge = {"error": f"{type(exc).__name__}: {exc}"}
+    knowledge_time = time.time() - knowledge_start
+    total_time = time.time() - predict_start
+
     result = {
         "species": species_name,
         "predicted_species": species_name,
@@ -396,15 +468,29 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         "confidence_action": f"confidence.level{level}.action",
         "top5_breeds": top5,
         "top_k": [{"breed": b["breed"], "prob": b["confidence"] / 100.0} for b in top5],
+        # --- enriched attributes (never fatal if unavailable) --------------
+        "gender": attributes["gender"],
+        "age_group": attributes["age_group"],
+        "traits": attributes["traits"],
+        "traits_detail": attributes["traits_detail"],
+        "attributes_meta": attributes["attributes_meta"],
+        "traits_meta": attributes["traits_meta"],
         "model_used": model_name,
         "model_name": model_name,
+        # --- farmer advisory (breed knowledge + gender/age specialisation) ---
+        "knowledge": knowledge,
         "inference_time_ms": round(inference_time * 1000, 1),
+        "attributes_time_ms": round(attributes_time * 1000, 1),
+        "knowledge_time_ms": round(knowledge_time * 1000, 3),
         "total_time_ms": round(total_time * 1000, 1),
         "routing": "soft",
         "ood": is_ood,
         "is_ood": is_ood,
         "ood_score": round(ood_score, 2) if is_ood else None,
         "ood_details": ood_details,
+        "ood_explanation": ood_explanation,
+        "quality": quality,
+        "quality_latency_ms": quality.get("latency_ms"),
         "attention_map_b64": xray.get("attention_map_b64"),
         "spatial_attention_b64": xray.get("spatial_attention_b64"),
         "attention_meta": xray.get("attention_meta"),
@@ -435,6 +521,13 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
                   top_breed=result.get("top_breed"),
                   top_breed_confidence=result.get("top_breed_confidence"),
                   top5=[b["breed"] for b in result.get("top5_breeds", [])],
+                  gender=result.get("gender", {}).get("short_label"),
+                  age_group=result.get("age_group", {}).get("short_label"),
+                  traits=result.get("traits") or None,
+                  advisory_breed=(result.get("knowledge") or {}).get("breed", {}).get("slug"),
+                  quality_score=(result.get("quality") or {}).get("score"),
+                  quality_issues=(result.get("quality") or {}).get("issues"),
+                  ood_explanation=(result.get("ood_explanation") or {}).get("code"),
                   latency_ms=result.get("inference_time_ms"),
                   routing=result.get("routing"))
     except Exception:

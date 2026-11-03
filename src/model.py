@@ -473,7 +473,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .config import NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS
+from .config import (NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS, TRAIT_FIELDS,
+                     TRAIT_FILE)
 
 
 def load_trait_spec(path):
@@ -555,6 +556,129 @@ class TraitClassifier(nn.Module):
         if n_fields:
             total = total / n_fields
         return total, accs
+
+
+# --- Post-hoc trait inference (no retraining) ------------------------------
+# ``src/train.py`` attaches a TraitClassifier only while a trait-weighted run
+# is active, and ``src/export.py`` deliberately drops it from the exported
+# graph. Checkpoints therefore still contain the trained tensors
+# (``trait_heads.heads.<field>.{0,3}.{weight,bias}``) and we rebuild the module
+# at load time from their shapes -- no architecture guessing.
+
+def trait_head_spec_from_state(state):
+    """Discover ``{field: (in_dim, hidden_dim, out_dim)}`` from a state_dict.
+
+    Only fields with both the first and last linear weights present are
+    reported, so a partially written checkpoint cannot produce a half-built
+    module.
+    """
+    spec = {}
+    for field in TRAIT_FIELDS:
+        w0 = f"trait_heads.heads.{field}.0.weight"
+        w3 = f"trait_heads.heads.{field}.3.weight"
+        if w0 in state and w3 in state:
+            spec[field] = (int(state[w0].shape[1]),
+                           int(state[w0].shape[0]),
+                           int(state[w3].shape[0]))
+    return spec
+
+
+def _generic_trait_vocab(out_dim):
+    return {f"class_{i}": i for i in range(out_dim)}
+
+
+def build_trait_vocab_from_checkpoint(state, trait_file=TRAIT_FILE):
+    """Align ``data/breed_traits.json`` vocab with the trained head widths.
+
+    ``TraitClassifier`` was trained on ``build_trait_vocab(spec)``: the sorted
+    set of distinct non-empty values per field. If the JSON has since gained or
+    lost values, its indices no longer mean what the weights learned, so for
+    any field whose vocabulary size disagrees with the checkpoint we fall back
+    to opaque ``class_<i>`` labels instead of silently mislabelling a trait.
+
+    Returns ``(vocab, meta)`` where ``meta`` records the alignment source.
+    """
+    spec = trait_head_spec_from_state(state)
+    if not spec:
+        return {}, {"source": "none", "mismatched": []}
+
+    file_spec = load_trait_spec(trait_file)
+    file_vocab = build_trait_vocab(file_spec) if file_spec else {}
+
+    vocab, mismatched = {}, []
+    for field, (_in_dim, _hidden, out_dim) in spec.items():
+        candidate = file_vocab.get(field) or {}
+        if len(candidate) == out_dim:
+            vocab[field] = dict(candidate)
+        else:
+            vocab[field] = _generic_trait_vocab(out_dim)
+            mismatched.append({
+                "field": field,
+                "checkpoint_classes": out_dim,
+                "trait_file_classes": len(candidate),
+            })
+
+    source = "breed_traits.json" if not mismatched else "partial_fallback"
+    if mismatched and len(mismatched) == len(spec):
+        source = "fallback"
+    return vocab, {"source": source, "mismatched": mismatched}
+
+
+def attach_trait_heads(model, state, trait_file=TRAIT_FILE, device=None):
+    """Rebuild and attach ``model.trait_heads`` from checkpoint tensors.
+
+    Safe to call for any checkpoint: returns ``None`` when the checkpoint has no
+    trait tensors (older models, ONNX exports) and never raises for shape
+    mismatches -- a partial match keeps whatever loads.
+    """
+    spec = trait_head_spec_from_state(state)
+    if not spec:
+        return None
+
+    vocab, meta = build_trait_vocab_from_checkpoint(state, trait_file)
+    in_dim = next(iter(spec.values()))[0]
+    hidden = next(iter(spec.values()))[1]
+    module = TraitClassifier(in_dim, vocab, hidden=hidden)
+    module.load_state_dict(
+        {k[len("trait_heads."):]: v for k, v in state.items()
+         if k.startswith("trait_heads.")},
+        strict=False,
+    )
+    module.eval()
+    if device is not None:
+        module = module.to(device)
+    module.trait_meta = {
+        "source": meta["source"],
+        "mismatched": meta["mismatched"],
+        "in_dim": in_dim,
+        "hidden_dim": hidden,
+        "fields": {f: len(vocab[f]) for f in vocab},
+    }
+    model.trait_heads = module
+    return module
+
+
+@torch.no_grad()
+def predict_traits(model, pooled):
+    """Run the attached trait heads on pooled 1280-d features.
+
+    Returns ``({field: 1-D logits}, meta)`` or ``({}, meta)`` when the model has
+    no trait heads (ONNX path, older checkpoints).
+    """
+    module = getattr(model, "trait_heads", None)
+    if module is None:
+        return {}, {"available": False, "reason": "no_trait_heads"}
+    module.eval()
+    return module(pooled), {"available": True, **_trait_meta(module)}
+
+
+def _trait_meta(module):
+    meta = getattr(module, "trait_meta", None)
+    if meta:
+        return dict(meta)
+    return {"source": "unknown", "mismatched": [],
+            "fields": {f: len(v) for f, v in getattr(module, "vocab", {}).items()}}
+
 
 
 @torch.no_grad()

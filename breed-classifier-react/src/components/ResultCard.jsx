@@ -23,7 +23,7 @@ export default function ResultCard({
   previewUrl,
   onOpenAdvanced,
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [sharing, setSharing] = useState(false);
 
   if (!result) return null;
@@ -139,7 +139,11 @@ export default function ResultCard({
 
         {isOod ? (
           <div className="ood-advisory-box compact-ood-box">
-            <span>{t("result.oodBody")}</span>
+            <span>
+              {result.ood_explanation?.message?.[lang]
+                || result.ood_explanation?.message?.en
+                || t("result.oodBody")}
+            </span>
           </div>
         ) : (
           <>

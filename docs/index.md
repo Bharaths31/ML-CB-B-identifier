@@ -39,6 +39,8 @@ python test_model.py
 | [Local Training (Automated)](local-training.md) | `local_train.py` — full flag reference |
 | [Training Pipeline](training-pipeline.md) | 2-phase training, distillation, data modes, CUDA optimizations |
 | [Model Tester GUI](model-tester.md) | `test_model.py` — visual testing tool |
+| [Post-hoc Attributes](attributes.md) | Gender, age group & morphological traits with no retraining (CLIP + heuristic) |
+| [Breed Knowledge & Farmer Advisory](breed-knowledge.md) | Offline ICAR/NBAGR knowledge base, gender/age-specific advisory, REST endpoints |
 | [Web Application](react-web.md) | React app — capture, framing, optimizer, sessions, dev control plane |
 | [Architecture](architecture.md) | Model architecture and data flow |
 | [Data Pipeline](data-pipeline.md) | Dataset layout, augmentation, splits |

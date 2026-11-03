@@ -20,7 +20,8 @@ SECTION MAP
 
 REFERENCES (who reads what)
   - src/model.py ........ IMAGE_SIZE, FEATURE_DIM, BREED_DIM, DROPOUT, COSINE_*,
-                          CBAM_*, PROJECTION_DIM, NUM_*_BREEDS
+                          CBAM_*, PROJECTION_DIM, NUM_*_BREEDS, TRAIT_*
+  - src/attributes_zeroshot.py  ATTRIBUTES_*, IMAGE_SIZE
   - src/data_pipeline.py  AUG_*, MIX_*, RRC_*, COLOR_JITTER_*, RARE_CLASS_THRESHOLD,
                           SAMPLER_BETA, EVAL_*/TRAIN_* resize & pad, DEDUP_*,
                           TRAIN/VAL/TEST_RATIO, VAL_MIN_WARN
@@ -151,6 +152,45 @@ BREED_AUG_POLICY = {b: {"color_jitter": False} for b in COAT_COLOUR_BREEDS}
 EVAL_PAD_TO_SQUARE = False
 TRAIN_PAD_TO_SQUARE = False
 PAD_FILL = "imagenet_mean"
+
+# --- Inference-time preprocessing (GUI + Flask API) -----------------------
+# The training eval chain centre-crops, but for field photos that decapitates
+# the animal (a 4:3 shot loses ~25% of its width: horns, udder, tail). The
+# inference entry points therefore pad to square by default so the whole body
+# profile reaches the network. Set BREEDID_PAD_TO_SQUARE=0 to restore the
+# legacy shortest-side-resize + centre-crop behaviour (bit-exact parity with
+# the exported ONNX/Flutter preprocessor).
+INFERENCE_PAD_TO_SQUARE = os.environ.get(
+    "BREEDID_PAD_TO_SQUARE", "1").strip().lower() not in ("0", "false", "no", "off")
+
+# --- Pre-inference photo quality gate (src/image_quality.py) --------------
+# Cheap heuristic checks (Laplacian variance, luminance, dimensions) that run
+# in a few milliseconds and give the farmer trilingual retake tips. Advisory:
+# the prediction still runs unless a caller chooses to block on `action`.
+QUALITY_ENABLED = True
+QUALITY_ANALYSIS_SIZE = 256        # grayscale thumbnail used for the metrics
+# Calibrated on a 256 px thumbnail: sharp/low-texture scenes land ~50-170,
+# Gaussian blur r=2 ~85, r=3 ~44, r=6 ~7. 45 catches visible motion blur while
+# letting plain backgrounds (sky, dry grass) through.
+QUALITY_BLUR_THRESHOLD = 45.0
+QUALITY_DARK_MEAN = 40.0           # mean luminance (0-255) below = too dark
+QUALITY_BRIGHT_MEAN = 225.0        # mean luminance above = overexposed
+QUALITY_MIN_DIM = 180              # smallest accepted width/height in pixels
+QUALITY_MAX_ASPECT = 2.5           # long:short side ratio above = panoramic
+QUALITY_SHADOW_CLIP = 0.55         # fraction of pixels in the darkest buckets
+QUALITY_HIGHLIGHT_CLIP = 0.55      # fraction of pixels in the brightest buckets
+
+# --- Post-hoc attributes (gender / age group, no retraining) --------------
+# Gender and age are estimated AFTER the breed model runs, either by CLIP
+# zero-shot (accurate, needs `transformers` + a one-off model download) or by a
+# transparent morphological/breed-prior heuristic (always available offline).
+ATTRIBUTES_ENABLED = True
+ATTRIBUTES_CLIP_ENABLED = True      # False -> never try CLIP (offline installs)
+ATTRIBUTES_FAST_MODE = False        # True -> skip CLIP even when available
+ATTRIBUTES_CLIP_MODEL_ID = "openai/clip-vit-base-patch32"
+ATTRIBUTES_CLIP_TEMPERATURE = 1.0   # divides the scaled cosine logits
+ATTRIBUTES_CLIP_CACHE_DIR = None    # None -> default HF cache
+ATTRIBUTES_CLIP_ALLOW_DOWNLOAD = True  # False -> cache-only (air-gapped installs)
 
 # --- Breed-specific feature learning (all opt-in) --------------------------
 CBAM_IDENTITY_INIT = True        # bug fix: attention is identity at init

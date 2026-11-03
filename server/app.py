@@ -39,6 +39,7 @@ from server.routes.config_api import config_bp
 from server.routes.shared_config_api import shared_config_bp
 from server.routes.ood_api import ood_bp
 from server.routes.escalations import escalations_bp
+from server.routes.knowledge_api import knowledge_bp
 from server.services.escalation_db import get_escalation_db
 from server.shared_config import get_shared_config
 
@@ -75,6 +76,7 @@ def create_app():
     app.register_blueprint(shared_config_bp)
     app.register_blueprint(ood_bp)
     app.register_blueprint(escalations_bp)
+    app.register_blueprint(knowledge_bp)
     
     # Register websocket namespace
     socketio.on_namespace(SystemEventsNamespace('/ws'))

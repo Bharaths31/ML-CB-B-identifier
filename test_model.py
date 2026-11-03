@@ -47,7 +47,6 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from PIL.ExifTags import TAGS as EXIF_TAGS
-from torchvision import transforms
 
 # ---------------------------------------------------------------------------
 #  Project imports
@@ -73,13 +72,16 @@ try:
 except Exception:
     pass
 
-from src.config import (BINARY_DIM, BREED_DIM, CHECKPOINT_DIR,
-                        EVAL_MATCH_TRAIN_RESOLUTION, EXPORT_DIR, IMAGE_SIZE,
-                        LOGS_DIR, NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
-                        PORTABLE_EXPORT_DIR, SPLIT_DIR, TRAIN_RESIZE,
-                        OOD_ENABLED, OOD_DIR)
+from src.config import (BINARY_DIM, BREED_DIM, CHECKPOINT_DIR, EXPORT_DIR,
+                        IMAGE_SIZE, INFERENCE_PAD_TO_SQUARE, LOGS_DIR,
+                        NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+                        PORTABLE_EXPORT_DIR, SPLIT_DIR, OOD_ENABLED, OOD_DIR)
 from src.model import BreedClassifier
 from src.model import OODDetector
+from src.model import attach_trait_heads, predict_traits
+from src.preprocess import inference_transform
+from src.attributes_zeroshot import build_attribute_report
+from src.image_quality import analyze_image_quality, explain_ood_for_user
 
 # ---------------------------------------------------------------------------
 #  Constants
@@ -89,18 +91,14 @@ SPECIES_LABELS = {0: "Cattle", 1: "Buffalo"}
 SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 PRESENTER_CONFIG_PATH = os.path.join(LOGS_DIR, "presenter_config.json")
 
-# MUST match src/data_pipeline._eval_transform exactly: shortest-side resize to
-# IMAGE_SIZE (260) then CenterCrop(260), ImageNet normalization. The previous
-# Resize((260, 260)) squashed the aspect ratio and disagreed with training eval,
-# which is enough on its own to wreck fine-grained breed predictions.
-_EVAL_RESIZE = TRAIN_RESIZE if EVAL_MATCH_TRAIN_RESOLUTION else IMAGE_SIZE
-TRANSFORM = transforms.Compose([
-    transforms.Resize(_EVAL_RESIZE),
-    transforms.CenterCrop(IMAGE_SIZE),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+# Inference keeps the WHOLE animal in frame by default: PadToSquare(260) ->
+# ToTensor -> ImageNet Normalize (see src/preprocess.py). The legacy chain
+# (shortest-side resize + CenterCrop) is one env var away for bit-exact parity
+# with the exported ONNX/Flutter preprocessor:
+#     BREEDID_PAD_TO_SQUARE=0 python test_model.py
+TRANSFORM = inference_transform(pad=INFERENCE_PAD_TO_SQUARE)
+_PREPROCESS_DESC = ("PadToSquare" if INFERENCE_PAD_TO_SQUARE
+                    else "Resize+CenterCrop")
 
 
 # ---------------------------------------------------------------------------
@@ -584,6 +582,23 @@ class ModelManager:
                 f"Ignored {len(skipped)} checkpoint tensor(s) with mismatched shapes "
                 f"(breed_dim={breed_dim}, binary_dim={binary_dim}): {skipped[:5]}"
             )
+
+        # Trait heads are auxiliary and were never exported, but their trained
+        # tensors are still in the checkpoint. Rebuild them from the state_dict
+        # shapes so hump/horn/coat/... can be predicted at inference time.
+        try:
+            trait_heads = attach_trait_heads(model, state)
+            if trait_heads is not None and logger:
+                meta = trait_heads.trait_meta
+                logger.info(
+                    f"Attached trait heads ({len(meta['fields'])} fields, "
+                    f"in={meta['in_dim']}, hidden={meta['hidden_dim']}, "
+                    f"vocab={meta['source']})"
+                )
+        except Exception as exc:  # never let optional heads break loading
+            if logger:
+                logger.warning(f"Trait heads unavailable: {exc}")
+
         model.to(self.device)
         model.eval()
         info["model"] = model
@@ -765,8 +780,14 @@ class ModelManager:
 
         if logger:
             logger.debug(f"Image decoded: {img.width}×{img.height} → "
-                         f"shortest-side resize {_EVAL_RESIZE} + center-crop "
-                         f"{IMAGE_SIZE}")
+                         f"{_PREPROCESS_DESC} → {IMAGE_SIZE}×{IMAGE_SIZE}")
+
+        # Pre-inference quality gate (advisory, a few ms).
+        quality = analyze_image_quality(img)
+        if logger and quality.get("issues"):
+            logger.info(f"Quality gate: score={quality['score']} "
+                        f"issues={','.join(quality['issues'])} "
+                        f"({quality['latency_ms']} ms)")
 
         tensor = TRANSFORM(img).unsqueeze(0)
         info = self.models[model_name]
@@ -782,6 +803,7 @@ class ModelManager:
             logger.debug(f"Starting inference on tensor shape {list(tensor.shape)}")
 
         inference_start = time.time()
+        pooled_features = None
 
         if info.get("type") == "onnx":
             # ONNX Inference
@@ -799,6 +821,11 @@ class ModelManager:
             binary_logits = out["binary"][0]
             cattle_logits = out["cattle"][0]
             buffalo_logits = out["buffalo"][0]
+            # Pooled 1280-d features feed the auxiliary trait heads. ONNX
+            # exports omit them, so traits are simply absent on that path.
+            pooled_features = out.get("features")
+            if pooled_features is not None:
+                pooled_features = pooled_features[0:1]
 
         inference_time = time.time() - inference_start
 
@@ -811,6 +838,10 @@ class ModelManager:
             is_ood, ood_score, ood_details = detector.is_ood(
                 binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
             )
+
+        # Plain-language OOD explanation for the farmer (energy/MSP kept under
+        # .technical for developer views).
+        ood_explanation = explain_ood_for_user(is_ood, ood_details, quality)
 
         # --- Soft species routing -------------------------------------------
         # Instead of a hard binary argmax (which forces every sample down one
@@ -849,12 +880,51 @@ class ModelManager:
                 display_name = breed.replace("_", " ").title()
                 top5.append({
                     "breed": display_name,
+                    "breed_slug": breed,
                     "confidence": round(prob * 100, 2),
                 })
     
             species_idx = 0 if int(top5_idxs[0]) < n_cattle else 1
             species_name = SPECIES_LABELS[species_idx]
             species_conf = binary_probs[species_idx].item() * 100
+
+        # --- Post-hoc attributes: traits + gender + age ---------------------
+        # Runs after the breed decision and only on in-distribution images.
+        attributes_start = time.time()
+        trait_logits, trait_vocab, trait_meta = {}, {}, {
+            "available": False, "reason": "onnx" if info.get("type") == "onnx"
+            else "no_trait_heads"}
+        if pooled_features is not None and not is_ood:
+            trait_logits, trait_meta = predict_traits(model, pooled_features)
+            trait_vocab = getattr(getattr(model, "trait_heads", None), "vocab", {})
+        attributes = build_attribute_report(
+            img,
+            species=species_name,
+            breed=top5[0]["breed"] if top5 else None,
+            is_ood=is_ood,
+            trait_logits=trait_logits,
+            trait_vocab=trait_vocab,
+            trait_meta=trait_meta,
+        )
+        attributes_time = time.time() - attributes_start
+
+        # --- Farmer / general-public advisory -------------------------------
+        knowledge_start = time.time()
+        top_slug = (top5[0].get("breed_slug") if top5 else None)
+        if is_ood or not top_slug:
+            knowledge = {"skipped": True,
+                         "reason": "out_of_distribution" if is_ood else "unknown_breed"}
+        else:
+            try:
+                from src.breed_knowledge import get_farmer_advisory
+                knowledge = get_farmer_advisory(
+                    species_name, top_slug,
+                    attributes["gender"].get("short_label"),
+                    attributes["age_group"].get("short_label"),
+                )
+            except Exception as exc:  # advisory must never fail a prediction
+                knowledge = {"error": f"{type(exc).__name__}: {exc}"}
+        knowledge_time = time.time() - knowledge_start
 
         total_time = time.time() - predict_start
 
@@ -871,12 +941,25 @@ class ModelManager:
             "top_breed": top5[0]["breed"] if top5 else "Unknown",
             "top_breed_confidence": top5[0]["confidence"] if top5 else 0,
             "top5_breeds": top5,
+            # --- enriched attributes (never fatal if unavailable) ----------
+            "gender": attributes["gender"],
+            "age_group": attributes["age_group"],
+            "traits": attributes["traits"],
+            "traits_detail": attributes["traits_detail"],
+            "attributes_meta": attributes["attributes_meta"],
+            "traits_meta": attributes["traits_meta"],
+            "knowledge": knowledge,
             "model_used": model_name,
             "inference_time_ms": round(inference_time * 1000, 1),
+            "attributes_time_ms": round(attributes_time * 1000, 1),
+            "knowledge_time_ms": round(knowledge_time * 1000, 3),
             "total_time_ms": round(total_time * 1000, 1),
             "routing": "soft",
             "ood": is_ood,
             "ood_score": round(ood_score, 4) if (is_ood or ood_score != 0.0) else None,
+            "ood_explanation": ood_explanation,
+            "quality": quality,
+            "quality_latency_ms": quality.get("latency_ms"),
             "ood_profile": detector.profile_name if detector else "Disabled",
             "ood_thresholds": {
                 "energy": detector.energy_threshold,
@@ -912,6 +995,12 @@ class ModelManager:
                       top_breed=result.get("top_breed"),
                       top_breed_confidence=result.get("top_breed_confidence"),
                       top5=[b["breed"] for b in result.get("top5_breeds", [])],
+                      gender=result.get("gender", {}).get("short_label"),
+                      age_group=result.get("age_group", {}).get("short_label"),
+                      traits=result.get("traits") or None,
+                      quality_score=result.get("quality", {}).get("score"),
+                      quality_issues=result.get("quality", {}).get("issues"),
+                      ood_explanation=result.get("ood_explanation", {}).get("code"),
                       latency_ms=result.get("inference_time_ms"),
                       routing=result.get("routing"))
         except Exception:
@@ -2655,6 +2744,48 @@ def run_server(manager, port=8501, mode="dev"):
                     self._respond(500, "application/json",
                                   json.dumps({"error": str(e)}).encode())
 
+            elif self.path.startswith("/api/breed-knowledge"):
+                from urllib.parse import unquote, urlparse
+                from src.breed_knowledge import (get_breed_knowledge,
+                                                 get_farmer_advisory,
+                                                 list_breeds)
+                clean = urlparse(self.path).path.rstrip("/")
+                if clean == "/api/breed-knowledge":
+                    payload = {
+                        "count": len(list_breeds()),
+                        "breeds": [{"species": sp, "slug": slug, "display_name": name}
+                                   for sp, slug, name in list_breeds()],
+                        "advisory_options": {"gender": ["Female", "Male"],
+                                             "age_group": ["Calf", "Young", "Adult"]},
+                    }
+                    self._respond(200, "application/json",
+                                  json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+                    return
+
+                parts = clean.split("/")
+                if len(parts) < 5:
+                    self._respond(400, "application/json",
+                                  json.dumps({"error": "Expected /api/breed-knowledge/<species>/<breed>"}).encode())
+                    return
+                species, breed = unquote(parts[3]), unquote(parts[4])
+                started = time.perf_counter()
+                entry = get_breed_knowledge(species, breed)
+                if entry is None:
+                    self._respond(404, "application/json",
+                                  json.dumps({"error": f"Unknown breed '{breed}' for species '{species}'"}).encode())
+                    return
+                payload = {
+                    "species": entry["species"],
+                    "breed": entry["slug"],
+                    "knowledge": entry,
+                    "advisory": get_farmer_advisory(species, breed),
+                    "advisory_options": {"gender": ["Female", "Male"],
+                                         "age_group": ["Calf", "Young", "Adult"]},
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 3),
+                }
+                self._respond(200, "application/json",
+                              json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+
             elif self.path == "/api/presenter-config":
                 cfg = load_presenter_config()
                 self._respond(200, "application/json", json.dumps(cfg).encode())
@@ -2818,6 +2949,43 @@ def run_server(manager, port=8501, mode="dev"):
                 if logger:
                     logger.info(f"Image metadata extracted: {meta.get('width', '?')}×{meta.get('height', '?')} {meta.get('format', '?')}")
                 self._respond(200, "application/json", json.dumps(meta).encode())
+
+            elif self.path == "/api/advisory-recalculate":
+                content_length = int(self.headers.get("Content-Length", 0))
+                raw = self.rfile.read(content_length)
+                try:
+                    payload = json.loads(raw.decode("utf-8")) if raw else {}
+                except Exception as e:
+                    self._respond(400, "application/json",
+                                  json.dumps({"error": f"Invalid JSON body: {e}"}).encode())
+                    return
+
+                species = payload.get("species")
+                breed = payload.get("breed") or payload.get("breed_slug")
+                if not species or not breed:
+                    self._respond(400, "application/json",
+                                  json.dumps({"error": "Both 'species' and 'breed' are required"}).encode())
+                    return
+
+                from src.breed_knowledge import get_farmer_advisory
+                started = time.perf_counter()
+                advisory = get_farmer_advisory(
+                    species, breed,
+                    payload.get("gender"),
+                    payload.get("age_group") or payload.get("age"),
+                )
+                if "error" in advisory:
+                    self._respond(404, "application/json",
+                                  json.dumps({"error": advisory["error"]}).encode())
+                    return
+
+                body = {
+                    "advisory": advisory,
+                    "context": advisory.get("context"),
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 3),
+                }
+                self._respond(200, "application/json",
+                              json.dumps(body, ensure_ascii=False).encode("utf-8"))
 
             elif self.path == "/api/presenter-config":
                 content_length = int(self.headers.get("Content-Length", 0))

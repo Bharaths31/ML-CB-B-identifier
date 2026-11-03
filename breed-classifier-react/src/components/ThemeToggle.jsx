@@ -43,9 +43,9 @@ const THEME_KEY = "breed-classifier-theme";
 function readStoredTheme() {
   try {
     const stored = localStorage.getItem(THEME_KEY);
-    return THEMES.some((item) => item.id === stored) ? stored : "dark";
+    return THEMES.some((item) => item.id === stored) ? stored : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
