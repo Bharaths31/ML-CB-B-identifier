@@ -7,7 +7,7 @@ import { TRAIT_FIELDS } from "../data/breedTraits.js";
  * farmer can confirm or reject. Purely client-side; no extra request.
  */
 export default function TraitChecklist({ traits }) {
-  const { t } = useI18n();
+  const { t, tTrait, tTraitValue } = useI18n();
   const fields = TRAIT_FIELDS.filter((field) => traits?.[field.key]);
   const [checked, setChecked] = useState({});
 
@@ -47,8 +47,10 @@ export default function TraitChecklist({ traits }) {
               />
               <span className="trait-chip-check" aria-hidden="true">{isOn ? "✓" : "+"}</span>
               <span className="trait-chip-text">
-                <span className="trait-chip-label">{field.label}</span>
-                <span className="trait-chip-value">{traits[field.key]}</span>
+                <span className="trait-chip-label">{tTrait(field.key)}</span>
+                <span className="trait-chip-value">
+                  {tTraitValue(field.key, traits[field.key])}
+                </span>
               </span>
             </label>
           );

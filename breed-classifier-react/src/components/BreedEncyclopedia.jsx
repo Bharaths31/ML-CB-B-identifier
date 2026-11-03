@@ -12,7 +12,7 @@ function Field({ label, value }) {
 
 /** Public-facing breed heritage panel, fed by /api/breed-knowledge. */
 export default function BreedEncyclopedia({ entry, summary, loading }) {
-  const { t, lang } = useI18n();
+  const { t, lang, tBreed, tDynamic } = useI18n();
 
   if (loading) return <p className="advanced-result-note">{t("encyclopedia.loading")}</p>;
   if (!entry) return <p className="advanced-result-note">{t("encyclopedia.unavailable")}</p>;
@@ -23,16 +23,17 @@ export default function BreedEncyclopedia({ entry, summary, loading }) {
   const climate = entry.climate_and_disease_resistance || {};
   const isRare = entry.data_confidence === "regional_default"
     || String(entry.utility_type || "").toLowerCase().includes("ornamental");
+  const displayName = tBreed(entry.slug || entry.display_name);
 
   return (
     <div className="breed-encyclopedia">
       <header className="encyclopedia-head">
         <div>
-          <h3>{entry.display_name}</h3>
+          <h3>{displayName}</h3>
           <p>{entry.origin_region}</p>
         </div>
         <span className={`encyclopedia-badge ${isRare ? "is-rare" : ""}`}>
-          {isRare ? "NBAGR · " + t("encyclopedia.conservation") : entry.utility_type}
+          {isRare ? "NBAGR · " + t("encyclopedia.conservation") : tDynamic("utility", entry.utility_type)}
         </span>
       </header>
 
@@ -40,7 +41,7 @@ export default function BreedEncyclopedia({ entry, summary, loading }) {
         <Field label={t("encyclopedia.localNames")}
                value={localPairs.map(([, name]) => name).join(" · ") || entry.display_name} />
         <Field label={t("encyclopedia.nativeTract")} value={entry.origin_region} />
-        <Field label={t("encyclopedia.utility")} value={entry.utility_type} />
+        <Field label={t("encyclopedia.utility")} value={tDynamic("utility", entry.utility_type)} />
         <Field label={t("encyclopedia.market")} value={entry.estimated_market_price_inr} />
       </div>
 
@@ -54,8 +55,8 @@ export default function BreedEncyclopedia({ entry, summary, loading }) {
 
       <h4 className="section-subtitle">{t("encyclopedia.climate")}</h4>
       <div className="advanced-quality-grid">
-        <Field label={t("advisory.heat")} value={climate.heat_tolerance} />
-        <Field label="Ticks / parasites" value={climate.tick_parasite_resistance} />
+        <Field label={t("advisory.heat")} value={tDynamic("climate", climate.heat_tolerance)} />
+        <Field label={t("encyclopedia.ticks")} value={tDynamic("climate", climate.tick_parasite_resistance)} />
         <Field label={t("advisory.water")} value={entry.feeding_and_care?.water_liters_per_day} />
       </div>
       {climate.disease_notes && <p className="advanced-result-note">{climate.disease_notes}</p>}
@@ -88,3 +89,4 @@ export default function BreedEncyclopedia({ entry, summary, loading }) {
     </div>
   );
 }
+

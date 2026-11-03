@@ -7,7 +7,7 @@ import { useI18n } from "../i18n/I18nProvider.jsx";
  * language directly instead of maintaining a second translation table.
  */
 export default function PhotoGuidance({ result }) {
-  const { lang, t } = useI18n();
+  const { lang, t, tDynamic } = useI18n();
 
   const quality = result?.quality;
   const explanation = result?.ood_explanation;
@@ -50,7 +50,8 @@ export default function PhotoGuidance({ result }) {
 
       {qualityIssues && (
         <p className="advanced-result-note">
-          {t("photoCheck.issues")}: {quality.issues.join(", ")}
+          {t("photoCheck.issues")}:{" "}
+          {quality.issues.map((issue) => tDynamic("quality", issue)).join(" · ")}
         </p>
       )}
     </section>

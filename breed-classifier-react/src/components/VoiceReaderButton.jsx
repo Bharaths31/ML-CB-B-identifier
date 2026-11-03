@@ -1,69 +1,68 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 
-const LOCALES = { en: "en-IN", ta: "ta-IN", hi: "hi-IN" };
-
 /**
- * Reads the prediction aloud with the browser's native speech synthesis.
- * Locale follows the UI language (en-IN / ta-IN / hi-IN). No dependencies.
+ * Reads the localized prediction aloud using speechSynthesis.
+ *
+ * The spoken sentence is built from the *translated* species, breed, gender,
+ * age and milk-yield strings, and the voice is selected for ta-IN / hi-IN /
+ * en-IN so Tamil and Hindi are not read with an English accent.
  */
-export default function VoiceReaderButton({ result, advisory, className = "" }) {
-  const { t, lang } = useI18n();
+export default function VoiceReaderButton({ result, advisory }) {
+  const { t, lang, tBreed, tDynamic, speakText, stopSpeaking } = useI18n();
   const [speaking, setSpeaking] = useState(false);
-  const utteranceRef = useRef(null);
+  const mounted = useRef(true);
 
   const supported =
     typeof window !== "undefined" && "speechSynthesis" in window;
 
-  const text = useMemo(() => buildScript(result, advisory, t), [result, advisory, t]);
+  const text = useMemo(
+    () => buildScript({ result, advisory, t, tBreed, tDynamic }),
+    [result, advisory, t, tBreed, tDynamic]
+  );
 
-  useEffect(() => () => {
-    if (supported) window.speechSynthesis.cancel();
-  }, [supported]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      stopSpeaking();
+    };
+  }, [stopSpeaking]);
 
-  const stop = () => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
+  // Switching language must stop an in-flight English readout.
+  useEffect(() => {
+    stopSpeaking();
     setSpeaking(false);
-  };
-
-  const speak = () => {
-    if (!supported || !text) return;
-    if (speaking) {
-      stop();
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = LOCALES[lang] || "en-IN";
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const match =
-      voices.find((v) => v.lang === utterance.lang) ||
-      voices.find((v) => v.lang?.startsWith(lang));
-    if (match) utterance.voice = match;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    utteranceRef.current = utterance;
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  };
+  }, [lang, stopSpeaking]);
 
   if (!supported) {
     return (
-      <button type="button" className={`btn btn-outline voice-btn ${className}`} disabled
+      <button type="button" className="btn btn-outline voice-btn" disabled
               title={t("result.noSpeech")}>
         🔊 {t("result.listen")}
       </button>
     );
   }
 
+  const handleClick = () => {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+      return;
+    }
+    const started = speakText(text, {
+      onEnd: () => {
+        if (mounted.current) setSpeaking(false);
+      },
+    });
+    if (started) setSpeaking(true);
+  };
+
   return (
     <button
       type="button"
-      className={`btn btn-outline voice-btn ${speaking ? "is-speaking" : ""} ${className}`}
-      onClick={speak}
+      className={`btn btn-outline voice-btn ${speaking ? "is-speaking" : ""}`}
+      onClick={handleClick}
       aria-pressed={speaking}
       title={t("result.listen")}
     >
@@ -73,22 +72,23 @@ export default function VoiceReaderButton({ result, advisory, className = "" }) 
   );
 }
 
-function buildScript(result, advisory, t) {
+function buildScript({ result, advisory, t, tBreed, tDynamic }) {
   if (!result || result.error) return "";
-  const species = result.predicted_species || result.species || "";
-  const breed = (result.predicted_breed || result.top_breed || "").replace(/_/g, " ");
-  const gender = result.gender?.key || result.gender?.short_label || "";
-  const age = result.age_group?.key || result.age_group?.short_label || "";
-  const genderWord = gender ? t(`advisory.${String(gender).toLowerCase()}`) : "";
-  const ageWord = age ? t(`advisory.${String(age).toLowerCase()}`) : "";
-  const milk = advisory?.production?.milk?.daily_yield || result.knowledge?.production?.milk?.daily_yield;
+  const species = tDynamic("species", result.predicted_species || result.species);
+  const breed = tBreed(result.predicted_breed || result.top_breed);
+  const genderKey = result.gender?.key;
+  const ageKey = result.age_group?.key;
+  const gender = genderKey ? tDynamic("gender", genderKey) : "";
+  const age = ageKey ? tDynamic("age", ageKey) : "";
+  const milk =
+    advisory?.production?.milk?.daily_yield ||
+    result.knowledge?.production?.milk?.daily_yield;
 
-  const parts = [
-    `${t("hero.species")}: ${species}.`,
+  return [
+    species ? `${t("hero.species")}: ${species}.` : "",
     breed ? `${t("hero.breed")}: ${breed}.` : "",
-    genderWord ? `${t("hero.gender")}: ${genderWord}.` : "",
-    ageWord ? `${t("hero.age")}: ${ageWord}.` : "",
+    gender ? `${t("hero.gender")}: ${gender}.` : "",
+    age ? `${t("hero.age")}: ${age}.` : "",
     milk ? `${t("advisory.dailyYield")}: ${milk}.` : "",
-  ];
-  return parts.filter(Boolean).join(" ");
+  ].filter(Boolean).join(" ");
 }

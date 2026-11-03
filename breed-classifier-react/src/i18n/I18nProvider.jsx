@@ -1,39 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getStoredLanguage, STORAGE_KEY, TRANSLATIONS, translate } from "./translations.js";
-
-const I18nContext = createContext({
-  lang: "en",
-  setLang: () => {},
-  t: (key) => key,
-});
-
-export function I18nProvider({ children }) {
-  const [lang, setLangState] = useState(getStoredLanguage);
-
-  const setLang = useCallback((next) => {
-    if (!TRANSLATIONS[next]) return;
-    setLangState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute(
-      "lang",
-      lang === "ta" ? "ta-IN" : lang === "hi" ? "hi-IN" : "en-IN"
-    );
-  }, [lang]);
-
-  const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
-
-  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
-
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
-}
-
-export function useI18n() {
-  return useContext(I18nContext);
-}
+/**
+ * Backwards-compatible entry point.
+ *
+ * Older components import `{ I18nProvider, useI18n }` from this file; the
+ * implementation now lives in LanguageContext.jsx so there is a single
+ * reactive source of truth for language, dynamic localization and TTS.
+ */
+export {
+  LanguageProvider as I18nProvider,
+  LanguageProvider,
+  useLanguage as useI18n,
+  useLanguage,
+  LANGUAGES,
+} from "./LanguageContext.jsx";

@@ -38,13 +38,16 @@ export default function HeroFourGrid({
   onAgeChange,
   breedKnowledge,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, tBreed, tDynamic } = useI18n();
   const isOod = Boolean(result?.is_ood ?? result?.ood);
   const species = result?.predicted_species || result?.species || "";
   const speciesKey = String(species).toLowerCase().startsWith("buff") ? "buffalo" : "cattle";
   const speciesIcon = speciesKey === "buffalo" ? "🐃" : "🐄";
-  const speciesLabel = isOod ? t("hero.unknown") : species;
-  const breed = (result?.predicted_breed || result?.top_breed || "").replace(/_/g, " ");
+  const speciesLabel = isOod
+    ? t("hero.unknown")
+    : tDynamic("species", species) || species;
+  const breedRaw = result?.predicted_breed || result?.top_breed || "";
+  const breed = isOod ? t("hero.unknown") : tBreed(breedRaw);
   const top = Array.isArray(result?.top5_breeds) ? result.top5_breeds : [];
   const alternatives = top.slice(1, 4).filter((item) => item?.breed);
   const localNames = breedKnowledge?.local_names || result?.knowledge?.breed?.local_names || {};
@@ -85,7 +88,7 @@ export default function HeroFourGrid({
           <div className="hero-alt-pills" aria-label={t("hero.topAlternatives")}>
             {alternatives.map((item) => (
               <span key={item.breed} className="hero-alt-pill">
-                {item.breed} · {Math.round(pct(item.confidence))}%
+                {tBreed(item.breed)} · {Math.round(pct(item.confidence))}%
               </span>
             ))}
           </div>
@@ -102,7 +105,7 @@ export default function HeroFourGrid({
           </span>
         </header>
         <h3 className="hero-value">
-          {isOod ? t("hero.unknown") : (genderBlock.label || t("hero.unknown"))}
+          {isOod ? t("hero.unknown") : (tDynamic("gender", genderBlock.key) || t("hero.unknown"))}
         </h3>
         {genderBlock.method && (
           <p className="hero-method">
@@ -138,7 +141,7 @@ export default function HeroFourGrid({
           </span>
         </header>
         <h3 className="hero-value">
-          {isOod ? t("hero.unknown") : (ageBlock.short_label || t("hero.unknown"))}
+          {isOod ? t("hero.unknown") : (tDynamic("age", ageBlock.key) || t("hero.unknown"))}
         </h3>
         <div className="hero-verify-row" role="group" aria-label={t("hero.verify")}>
           {AGES.map((option) => (

@@ -27,7 +27,7 @@ export default function ResultWorkspace({
   onRetake,
   onOpenAdvanced,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, tBreed, tDynamic } = useI18n();
   const isOod = Boolean(result?.is_ood ?? result?.ood);
 
   const [gender, setGender] = useState(null);
@@ -43,8 +43,25 @@ export default function ResultWorkspace({
   const species = result?.predicted_species || result?.species;
   const breedSlug =
     result?.knowledge?.breed?.slug || result?.top5_breeds?.[0]?.breed_slug || null;
-  const breedName =
-    result?.predicted_breed || result?.top_breed || result?.knowledge?.breed?.display_name || "";
+  const breedName = result?.predicted_breed || result?.top_breed || result?.knowledge?.breed?.display_name || "";
+  const localizedBreed = tBreed(breedName);
+
+  const localizedResult = useMemo(() => {
+    if (!result) return result;
+    return {
+      ...result,
+      predicted_breed: localizedBreed,
+      species: tDynamic("species", result.predicted_species || result.species),
+      gender: {
+        ...(result.gender || {}),
+        label: tDynamic("gender", result.gender?.key),
+      },
+      age_group: {
+        ...(result.age_group || {}),
+        label: tDynamic("age", result.age_group?.key),
+      },
+    };
+  }, [result, localizedBreed, tDynamic]);
 
   // A new prediction resets every override.
   useEffect(() => {
@@ -131,7 +148,7 @@ export default function ResultWorkspace({
 
   const handleDownload = () => {
     const opened = downloadFarmerReport({
-      result,
+      result: localizedResult,
       advisory,
       quality,
       imageUrl: previewUrl,
@@ -155,7 +172,7 @@ export default function ResultWorkspace({
           <span className="workspace-kicker">
             {isOod ? t("result.oodBadge") : t("result.predictedBreed")}
           </span>
-          <h2>{isOod ? t("result.oodTitle") : breedName || t("hero.unknown")}</h2>
+          <h2>{isOod ? t("result.oodTitle") : localizedBreed || t("hero.unknown")}</h2>
         </div>
         <div className="workspace-actions">
           <VoiceReaderButton result={result} advisory={advisory} />

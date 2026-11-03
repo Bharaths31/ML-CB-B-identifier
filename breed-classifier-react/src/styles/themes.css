@@ -1,0 +1,332 @@
+/* ==========================================================================
+   BreedID — 4-theme AgriTech system
+   Loaded after styles.css so these variables win. Each theme defines the new
+   --bg-primary/--accent-primary API *and* aliases the legacy variable names
+   used by the existing component CSS.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap");
+
+/* --------------------------------------------------------------------------
+   1. emerald-obsidian — Fresh Green & Light Black (default hero theme)
+   -------------------------------------------------------------------------- */
+:root,
+[data-theme="emerald-obsidian"] {
+  --bg-primary: #121614;
+  --bg-secondary: #1a201d;
+  --bg-tertiary: #232b27;
+  --border-subtle: #2e3a33;
+  --border-focus: #34d399;
+  --text-primary: #f0fdf4;
+  --text-secondary: #a7f3d0;
+  --text-muted: #86968e;
+  --accent-primary: #10b981;
+  --accent-secondary: #34d399;
+  --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --badge-cattle-bg: rgba(245, 158, 11, 0.15);
+  --badge-cattle-text: #fbbf24;
+  --badge-buffalo-bg: rgba(16, 185, 129, 0.15);
+  --badge-buffalo-text: #34d399;
+
+  /* Legacy aliases consumed by the 125 KB component stylesheet */
+  --bg: var(--bg-primary);
+  --bg-gradient: radial-gradient(ellipse at 15% 0%, rgba(16, 185, 129, 0.10) 0%, transparent 55%),
+                 radial-gradient(ellipse at 90% 100%, rgba(52, 211, 153, 0.07) 0%, transparent 55%);
+  --surface: var(--bg-secondary);
+  --surface-glass: rgba(26, 32, 29, 0.82);
+  --surface2: var(--bg-tertiary);
+  --surface3: #2b3530;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: rgba(16, 185, 129, 0.28);
+  --green: var(--accent-primary);
+  --green-gradient: linear-gradient(135deg, #059669, #34d399);
+  --green-bg: rgba(16, 185, 129, 0.12);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245, 158, 11, 0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 14px 40px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(52, 211, 153, 0.05);
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   2. meadow-daylight — high-sunlight field theme
+   -------------------------------------------------------------------------- */
+[data-theme="meadow-daylight"] {
+  --bg-primary: #f4fbf7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e6f4ed;
+  --border-subtle: #cbe5d8;
+  --border-focus: #10b981;
+  --text-primary: #0f291e;
+  --text-secondary: #2d5a44;
+  --text-muted: #5c7f6e;
+  --accent-primary: #059669;
+  --accent-secondary: #10b981;
+  --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --badge-cattle-bg: rgba(217, 119, 6, 0.14);
+  --badge-cattle-text: #b45309;
+  --badge-buffalo-bg: rgba(5, 150, 105, 0.14);
+  --badge-buffalo-text: #047857;
+
+  --bg: var(--bg-primary);
+  --bg-gradient: radial-gradient(ellipse at 15% 0%, rgba(5, 150, 105, 0.07) 0%, transparent 55%),
+                 radial-gradient(ellipse at 90% 100%, rgba(16, 185, 129, 0.06) 0%, transparent 55%);
+  --surface: var(--bg-secondary);
+  --surface-glass: rgba(255, 255, 255, 0.9);
+  --surface2: var(--bg-tertiary);
+  --surface3: #d9ece2;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: rgba(5, 150, 105, 0.16);
+  --green: #047857;
+  --green-gradient: linear-gradient(135deg, #059669, #10b981);
+  --green-bg: rgba(5, 150, 105, 0.10);
+  --amber: #d97706;
+  --amber-bg: rgba(217, 119, 6, 0.10);
+  --red: #dc2626;
+  --red-bg: rgba(220, 38, 38, 0.09);
+  --shadow-sm: 0 2px 8px rgba(15, 41, 30, 0.06);
+  --shadow-card: 0 12px 32px -6px rgba(15, 41, 30, 0.10), 0 0 0 1px rgba(15, 41, 30, 0.04);
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   3. earthy-harvest — warm terracotta, olive shoots and harvest gold
+   -------------------------------------------------------------------------- */
+[data-theme="earthy-harvest"] {
+  --bg-primary: #181614;
+  --bg-secondary: #221f1b;
+  --bg-tertiary: #2d2923;
+  --border-subtle: #3d372e;
+  --border-focus: #84cc16;
+  --text-primary: #faf5ee;
+  --text-secondary: #e6d5b8;
+  --text-muted: #9e9382;
+  --accent-primary: #84cc16;
+  --accent-secondary: #f59e0b;
+  --accent-gradient: linear-gradient(135deg, #65a30d 0%, #d97706 100%);
+  --badge-cattle-bg: rgba(245, 158, 11, 0.16);
+  --badge-cattle-text: #fbbf24;
+  --badge-buffalo-bg: rgba(132, 204, 22, 0.15);
+  --badge-buffalo-text: #a3e635;
+
+  --bg: var(--bg-primary);
+  --bg-gradient: radial-gradient(ellipse at 15% 0%, rgba(132, 204, 22, 0.08) 0%, transparent 55%),
+                 radial-gradient(ellipse at 90% 100%, rgba(217, 119, 6, 0.08) 0%, transparent 55%);
+  --surface: var(--bg-secondary);
+  --surface-glass: rgba(34, 31, 27, 0.84);
+  --surface2: var(--bg-tertiary);
+  --surface3: #383229;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: rgba(132, 204, 22, 0.22);
+  --green: var(--accent-primary);
+  --green-gradient: linear-gradient(135deg, #65a30d, #84cc16);
+  --green-bg: rgba(132, 204, 22, 0.12);
+  --amber: var(--accent-secondary);
+  --amber-bg: rgba(245, 158, 11, 0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 14px 40px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(230, 213, 184, 0.05);
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   4. aqua-pasture — monsoon breeze, teal + soft onyx (clinical)
+   -------------------------------------------------------------------------- */
+[data-theme="aqua-pasture"] {
+  --bg-primary: #11171a;
+  --bg-secondary: #182126;
+  --bg-tertiary: #212d34;
+  --border-subtle: #2c3d46;
+  --border-focus: #2dd4bf;
+  --text-primary: #ecfeff;
+  --text-secondary: #a5f3fc;
+  --text-muted: #7e97a6;
+  --accent-primary: #14b8a6;
+  --accent-secondary: #2dd4bf;
+  --accent-gradient: linear-gradient(135deg, #0d9488 0%, #10b981 100%);
+  --badge-cattle-bg: rgba(245, 158, 11, 0.15);
+  --badge-cattle-text: #fbbf24;
+  --badge-buffalo-bg: rgba(45, 212, 191, 0.15);
+  --badge-buffalo-text: #5eead4;
+
+  --bg: var(--bg-primary);
+  --bg-gradient: radial-gradient(ellipse at 15% 0%, rgba(20, 184, 166, 0.10) 0%, transparent 55%),
+                 radial-gradient(ellipse at 90% 100%, rgba(45, 212, 191, 0.07) 0%, transparent 55%);
+  --surface: var(--bg-secondary);
+  --surface-glass: rgba(24, 33, 38, 0.84);
+  --surface2: var(--bg-tertiary);
+  --surface3: #293840;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: rgba(20, 184, 166, 0.25);
+  --green: var(--accent-primary);
+  --green-gradient: linear-gradient(135deg, #0d9488, #2dd4bf);
+  --green-bg: rgba(20, 184, 166, 0.12);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245, 158, 11, 0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 14px 40px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(45, 212, 191, 0.05);
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   Typography — native scripts need extra line-height so that Tamil/Devanagari
+   vowel markers (above and below the baseline) never clip inside cards.
+   -------------------------------------------------------------------------- */
+html {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+html[lang="ta"] body,
+html[lang="ta"] button,
+html[lang="ta"] input,
+html[lang="ta"] textarea,
+html[lang="ta"] select {
+  font-family: "Noto Sans Tamil", "Latha", "Inter", sans-serif;
+  line-height: 1.65;
+}
+html[lang="hi"] body,
+html[lang="hi"] button,
+html[lang="hi"] input,
+html[lang="hi"] textarea,
+html[lang="hi"] select {
+  font-family: "Noto Sans Devanagari", "Mangal", "Inter", sans-serif;
+  line-height: 1.65;
+}
+html[lang="ta"] .hero-value,
+html[lang="ta"] .hero-card-label,
+html[lang="ta"] .farmer-headline,
+html[lang="ta"] .advanced-quality-grid strong,
+html[lang="hi"] .hero-value,
+html[lang="hi"] .hero-card-label,
+html[lang="hi"] .farmer-headline,
+html[lang="hi"] .advanced-quality-grid strong {
+  line-height: 1.55;
+  padding-block: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   Smooth theme switching
+   -------------------------------------------------------------------------- */
+body,
+.site-header,
+.card-box,
+.advanced-panel,
+.advanced-overlay,
+.result-workspace,
+.hero-card,
+.trait-checklist,
+.result-tab-body,
+.photo-guide-modal,
+.photo-guide-card,
+.image-upload,
+.preview-card,
+.dropzone,
+button,
+input,
+select,
+textarea {
+  transition: background-color 0.25s ease, color 0.25s ease,
+              border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* --------------------------------------------------------------------------
+   Glassmorphic utilities (opt-in classes for new surfaces)
+   -------------------------------------------------------------------------- */
+.glass-card,
+.glass-panel {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--shadow-card);
+}
+.glass-pill {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+/* --------------------------------------------------------------------------
+   Theme switcher pill
+   -------------------------------------------------------------------------- */
+.theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+}
+.theme-switcher-btn {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.theme-switcher-btn:hover { transform: scale(1.08); }
+.theme-switcher-btn.is-active { border-color: var(--text-primary); }
+.theme-switcher-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.theme-switcher-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .theme-switcher-label { display: none; }
+  .theme-switcher-btn { width: 34px; height: 34px; }
+}
+
+/* Species badges driven by the theme tokens */
+.species-pill.species-cattle {
+  background: var(--badge-cattle-bg);
+  color: var(--badge-cattle-text);
+}
+.species-pill.species-buffalo {
+  background: var(--badge-buffalo-bg);
+  color: var(--badge-buffalo-text);
+}

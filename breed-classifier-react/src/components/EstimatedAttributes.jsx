@@ -11,7 +11,7 @@ import { TRAIT_FIELDS } from "../data/breedTraits.js";
  * persistence endpoint yet).
  */
 export default function EstimatedAttributes({ result }) {
-  const { t } = useI18n();
+  const { t, tDynamic, tTrait, tTraitValue } = useI18n();
   const [confirmed, setConfirmed] = useState(false);
 
   const gender = result?.gender || {};
@@ -43,7 +43,7 @@ export default function EstimatedAttributes({ result }) {
           <div>
             <span>{t("attributes.gender")}</span>
             <strong>
-              {gender.short_label || gender.label}
+              {tDynamic("gender", gender.key) || gender.label}
               {typeof gender.confidence === "number"
                 ? ` · ${Math.round(gender.confidence)}%`
                 : ""}
@@ -54,7 +54,7 @@ export default function EstimatedAttributes({ result }) {
           <div>
             <span>{t("attributes.age")}</span>
             <strong>
-              {age.short_label || age.label}
+              {tDynamic("age", age.key) || age.label}
               {typeof age.confidence === "number"
                 ? ` · ${Math.round(age.confidence)}%`
                 : ""}
@@ -69,8 +69,8 @@ export default function EstimatedAttributes({ result }) {
           <div className="advanced-quality-grid">
             {traitFields.map((field) => (
               <div key={field.key}>
-                <span>{field.label}</span>
-                <strong>{traits[field.key]}</strong>
+                <span>{tTrait(field.key)}</span>
+                <strong>{tTraitValue(field.key, traits[field.key])}</strong>
               </div>
             ))}
           </div>
@@ -103,3 +103,4 @@ export default function EstimatedAttributes({ result }) {
     </section>
   );
 }
+

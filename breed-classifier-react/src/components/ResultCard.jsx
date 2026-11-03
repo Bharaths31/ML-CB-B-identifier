@@ -23,14 +23,16 @@ export default function ResultCard({
   previewUrl,
   onOpenAdvanced,
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, tBreed, tDynamic } = useI18n();
   const [sharing, setSharing] = useState(false);
 
   if (!result) return null;
 
   const isOod = Boolean(result.is_ood);
-  const species = result.predicted_species || result.species || "Cattle";
-  const breed = (result.predicted_breed || result.top_breed || result.breed || "Unknown").replace(/_/g, " ");
+  const species = tDynamic("species", result.predicted_species || result.species) || "Cattle";
+  const breed = tBreed(
+    result.predicted_breed || result.top_breed || result.breed || "Unknown"
+  );
   const confidence = typeof result.confidence === "number" ? result.confidence : 0;
   const top = normalizeTop(result);
   const topProb = top[0]?.prob ?? confidence;
@@ -166,9 +168,9 @@ export default function ResultCard({
             {displayedTop.length > 0 && (
               <div className="compact-top3">
                 {displayedTop.map((item, idx) => (
-                  <div key={`${item.name}-${idx}`} className="compact-top3-row">
+                  <div key={`${tBreed(item.name)}-${idx}`} className="compact-top3-row">
                     <span className="compact-top3-rank">#{idx + 1}</span>
-                    <span className="compact-top3-name">{item.name}</span>
+                    <span className="compact-top3-name">{tBreed(item.name)}</span>
                     <span className="compact-top3-pct">{Math.round(item.prob * 100)}%</span>
                   </div>
                 ))}
@@ -194,3 +196,4 @@ export default function ResultCard({
     </div>
   );
 }
+

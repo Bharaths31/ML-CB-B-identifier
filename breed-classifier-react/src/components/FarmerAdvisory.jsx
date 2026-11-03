@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { recalculateAdvisory } from "../api.js";
+import FarmerAdvisoryCard from "./FarmerAdvisoryCard.jsx";
 
 const GENDERS = [
   { key: "Female", labelKey: "advisory.female" },
@@ -13,14 +14,12 @@ const AGES = [
 ];
 
 /**
- * Farmer / general-public advisory card.
- *
- * The backend attaches `knowledge` to every in-distribution prediction. The
- * gender/age chips re-query POST /api/advisory-recalculate (~0.1 ms) so the
- * card updates instantly without re-running image inference.
+ * Advanced-drawer advisory with gender/age overrides. The heavy rendering and
+ * all dynamic localization live in FarmerAdvisoryCard so the drawer and the
+ * main workspace cannot diverge.
  */
 export default function FarmerAdvisory({ result }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const initial = result?.knowledge;
 
   const [advisory, setAdvisory] = useState(initial);
@@ -34,21 +33,15 @@ export default function FarmerAdvisory({ result }) {
   const species = breed?.species || result?.predicted_species || result?.species;
   const slug = breed?.slug;
 
-  // A new prediction must reset the local toggles.
   useEffect(() => {
     setAdvisory(initial);
     setGender(initial?.context?.gender || null);
     setAgeGroup(initial?.context?.age_group || null);
     setLatency(null);
     setError("");
-  }, [initial]);
+  }, [initial, lang]);
 
-  const usable = useMemo(
-    () => Boolean(advisory && !advisory.error && !advisory.skipped && advisory.headline),
-    [advisory]
-  );
-
-  if (!usable) return null;
+  if (!initial || initial.error || initial.skipped) return null;
 
   const update = async (nextGender, nextAge) => {
     if (!slug || !species) return;
@@ -64,7 +57,7 @@ export default function FarmerAdvisory({ result }) {
       setAdvisory(data.advisory);
       setLatency(data.latency_ms);
     } catch (err) {
-      setError(err?.message || "Could not refresh advisory");
+      setError(err?.message || t("result.recalculating"));
     } finally {
       setBusy(false);
     }
@@ -81,21 +74,9 @@ export default function FarmerAdvisory({ result }) {
     update(gender, next);
   };
 
-  const milk = advisory.production?.milk;
-  const draught = advisory.production?.draught;
-  const nutrition = advisory.nutrition || {};
-  const health = advisory.health || {};
-  const economics = advisory.economics || {};
-
   return (
     <section className="advanced-result-block farmer-advisory">
       <h4>{t("advisory.title")}</h4>
-      <p className="advanced-result-note">
-        {breed.display_name}
-        {breed.origin_region ? ` · ${breed.origin_region}` : ""}
-        {breed.utility_type ? ` · ${breed.utility_type}` : ""}
-      </p>
-
       <div className="farmer-context-row">
         <div className="farmer-context-group" role="group" aria-label={t("advisory.gender")}>
           <span className="farmer-context-label">{t("advisory.gender")}</span>
@@ -103,7 +84,7 @@ export default function FarmerAdvisory({ result }) {
             <button
               key={option.key}
               type="button"
-              className={`btn btn-sm ${gender === option.key ? "btn-primary" : "btn-outline"}`}
+              className={`hero-pill ${gender === option.key ? "hero-pill-active" : ""}`}
               onClick={() => chooseGender(option.key)}
               disabled={busy}
               aria-pressed={gender === option.key}
@@ -118,7 +99,7 @@ export default function FarmerAdvisory({ result }) {
             <button
               key={option.key}
               type="button"
-              className={`btn btn-sm ${ageGroup === option.key ? "btn-primary" : "btn-outline"}`}
+              className={`hero-pill ${ageGroup === option.key ? "hero-pill-active" : ""}`}
               onClick={() => chooseAge(option.key)}
               disabled={busy}
               aria-pressed={ageGroup === option.key}
@@ -128,114 +109,8 @@ export default function FarmerAdvisory({ result }) {
           ))}
         </div>
       </div>
-
-      {latency != null && (
-        <p className="advanced-result-note">
-          {t("advisory.updatedIn", { ms: latency.toFixed(2) })}
-        </p>
-      )}
       {error && <p className="advanced-result-note">{error}</p>}
-
-      <p className="farmer-headline">{advisory.headline}</p>
-
-      {Array.isArray(advisory.priority_actions) && advisory.priority_actions.length > 0 && (
-        <>
-          <h4 className="section-subtitle">{t("advisory.actions")}</h4>
-          <ol className="farmer-actions">
-            {advisory.priority_actions.map((action, index) => (
-              <li key={index}>{action}</li>
-            ))}
-          </ol>
-        </>
-      )}
-
-      <h4 className="section-subtitle">{t("advisory.nutrition")}</h4>
-      <div className="advanced-quality-grid">
-        <div><span>{t("advisory.greenFodder")}</span><strong>{nutrition.green_fodder || "—"}</strong></div>
-        <div><span>{t("advisory.dryFodder")}</span><strong>{nutrition.dry_fodder || "—"}</strong></div>
-        <div><span>{t("advisory.concentrate")}</span><strong>{nutrition.concentrate || "—"}</strong></div>
-        <div><span>{t("advisory.minerals")}</span><strong>{nutrition.mineral_mixture || "—"}</strong></div>
-        <div><span>{t("advisory.water")}</span><strong>{nutrition.water || "—"}</strong></div>
-      </div>
-      {nutrition.notes && <p className="advanced-result-note">{nutrition.notes}</p>}
-
-      <h4 className="section-subtitle">{t("advisory.production")}</h4>
-      {milk ? (
-        <div className="advanced-quality-grid">
-          <div><span>{t("advisory.dailyYield")}</span><strong>{milk.daily_yield}</strong></div>
-          <div><span>{t("advisory.lactation")}</span><strong>{milk.lactation_yield}</strong></div>
-          <div><span>{t("advisory.fat")}</span><strong>{milk.fat}</strong></div>
-          <div><span>{t("advisory.income")}</span><strong>{milk.estimated_monthly_income_inr}</strong></div>
-        </div>
-      ) : draught ? (
-        <div className="advanced-quality-grid">
-          <div><span>{t("advisory.work")}</span><strong>{draught.work_capacity}</strong></div>
-          <div><span>{t("advisory.load")}</span><strong>{draught.load}</strong></div>
-        </div>
-      ) : (
-        <p className="advanced-result-note">{t("advisory.noProduction")}</p>
-      )}
-      {draught?.note && <p className="advanced-result-note">{draught.note}</p>}
-
-      <h4 className="section-subtitle">{t("advisory.health")}</h4>
-      {Array.isArray(health.vaccination) && (
-        <ul className="farmer-list">
-          {health.vaccination.map((item, index) => <li key={index}>{item}</li>)}
-        </ul>
-      )}
-      {Array.isArray(health.watch_for) && (
-        <>
-          <span className="farmer-context-label">{t("advisory.watchFor")}</span>
-          <ul className="farmer-list">
-            {health.watch_for.map((item, index) => <li key={index}>{item}</li>)}
-          </ul>
-        </>
-      )}
-      {health.deworming_schedule && (
-        <p className="advanced-result-note">
-          {t("advisory.deworming")}: {health.deworming_schedule.join(" → ")}
-        </p>
-      )}
-
-      <h4 className="section-subtitle">{t("advisory.verify")}</h4>
-      <ul className="farmer-list">
-        {(advisory.physical_markers || []).map((marker, index) => (
-          <li key={index}>{marker}</li>
-        ))}
-      </ul>
-
-      <div className="advanced-quality-grid">
-        <div>
-          <span>{t("advisory.price")}</span>
-          <strong>{economics.market_price || "—"}</strong>
-        </div>
-        {advisory.climate?.heat_tolerance && (
-          <div>
-            <span>{t("advisory.heat")}</span>
-            <strong>{advisory.climate.heat_tolerance}</strong>
-          </div>
-        )}
-      </div>
-
-      {Array.isArray(advisory.schemes) && advisory.schemes.length > 0 && (
-        <>
-          <h4 className="section-subtitle">{t("advisory.schemes")}</h4>
-          <ul className="farmer-list">
-            {advisory.schemes.map((scheme, index) => <li key={index}>{scheme}</li>)}
-          </ul>
-        </>
-      )}
-
-      {Array.isArray(advisory.warnings) && advisory.warnings.length > 0 && (
-        <ul className="farmer-list farmer-warnings">
-          {advisory.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
-        </ul>
-      )}
-
-      {breed.data_confidence === "regional_default" && (
-        <p className="advanced-result-note">{t("advisory.regionalDefault")}</p>
-      )}
-      <p className="farmer-disclaimer">{advisory.disclaimer}</p>
+      <FarmerAdvisoryCard advisory={advisory} loading={busy} latencyMs={latency} />
     </section>
   );
 }

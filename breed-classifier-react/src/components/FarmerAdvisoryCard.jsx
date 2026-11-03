@@ -12,26 +12,27 @@ function Row({ label, value }) {
 
 /** Pure presentation of a `get_farmer_advisory` payload. */
 export default function FarmerAdvisoryCard({ advisory, loading, latencyMs }) {
-  const { t } = useI18n();
+  const { t, renderAdvisory } = useI18n();
+  const localized = renderAdvisory(advisory);
 
   if (loading && !advisory) {
     return <p className="advanced-result-note">{t("result.recalculating")}</p>;
   }
-  if (!advisory || advisory.error || advisory.skipped) {
+  if (!localized || localized.error || localized.skipped) {
     return <p className="advanced-result-note">{t("encyclopedia.unavailable")}</p>;
   }
 
-  const milk = advisory.production?.milk;
-  const draught = advisory.production?.draught;
-  const nutrition = advisory.nutrition || {};
-  const health = advisory.health || {};
-  const economics = advisory.economics || {};
-  const breed = advisory.breed || {};
+  const milk = localized.production?.milk;
+  const draught = localized.production?.draught;
+  const nutrition = localized.nutrition || {};
+  const health = localized.health || {};
+  const economics = localized.economics || {};
+  const breed = localized.breed || {};
 
   return (
     <div className={`farmer-advisory-card ${loading ? "is-loading" : ""}`}>
       <div className="advisory-headline-row">
-        <p className="farmer-headline">{advisory.headline}</p>
+        <p className="farmer-headline">{localized.headline}</p>
         {latencyMs != null && (
           <span className="advisory-latency">
             {t("result.recalculatedIn", { ms: Number(latencyMs).toFixed(2) })}
@@ -68,11 +69,11 @@ export default function FarmerAdvisoryCard({ advisory, loading, latencyMs }) {
       )}
       {draught?.note && <p className="advanced-result-note">{draught.note}</p>}
 
-      {Array.isArray(advisory.priority_actions) && (
+      {Array.isArray(localized.priority_actions) && (
         <>
           <h4 className="section-subtitle">{t("advisory.actions")}</h4>
           <ol className="farmer-actions">
-            {advisory.priority_actions.map((action, index) => (
+            {localized.priority_actions.map((action, index) => (
               <li key={index}>{action}</li>
             ))}
           </ol>
@@ -109,11 +110,11 @@ export default function FarmerAdvisoryCard({ advisory, loading, latencyMs }) {
           <span className="advisory-card-kicker">{t("advisory.price")}</span>
           <strong>{economics.market_price || breed.origin_region || "—"}</strong>
         </div>
-        {Array.isArray(advisory.schemes) && (
+        {Array.isArray(localized.schemes) && (
           <div className="advisory-schemes">
-            <span className="advisory-card-kicker">{t("advisory.schemes")}</span>
+            <span className="advisory-card-kicker">{t("localized.schemes")}</span>
             <ul>
-              {advisory.schemes.slice(0, 4).map((scheme, index) => (
+              {localized.schemes.slice(0, 4).map((scheme, index) => (
                 <li key={index}>{scheme}</li>
               ))}
             </ul>
@@ -121,15 +122,16 @@ export default function FarmerAdvisoryCard({ advisory, loading, latencyMs }) {
         )}
       </div>
 
-      {Array.isArray(advisory.warnings) && advisory.warnings.length > 0 && (
+      {Array.isArray(localized.warnings) && localized.warnings.length > 0 && (
         <ul className="farmer-list farmer-warnings">
-          {advisory.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
+          {localized.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
         </ul>
       )}
       {breed.data_confidence === "regional_default" && (
         <p className="advanced-result-note">{t("advisory.regionalDefault")}</p>
       )}
-      <p className="farmer-disclaimer">{advisory.disclaimer}</p>
+      <p className="farmer-disclaimer">{localized.disclaimer}</p>
     </div>
   );
 }
+
