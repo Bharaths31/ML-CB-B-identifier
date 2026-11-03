@@ -65,6 +65,26 @@ def bpa_qr():
         return jsonify({"error": str(exc)}), 400
 
 
+@dev_bp.route('/api/dataset-inventory', methods=['GET'])
+def dataset_inventory():
+    """Return dataset overview with per-breed image counts, species, and shot tiers."""
+    import os, json
+    from src.config import PROJECT_ROOT
+    inv_path = os.path.join(PROJECT_ROOT, "data", "dataset_inventory", "merged.json")
+    if not os.path.exists(inv_path):
+        builder = os.path.join(PROJECT_ROOT, "scripts", "build_dataset_inventory.py")
+        if os.path.exists(builder):
+            import subprocess, sys
+            subprocess.run([sys.executable, builder], cwd=PROJECT_ROOT)
+    if os.path.exists(inv_path):
+        try:
+            with open(inv_path, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+    return jsonify({"error": "Dataset inventory not found"}), 404
+
+
 @dev_bp.route('/api/logs', methods=['GET'])
 def logs():
     logger = get_logger()

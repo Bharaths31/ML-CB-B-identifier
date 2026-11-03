@@ -43,6 +43,11 @@ export async function predict(file, model, filename) {
   return data;
 }
 
+export async function getDatasetInventory() {
+  const r = await fetch("/api/dataset-inventory");
+  return readJsonResponse(r, "Failed to load dataset inventory");
+}
+
 export async function getDevInfo() {
   const r = await fetch("/api/dev-info");
   return readJsonResponse(r, "Failed to load breed class maps");

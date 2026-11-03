@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import DevModelPanel from "../components/DevModelPanel.jsx";
 import DevOODPanel from "../components/DevOODPanel.jsx";
 import DevConfigPanel from "../components/DevConfigPanel.jsx";
+import DevDatasetPanel from "../components/DevDatasetPanel.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { getLogs } from "../api.js";
 import { useSocket } from "../hooks/useSocket.js";
@@ -104,6 +105,18 @@ export default function DevPage() {
 
           <button
             type="button"
+            className={`dev-nav-btn ${activeTab === "datasets" ? "dev-nav-active" : ""}`}
+            onClick={() => setActiveTab("datasets")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Dataset Breeds
+          </button>
+
+          <button
+            type="button"
             className={`dev-nav-btn ${activeTab === "ood" ? "dev-nav-active" : ""}`}
             onClick={() => setActiveTab("ood")}
           >
@@ -150,6 +163,10 @@ export default function DevPage() {
               activeModel={config?.active_model || serverStatus?.active_model}
               onModelChanged={refreshConfig}
             />
+          )}
+
+          {activeTab === "datasets" && (
+            <DevDatasetPanel />
           )}
 
           {activeTab === "ood" && (
