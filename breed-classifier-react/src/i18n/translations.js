@@ -801,7 +801,7 @@ export const TRANSLATIONS = {
   "theme.earthyHarvest.desc": "மண் மற்றும் தங்க அறுவடை",
   "theme.aquaPasture.desc": "குளிர்ந்த மருத்துவ நீலம்",
   "report.title": "கால்நடை சுகாதார & பசு ஆதார் அட்டை",
-  "encyclopedia.ticks": "Ticks / parasites"
+  "encyclopedia.ticks": "உண்ணிகள் / ஒட்டுண்ணிகள்"
 },
   hi: {
   "app.title": "ब्रीडआईडी पशुधन विज़न",
@@ -963,7 +963,7 @@ export const TRANSLATIONS = {
   "theme.earthyHarvest.desc": "मिट्टी और सुनहरी फसल",
   "theme.aquaPasture.desc": "ठंडा क्लिनिकल टील",
   "report.title": "पशु स्वास्थ्य और पशु आधार कार्ड",
-  "encyclopedia.ticks": "Ticks / parasites",
+  "encyclopedia.ticks": "कीट / परजीवी",
   "actions.processing": "प्रोसेस हो रहा है…",
   "actions.adjust": "फ़्रेमिंग समायोजित करें",
   "actions.retake": "दोबारा फ़ोटो लें",
@@ -1227,5 +1227,4 @@ export {
   localizeDynamic,
   localizeAdvisory,
   localizeScheme,
-  renderLocalizedAdvisory,
 } from "./dictionaries.js";
