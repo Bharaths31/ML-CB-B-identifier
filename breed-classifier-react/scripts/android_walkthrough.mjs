@@ -100,8 +100,7 @@ await screenshot("01_home_input.png");
 
 // 2. Settings drawer (top)
 await evaluate(`
-  Array.from(document.querySelectorAll('button'))
-    .find((b) => b.textContent.includes('Settings'))?.click();
+  document.querySelector('.android-menu-btn')?.click();
   'ok'
 `);
 await waitFor("document.querySelector('.settings-drawer')");
@@ -232,8 +231,7 @@ await waitFor("!document.querySelector('.camera-modal')");
 // 12. Settings with Online Mode enabled (still shows offline/online badge)
 await evaluate("window.scrollTo(0,0); 'ok'");
 await evaluate(`
-  Array.from(document.querySelectorAll('button'))
-    .find((b) => b.textContent.includes('Settings'))?.click();
+  document.querySelector('.android-menu-btn')?.click();
   'ok'
 `);
 await waitFor("document.querySelector('.settings-drawer')");
