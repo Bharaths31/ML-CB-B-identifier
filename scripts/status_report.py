@@ -168,10 +168,16 @@ def venv_report() -> dict:
                 current = packages.get(requirement.normalized)
                 if current is None:
                     missing.append(requirement.raw)
-                elif requirement.operator and requirement.version and not satisfies(
-                    current, requirement.operator, requirement.version
+                    continue
+                constraints = getattr(requirement, "constraints", ()) or (
+                    ((requirement.operator, requirement.version),)
+                    if requirement.operator and requirement.version else ()
+                )
+                if constraints and not all(
+                    satisfies(current, operator, version)
+                    for operator, version in constraints
                 ):
-                    outdated.append(f"{requirement.name} {current} < {requirement.version}")
+                    outdated.append(f"{requirement.name} {current} does not satisfy {requirement.raw}")
         except Exception as exc:
             notes.append(f"requirement check failed: {exc}")
 
