@@ -1623,7 +1623,6 @@ Object.assign(TRANSLATIONS.en, {
   "android.onlineModeOn": "Online mode ON",
   "android.onlineModeOff": "Online mode OFF",
   "android.backendUrl": "Backend URL (tips only)",
-  "android.backendHint": "Android emulator: http://10.0.2.2:5000. Physical phone: use the computer's LAN IP and keep the Flask server running.",
   "android.advanced": "Advanced AI model",
   "android.advancedDesc": "ONNX engine, OOD safety and thresholds",
   "android.resultDisplay": "Result display",
@@ -1740,7 +1739,6 @@ Object.assign(TRANSLATIONS.ta, {
   "android.onlineModeOn": "இணையப் பயன்முறை இயக்கம்",
   "android.onlineModeOff": "இணையப் பயன்முறை நிறுத்தம்",
   "android.backendUrl": "பின்தள URL (குறிப்புகளுக்கு மட்டும்)",
-  "android.backendHint": "Android எமுலேட்டர்: http://10.0.2.2:5000. உண்மையான ஃபோன்: கணினியின் LAN IP ஐப் பயன்படுத்தி Flask சேவையகத்தை இயக்கவும்.",
   "android.advanced": "மேம்பட்ட AI மாடல்",
   "android.advancedDesc": "ONNX இன்ஜின், OOD பாதுகாப்பு மற்றும் வரம்புகள்",
   "android.resultDisplay": "முடிவு காட்சி",
@@ -1857,7 +1855,6 @@ Object.assign(TRANSLATIONS.hi, {
   "android.onlineModeOn": "ऑनलाइन मोड चालू",
   "android.onlineModeOff": "ऑनलाइन मोड बंद",
   "android.backendUrl": "बैकएंड URL (केवल सुझाव)",
-  "android.backendHint": "Android एमुलेटर: http://10.0.2.2:5000. असली फ़ोन: कंप्यूटर का LAN IP उपयोग करें और Flask सर्वर चालू रखें।",
   "android.advanced": "उन्नत AI मॉडल",
   "android.advancedDesc": "ONNX इंजन, OOD सुरक्षा और सीमाएँ",
   "android.resultDisplay": "परिणाम प्रदर्शन",
@@ -1948,4 +1945,49 @@ Object.assign(TRANSLATIONS.hi, {
   "android.modelNoOod": "{name}: एम्बेडेड OOD कैलिब्रेशन नहीं है। OOD गेट चालू करने के लिए OOD .json अपलोड करें।",
   "android.oodSaved": "OOD प्रोफ़ाइल {file} सहेजी गई।",
   "android.oodUploadFailed": "OOD JSON अपलोड विफल रहा।",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.showPredictionView": "Show prediction view",
+  "android.showPredictionViewHelp": "Show the top breed confidence spectrum. Turn off to display only the main breed result.",
+  "android.mainResultOnly": "Main result only",
+  "android.breedDescMain": "Main breed match from the offline model. Prediction details are hidden.",
+  "android.backendUnavailable": "Backend is not reachable. Check Online Mode and the Backend URL.",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.showPredictionView": "கணிப்பு காட்சியைக் காட்டு",
+  "android.showPredictionViewHelp": "முதன்மை இன நம்பிக்கை நிறமாலையைக் காட்டு. முதன்மை இன முடிவை மட்டும் காட்ட இதை நிறுத்தவும்.",
+  "android.mainResultOnly": "முதன்மை முடிவு மட்டும்",
+  "android.breedDescMain": "ஆஃப்லைன் மாடலின் முதன்மை இனப் பொருத்தம். கணிப்பு விவரங்கள் மறைக்கப்பட்டுள்ளன.",
+  "android.backendUnavailable": "பின்தளம் அணுக முடியவில்லை. Online Mode மற்றும் Backend URL ஐ சரிபார்க்கவும்.",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.showPredictionView": "पूर्वानुमान दृश्य दिखाएँ",
+  "android.showPredictionViewHelp": "शीर्ष नस्ल विश्वास स्पेक्ट्रम दिखाएँ। केवल मुख्य नस्ल परिणाम दिखाने के लिए इसे बंद करें।",
+  "android.mainResultOnly": "केवल मुख्य परिणाम",
+  "android.breedDescMain": "ऑफ़लाइन मॉडल से मुख्य नस्ल मिलान। पूर्वानुमान विवरण छिपे हैं।",
+  "android.backendUnavailable": "बैकएंड उपलब्ध नहीं है। Online Mode और Backend URL जाँचें।",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.backendNotConfigured": "Not configured",
+  "android.backendHintPublic": "Use the public HTTPS backend that serves the same /api routes as the PC web app. On the web build, leaving this empty uses the current origin.",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.backendNotConfigured": "கட்டமைக்கப்படவில்லை",
+  "android.backendHintPublic": "PC வலைப் பயன்பாட்டின் அதே /api வழிகளை வழங்கும் பொது HTTPS பின்தளத்தைப் பயன்படுத்தவும். வலைப் பதிப்பில் இதை காலியாக விட்டால் தற்போதைய மூலத்தைப் பயன்படுத்தும்.",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.backendNotConfigured": "कॉन्फ़िगर नहीं है",
+  "android.backendHintPublic": "वह सार्वजनिक HTTPS बैकएंड उपयोग करें जो PC वेब ऐप के समान /api रूट प्रदान करता है। वेब बिल्ड में इसे खाली छोड़ने पर वर्तमान ओरिजिन उपयोग होगा।",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.backendFallback": "Using last successful backend: {url}",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.backendFallback": "கடைசியாக வெற்றிகரமாக இணைந்த பின்தளம்: {url}",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.backendFallback": "अंतिम सफल बैकएंड: {url}",
 });

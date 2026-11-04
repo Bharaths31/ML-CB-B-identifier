@@ -26,6 +26,7 @@ import {
   IMAGENET_STD,
   breedDisplayName,
 } from "./breedCatalog.js";
+import { ENV_BACKEND_URL, resolveApiBase } from "./apiBase.js";
 
 const DB_NAME = "BreedClassifierDB";
 const DB_VERSION = 1;
@@ -51,10 +52,11 @@ export const DEFAULT_SETTINGS = {
   onlineMode: false,
   theme: "emerald-obsidian",
   language: "en",
-  backendUrl: "http://10.0.2.2:5000",
+  backendUrl: ENV_BACKEND_URL,
   downscaleMode: "auto",
   showConfidence: true,
   topBreedsCount: 3,
+  showPredictionView: true,
   energyThreshold: DEFAULT_OOD.energyThreshold,
   mspThreshold: DEFAULT_OOD.mspThreshold,
   binaryConfidenceFloor: DEFAULT_OOD.binaryConfidenceFloor,
@@ -710,9 +712,8 @@ export async function fetchBreedKnowledgeOnline({
   if (!settings?.onlineMode || !navigator.onLine) {
     return { available: false, reason: "offline_mode" };
   }
-  const configured = String(settings.backendUrl || "").trim().replace(/\/+$/, "");
-  const base = configured || (window.location.protocol.startsWith("http") ? "" : "");
-  if (!base && !window.location.protocol.startsWith("http")) {
+  const base = resolveApiBase(settings.backendUrl);
+  if (!base) {
     return { available: false, reason: "no_backend" };
   }
 

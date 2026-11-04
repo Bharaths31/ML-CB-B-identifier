@@ -8,6 +8,7 @@ import {
   SlidersIcon,
   ThemeIcon,
 } from "./AndroidIcons.jsx";
+import { getLastBackendUrl } from "../services/apiBase.js";
 import {
   DEFAULT_SETTINGS,
   deleteOodProfile,
@@ -43,6 +44,7 @@ export default function SettingsModal({
   settings,
   models = [],
   oodProfiles = [],
+  backendStatus = "offline",
   onSettingsChange,
   onModelsChanged,
   onOodChanged,
@@ -57,6 +59,17 @@ export default function SettingsModal({
   const modelSelectRef = useRef(null);
 
   const current = settings || DEFAULT_SETTINGS;
+  const fallbackBackendUrl = getLastBackendUrl();
+  const backendConnected = Boolean(
+    current.onlineMode && online && backendStatus === "connected"
+  );
+  const backendLabel = !current.onlineMode || !online
+    ? t("android.offline")
+    : backendStatus === "unconfigured"
+      ? t("android.backendNotConfigured")
+      : backendConnected
+        ? t("header.connected")
+        : t("header.reconnecting");
   const activeOod = oodProfiles.find((p) => p.filename === current.activeOodProfile);
   const activeModelMeta = models.find((m) => m.name === current.activeModel)?.metadata;
   const needsManualOod = Boolean(
@@ -332,9 +345,9 @@ export default function SettingsModal({
             checked={current.onlineMode}
             onChange={(value) => update({ onlineMode: value })}
           />
-          <div className={`settings-online-badge ${online ? "is-online" : "is-offline"}`}>
-            <span className={`telemetry-dot ${online ? "online" : "offline"}`} />
-            {online ? t("android.online") : t("android.offline")}
+          <div className={`settings-online-badge ${backendConnected ? "is-online" : "is-offline"}`}>
+            <span className={`telemetry-dot ${backendConnected ? "online" : "offline"}`} />
+            {backendLabel}
             <span className="settings-online-extra">
               {current.onlineMode ? t("android.onlineModeOn") : t("android.onlineModeOff")}
             </span>
@@ -345,11 +358,15 @@ export default function SettingsModal({
               type="url"
               className="form-input"
               value={current.backendUrl || ""}
-              placeholder="http://192.168.1.20:5000"
+              placeholder={fallbackBackendUrl || "https://your-backend.example.com"}
               onChange={(e) => update({ backendUrl: e.target.value })}
             />
           </label>
-          <p className="settings-hint">{t("android.backendHint")}</p>
+          <p className="settings-hint">
+            {!current.backendUrl && fallbackBackendUrl
+              ? t("android.backendFallback", { url: fallbackBackendUrl })
+              : t("android.backendHintPublic")}
+          </p>
         </section>
 
         <section className="settings-section settings-advanced-section">
@@ -373,6 +390,12 @@ export default function SettingsModal({
             <div className="settings-advanced">
               <h4>{t("android.resultDisplay")}</h4>
               <ToggleRow
+                label={t("android.showPredictionView")}
+                help={t("android.showPredictionViewHelp")}
+                checked={current.showPredictionView !== false}
+                onChange={(value) => update({ showPredictionView: value })}
+              />
+              <ToggleRow
                 label={t("android.showConfidence")}
                 help={t("android.showConfidenceHelp")}
                 checked={current.showConfidence !== false}
@@ -382,9 +405,13 @@ export default function SettingsModal({
                 <span>{t("android.breedsToShow")}</span>
                 <select
                   className="form-input"
-                  value={current.topBreedsCount || 3}
+                  disabled={current.showPredictionView === false}
+                  value={current.showPredictionView === false ? "0" : (current.topBreedsCount || 3)}
                   onChange={(e) => update({ topBreedsCount: Number(e.target.value) })}
                 >
+                  {current.showPredictionView === false && (
+                    <option value="0">{t("android.mainResultOnly")}</option>
+                  )}
                   {[1, 2, 3, 4, 5].map((count) => (
                     <option key={count} value={count}>{count}</option>
                   ))}

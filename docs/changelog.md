@@ -1,5 +1,41 @@
 # 16. Changelog
 
+### 2026-11-04 — Remove audio, public API base, website-style online status, main-result-only mode
+
+- **Audio removed:** the home audio-help banner, speech state/handlers, audio
+  icon assets and audio CSS were removed from the Android app.
+- **Public API base with fallback:** removed the `10.0.2.2` default and LAN-IP
+  guidance. `resolveApiBase()` now follows the web app contract: Settings URL →
+  `VITE_BACKEND_URL` → **last backend URL that passed `/api/health`** → current
+  web origin. Clearing the API field reuses the last successful backend, so Breed
+  Tips keep working without re-entering the URL. Settings shows
+  “Using last successful backend: …” and the header returns to **Connected**.
+- **Online mode:** when enabled, the app polls `GET /api/health`, shows
+  **Connected / Reconnecting / Offline**, and enables Breed Tips only while
+  connected. Checks repeat every 15 seconds and restart when the URL changes.
+- **Prediction view:** Advanced → Result Display now has **Show prediction view**.
+  Turning it off hides the whole top-N spectrum and shows only the main breed
+  result; the breed-count selector displays **Main result only**. The confidence
+  toggle and 1–5 selector remain.
+- **Localisation:** added English/Tamil/Hindi copy for the new backend states and
+  prediction-view option (621 keys per language).
+
+### 2026-11-04 — Remove audio help, website-style online status and main-result-only mode
+
+- **Audio removed:** the home audio-help banner, speech state, speech handlers,
+  audio icon assets and audio CSS were removed from the Android app.
+- **Online mode:** now follows the website connection model. When enabled, the
+  app polls `GET /api/health` on the configured backend, shows
+  **Connected / Reconnecting / Offline** in the header and Settings, and enables
+  Breed Tips only while connected. Health checks repeat every 15 seconds and
+  restart when the backend URL changes.
+- **Prediction view:** Advanced → Result Display now has **Show prediction view**.
+  Turning it off hides the entire top-N spectrum and shows only the main breed
+  result; the breed-count selector displays **Main result only**. The existing
+  confidence toggle and 1–5 breed selector remain.
+- **Localisation:** added English/Tamil/Hindi copy for the new backend and
+  prediction-view states (619 keys per language).
+
 ### 2026-11-04 — Result display controls, full Android localisation and SVG icons
 
 - **Advanced settings:** added **Result Display** controls — a *Show confidence

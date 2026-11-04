@@ -6223,51 +6223,6 @@ input[type="range"] {
   line-height: 1.5;
   color: var(--a-text-2);
 }
-.android-audio-help {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
-  border: 1px solid rgba(63, 166, 107, 0.38);
-  border-radius: 10px;
-  background: rgba(63, 166, 107, 0.09);
-  color: var(--a-text);
-  text-align: left;
-  cursor: pointer;
-}
-.android-audio-help.is-speaking { background: rgba(63, 166, 107, 0.16); }
-.android-audio-icon {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--a-accent);
-  color: var(--a-on-accent);
-  font-size: 16px;
-}
-.android-audio-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.android-audio-copy strong { font-size: 12.5px; font-weight: 700; color: var(--a-accent-bright); }
-.android-audio-copy small {
-  font-size: 10.5px;
-  color: var(--a-text-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.android-audio-play {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(63, 166, 107, 0.16);
-  color: var(--a-accent-bright);
-  font-size: 12px;
-}
 .android-source-stack { display: flex; flex-direction: column; gap: 10px; }
 .android-source-btn {
   width: 100%;
@@ -7025,8 +6980,6 @@ input[type="range"] {
 
 .android-brand-icon { width: 22px; height: 22px; }
 .android-source-icon svg { width: 26px; height: 26px; }
-.android-audio-icon svg,
-.android-audio-play svg { width: 18px; height: 18px; }
 .android-clear-btn { display: inline-flex; align-items: center; gap: 4px; }
 .android-clear-btn svg { width: 14px; height: 14px; }
 .android-privacy-strip svg { width: 14px; height: 14px; }
@@ -7037,3 +6990,15 @@ input[type="range"] {
 .android-empty-recents > span svg { width: 22px; height: 22px; }
 .settings-section-icon svg { width: 16px; height: 16px; }
 .android-lang-glyph { font-family: "Plus Jakarta Sans", sans-serif; }
+
+.android-shell .android-header {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.android-shell .android-brand {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+.android-shell .android-header-actions {
+  flex: 0 0 auto;
+}

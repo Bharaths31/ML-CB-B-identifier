@@ -14,13 +14,11 @@ import {
   GalleryIcon,
   LockIcon,
   MaleIcon,
-  PlayIcon,
   ShareIcon,
-  SpeakerIcon,
-  StopIcon,
   TargetIcon,
   TrashIcon,
 } from "../components/AndroidIcons.jsx";
+import { useBackendHealth } from "../hooks/useBackendHealth.js";
 import { CROP_MODES, prepareImage } from "../services/imagePrep.js";
 import {
   DEFAULT_SETTINGS,
@@ -40,11 +38,6 @@ const CROP_I18N = {
   pad: "android.cropPad",
   center: "android.cropCenter",
   manual: "android.cropManual",
-};
-const HELP_TEXT = {
-  en: "Upload a saved photo or take a new one. Keep the whole animal side profile inside the frame, then tap Analyze Breed.",
-  ta: "சேமித்த புகைப்படத்தை பதிவேற்றவும் அல்லது புதிய படம் எடுக்கவும். விலங்கின் முழு பக்கத் தோற்றத்தை சட்டகத்தில் வைத்து, பின்னர் இனத்தை பகுப்பாய்வு செய்யவும்.",
-  hi: "सहेजी गई फोटो अपलोड करें या नई फोटो लें। जानवर का पूरा साइड प्रोफाइल फ्रेम में रखें, फिर नस्ल का विश्लेषण करें।",
 };
 
 function formatRecordId(value) {
@@ -87,7 +80,7 @@ function topBars(top5 = []) {
 }
 
 export default function AndroidUserPage() {
-  const { t, tBreed, tDynamic, lang, speakText, stopSpeaking } = useI18n();
+  const { t, tBreed, tDynamic, lang } = useI18n();
   const uploadRef = useRef(null);
   const originalUrlRef = useRef(null);
 
@@ -113,7 +106,12 @@ export default function AndroidUserPage() {
   const [result, setResult] = useState(null);
   const [toast, setToast] = useState("");
   const [lastLatency, setLastLatency] = useState(null);
-  const [speaking, setSpeaking] = useState(false);
+
+  const backendStatus = useBackendHealth({
+    enabled: settings.onlineMode,
+    backendUrl: settings.backendUrl,
+    online,
+  });
 
   const refreshModels = useCallback(async () => {
     const rows = await listModels();
@@ -207,8 +205,7 @@ export default function AndroidUserPage() {
   useEffect(() => () => {
     if (originalUrlRef.current) URL.revokeObjectURL(originalUrlRef.current);
     originalUrlRef.current = null;
-    stopSpeaking();
-  }, [stopSpeaking]);
+  }, []);
 
   const activeModel = useMemo(
     () => models.find((model) => model.name === settings.activeModel) || models[0] || null,
@@ -391,26 +388,15 @@ export default function AndroidUserPage() {
       setToast(t("android.offlineTips"));
       return;
     }
+    if (backendStatus !== "connected") {
+      setToast(t("android.backendUnavailable"));
+      return;
+    }
     setTipsOpen(true);
   };
 
   const openSettings = () => {
-    stopSpeaking();
-    setSpeaking(false);
     setSettingsOpen(true);
-  };
-
-  const toggleHelp = () => {
-    if (speaking) {
-      stopSpeaking();
-      setSpeaking(false);
-      return;
-    }
-    const started = speakText(HELP_TEXT[lang] || HELP_TEXT.en, {
-      onEnd: () => setSpeaking(false),
-    });
-    setSpeaking(started);
-    if (!started) setToast(t("android.audioUnavailable"));
   };
 
   const shareCurrent = async () => {
@@ -450,7 +436,17 @@ export default function AndroidUserPage() {
   const resultLatency = result?.inference_time_ms ?? result?.total_time_ms ?? lastLatency;
   const modelLatency = lastLatency ?? recent[0]?.inference_time_ms ?? null;
   const showConfidence = settings.showConfidence !== false;
+  const showPredictionView = settings.showPredictionView !== false;
   const topBreedsCount = Math.min(5, Math.max(1, Number(settings.topBreedsCount) || 3));
+  const onlineModeActive = Boolean(settings.onlineMode && online);
+  const headerConnected = onlineModeActive && backendStatus === "connected";
+  const headerStatusLabel = !onlineModeActive
+    ? t("android.offline")
+    : backendStatus === "unconfigured"
+      ? t("android.offline")
+      : headerConnected
+        ? t("header.connected")
+        : t("header.reconnecting");
   const speciesLabel = tDynamic("species", result?.species || "");
   const breedLabel = tBreed(result?.breed_slug) || result?.breed || "";
   const genderLabel = tDynamic("gender", gender.label || "Unknown");
@@ -493,9 +489,9 @@ export default function AndroidUserPage() {
             </div>
           </div>
           <div className="android-header-actions">
-            <span className={`android-online-pill ${online ? "is-online" : "is-offline"}`}>
-              <span className={`telemetry-dot ${online ? "online" : "offline"}`} />
-              {online ? t("android.online") : t("android.offline")}
+            <span className={`android-online-pill ${headerConnected ? "is-online" : "is-offline"}`}>
+              <span className={`telemetry-dot ${headerConnected ? "online" : "offline"}`} />
+              {headerStatusLabel}
             </span>
             <button
               type="button"
@@ -534,24 +530,6 @@ export default function AndroidUserPage() {
               <h2>{t("android.identifyTitle")}</h2>
               <p>{t("android.identifyBody")}</p>
             </section>
-
-            <button
-              type="button"
-              className={`android-audio-help ${speaking ? "is-speaking" : ""}`}
-              onClick={toggleHelp}
-              aria-pressed={speaking}
-            >
-              <span className="android-audio-icon" aria-hidden="true">
-                {speaking ? <StopIcon /> : <SpeakerIcon />}
-              </span>
-              <span className="android-audio-copy">
-                <strong>{t("android.audioHelp")}</strong>
-                <small>{speaking ? t("android.audioPlaying") : t("android.audioHint")}</small>
-              </span>
-              <span className="android-audio-play" aria-hidden="true">
-                {speaking ? <StopIcon /> : <PlayIcon />}
-              </span>
-            </button>
 
             <div className="android-source-stack">
               <button
@@ -791,30 +769,34 @@ export default function AndroidUserPage() {
               <span className="android-breed-subtitle">
                 {speciesLabel} · {t("android.breedMatch")}
               </span>
-              <p className="android-breed-desc">{t("android.breedDesc")}</p>
+              <p className="android-breed-desc">
+                {showPredictionView ? t("android.breedDesc") : t("android.breedDescMain")}
+              </p>
 
-              <div className="android-spectrum">
-                <div className="android-spectrum-head">
-                  <span>{t("android.topBreeds", { count: topBreedsCount })}</span>
-                  <span>{t("android.softmax")}</span>
-                </div>
-                {topBars(result.top5_breeds)
-                  .filter((item) => item.species === result.species)
-                  .slice(0, topBreedsCount)
-                  .map((item, index) => (
-                  <div className="android-spectrum-row" key={item.breed_slug}>
-                    <div className="android-spectrum-line">
-                      <span className="android-spectrum-name">
-                        {index + 1}. {tBreed(item.breed_slug) || item.breed}
-                      </span>
-                      {showConfidence && <strong>{item.confidence}%</strong>}
-                    </div>
-                    <span className="android-spectrum-track">
-                      <i style={{ width: `${item.width}%` }} />
-                    </span>
+              {showPredictionView && (
+                <div className="android-spectrum">
+                  <div className="android-spectrum-head">
+                    <span>{t("android.topBreeds", { count: topBreedsCount })}</span>
+                    <span>{t("android.softmax")}</span>
                   </div>
-                ))}
-              </div>
+                  {topBars(result.top5_breeds)
+                    .filter((item) => item.species === result.species)
+                    .slice(0, topBreedsCount)
+                    .map((item, index) => (
+                    <div className="android-spectrum-row" key={item.breed_slug}>
+                      <div className="android-spectrum-line">
+                        <span className="android-spectrum-name">
+                          {index + 1}. {tBreed(item.breed_slug) || item.breed}
+                        </span>
+                        {showConfidence && <strong>{item.confidence}%</strong>}
+                      </div>
+                      <span className="android-spectrum-track">
+                        <i style={{ width: `${item.width}%` }} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </article>
 
             <div className="android-attr-grid">
@@ -872,6 +854,7 @@ export default function AndroidUserPage() {
         settings={settings}
         models={models}
         oodProfiles={oodProfiles}
+        backendStatus={backendStatus}
         onSettingsChange={applySettings}
         onModelsChanged={refreshModels}
         onOodChanged={refreshOod}

@@ -85,9 +85,16 @@ restarts.
   with rank/confidence/top-3 bars, and read-only gender/age cards. The top-3
   spectrum is filtered to the predicted species.
 - **Home:** two-line brand header, online status, a header language chip
-  (`EN / த / हि`), audio-help button (speech synthesis in the selected language),
-  stacked gallery/camera ingest cards, ONNX telemetry, and a 3-column recent
-  scans ledger with confidence badges and scientific names.
+  (`EN / த / हि`), stacked gallery/camera ingest cards, ONNX telemetry, and a
+  3-column recent scans ledger with confidence badges and scientific names.
+- **Online mode:** matches the website’s connection model. It uses the same
+  `/api` contract, resolving the base from the Settings URL, then
+  `VITE_BACKEND_URL`, then the **last backend URL that passed `/api/health`**,
+  then the current web origin. A successful check is cached, so clearing the
+  Settings field reuses the previous working backend. When enabled, the app polls
+  `GET /api/health`, shows **Connected / Reconnecting / Offline**, and only
+  enables Breed Tips while the backend is reachable. The check repeats every 15
+  seconds and follows backend URL changes. No machine IP is hardcoded.
 - **Gallery uploads:** decoded once with `createImageBitmap` (EXIF-aware,
   off-main-thread) and previewed via an object URL, so large photos do not
   round-trip through base64 twice before the preview appears.
@@ -96,21 +103,29 @@ restarts.
   cards, Online Mode + backend URL, and a collapsible **Advanced AI Model**
   section for ONNX/OOD. Gallery downscale mode lives there too.
   **Save & Return** closes the page; all choices are persisted immediately.
-- **Result display:** Advanced Settings includes a *Show confidence percentages*
-  toggle and a *Predicted breeds to show* selector (1–5, default 3). These
-  control the result cards, recent-scan badges and the breed spectrum.
+- **Result display:** Advanced Settings includes *Show prediction view*,
+  *Show confidence percentages* and *Predicted breeds to show* (1–5, default 3).
+  Turning off the prediction view hides the entire top-N spectrum and shows only
+  the main breed result; the count selector then reads **Main result only**.
 - **Localisation:** dashboard, dossier, settings and status messages use the
   shared website `t()` dictionary (English / Tamil / Hindi), including species,
   gender, age and breed names via `tDynamic`.
 - **Icons:** a shared inline SVG set (`AndroidIcons.jsx`) replaces the mixed
-  emoji marks for the brand, gallery, camera, audio, lock, trash, language,
-  theme, online, advanced, gender, age and result actions.
+  emoji marks for the brand, gallery, camera, lock, trash, language, theme,
+  online, advanced, gender, age and result actions.
 - **OOD calibration:** a model with embedded `model_meta.ood` (the
   `*__ood.onnx` mutant or the bundled default) applies its own energy/MSP
   thresholds automatically. A non-OOD model is accepted but the OOD gate is
   disabled until you upload a matching OOD `.json` in Settings.
 - Preprocessing: `260×260`, `pixel/255`, then ImageNet mean/std unless the model
   name contains `mobile`/`int8` (baked normalization).
-- Breed Tips use the configured backend URL only when Online Mode is ON **and**
-  the device has internet. Otherwise a localized offline notice is shown.
-- Android cleartext traffic is enabled for local Flask/LAN backends.
+- Breed Tips use the public backend only when Online Mode is ON, the device has
+  internet, **and** the backend `/api/health` check succeeds. The base URL comes
+  from Settings, `VITE_BACKEND_URL`, or the current web origin, in that order.
+  Otherwise a localized offline/backend notice is shown.
+- Build the Android bundle against a public backend with:
+  `VITE_BACKEND_URL=https://your-backend.example.com npm run build` (PowerShell:
+  `$env:VITE_BACKEND_URL="https://your-backend.example.com"; npm run build`).
+  The same URL can be entered at runtime in **Settings → Online Mode**.
+- Android cleartext traffic is enabled for local development, but production
+  online mode is expected to use an HTTPS URL.
