@@ -1,5 +1,22 @@
 # 16. Changelog
 
+### 2026-11-04 — Result display controls, full Android localisation and SVG icons
+
+- **Advanced settings:** added **Result Display** controls — a *Show confidence
+  percentages* toggle and a *Predicted breeds to show* selector (1–5, default 3).
+  Both persist with the rest of the settings and drive the result cards, recent
+  badges and breed spectrum.
+- **Localisation:** the Android dashboard, result dossier, settings page and
+  status messages now use the existing website `t()` dictionary. Added a full
+  English / Tamil / Hindi `android.*` key set (614 keys per language) and used
+  `tDynamic` for species, gender, age and breed names.
+- **Icons:** replaced malformed/mixed emoji marks with a shared inline SVG set
+  (`AndroidIcons.jsx`) for the cow brand mark, gallery, camera, audio, lock,
+  trash, language, theme, online, advanced, gender, age and actions.
+- **Fixes:** repaired double-encoded UTF-8 in `AndroidUserPage`; scroll resets on
+  stage changes; advanced settings no longer collapse; top-3 is filtered to the
+  predicted species and respects the selected breed count.
+
 ### 2026-11-04 — Stitch-aligned Android UI, dossier result and in-app language picker
 
 - **Home:** two-line `BreedID / LIVESTOCK VISION` brand, online pill, language

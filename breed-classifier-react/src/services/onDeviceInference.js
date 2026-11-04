@@ -53,6 +53,8 @@ export const DEFAULT_SETTINGS = {
   language: "en",
   backendUrl: "http://10.0.2.2:5000",
   downscaleMode: "auto",
+  showConfidence: true,
+  topBreedsCount: 3,
   energyThreshold: DEFAULT_OOD.energyThreshold,
   mspThreshold: DEFAULT_OOD.mspThreshold,
   binaryConfidenceFloor: DEFAULT_OOD.binaryConfidenceFloor,

@@ -7022,3 +7022,18 @@ input[type="range"] {
 .settings-advanced-section {
   min-height: fit-content;
 }
+
+.android-brand-icon { width: 22px; height: 22px; }
+.android-source-icon svg { width: 26px; height: 26px; }
+.android-audio-icon svg,
+.android-audio-play svg { width: 18px; height: 18px; }
+.android-clear-btn { display: inline-flex; align-items: center; gap: 4px; }
+.android-clear-btn svg { width: 14px; height: 14px; }
+.android-privacy-strip svg { width: 14px; height: 14px; }
+.android-attr-icon svg { width: 15px; height: 15px; }
+.android-primary-btn svg,
+.android-secondary-btn svg,
+.android-ghost-btn svg { width: 18px; height: 18px; }
+.android-empty-recents > span svg { width: 22px; height: 22px; }
+.settings-section-icon svg { width: 16px; height: 16px; }
+.android-lang-glyph { font-family: "Plus Jakarta Sans", sans-serif; }

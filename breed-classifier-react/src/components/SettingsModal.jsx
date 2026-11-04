@@ -3,6 +3,12 @@ import { THEMES } from "./ThemeSwitcher.jsx";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { LANGUAGES } from "../i18n/LanguageContext.jsx";
 import {
+  GlobeIcon,
+  LanguageIcon,
+  SlidersIcon,
+  ThemeIcon,
+} from "./AndroidIcons.jsx";
+import {
   DEFAULT_SETTINGS,
   deleteOodProfile,
   listOodProfiles,
@@ -41,7 +47,7 @@ export default function SettingsModal({
   onModelsChanged,
   onOodChanged,
 }) {
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -115,24 +121,24 @@ export default function SettingsModal({
             binaryConfidenceFloor: Number(embedded.binary_confidence_floor ?? current.binaryConfidenceFloor),
             energyTemperature: Number(embedded.energy_temperature ?? current.energyTemperature),
           });
-          setMessage(`Added ${record.name}. Embedded OOD calibration detected and applied.`);
+          setMessage(t("android.modelAddedOod", { name: record.name }));
         } else {
           await update({
             activeModel: record.name,
             activeOodProfile: "auto",
             oodEnabled: false,
           });
-          setMessage(`Added ${record.name}. No embedded OOD calibration — upload an OOD .json below to enable the OOD gate.`);
+          setMessage(t("android.modelAddedNoOod", { name: record.name }));
         }
       } else {
-        setMessage(`Saved ${record.name}. .pt checkpoints are listed below but must be exported to ONNX before on-device inference.`);
+        setMessage(t("android.modelSavedPt", { name: record.name }));
       }
       requestAnimationFrame(() => {
         modelSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
         modelSelectRef.current?.focus();
       });
     } catch (err) {
-      setMessage(err.message || "Model upload failed.");
+      setMessage(err.message || t("android.modelUploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -151,10 +157,10 @@ export default function SettingsModal({
         binaryConfidenceFloor: Number(embedded.binary_confidence_floor ?? current.binaryConfidenceFloor),
         energyTemperature: Number(embedded.energy_temperature ?? current.energyTemperature),
       });
-      setMessage(`${name}: embedded OOD calibration applied.`);
+      setMessage(t("android.modelOodApplied", { name }));
     } else {
       await update({ activeModel: name, activeOodProfile: "auto", oodEnabled: false });
-      setMessage(`${name}: no embedded OOD calibration. Upload an OOD .json to enable the OOD gate.`);
+      setMessage(t("android.modelNoOod", { name }));
     }
   };
 
@@ -177,9 +183,9 @@ export default function SettingsModal({
         binaryConfidenceFloor: record.json_data.binary_confidence_floor,
         energyTemperature: record.json_data.energy_temperature,
       });
-      setMessage(`OOD profile ${record.filename} saved.`);
+      setMessage(t("android.oodSaved", { file: record.filename }));
     } catch (err) {
-      setMessage(err.message || "OOD JSON upload failed.");
+      setMessage(err.message || t("android.oodUploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -219,7 +225,7 @@ export default function SettingsModal({
         className="settings-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
+        aria-label={t("android.appSettings")}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="settings-head">
@@ -227,17 +233,17 @@ export default function SettingsModal({
             type="button"
             className="settings-back"
             onClick={onClose}
-            aria-label="Close settings"
+            aria-label={t("actions.close")}
           >
             ←
           </button>
           <div className="settings-head-copy">
-            <h2>App Settings</h2>
-            <p>On-device model, language and appearance</p>
+            <h2>{t("android.appSettings")}</h2>
+            <p>{t("android.appSettingsSub")}</p>
           </div>
           <span className="settings-status-badge">
             <i aria-hidden="true" />
-            Offline ready
+            {t("android.offlineReady")}
           </span>
         </header>
 
@@ -245,10 +251,10 @@ export default function SettingsModal({
 
         <section className="settings-section settings-language-section">
           <div className="settings-section-title">
-            <span className="settings-section-icon" aria-hidden="true">文</span>
+            <span className="settings-section-icon" aria-hidden="true"><LanguageIcon /></span>
             <div>
-              <h3>Select Language</h3>
-              <p>Applies to buttons, results and breed names.</p>
+              <h3>{t("android.selectLanguage")}</h3>
+              <p>{t("android.languageDesc")}</p>
             </div>
           </div>
           <div className="settings-language-grid">
@@ -278,10 +284,10 @@ export default function SettingsModal({
 
         <section className="settings-section">
           <div className="settings-section-title">
-            <span className="settings-section-icon" aria-hidden="true">◐</span>
+            <span className="settings-section-icon" aria-hidden="true"><ThemeIcon /></span>
             <div>
-              <h3>Theme Display</h3>
-              <p>Optimised for bright outdoor daylight and night barns.</p>
+              <h3>{t("android.themeDisplay")}</h3>
+              <p>{t("android.themeDesc")}</p>
             </div>
           </div>
           <div className="settings-theme-grid">
@@ -301,7 +307,7 @@ export default function SettingsModal({
                   />
                   <span className="settings-theme-copy">
                     <strong>{theme.name}</strong>
-                    <small>{theme.desc}</small>
+                    <small>{t(`android.theme${theme.id === "emerald-obsidian" ? "Emerald" : theme.id === "meadow-daylight" ? "Meadow" : theme.id === "earthy-harvest" ? "Earthy" : "Aqua"}Desc`)}</small>
                   </span>
                   <span className="settings-card-check" aria-hidden="true">
                     {active ? "✓" : ""}
@@ -314,27 +320,27 @@ export default function SettingsModal({
 
         <section className="settings-section">
           <div className="settings-section-title">
-            <span className="settings-section-icon" aria-hidden="true">🌐</span>
+            <span className="settings-section-icon" aria-hidden="true"><GlobeIcon /></span>
             <div>
-              <h3>Online Mode</h3>
-              <p>Only Breed Tips need the network. Inference stays on-device.</p>
+              <h3>{t("android.onlineMode")}</h3>
+              <p>{t("android.onlineModeDesc")}</p>
             </div>
           </div>
           <ToggleRow
-            label="Online Mode"
-            help="Fetch Breed Tips & Farmer Advisory from the backend. On-device inference always works offline."
+            label={t("android.onlineMode")}
+            help={t("android.onlineModeHelp")}
             checked={current.onlineMode}
             onChange={(value) => update({ onlineMode: value })}
           />
           <div className={`settings-online-badge ${online ? "is-online" : "is-offline"}`}>
             <span className={`telemetry-dot ${online ? "online" : "offline"}`} />
-            {online ? "Online" : "Offline"}
+            {online ? t("android.online") : t("android.offline")}
             <span className="settings-online-extra">
-              {current.onlineMode ? "Online mode ON" : "Online mode OFF"}
+              {current.onlineMode ? t("android.onlineModeOn") : t("android.onlineModeOff")}
             </span>
           </div>
           <label className="settings-field">
-            <span>Backend URL (tips only)</span>
+            <span>{t("android.backendUrl")}</span>
             <input
               type="url"
               className="form-input"
@@ -343,10 +349,7 @@ export default function SettingsModal({
               onChange={(e) => update({ backendUrl: e.target.value })}
             />
           </label>
-          <p className="settings-hint">
-            Android emulator: <code>http://10.0.2.2:5000</code>. Physical phone: use the
-            computer's LAN IP and keep the Flask server running.
-          </p>
+          <p className="settings-hint">{t("android.backendHint")}</p>
         </section>
 
         <section className="settings-section settings-advanced-section">
@@ -357,10 +360,10 @@ export default function SettingsModal({
             aria-expanded={advancedOpen}
           >
             <span className="settings-section-title is-inline">
-              <span className="settings-section-icon" aria-hidden="true">⚙</span>
+              <span className="settings-section-icon" aria-hidden="true"><SlidersIcon /></span>
               <span>
-                <strong>Advanced AI Model</strong>
-                <small>ONNX engine, OOD safety and thresholds</small>
+                <strong>{t("android.advanced")}</strong>
+                <small>{t("android.advancedDesc")}</small>
               </span>
             </span>
             <span aria-hidden="true">{advancedOpen ? "▾" : "▸"}</span>
@@ -368,22 +371,43 @@ export default function SettingsModal({
 
           {advancedOpen && (
             <div className="settings-advanced">
-              <h4>Out-of-Distribution Gate</h4>
+              <h4>{t("android.resultDisplay")}</h4>
               <ToggleRow
-                label="Enable OOD"
-                help="Reject images outside the model's breed knowledge."
+                label={t("android.showConfidence")}
+                help={t("android.showConfidenceHelp")}
+                checked={current.showConfidence !== false}
+                onChange={(value) => update({ showConfidence: value })}
+              />
+              <label className="settings-field">
+                <span>{t("android.breedsToShow")}</span>
+                <select
+                  className="form-input"
+                  value={current.topBreedsCount || 3}
+                  onChange={(e) => update({ topBreedsCount: Number(e.target.value) })}
+                >
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <option key={count} value={count}>{count}</option>
+                  ))}
+                </select>
+              </label>
+              <p className="settings-hint">{t("android.breedsToShowHelp")}</p>
+
+              <h4>{t("android.oodGate")}</h4>
+              <ToggleRow
+                label={t("android.enableOod")}
+                help={t("android.enableOodHelp")}
                 checked={current.oodEnabled}
                 onChange={(value) => update({ oodEnabled: value, activeOodProfile: value ? current.activeOodProfile : "disabled" })}
               />
               <label className="settings-field">
-                <span>OOD Profile</span>
+                <span>{t("android.oodProfile")}</span>
                 <select
                   className="form-input"
                   value={current.activeOodProfile || "auto"}
                   onChange={(e) => selectOodProfile(e.target.value)}
                 >
-                  <option value="auto">Auto (embedded / defaults)</option>
-                  <option value="disabled">Disabled</option>
+                  <option value="auto">{t("android.oodAuto")}</option>
+                  <option value="disabled">{t("android.oodDisabled")}</option>
                   {oodProfiles.map((profile) => (
                     <option key={profile.filename} value={profile.filename}>{profile.filename}</option>
                   ))}
@@ -391,17 +415,19 @@ export default function SettingsModal({
               </label>
               {activeOod && (
                 <p className="settings-hint">
-                  Loaded {activeOod.filename}: energy {activeOod.json_data.energy_threshold}, MSP {activeOod.json_data.msp_threshold}.
+                  {t("android.oodLoaded", {
+                    file: activeOod.filename,
+                    energy: activeOod.json_data.energy_threshold,
+                    msp: activeOod.json_data.msp_threshold,
+                  })}
                 </p>
               )}
               {needsManualOod && (
-                <div className="settings-warning">
-                  This model has no embedded OOD calibration. Upload an OOD .json below or turn OOD off.
-                </div>
+                <div className="settings-warning">{t("android.oodWarning")}</div>
               )}
               <div className="settings-threshold-grid">
                 <label className="settings-field">
-                  <span>Energy threshold</span>
+                  <span>{t("android.energyThreshold")}</span>
                   <input
                     type="number" step="0.0001" className="form-input"
                     value={current.energyThreshold}
@@ -409,7 +435,7 @@ export default function SettingsModal({
                   />
                 </label>
                 <label className="settings-field">
-                  <span>MSP threshold</span>
+                  <span>{t("android.mspThreshold")}</span>
                   <input
                     type="number" step="0.0001" className="form-input"
                     value={current.mspThreshold}
@@ -417,7 +443,7 @@ export default function SettingsModal({
                   />
                 </label>
                 <label className="settings-field">
-                  <span>Binary floor</span>
+                  <span>{t("android.binaryFloor")}</span>
                   <input
                     type="number" step="0.01" className="form-input"
                     value={current.binaryConfidenceFloor}
@@ -425,7 +451,7 @@ export default function SettingsModal({
                   />
                 </label>
                 <label className="settings-field">
-                  <span>Temperature</span>
+                  <span>{t("android.temperature")}</span>
                   <input
                     type="number" step="0.01" className="form-input"
                     value={current.energyTemperature}
@@ -434,23 +460,21 @@ export default function SettingsModal({
                 </label>
               </div>
 
-              <h4>On-Device Model</h4>
+              <h4>{t("android.onDeviceModel")}</h4>
               <label className="settings-field">
-                <span>Downscale resolution (uploaded photos)</span>
+                <span>{t("android.downscaleResolution")}</span>
                 <select
                   className="form-input"
                   value={current.downscaleMode || "auto"}
                   onChange={(e) => update({ downscaleMode: e.target.value })}
                 >
-                  <option value="auto">Auto (shortest side 260px)</option>
-                  <option value="train">Train Match (288px → 260px)</option>
+                  <option value="auto">{t("android.downscaleAuto")}</option>
+                  <option value="train">{t("android.downscaleTrain")}</option>
                 </select>
               </label>
-              <p className="settings-hint">
-                Applies to gallery uploads. Camera captures always use the default pipeline.
-              </p>
+              <p className="settings-hint">{t("android.downscaleHint")}</p>
               <label className="settings-field">
-                <span>Active model</span>
+                <span>{t("android.activeModelLabel")}</span>
                 <select
                   ref={modelSelectRef}
                   className="form-input"
@@ -464,27 +488,24 @@ export default function SettingsModal({
                       disabled={model.runnable === false}
                     >
                       {model.name} — {Number(model.size_mb || 0).toFixed(2)} MB
-                      {model.runnable === false ? " (needs ONNX export)" : ""}
+                      {model.runnable === false ? ` (${t("android.needsOnnx")})` : ""}
                     </option>
                   ))}
                 </select>
               </label>
               <button type="button" className="btn btn-secondary btn-full" onClick={() => modelInputRef.current?.click()} disabled={busy}>
-                + Upload .onnx / .pt
+                {t("android.uploadModel")}
               </button>
               <input ref={modelInputRef} type="file" accept=".onnx,.pt" hidden onChange={handleModelUpload} />
-              <p className="settings-hint">
-                On-device inference runs <code>.onnx</code>. A <code>.pt</code> checkpoint must
-                be exported to ONNX from the desktop developer console first.
-              </p>
+              <p className="settings-hint">{t("android.modelHint")}</p>
 
-              <h4>OOD Profiles</h4>
+              <h4>{t("android.oodProfiles")}</h4>
               <button type="button" className="btn btn-secondary btn-full" onClick={() => oodInputRef.current?.click()} disabled={busy}>
-                + Upload OOD .json
+                {t("android.uploadOod")}
               </button>
               <input ref={oodInputRef} type="file" accept=".json,application/json" hidden onChange={handleOodUpload} />
               <div className="settings-ood-list">
-                {oodProfiles.length === 0 && <p className="settings-hint">No custom profiles yet.</p>}
+                {oodProfiles.length === 0 && <p className="settings-hint">{t("android.noOodProfiles")}</p>}
                 {oodProfiles.map((profile) => (
                   <div key={profile.filename} className="settings-ood-row">
                     <span>{profile.filename}</span>
@@ -499,7 +520,7 @@ export default function SettingsModal({
                         }
                       }}
                     >
-                      Remove
+                      {t("android.remove")}
                     </button>
                   </div>
                 ))}
@@ -509,9 +530,9 @@ export default function SettingsModal({
         </section>
 
         <footer className="settings-footer">
-          <span>{models.length} model(s) · {oodProfiles.length} OOD profile(s)</span>
+          <span>{t("android.modelsCount", { models: models.length, ood: oodProfiles.length })}</span>
           <button type="button" className="settings-save-btn" onClick={onClose}>
-            ✓ Save & Return
+            ✓ {t("android.saveReturn")}
           </button>
         </footer>
       </aside>

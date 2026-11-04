@@ -5,6 +5,22 @@ import ImageCropper from "../components/ImageCropper.jsx";
 import CameraCapture from "../components/CameraCapture.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
 import BreedTipsModal from "../components/BreedTipsModal.jsx";
+import {
+  AgeIcon,
+  BrandMark,
+  BookIcon,
+  CameraIcon,
+  FemaleIcon,
+  GalleryIcon,
+  LockIcon,
+  MaleIcon,
+  PlayIcon,
+  ShareIcon,
+  SpeakerIcon,
+  StopIcon,
+  TargetIcon,
+  TrashIcon,
+} from "../components/AndroidIcons.jsx";
 import { CROP_MODES, prepareImage } from "../services/imagePrep.js";
 import {
   DEFAULT_SETTINGS,
@@ -17,15 +33,18 @@ import {
   fetchBreedKnowledgeOnline,
 } from "../services/onDeviceInference.js";
 
-const OFFLINE_TIPS_MESSAGE =
-  "ðŸ“¡ Offline Mode Active â€” Turn ON 'Online Mode' in Settings and connect to the internet to load detailed Breed Tips & Farmer Advisory data.";
 const RECENT_KEY = "breedid_recent_scans";
 const SCIENTIFIC_NAME = { Cattle: "Bos indicus", Buffalo: "Bubalus bubalis" };
-const LANGUAGE_SHORT = { en: "EN", ta: "à®¤", hi: "à¤¹à¤¿" };
+const LANGUAGE_SHORT = { en: "EN", ta: "த", hi: "हि" };
+const CROP_I18N = {
+  pad: "android.cropPad",
+  center: "android.cropCenter",
+  manual: "android.cropManual",
+};
 const HELP_TEXT = {
   en: "Upload a saved photo or take a new one. Keep the whole animal side profile inside the frame, then tap Analyze Breed.",
-  ta: "à®šà¯‡à®®à®¿à®¤à¯à®¤ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®¤à¯à®¤à¯ˆ à®ªà®¤à®¿à®µà¯‡à®±à¯à®±à®µà¯à®®à¯ à®…à®²à¯à®²à®¤à¯ à®ªà¯à®¤à®¿à®¯ à®ªà®Ÿà®®à¯ à®Žà®Ÿà¯à®•à¯à®•à®µà¯à®®à¯. à®µà®¿à®²à®™à¯à®•à®¿à®©à¯ à®®à¯à®´à¯ à®ªà®•à¯à®•à®¤à¯ à®¤à¯‹à®±à¯à®±à®¤à¯à®¤à¯ˆ à®šà®Ÿà¯à®Ÿà®•à®¤à¯à®¤à®¿à®²à¯ à®µà¯ˆà®¤à¯à®¤à¯, à®ªà®¿à®©à¯à®©à®°à¯ à®‡à®©à®¤à¯à®¤à¯ˆ à®ªà®•à¯à®ªà¯à®ªà®¾à®¯à¯à®µà¯ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯.",
-  hi: "à¤¸à¤¹à¥‡à¤œà¥€ à¤—à¤ˆ à¤«à¥‹à¤Ÿà¥‹ à¤…à¤ªà¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚ à¤¯à¤¾ à¤¨à¤ˆ à¤«à¥‹à¤Ÿà¥‹ à¤²à¥‡à¤‚à¥¤ à¤œà¤¾à¤¨à¤µà¤° à¤•à¤¾ à¤ªà¥‚à¤°à¤¾ à¤¸à¤¾à¤‡à¤¡ à¤ªà¥à¤°à¥‹à¤«à¤¾à¤‡à¤² à¤«à¥à¤°à¥‡à¤® à¤®à¥‡à¤‚ à¤°à¤–à¥‡à¤‚, à¤«à¤¿à¤° à¤¨à¤¸à¥à¤² à¤•à¤¾ à¤µà¤¿à¤¶à¥à¤²à¥‡à¤·à¤£ à¤•à¤°à¥‡à¤‚à¥¤",
+  ta: "சேமித்த புகைப்படத்தை பதிவேற்றவும் அல்லது புதிய படம் எடுக்கவும். விலங்கின் முழு பக்கத் தோற்றத்தை சட்டகத்தில் வைத்து, பின்னர் இனத்தை பகுப்பாய்வு செய்யவும்.",
+  hi: "सहेजी गई फोटो अपलोड करें या नई फोटो लें। जानवर का पूरा साइड प्रोफाइल फ्रेम में रखें, फिर नस्ल का विश्लेषण करें।",
 };
 
 function formatRecordId(value) {
@@ -68,7 +87,7 @@ function topBars(top5 = []) {
 }
 
 export default function AndroidUserPage() {
-  const { tBreed, tDynamic, lang, speakText, stopSpeaking } = useI18n();
+  const { t, tBreed, tDynamic, lang, speakText, stopSpeaking } = useI18n();
   const uploadRef = useRef(null);
   const originalUrlRef = useRef(null);
 
@@ -244,7 +263,7 @@ export default function AndroidUserPage() {
       setPrepared(loaded);
       setStage("preview");
     } catch (err) {
-      setError(err.message || "Could not prepare the image.");
+      setError(err.message || t("android.prepareError"));
     } finally {
       setPreparing(false);
     }
@@ -269,7 +288,7 @@ export default function AndroidUserPage() {
       setStage("preview");
       haptic(25);
     } catch (err) {
-      setError(err.message || "Could not prepare the camera image.");
+      setError(err.message || t("android.prepareError"));
     } finally {
       setPreparing(false);
     }
@@ -286,7 +305,7 @@ export default function AndroidUserPage() {
       });
       setPrepared(loaded);
     } catch (err) {
-      setError(err.message || "Could not prepare the image.");
+      setError(err.message || t("android.prepareError"));
     } finally {
       setPreparing(false);
     }
@@ -314,7 +333,7 @@ export default function AndroidUserPage() {
       setPrepared(loaded);
       setCropMode("manual");
     } catch (err) {
-      setError(err.message || "Could not apply the crop.");
+      setError(err.message || t("android.prepareError"));
     } finally {
       setPreparing(false);
     }
@@ -322,7 +341,7 @@ export default function AndroidUserPage() {
 
   const analyze = async () => {
     if (!prepared?.canvas || !activeModel) {
-      setError("Choose an image and an ONNX model first.");
+      setError(t("android.chooseImageModel"));
       return;
     }
     setAnalyzing(true);
@@ -351,7 +370,7 @@ export default function AndroidUserPage() {
         return next;
       });
     } catch (err) {
-      setError(err.message || "On-device inference failed.");
+      setError(err.message || t("android.inferenceError"));
     } finally {
       setAnalyzing(false);
     }
@@ -369,7 +388,7 @@ export default function AndroidUserPage() {
 
   const openTips = () => {
     if (!settings.onlineMode || !navigator.onLine) {
-      setToast(OFFLINE_TIPS_MESSAGE);
+      setToast(t("android.offlineTips"));
       return;
     }
     setTipsOpen(true);
@@ -391,27 +410,27 @@ export default function AndroidUserPage() {
       onEnd: () => setSpeaking(false),
     });
     setSpeaking(started);
-    if (!started) setToast("Audio help is not available on this device.");
+    if (!started) setToast(t("android.audioUnavailable"));
   };
 
   const shareCurrent = async () => {
     if (!result) return;
     const text = [
-      `${result.species} Â· ${tBreed(result.breed_slug) || result.breed}`,
-      `Confidence: ${result.confidence}%`,
-      `Gender: ${genderLabel}`,
-      `Age: ${ageLabel}`,
+      `${tDynamic("species", result.species)} · ${tBreed(result.breed_slug) || result.breed}`,
+      ...(settings.showConfidence !== false ? [`${t("result.confidence")}: ${result.confidence}%`] : []),
+      `${t("hero.gender")}: ${tDynamic("gender", gender.label || "Unknown")}`,
+      `${t("hero.age")}: ${tDynamic("age", age.key || age.label || "Unknown")}`,
     ].join("\n");
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Breed Classifier", text });
+        await navigator.share({ title: t("app.title"), text });
         return;
       }
     } catch {
       /* user cancelled or share unavailable */
     }
     const copied = await copyText(text);
-    setToast(copied ? "Result copied to clipboard." : "Sharing is unavailable on this device.");
+    setToast(copied ? t("android.resultCopied") : t("android.shareUnavailable"));
   };
 
   const openRecent = (entry) => {
@@ -430,6 +449,8 @@ export default function AndroidUserPage() {
   const resultImage = result?.thumbnail || prepared?.dataUrl || original?.dataUrl || null;
   const resultLatency = result?.inference_time_ms ?? result?.total_time_ms ?? lastLatency;
   const modelLatency = lastLatency ?? recent[0]?.inference_time_ms ?? null;
+  const showConfidence = settings.showConfidence !== false;
+  const topBreedsCount = Math.min(5, Math.max(1, Number(settings.topBreedsCount) || 3));
   const speciesLabel = tDynamic("species", result?.species || "");
   const breedLabel = tBreed(result?.breed_slug) || result?.breed || "";
   const genderLabel = tDynamic("gender", gender.label || "Unknown");
@@ -443,27 +464,29 @@ export default function AndroidUserPage() {
             type="button"
             className="android-back-btn"
             onClick={startOver}
-            aria-label="Back to identify"
+            aria-label={t("actions.back")}
           >
-            â†
+            ←
           </button>
           <div className="android-dossier-title">
-            <h1>Identification Dossier</h1>
+            <h1>{t("android.dossier")}</h1>
             <span>{formatRecordId(result.scanned_at)}</span>
           </div>
           <button
             type="button"
             className="android-menu-btn"
             onClick={openSettings}
-            aria-label="Open settings menu"
+            aria-label={t("android.appSettings")}
           >
-            â˜°
+            ☰
           </button>
         </header>
       ) : (
         <header className="site-header android-header">
           <div className="brand-zone android-brand">
-            <div className="brand-emblem android-brand-mark" aria-hidden="true">ðŸ„</div>
+            <div className="brand-emblem android-brand-mark" aria-hidden="true">
+              <BrandMark className="android-brand-icon" />
+            </div>
             <div className="brand-text android-brand-text">
               <h1 className="brand-title android-brand-name">BreedID</h1>
               <span className="brand-subtitle android-brand-sub">Livestock Vision</span>
@@ -472,26 +495,26 @@ export default function AndroidUserPage() {
           <div className="android-header-actions">
             <span className={`android-online-pill ${online ? "is-online" : "is-offline"}`}>
               <span className={`telemetry-dot ${online ? "online" : "offline"}`} />
-              {online ? "Online" : "Offline"}
+              {online ? t("android.online") : t("android.offline")}
             </span>
             <button
               type="button"
               className="android-lang-chip"
               onClick={openSettings}
-              aria-label="Open language settings"
-              title="Language settings"
+              aria-label={t("android.selectLanguage")}
+              title={t("android.selectLanguage")}
             >
               <span>{LANGUAGE_SHORT[lang] || "EN"}</span>
-              <span className="android-lang-glyph" aria-hidden="true">æ–‡</span>
+              <span className="android-lang-glyph" aria-hidden="true">文</span>
             </button>
             <button
               type="button"
               className="android-menu-btn"
               onClick={openSettings}
-              aria-label="Open settings menu"
-              title="Settings"
+              aria-label={t("mobile.menu")}
+              title={t("android.appSettings")}
             >
-              â˜°
+              ☰
             </button>
           </div>
         </header>
@@ -504,15 +527,12 @@ export default function AndroidUserPage() {
               <div className="android-engine-row">
                 <span className="android-engine-state">
                   <i aria-hidden="true" />
-                  Vision Engine Active
+                  {t("android.visionActive")}
                 </span>
-                <span className="android-engine-tag">ONNX Â· WASM</span>
+                <span className="android-engine-tag">ONNX · WASM</span>
               </div>
-              <h2>Identify Cattle or Buffalo</h2>
-              <p>
-                Surgical on-device computer vision. Works offline in harsh field conditions
-                with zero cloud latency.
-              </p>
+              <h2>{t("android.identifyTitle")}</h2>
+              <p>{t("android.identifyBody")}</p>
             </section>
 
             <button
@@ -521,12 +541,16 @@ export default function AndroidUserPage() {
               onClick={toggleHelp}
               aria-pressed={speaking}
             >
-              <span className="android-audio-icon" aria-hidden="true">{speaking ? "â– " : "ðŸ”Š"}</span>
-              <span className="android-audio-copy">
-                <strong>{lang === "ta" ? "à®•à¯‡à®Ÿà¯à®Ÿà¯ à®…à®±à®¿à®¯à¯à®™à¯à®•à®³à¯" : lang === "hi" ? "à¤¸à¥à¤¨à¤•à¤° à¤œà¤¾à¤¨à¥‡à¤‚" : "Audio help"}</strong>
-                <small>{speaking ? "Playing instructionsâ€¦" : "Tap to hear how to scan in your language"}</small>
+              <span className="android-audio-icon" aria-hidden="true">
+                {speaking ? <StopIcon /> : <SpeakerIcon />}
               </span>
-              <span className="android-audio-play" aria-hidden="true">{speaking ? "â– " : "â–¶"}</span>
+              <span className="android-audio-copy">
+                <strong>{t("android.audioHelp")}</strong>
+                <small>{speaking ? t("android.audioPlaying") : t("android.audioHint")}</small>
+              </span>
+              <span className="android-audio-play" aria-hidden="true">
+                {speaking ? <StopIcon /> : <PlayIcon />}
+              </span>
             </button>
 
             <div className="android-source-stack">
@@ -536,16 +560,14 @@ export default function AndroidUserPage() {
                 onClick={() => uploadRef.current?.click()}
                 disabled={preparing}
               >
-                <span className="android-source-icon" aria-hidden="true">ðŸ–¼ï¸</span>
+                <span className="android-source-icon" aria-hidden="true"><GalleryIcon /></span>
                 <span className="android-source-copy">
-                  <strong>{preparing ? "Preparing imageâ€¦" : "Upload from Gallery"}</strong>
+                  <strong>{preparing ? t("android.preparing") : t("android.uploadGallery")}</strong>
                   <small>
-                    {preparing
-                      ? "Optimising for the model"
-                      : "Saved photos Â· choose crop & downscale"}
+                    {preparing ? t("android.preparingHint") : t("android.uploadHint")}
                   </small>
                 </span>
-                <span className="android-source-arrow" aria-hidden="true">â€º</span>
+                <span className="android-source-arrow" aria-hidden="true">›</span>
               </button>
 
               <button
@@ -554,15 +576,15 @@ export default function AndroidUserPage() {
                 onClick={() => setCameraOpen(true)}
                 disabled={preparing}
               >
-                <span className="android-source-icon" aria-hidden="true">ðŸ“·</span>
+                <span className="android-source-icon" aria-hidden="true"><CameraIcon /></span>
                 <span className="android-source-copy">
                   <strong>
-                    Take Photo
-                    <em className="android-fast-badge">FAST</em>
+                    {t("android.takePhoto")}
+                    <em className="android-fast-badge">{t("android.fast")}</em>
                   </strong>
-                  <small>Guided silhouette Â· direct on-device scan</small>
+                  <small>{t("android.cameraHint")}</small>
                 </span>
-                <span className="android-source-arrow" aria-hidden="true">â€º</span>
+                <span className="android-source-arrow" aria-hidden="true">›</span>
               </button>
             </div>
 
@@ -577,29 +599,30 @@ export default function AndroidUserPage() {
 
             <section className="android-telemetry-card">
               <div className="android-telemetry-top">
-                <span>Active ONNX model</span>
+                <span>{t("android.activeModel")}</span>
                 <span className="android-telemetry-ready"><i aria-hidden="true" />WASM / SIMD</span>
               </div>
-              <div className="android-model-name">{activeModel?.name || "No model loaded"}</div>
+              <div className="android-model-name">{activeModel?.name || t("android.noModel")}</div>
               <div className="android-telemetry-bottom">
                 <span>
-                  Size: {activeModel ? Number(activeModel.size_mb || 0).toFixed(1) : "â€”"} MB
-                  {" Â· "}
-                  Latency: {modelLatency ? `${Math.round(modelLatency)}ms` : "â€”"}
+                  {t("android.size")}: {activeModel ? Number(activeModel.size_mb || 0).toFixed(1) : "—"} MB
+                  {" · "}
+                  {t("android.latency")}: {modelLatency ? `${Math.round(modelLatency)}ms` : "—"}
                 </span>
-                <strong>{activeModel ? "Engine Ready" : "Model Missing"}</strong>
+                <strong>{activeModel ? t("android.engineReady") : t("android.modelMissing")}</strong>
               </div>
             </section>
 
             <section className="android-recent-block">
               <div className="android-recent-head">
                 <div className="android-recent-title">
-                  <span>Recent Scans</span>
+                  <span>{t("android.recentScans")}</span>
                   <b className="android-count-badge">{recent.length}</b>
                 </div>
                 {recent.length > 0 && (
                   <button type="button" className="android-clear-btn" onClick={clearRecent}>
-                    ðŸ—‘ Clear
+                    <TrashIcon />
+                    {t("android.clear")}
                   </button>
                 )}
               </div>
@@ -615,10 +638,12 @@ export default function AndroidUserPage() {
                       <span className="android-recent-thumb">
                         {entry.thumbnail
                           ? <img src={entry.thumbnail} alt="" />
-                          : <span className="android-recent-placeholder" aria-hidden="true">ðŸ„</span>}
-                        <b className={entry.confidence < 90 ? "is-warn" : ""}>
-                          {entry.confidence}%
-                        </b>
+                          : <span className="android-recent-placeholder" aria-hidden="true"><BrandMark /></span>}
+                        {showConfidence && (
+                          <b className={entry.confidence < 90 ? "is-warn" : ""}>
+                            {entry.confidence}%
+                          </b>
+                        )}
                       </span>
                       <strong>{tBreed(entry.breed_slug) || entry.breed}</strong>
                       <small>{SCIENTIFIC_NAME[entry.species] || entry.species}</small>
@@ -627,16 +652,16 @@ export default function AndroidUserPage() {
                 </div>
               ) : (
                 <div className="android-empty-recents">
-                  <span aria-hidden="true">â—·</span>
-                  <strong>No Recent Local Scans</strong>
-                  <small>Processed samples will appear here in the offline cache.</small>
+                  <span aria-hidden="true"><AgeIcon /></span>
+                  <strong>{t("android.noRecent")}</strong>
+                  <small>{t("android.noRecentHint")}</small>
                 </div>
               )}
             </section>
 
             <div className="android-privacy-strip">
-              <span>ðŸ”’ Local in-memory inference</span>
-              <span>No cloud sync</span>
+              <span><LockIcon /> {t("android.localInference")}</span>
+              <span>{t("android.noCloudSync")}</span>
             </div>
           </>
         )}
@@ -648,35 +673,33 @@ export default function AndroidUserPage() {
                 type="button"
                 className="android-back-btn is-compact"
                 onClick={startOver}
-                aria-label="Back to home"
+                aria-label={t("actions.back")}
               >
-                â†
+                ←
               </button>
               <div className="android-preview-title">
-                <span className="android-step-kicker">Image preparation</span>
-                <h2>{source === "camera" ? "Camera Preview" : "Prepare Your Photo"}</h2>
+                <span className="android-step-kicker">{t("android.imagePreparation")}</span>
+                <h2>{source === "camera" ? t("android.cameraPreview") : t("android.preparePhoto")}</h2>
                 <p>
-                  {source === "camera"
-                    ? "Camera captures use the default Resize(260) + CenterCrop(260) pipeline."
-                    : "Choose how the uploaded photo should be fitted before analysis."}
+                  {source === "camera" ? t("android.cameraBody") : t("android.prepareBody")}
                 </p>
               </div>
             </div>
 
             <div className="android-preview-grid">
               <figure className="android-preview-frame">
-                <span className="android-frame-tag">Original</span>
-                <img src={original?.dataUrl} alt="Original upload" />
+                <span className="android-frame-tag">{t("android.original")}</span>
+                <img src={original?.dataUrl} alt={t("android.original")} />
               </figure>
               <figure className="android-preview-frame">
-                <span className="android-frame-tag is-accent">Model input Â· 260Ã—260</span>
-                <img src={prepared?.dataUrl} alt="Prepared model input" />
+                <span className="android-frame-tag is-accent">{t("android.modelInput")}</span>
+                <img src={prepared?.dataUrl} alt={t("android.modelInput")} />
               </figure>
             </div>
 
             {source === "file" && (
               <div className="android-option-block">
-                <span className="android-option-label">Crop Mode</span>
+                <span className="android-option-label">{t("android.cropMode")}</span>
                 <div className="android-option-row">
                   {CROP_MODES.map((mode) => (
                     <button
@@ -686,14 +709,14 @@ export default function AndroidUserPage() {
                       onClick={() => changeCropMode(mode.id)}
                       disabled={preparing}
                     >
-                      {mode.label}
+                      {t(CROP_I18N[mode.id] || mode.id)}
                     </button>
                   ))}
                 </div>
                 <p className="android-option-hint">
-                  Downscale: {(settings.downscaleMode || "auto") === "train"
-                    ? "Train Match (288â†’260)"
-                    : "Auto (shortest side 260)"} Â· change in Settings
+                  {t("android.downscale")}: {(settings.downscaleMode || "auto") === "train"
+                    ? t("android.downscaleTrain")
+                    : t("android.downscaleAuto")} · {t("android.changeInSettings")}
                 </p>
               </div>
             )}
@@ -703,7 +726,7 @@ export default function AndroidUserPage() {
                 <ImageCropper
                   imageUrl={original.dataUrl}
                   fileName={original.file?.name || "upload.jpg"}
-                  confirmLabel="Use this crop"
+                  confirmLabel={t("android.useCrop")}
                   onConfirm={applyManualCrop}
                   onCancel={() => setManualOpen(false)}
                 />
@@ -720,9 +743,9 @@ export default function AndroidUserPage() {
               {analyzing ? (
                 <>
                   <span className="android-btn-spinner" aria-hidden="true" />
-                  Analyzing on deviceâ€¦
+                  {t("android.analyzing")}
                 </>
-              ) : "Analyze Breed"}
+              ) : t("android.analyze")}
             </button>
           </section>
         )}
@@ -732,62 +755,59 @@ export default function AndroidUserPage() {
             <div className="android-inference-strip">
               <span className="android-inference-state">
                 <i aria-hidden="true" />
-                Inference complete
+                {t("android.inferenceComplete")}
               </span>
               <span>
                 {resultLatency ? `${Math.round(resultLatency)}ms` : "on-device"}
-                {" Â· "}On-device neural
+                {" · "}{t("android.onDeviceNeural")}
               </span>
             </div>
 
             {resultImage && (
               <figure className="android-dossier-image">
-                <img src={resultImage} alt="Analysed animal" />
-                <figcaption>â—‰ Model input Â· 260Ã—260</figcaption>
+                <img src={resultImage} alt={t("android.dossier")} />
+                <figcaption>◉ {t("android.modelInput")}</figcaption>
               </figure>
             )}
 
             <article className="android-species-card">
               <div className="android-species-copy">
-                <span className="android-card-label">Species</span>
+                <span className="android-card-label">{t("android.species")}</span>
                 <h2>{speciesLabel}</h2>
                 <small>{SCIENTIFIC_NAME[result.species] || result.species}</small>
               </div>
-              <span className="android-verified-badge">â—‰ Model match</span>
+              <span className="android-verified-badge">◉ {t("android.modelMatch")}</span>
             </article>
 
             <article className="android-breed-dossier">
               <div className="android-dossier-breed-top">
-                <span className="android-card-label">Identified breed</span>
-                <span className="android-rank-pill">Rank #1 probable</span>
+                <span className="android-card-label">{t("android.identifiedBreed")}</span>
+                <span className="android-rank-pill">{t("android.rank1")}</span>
               </div>
               <div className="android-breed-title-row">
                 <h2>{breedLabel}</h2>
-                <strong>{result.confidence}%</strong>
+                {showConfidence && <strong>{result.confidence}%</strong>}
               </div>
               <span className="android-breed-subtitle">
-                {speciesLabel} Â· on-device breed match
+                {speciesLabel} · {t("android.breedMatch")}
               </span>
-              <p className="android-breed-desc">
-                Ranked from 68 cattle and buffalo breeds in the offline model. The top
-                three softmax probabilities are shown below.
-              </p>
+              <p className="android-breed-desc">{t("android.breedDesc")}</p>
 
               <div className="android-spectrum">
                 <div className="android-spectrum-head">
-                  <span>Top-3 confidence spectrum</span>
-                  <span>Softmax distribution</span>
+                  <span>{t("android.topBreeds", { count: topBreedsCount })}</span>
+                  <span>{t("android.softmax")}</span>
                 </div>
                 {topBars(result.top5_breeds)
                   .filter((item) => item.species === result.species)
-                  .slice(0, 3)
+                  .slice(0, topBreedsCount)
                   .map((item, index) => (
                   <div className="android-spectrum-row" key={item.breed_slug}>
                     <div className="android-spectrum-line">
                       <span className="android-spectrum-name">
                         {index + 1}. {tBreed(item.breed_slug) || item.breed}
                       </span>
-                      <strong>{item.confidence}%</strong>
+                      {showConfidence && <strong>{item.confidence}%</strong>}
                     </div>
                     <span className="android-spectrum-track">
                       <i style={{ width: `${item.width}%` }} />
@@ -801,35 +821,43 @@ export default function AndroidUserPage() {
               <article className="android-attr-card">
                 <div className="android-attr-head">
                   <span className="android-attr-icon" aria-hidden="true">
-                    {gender.key === "female" ? "â™€" : "â™‚"}
+                    {gender.key === "female" ? <FemaleIcon /> : <MaleIcon />}
                   </span>
-                  <span className="android-card-label">Predicted gender</span>
+                  <span className="android-card-label">{t("android.predictedGender")}</span>
                 </div>
                 <h3>{genderLabel}</h3>
-                <strong className="android-attr-confidence">{gender.confidence}% heuristic</strong>
-                <small>{gender.method || "On-device morphology prior"}</small>
+                {showConfidence && (
+                  <strong className="android-attr-confidence">
+                    {gender.confidence}% {t("android.heuristic")}
+                  </strong>
+                )}
+                <small>{t("android.methodGender")}</small>
               </article>
 
               <article className="android-attr-card">
                 <div className="android-attr-head">
-                  <span className="android-attr-icon" aria-hidden="true">â—·</span>
-                  <span className="android-card-label">Estimated age</span>
+                  <span className="android-attr-icon" aria-hidden="true"><AgeIcon /></span>
+                  <span className="android-card-label">{t("android.estimatedAge")}</span>
                 </div>
                 <h3>{ageLabel}</h3>
-                <strong className="android-attr-confidence">{age.confidence}% heuristic</strong>
-                <small>{age.method || "On-device body-size / coat prior"}</small>
+                {showConfidence && (
+                  <strong className="android-attr-confidence">
+                    {age.confidence}% {t("android.heuristic")}
+                  </strong>
+                )}
+                <small>{t("android.methodAge")}</small>
               </article>
             </div>
 
             <div className="android-action-stack">
               <button type="button" className="android-primary-btn" onClick={openTips}>
-                ðŸ“– Breed Tips & Farmer Advisory
+                <BookIcon /> {t("android.breedTips")}
               </button>
               <button type="button" className="android-secondary-btn" onClick={shareCurrent}>
-                â†— Share Dossier Export
+                <ShareIcon /> {t("android.shareDossier")}
               </button>
               <button type="button" className="android-ghost-btn" onClick={startOver}>
-                â—Ž Identify Another Animal
+                <TargetIcon /> {t("android.identifyAnother")}
               </button>
             </div>
           </section>

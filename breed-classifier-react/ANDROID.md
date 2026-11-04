@@ -96,6 +96,15 @@ restarts.
   cards, Online Mode + backend URL, and a collapsible **Advanced AI Model**
   section for ONNX/OOD. Gallery downscale mode lives there too.
   **Save & Return** closes the page; all choices are persisted immediately.
+- **Result display:** Advanced Settings includes a *Show confidence percentages*
+  toggle and a *Predicted breeds to show* selector (1–5, default 3). These
+  control the result cards, recent-scan badges and the breed spectrum.
+- **Localisation:** dashboard, dossier, settings and status messages use the
+  shared website `t()` dictionary (English / Tamil / Hindi), including species,
+  gender, age and breed names via `tDynamic`.
+- **Icons:** a shared inline SVG set (`AndroidIcons.jsx`) replaces the mixed
+  emoji marks for the brand, gallery, camera, audio, lock, trash, language,
+  theme, online, advanced, gender, age and result actions.
 - **OOD calibration:** a model with embedded `model_meta.ood` (the
   `*__ood.onnx` mutant or the bundled default) applies its own energy/MSP
   thresholds automatically. A non-OOD model is accepted but the OOD gate is
