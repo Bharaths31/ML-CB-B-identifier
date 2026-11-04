@@ -888,7 +888,7 @@ Key client modules:
 - `components/AdvancedPanel.jsx` — model-input/original preview, fit modes,
   batch tester and `AdvancedResultDetails` (X-Ray, traits, quality, diagnostics,
   BPA, escalation).
-- `components/ResultWorkspace.jsx` — Big-4 hero grid, trait checklist, farmer/public tabs, report card.
+- `components/ResultWorkspace.jsx` — Big-4 hero grid (read-only gender/age), farmer/public tabs, report card.
 - `components/BpaRegistrationModal.jsx` — BPA ear tag + QR health card.
 - `components/ImageCropper.jsx` — shared 1:1 framing cropper; pan works on
   **both** axes.

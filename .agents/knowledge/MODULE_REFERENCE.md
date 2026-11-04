@@ -178,8 +178,8 @@ Constants only, no functions. Side effect: creates output/log directories on imp
   `makeSessionEntry`, `sessionStats`, `sessionToCsv`, `sessionToJson`,
   `sessionToOdtResults`, `thumbnailFromDataUrl`, `downloadTextFile`
 - `hooks/` — `useImageOptimizer`, `useSharedConfig`, `useSocket`
-- `components/` — current user surface: `ResultWorkspace`, `HeroFourGrid`,
-  `TraitChecklist`, `FarmerAdvisoryCard`, `BreedEncyclopedia`, `VoiceReaderButton`,
+- `components/` — current user surface: `ResultWorkspace` (read-only gender/age),
+  `HeroFourGrid`, `FarmerAdvisoryCard`, `BreedEncyclopedia`, `VoiceReaderButton`,
   `PhotoGuidance`, `PhotoGuideModal`, `EstimatedAttributes`, `FarmerAdvisory`,
   `TraitComparison`, `QualityBadge`, `HerdSessionDrawer`, `ImageUpload`,
   `CameraCapture`, `ImageCropper`, `AdvancedPanel`, `AdvancedBatchTester`,

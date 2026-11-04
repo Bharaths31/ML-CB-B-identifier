@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import HeroFourGrid from "./HeroFourGrid.jsx";
-import TraitChecklist from "./TraitChecklist.jsx";
 import FarmerAdvisoryCard from "./FarmerAdvisoryCard.jsx";
 import BreedEncyclopedia from "./BreedEncyclopedia.jsx";
 import PhotoGuidance from "./PhotoGuidance.jsx";
 import VoiceReaderButton from "./VoiceReaderButton.jsx";
-import { getBreedKnowledge, recalculateAdvisory } from "../api.js";
+import { getBreedKnowledge } from "../api.js";
 import { downloadFarmerReport } from "../utils/reportCard.js";
-
-const cap = (value) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : null);
 
 /**
  * User-portal results workspace.
  *
- * Owns the gender/age overrides so the Big-4 grid and the advisory stay in
- * sync: changing a pill calls POST /api/advisory-recalculate (~0.1 ms) and
- * never re-runs the image model.
+ * Gender and age are read-only model estimates; the advisory comes from the
+ * prediction response, so no manual override or recalculation is exposed.
  */
 export default function ResultWorkspace({
   result,
@@ -35,11 +31,7 @@ export default function ResultWorkspace({
   const showSpeciesBadge = display.show_species_badge !== false;
   const showSpeciesConfidence = display.show_species_confidence !== false;
 
-  const [gender, setGender] = useState(null);
-  const [ageGroup, setAgeGroup] = useState(null);
   const [advisory, setAdvisory] = useState(null);
-  const [latency, setLatency] = useState(null);
-  const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [tab, setTab] = useState("farmer");
   const [entry, setEntry] = useState(null);
@@ -68,12 +60,9 @@ export default function ResultWorkspace({
     };
   }, [result, localizedBreed, tDynamic]);
 
-  // A new prediction resets every override.
+  // A new prediction resets the advisory and scroll state.
   useEffect(() => {
-    setGender(result?.gender?.key || null);
-    setAgeGroup(result?.age_group?.key || null);
     setAdvisory(result?.knowledge || null);
-    setLatency(null);
     setNotice("");
     setTab("farmer");
   }, [result]);
@@ -100,35 +89,6 @@ export default function ResultWorkspace({
       cancelled = true;
     };
   }, [species, breedSlug]);
-
-  const refreshAdvisory = async (nextGender, nextAge) => {
-    if (!species || !breedSlug) return;
-    setBusy(true);
-    setNotice("");
-    try {
-      const data = await recalculateAdvisory({
-        species,
-        breed: breedSlug,
-        gender: cap(nextGender),
-        ageGroup: cap(nextAge),
-      });
-      setAdvisory(data.advisory);
-      setLatency(data.latency_ms);
-    } catch (err) {
-      setNotice(err?.message || "Advisory refresh failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleGender = (value) => {
-    setGender(value);
-    refreshAdvisory(value, ageGroup);
-  };
-  const handleAge = (value) => {
-    setAgeGroup(value);
-    refreshAdvisory(gender, value);
-  };
 
   const reportLabels = useMemo(() => ({
     "report.title": t("report.title"),
@@ -165,11 +125,6 @@ export default function ResultWorkspace({
     setTimeout(() => setNotice(""), 5000);
   };
 
-  const overridden = Boolean(
-    (gender && result?.gender?.key && gender !== result.gender.key) ||
-    (ageGroup && result?.age_group?.key && ageGroup !== result.age_group.key)
-  );
-
   return (
     <section className="result-workspace">
       <header className="workspace-head">
@@ -203,26 +158,9 @@ export default function ResultWorkspace({
 
       <HeroFourGrid
         result={result}
-        gender={gender}
-        ageGroup={ageGroup}
-        onGenderChange={handleGender}
-        onAgeChange={handleAge}
         breedKnowledge={entry}
         showSpeciesConfidence={showSpeciesConfidence}
       />
-
-      {overridden && (
-        <p className="workspace-override-note">
-          {t("hero.verify")}:{" "}
-          {[gender ? t(`advisory.${gender}`) : null,
-            ageGroup ? t(`advisory.${ageGroup}`) : null,
-            busy ? t("result.recalculating") : null]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      )}
-
-      {show("traits") && <TraitChecklist traits={result?.traits} />}
 
       {show("advisory") && (
         <>
@@ -249,7 +187,7 @@ export default function ResultWorkspace({
 
           <div className="result-tab-body">
             {tab === "farmer" ? (
-              <FarmerAdvisoryCard advisory={advisory} loading={busy} latencyMs={latency} />
+              <FarmerAdvisoryCard advisory={advisory} loading={false} latencyMs={null} />
             ) : (
               <BreedEncyclopedia
                 entry={entry}

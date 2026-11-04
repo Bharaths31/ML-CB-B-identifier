@@ -16,7 +16,6 @@ export const USER_SECTION_OPTIONS = [
   { id: "footer", label: "Footer", help: "Status bar with model, device and version." },
   { id: "voice", label: "Voice reader", help: "Text-to-speech button in the result workspace." },
   { id: "reportCard", label: "Report card download", help: "Printable Pashu Aadhaar download button." },
-  { id: "traits", label: "Trait checklist", help: "Explainable-AI morphological trait chips." },
   { id: "advisory", label: "Farmer / public tabs", help: "Advisory and breed encyclopedia tabs in the result view." },
   { id: "photoGuidance", label: "Photo guidance", help: "Photo-quality tips shown above the Big-4 result grid." },
 ];

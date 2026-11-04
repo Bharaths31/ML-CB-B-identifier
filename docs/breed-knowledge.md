@@ -51,7 +51,7 @@ toggle without touching the image model.
 | **Male + Adult** | Milk is hidden (not the relevant metric); draught work capacity, safe load, yoke/hoof care, breeding-bull and semen value |
 | **Male + Young** | Bull-calf vs draught-ox decision, castration timing, growth target, temperament handling |
 | **Calf (any gender)** | Colostrum in the first 1–2 h, 10 % body-weight milk, calf starter, deworming on day 10/30/60, FMD/HS/BQ calendar, brucellosis for female calves |
-| **Unspecified** | General breed briefing + prompt to set gender/age |
+| **Unspecified** | General breed briefing when the model's gender/age estimate is unavailable |
 
 Returned shape:
 

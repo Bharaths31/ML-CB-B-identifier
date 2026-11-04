@@ -52,7 +52,7 @@ Original image (EXIF applied)
   → 260×260 canvas: stretch (default) | pad · ImageNet mean | pad · ambient blur | pad · black
   → optional 1:1 manual framing (pan on both axes) applied to the ORIGINAL
   → POST /api/predict (260×260 JPEG + original filename)
-  → ResultWorkspace (Big-4 species / breed / gender / age, trait checklist)
+  → ResultWorkspace (Big-4 species / breed / gender / age, read-only)
   → quality gate + OOD explainer (blur/exposure/framing, trilingual tips)
   → Farmer advisory / breed encyclopedia tabs + printable report card
   → herd session log → CSV / JSON / ODT export

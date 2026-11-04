@@ -54,8 +54,8 @@ file / camera
                  ↓
         ResultWorkspace
           - Big-4 species / breed / gender / age cards
-          - editable gender/age (advisory recalculates instantly)
-          - trait checklist + farmer / public advisory tabs
+          - read-only gender / age estimates
+          - farmer / public advisory tabs
           - quality gate + OOD explainer + printable report card
           - technical diagnostics
                  ↓
@@ -162,9 +162,8 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 | `src/components/ImageCropper.jsx` | Shared 1:1 framing cropper (both-axis pan, zoom, quality) |
 | `src/components/AdvancedPanel.jsx` | Model input, metadata, fit modes, batch entry point |
 | `src/components/AdvancedBatchTester.jsx` | Batch inference with the selected configuration |
-| `src/components/ResultWorkspace.jsx` | User results: Big-4 hero grid, trait checklist, dual-persona tabs, report card |
-| `src/components/HeroFourGrid.jsx` | Species / Breed / Gender / Age cards with editable, recalculating pills |
-| `src/components/TraitChecklist.jsx` | Explainable-AI chips the farmer can tick to confirm morphology |
+| `src/components/ResultWorkspace.jsx` | User results: Big-4 hero grid (read-only gender/age), dual-persona tabs, report card |
+| `src/components/HeroFourGrid.jsx` | Species / Breed / Gender / Age cards (read-only estimates) |
 | `src/components/FarmerAdvisoryCard.jsx` | Milk, feeding, market value, schemes, vaccination, warnings |
 | `src/components/BreedEncyclopedia.jsx` | Native tract, heritage, climate resilience, conservation note |
 | `src/components/VoiceReaderButton.jsx` | `speechSynthesis` readout in en-IN / ta-IN / hi-IN |
@@ -240,7 +239,7 @@ The vet portal’s **User Page** tab writes two shared-config keys:
 `src/utils/userVisibility.js`:
 
 `photoGuide`, `specStrip`, `herdSession`, `advanced`, `devLink`, `escalation`,
-`footer`, `voice`, `reportCard`, `traits`, `advisory`, `photoGuidance`.
+`footer`, `voice`, `reportCard`, `advisory`, `photoGuidance`.
 
 Hidden blocks are removed from the DOM (not merely collapsed) and every
 connected user page updates instantly over `/ws` `config_changed`. The

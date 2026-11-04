@@ -536,7 +536,6 @@ export default function UserPage() {
               visibility={{
                 voice: visible("voice"),
                 reportCard: visible("reportCard"),
-                traits: visible("traits"),
                 advisory: visible("advisory"),
                 advanced: visible("advanced"),
                 photoGuidance: visible("photoGuidance"),

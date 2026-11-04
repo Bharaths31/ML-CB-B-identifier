@@ -1,15 +1,5 @@
 import { useI18n } from "../i18n/I18nProvider.jsx";
 
-const GENDERS = [
-  { key: "female", labelKey: "advisory.female", icon: "♀️" },
-  { key: "male", labelKey: "advisory.male", icon: "♂️" },
-];
-const AGES = [
-  { key: "calf", labelKey: "advisory.calf", icon: "🍼" },
-  { key: "young", labelKey: "advisory.young", icon: "🌱" },
-  { key: "adult", labelKey: "advisory.adult", icon: "🐄" },
-];
-
 function pct(value) {
   const n = Number(value);
   return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
@@ -27,15 +17,10 @@ function Meter({ value, tone = "green" }) {
 
 /**
  * Reviewer-mandated "Big 4" grid: Species, Breed, Gender, Age Group.
- * Gender and age are editable in place — the parent recalculates the advisory
- * without re-running image inference.
+ * Gender and age are read-only model estimates (no manual override).
  */
 export default function HeroFourGrid({
   result,
-  gender,
-  ageGroup,
-  onGenderChange,
-  onAgeChange,
   breedKnowledge,
   showSpeciesConfidence = true,
 }) {
@@ -56,8 +41,6 @@ export default function HeroFourGrid({
   const origin = breedKnowledge?.origin_region || result?.knowledge?.breed?.origin_region || "";
   const genderBlock = result?.gender || {};
   const ageBlock = result?.age_group || {};
-  const activeGender = gender || genderBlock.key || "";
-  const activeAge = ageGroup || ageBlock.key || "";
 
   return (
     <div className="hero-four-grid" aria-label={t("hero.species")}>
@@ -121,19 +104,6 @@ export default function HeroFourGrid({
               : t("hero.genderNote")}
           </p>
         )}
-        <div className="hero-verify-row" role="group" aria-label={t("hero.verify")}>
-          {GENDERS.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`hero-pill ${activeGender === option.key ? "hero-pill-active" : ""}`}
-              onClick={() => onGenderChange?.(option.key === activeGender ? null : option.key)}
-              aria-pressed={activeGender === option.key}
-            >
-              <span aria-hidden="true">{option.icon}</span> {t(option.labelKey)}
-            </button>
-          ))}
-        </div>
         <p className="hero-hint">{t("hero.genderNote")}</p>
       </article>
 
@@ -148,19 +118,6 @@ export default function HeroFourGrid({
         <h3 className="hero-value">
           {isOod ? t("hero.unknown") : (tDynamic("age", ageBlock.key) || t("hero.unknown"))}
         </h3>
-        <div className="hero-verify-row" role="group" aria-label={t("hero.verify")}>
-          {AGES.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`hero-pill ${activeAge === option.key ? "hero-pill-active" : ""}`}
-              onClick={() => onAgeChange?.(option.key === activeAge ? null : option.key)}
-              aria-pressed={activeAge === option.key}
-            >
-              <span aria-hidden="true">{option.icon}</span> {t(option.labelKey)}
-            </button>
-          ))}
-        </div>
         <p className="hero-hint" title={t("hero.ageTooltip")}>
           ℹ️ {t("hero.ageTooltip")}
         </p>

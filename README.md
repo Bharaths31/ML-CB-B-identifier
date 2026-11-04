@@ -1101,9 +1101,9 @@ cd vet-portal && npm install && npm run dev
 
 | Surface | What it does |
 |---|---|
-| **Five outputs** | Species, Top-5 breed, Gender, Age Group and seven morphological traits; gender/age are editable and re-run the advisory instantly |
+| **Five outputs** | Species, Top-5 breed, Gender, Age Group and seven morphological traits; gender/age are read-only estimates |
 | **Farmer advisory** | Milk/fat/income, fodder calculator, vaccination calendar, market price and government schemes; public tab adds native tract, heritage and climate resilience |
-| **Trait checklist** | Tick the visible hump/horn/coat/ear/dewlap/face/size traits to confirm the prediction |
+| **Trait output** | Seven morphological traits are shown in the advanced diagnostics; the farmer view no longer asks for manual trait confirmation |
 | **Quality gate** | Pre-inference blur/exposure/resolution/aspect checks with English, Tamil and Hindi retake tips |
 | **OOD explainer** | Distinguishes "no animal detected" from "animal present but breed features unclear" in all three languages |
 | **Upload / camera** | Original image plus Downscale only vs Frame manually; full-frame AR camera, auto-capture, burst-3, torch and CLAHE |

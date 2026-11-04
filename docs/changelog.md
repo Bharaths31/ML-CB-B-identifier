@@ -1,5 +1,15 @@
 # 16. Changelog
 
+### 2026-11-04 — Read-only gender/age, trait-confirmation block removed
+
+- **Big-4 is read-only**: the gender and age pill toggles were removed from
+  `HeroFourGrid`; the cards now show the model estimate and confidence only.
+  `ResultWorkspace` no longer recalculates the advisory from manual overrides.
+- **“Verify the physical traits” removed** from the farmer result view, along
+  with the now-unused `TraitChecklist` component and the `traits` visibility
+  option. Trait values remain available in the advanced diagnostics.
+- Docs/knowledge base updated to match.
+
 ### 2026-11-04 — 4-layer offline input guardrails
 
 - **New `src/input_guardrails.py`** — `InputGuardrailEngine` with four stages:
