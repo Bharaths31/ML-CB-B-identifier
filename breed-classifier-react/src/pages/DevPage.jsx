@@ -35,6 +35,11 @@ export default function DevPage() {
     }
   };
 
+  const formatModelPill = (val) => {
+    if (!val) return "default";
+    return val.length > 20 ? `${val.slice(0, 11)}…${val.slice(-4)}` : val;
+  };
+
   useEffect(() => {
     if (activeTab === "logs") {
       fetchSystemLogs();
@@ -76,7 +81,7 @@ export default function DevPage() {
               {t("dev.uptime")}: <strong>{serverStatus?.uptime ? `${Math.round(serverStatus.uptime)}s` : "0s"}</strong>
             </span>
             <span className="spec-pill spec-pill-active" title={config?.active_model || serverStatus?.active_model || "default"}>
-              {t("dev.active")}: <strong>{config?.active_model || serverStatus?.active_model || "default"}</strong>
+              {t("dev.active")}: <strong>{formatModelPill(config?.active_model || serverStatus?.active_model || "default")}</strong>
             </span>
           </div>
 

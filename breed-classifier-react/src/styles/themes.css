@@ -348,27 +348,31 @@ textarea {
 }
 
 .telemetry-zone {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   justify-content: center;
+  align-items: center;
   min-width: 0;
+  margin: 0 6px;
 }
 .system-pill {
   display: inline-flex;
   align-items: center;
   height: 32px;
   max-width: 100%;
-  padding: 2px 8px;
+  padding: 2px 10px;
   background: var(--bg-recessed);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
+  flex-shrink: 0;
+  gap: 3px;
 }
 .telemetry-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 26px;
-  padding: 0 10px;
+  padding: 0 6px;
   border: 0;
   background: none;
   color: var(--text-secondary);
@@ -376,19 +380,31 @@ textarea {
   letter-spacing: 0.01em;
   white-space: nowrap;
   min-width: 0;
+  flex-shrink: 0;
 }
 button.telemetry-item { cursor: pointer; }
 button.telemetry-item:hover { color: var(--text-primary); }
 .telemetry-sep {
   width: 1px;
-  height: 15px;
+  height: 16px;
   background: var(--border-subtle);
-  flex: 0 0 auto;
+  flex: 0 0 1px;
+  margin: 0 3px;
 }
 .telemetry-model {
-  max-width: 230px;
+  max-width: 140px;
+  overflow: hidden;
+  padding: 0 4px;
+  flex-shrink: 1;
+}
+.telemetry-model-name {
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
 }
 .telemetry-dot {
   width: 6px;
@@ -955,10 +971,11 @@ button.telemetry-item:hover { color: var(--text-primary); }
 /* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
-@media (max-width: 1100px) {
+@media (max-width: 1320px) {
   .utility-bar { padding: 0 16px; gap: 10px; }
   .brand-subtitle, .brand-divider { display: none; }
-  .telemetry-zone { justify-content: flex-end; }
+  .telemetry-zone { justify-content: center; }
+  .telemetry-model { max-width: 120px; }
 }
 @media (max-width: 860px) {
   .utility-bar { flex-wrap: nowrap; }
@@ -1783,5 +1800,116 @@ img { max-width: 100%; }
   .photo-guide-strip button.btn.btn-sm {
     height: 44px !important;
     min-height: 44px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Advanced Panel: Camera Options & Sensors
+   -------------------------------------------------------------------------- */
+.camera-options-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.camera-options-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.camera-banner-text h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.camera-banner-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.btn-launch-camera {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.camera-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.camera-setting-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.pill-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.pill-toggle-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.pill-toggle-btn.is-active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+.silhouette-control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.camera-facing-toggle {
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.advanced-empty-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+@media (max-width: 768px) {
+  .camera-settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .camera-options-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .btn-launch-camera {
+    width: 100%;
+    justify-content: center;
   }
 }

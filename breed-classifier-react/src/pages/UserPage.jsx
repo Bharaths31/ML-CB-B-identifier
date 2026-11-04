@@ -183,7 +183,7 @@ export default function UserPage() {
   const stats = sessionStats(session);
   const shortModel = (value) => {
     if (!value) return t("header.defaultModel");
-    return value.length > 24 ? `${value.slice(0, 14)}…${value.slice(-4)}` : value;
+    return value.length > 18 ? `${value.slice(0, 10)}…${value.slice(-4)}` : value;
   };
   const copyModel = () => {
     try {
@@ -239,9 +239,9 @@ export default function UserPage() {
 
           <div className="telemetry-zone">
             <div className="system-pill" role="group" aria-label="System telemetry">
-              <span className="telemetry-item" title={connected ? t("header.connected") : t("header.reconnecting")}>
+              <span className="telemetry-item telemetry-status" title={connected ? t("header.connected") : t("header.reconnecting")}>
                 <span className={`telemetry-dot ${connected ? "online" : "offline"}`} />
-                {connected ? t("header.connected") : t("header.reconnecting")}
+                <span className="telemetry-label">{connected ? t("header.connected") : t("header.reconnecting")}</span>
               </span>
               <span className="telemetry-sep" aria-hidden="true" />
               <button
@@ -250,16 +250,16 @@ export default function UserPage() {
                 title={`${t("header.model")}: ${activeModelDisplay} — click to copy`}
                 onClick={copyModel}
               >
-                {shortModel(activeModelDisplay)}
+                <span className="telemetry-model-name">{shortModel(activeModelDisplay)}</span>
               </button>
               <span className="telemetry-sep" aria-hidden="true" />
               <button
                 type="button"
-                className="telemetry-item"
+                className="telemetry-item telemetry-herd"
                 onClick={() => setSessionOpen(true)}
                 title={t("actions.openSession")}
               >
-                {t("session.tab")}: {stats.total}
+                <span className="telemetry-label">{t("session.tab")}: {stats.total}</span>
               </button>
             </div>
           </div>
@@ -566,6 +566,10 @@ export default function UserPage() {
         onEscalate={handleEscalate}
         onOpenExpert={() => {
           window.location.href = "/expert";
+        }}
+        onOpenCamera={() => {
+          setAdvancedOpen(false);
+          setInputMode("camera");
         }}
       />
     </div>

@@ -66,6 +66,14 @@ describe("i18n Localization & Translation Integrity", () => {
     assert.ok(TRANSLATIONS.en["advanced.tabBatch"]);
     assert.ok(TRANSLATIONS.ta["advanced.tabBatch"]);
     assert.ok(TRANSLATIONS.hi["advanced.tabBatch"]);
+
+    // Camera options in advanced mode
+    assert.ok(TRANSLATIONS.en["advanced.tabCamera"]);
+    assert.equal(TRANSLATIONS.ta["advanced.tabCamera"], "கேமரா அமைப்புகள்");
+    assert.equal(TRANSLATIONS.hi["advanced.tabCamera"], "कैमरा विकल्प");
+    assert.ok(TRANSLATIONS.en["advanced.openCamera"]);
+    assert.ok(TRANSLATIONS.ta["advanced.openCamera"]);
+    assert.ok(TRANSLATIONS.hi["advanced.openCamera"]);
   });
 
   it("replaces transliterated loan words with authentic native Tamil livestock vocabulary", () => {

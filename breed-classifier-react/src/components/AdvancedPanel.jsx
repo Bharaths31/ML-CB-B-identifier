@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { formatBytes } from "../utils/imageOptimizer.js";
+import { getCameraSettings, saveCameraSettings } from "../utils/cameraSettings.js";
 import AdvancedBatchTester from "./AdvancedBatchTester.jsx";
 import AdvancedResultDetails from "./AdvancedResultDetails.jsx";
 
@@ -13,7 +14,7 @@ const FIT_OPTIONS = [
 
 /**
  * Header-level Advanced modal dialog with subnav tabs (matching Developer Settings).
- * Exposes model-input preview/optimizer, vision diagnostics, and batch testing.
+ * Exposes camera options, model-input preview/optimizer, vision diagnostics, and batch testing.
  */
 export default function AdvancedPanel({
   open,
@@ -27,15 +28,31 @@ export default function AdvancedPanel({
   modelInputUrl,
   onEscalate,
   onOpenExpert,
+  onOpenCamera,
 }) {
   const { t } = useI18n();
   const [view, setView] = useState("model");
   const [activeTab, setActiveTab] = useState(result ? "diagnostics" : "optimizer");
+  const [cameraSettings, setCameraSettings] = useState(getCameraSettings);
+
+  useEffect(() => {
+    if (open) {
+      setCameraSettings(getCameraSettings());
+    }
+  }, [open]);
+
+  const updateCam = (updates) => {
+    const next = saveCameraSettings(updates);
+    setCameraSettings(next);
+    if (typeof updates.clahe !== "undefined" && optimizer?.setClaheEnabled) {
+      optimizer.setClaheEnabled(updates.clahe);
+    }
+  };
 
   useEffect(() => {
     if (result && open) {
       setActiveTab("diagnostics");
-    } else if (!result && open) {
+    } else if (!result && open && activeTab === "diagnostics") {
       setActiveTab("optimizer");
     }
   }, [open, Boolean(result)]);
@@ -60,6 +77,11 @@ export default function AdvancedPanel({
     optimizer.fit.fitMode === option.fitMode &&
     (option.fitMode === "stretch" || optimizer.fit.padStyle === option.padStyle);
 
+  const handleLaunchCamera = () => {
+    onClose?.();
+    onOpenCamera?.();
+  };
+
   return (
     <div className="advanced-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <section className="advanced-panel" onClick={(event) => event.stopPropagation()}>
@@ -80,6 +102,20 @@ export default function AdvancedPanel({
 
         {/* Subnavigation Bar (styled like Developer Settings dev-subnav-bar) */}
         <nav className="advanced-subnav-bar" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "camera"}
+            className={`advanced-nav-btn ${activeTab === "camera" ? "advanced-nav-active" : ""}`}
+            onClick={() => setActiveTab("camera")}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            <span>{t("advanced.tabCamera")}</span>
+          </button>
+
           <button
             type="button"
             role="tab"
@@ -124,10 +160,166 @@ export default function AdvancedPanel({
         </nav>
 
         <div className="advanced-body">
+          {/* CAMERA OPTIONS TAB */}
+          {activeTab === "camera" && (
+            <div className="camera-options-panel">
+              <div className="camera-options-banner">
+                <div className="camera-banner-text">
+                  <h4>{t("camera.title")}</h4>
+                  <p>{t("camera.cropHint")}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-launch-camera"
+                  onClick={handleLaunchCamera}
+                >
+                  📷 {t("advanced.openCamera")}
+                </button>
+              </div>
+
+              <div className="camera-settings-grid">
+                {/* Lens / Facing Mode */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("advanced.cameraLens")}</span>
+                    <span className="setting-subtext">
+                      {cameraSettings.facingMode === "user"
+                        ? t("advanced.frontCamera")
+                        : t("advanced.rearCamera")}
+                    </span>
+                  </div>
+                  <div className="pill-toggle-group">
+                    <button
+                      type="button"
+                      className={`pill-toggle-btn ${cameraSettings.facingMode !== "user" ? "is-active" : ""}`}
+                      onClick={() => updateCam({ facingMode: "environment" })}
+                    >
+                      🔄 {t("advanced.rearCamera")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-toggle-btn ${cameraSettings.facingMode === "user" ? "is-active" : ""}`}
+                      onClick={() => updateCam({ facingMode: "user" })}
+                    >
+                      🤳 {t("advanced.frontCamera")}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Silhouette Guide */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("advanced.silhouetteTitle")}</span>
+                    <span className="setting-subtext">{t("advanced.silhouetteDesc")}</span>
+                  </div>
+                  <div className="silhouette-control-row">
+                    <select
+                      className="camera-silhouette-select"
+                      value={cameraSettings.silhouette}
+                      onChange={(e) => updateCam({ silhouette: e.target.value })}
+                      aria-label={t("advanced.silhouetteTitle")}
+                    >
+                      <option value="off">◫ {t("camera.silhouetteOff")}</option>
+                      <option value="cattle">🐄 {t("camera.silhouetteCattle")}</option>
+                      <option value="buffalo">🐃 {t("camera.silhouetteBuffalo")}</option>
+                    </select>
+
+                    {cameraSettings.silhouette !== "off" && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm camera-facing-toggle"
+                        onClick={() => updateCam({ silhouetteFlipped: !cameraSettings.silhouetteFlipped })}
+                        title={t("camera.flipSilhouette")}
+                      >
+                        {cameraSettings.silhouetteFlipped ? t("camera.facingLeft") : t("camera.facingRight")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Auto-Capture */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("advanced.autoCaptureTitle")}</span>
+                    <span className="setting-subtext">{t("advanced.autoCaptureDesc")}</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(cameraSettings.autoCapture)}
+                      onChange={(e) => updateCam({ autoCapture: e.target.checked })}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+
+                {/* Burst Mode */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("advanced.burstTitle")}</span>
+                    <span className="setting-subtext">{t("advanced.burstDesc")}</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(cameraSettings.burstMode)}
+                      onChange={(e) => updateCam({ burstMode: e.target.checked })}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+
+                {/* CLAHE Lighting Enhancement */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("camera.clahe")}</span>
+                    <span className="setting-subtext">{t("camera.claheHint")}</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(cameraSettings.clahe)}
+                      onChange={(e) => updateCam({ clahe: e.target.checked })}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+
+                {/* Torch / Flash */}
+                <div className="camera-setting-card">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("advanced.torchTitle")}</span>
+                    <span className="setting-subtext">{t("advanced.torchDesc")}</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(cameraSettings.torchDefault)}
+                      onChange={(e) => updateCam({ torchDefault: e.target.checked })}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OPTIMIZER TAB */}
           {activeTab === "optimizer" && (
             <>
               {!originalUrl ? (
-                <div className="advanced-empty">{t("advanced.noImage")}</div>
+                <div className="advanced-empty">
+                  <p>{t("advanced.noImage")}</p>
+                  <div className="advanced-empty-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleLaunchCamera}
+                    >
+                      📷 {t("advanced.openCamera")}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="advanced-preview-block">
@@ -192,7 +384,10 @@ export default function AdvancedPanel({
                           <input
                             type="checkbox"
                             checked={Boolean(optimizer.clahe)}
-                            onChange={(event) => optimizer.setClaheEnabled?.(event.target.checked)}
+                            onChange={(event) => {
+                              optimizer.setClaheEnabled?.(event.target.checked);
+                              updateCam({ clahe: event.target.checked });
+                            }}
                             disabled={optimizer.busy}
                           />
                           <span className="toggle-slider" />
@@ -240,6 +435,7 @@ export default function AdvancedPanel({
             </>
           )}
 
+          {/* DIAGNOSTICS TAB */}
           {activeTab === "diagnostics" && (
             <>
               {result ? (
@@ -261,6 +457,7 @@ export default function AdvancedPanel({
             </>
           )}
 
+          {/* BATCH INFERENCE TAB */}
           {activeTab === "batch" && (
             <AdvancedBatchTester fit={optimizer.fit} model={model} />
           )}

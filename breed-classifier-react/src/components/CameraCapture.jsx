@@ -3,6 +3,7 @@ import ImageCropper from "./ImageCropper.jsx";
 import QualityBadge, { QualityPill } from "./QualityBadge.jsx";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { analyzeCanvas, captureVideoFrame, QUALITY_THRESHOLDS } from "../utils/cropAndQuality.js";
+import { getCameraSettings, saveCameraSettings } from "../utils/cameraSettings.js";
 import {
   formatBytes,
   optimizeImageTo260,
@@ -35,24 +36,25 @@ export default function CameraCapture({ onCapture, onClose }) {
   const rawCanvasRef = useRef(null);
   const rawFileRef = useRef(null);
 
+  const initialSettings = useRef(getCameraSettings()).current;
   const [error, setError] = useState(null);
-  const [facingMode, setFacingMode] = useState("environment");
+  const [facingMode, setFacingMode] = useState(initialSettings.facingMode || "environment");
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isStarting, setIsStarting] = useState(true);
   const [stage, setStage] = useState({ w: 0, h: 0 });
   const [videoDims, setVideoDims] = useState({ w: 0, h: 0 });
   const [quality, setQuality] = useState(null);
   const [readyStreak, setReadyStreak] = useState(0);
-  const [autoCapture, setAutoCapture] = useState(false);
-  const [burstMode, setBurstMode] = useState(false);
+  const [autoCapture, setAutoCapture] = useState(Boolean(initialSettings.autoCapture));
+  const [burstMode, setBurstMode] = useState(Boolean(initialSettings.burstMode));
   const [torchSupported, setTorchSupported] = useState(false);
-  const [torchOn, setTorchOn] = useState(false);
+  const [torchOn, setTorchOn] = useState(Boolean(initialSettings.torchDefault));
   const [flash, setFlash] = useState(false);
   const [captured, setCaptured] = useState(null);
   const [fitMode, setFitMode] = useState("stretch");
-  const [claheOn, setClaheOn] = useState(false);
-  const [silhouette, setSilhouette] = useState("off");
-  const [silhouetteFlipped, setSilhouetteFlipped] = useState(false);
+  const [claheOn, setClaheOn] = useState(Boolean(initialSettings.clahe));
+  const [silhouette, setSilhouette] = useState(initialSettings.silhouette || "off");
+  const [silhouetteFlipped, setSilhouetteFlipped] = useState(Boolean(initialSettings.silhouetteFlipped));
   const [busy, setBusy] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
 
@@ -599,7 +601,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                   <p className="camera-error-msg">{error}</p>
                   <button
                     className="btn ghost btn-sm"
-                    onClick={() => setFacingMode((mode) => (mode === "environment" ? "user" : "environment"))}
+                    onClick={() => setFacingMode((mode) => { const next = mode === "environment" ? "user" : "environment"; saveCameraSettings({ facingMode: next }); return next; })}
                   >
                     🔄 {t("camera.error.retry")}
                   </button>
@@ -790,7 +792,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                 <select
                   className={`camera-toggle-btn camera-silhouette-select ${silhouette !== "off" ? "is-on" : ""}`}
                   value={silhouette}
-                  onChange={(event) => setSilhouette(event.target.value)}
+                  onChange={(event) => { const next = event.target.value; setSilhouette(next); saveCameraSettings({ silhouette: next }); }}
                   title={t("camera.silhouette")}
                   aria-label={t("camera.silhouette")}
                 >
@@ -802,7 +804,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                   <button
                     type="button"
                     className="camera-toggle-btn camera-facing-btn"
-                    onClick={() => setSilhouetteFlipped((value) => !value)}
+                    onClick={() => setSilhouetteFlipped((value) => { const next = !value; saveCameraSettings({ silhouetteFlipped: next }); return next; })}
                     title={t("camera.flipSilhouette")}
                   >
                     {facingRight ? t("camera.facingRight") : t("camera.facingLeft")}
@@ -811,7 +813,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                 <button
                   type="button"
                   className={`camera-toggle-btn ${autoCapture ? "is-on" : ""}`}
-                  onClick={() => setAutoCapture((value) => !value)}
+                  onClick={() => setAutoCapture((value) => { const next = !value; saveCameraSettings({ autoCapture: next }); return next; })}
                   aria-pressed={autoCapture}
                 >
                   ⏱ {t("camera.auto")}
@@ -819,7 +821,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                 <button
                   type="button"
                   className={`camera-toggle-btn ${burstMode ? "is-on" : ""}`}
-                  onClick={() => setBurstMode((value) => !value)}
+                  onClick={() => setBurstMode((value) => { const next = !value; saveCameraSettings({ burstMode: next }); return next; })}
                   aria-pressed={burstMode}
                 >
                   ⧉ {t("camera.burst")}
