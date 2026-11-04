@@ -1,11 +1,17 @@
 import os
 import json
+import shutil
+import torch
 from flask import Blueprint, jsonify, request
 from werkzeug.utils import secure_filename
 from server.model_manager import get_manager, head_out_features
+from server.services.model_test import run_model_test
 from server.utils.logger import get_logger
-from src.config import CHECKPOINT_DIR, IMAGE_SIZE
-from src.model_introspect import embed_model_metadata, inspect_and_load
+from src.config import CHECKPOINT_DIR, EXPORT_DIR, IMAGE_SIZE, SPLIT_DIR
+from src.model_introspect import (build_model_metadata, embed_model_metadata,
+                                  extract_state_dict, find_ood_json,
+                                  inspect_and_load)
+from src.run_utils import unique_path
 
 models_bp = Blueprint('models', __name__)
 
@@ -65,6 +71,7 @@ def get_model_spec(model, name, info):
         spec["embedded_metadata"] = bundle.metadata
         spec["preprocessing"] = bundle.spec_summary().get("preprocessing")
         spec["normalization_baked"] = bundle.normalization_baked
+        spec["ood"] = _effective_ood(bundle)
 
     if info.get("type") == "onnx":
         try:
@@ -249,3 +256,201 @@ def upload_model():
         "metadata": embedded,
         "spec": spec,
     })
+
+
+# ---------------------------------------------------------------------------
+# Developer Console model tools: inspect / embed / model-specific test
+# ---------------------------------------------------------------------------
+
+def _model_or_404(name):
+    manager = get_manager()
+    info = manager.models.get(name)
+    if info is None:
+        raise LookupError(f"Model '{name}' not found")
+    return manager, info
+
+
+def _effective_ood(bundle):
+    """Embedded OOD > matching outputs/ood JSON > config defaults."""
+    if bundle.metadata.get("ood"):
+        return dict(bundle.ood_config)
+    ood_path = find_ood_json(bundle.path)
+    if ood_path:
+        try:
+            with open(ood_path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            return {
+                "enabled": True,
+                "energy_temperature": data.get("energy_temperature",
+                                               data.get("temperature", 1.0)),
+                "temperature": data.get("temperature",
+                                        data.get("energy_temperature", 1.0)),
+                "energy_threshold": data.get("energy_threshold"),
+                "msp_threshold": data.get("msp_threshold"),
+                "binary_confidence_floor": data.get("binary_confidence_floor"),
+                "calibrated_at": data.get("calibrated_at"),
+                "percentile": data.get("percentile"),
+                "calibrated_on_samples": data.get("calibrated_on_samples"),
+                "source_json": ood_path,
+                "source_file": f"legacy-json:{os.path.basename(ood_path)}",
+            }
+        except Exception:
+            pass
+    return dict(bundle.ood_config)
+
+
+@models_bp.route('/api/models/inspect', methods=['POST'])
+def inspect_selected_model():
+    """Return the full self-describing contract for one model file."""
+    payload = request.get_json(silent=True) or {}
+    name = payload.get("model")
+    try:
+        manager, info = _model_or_404(name)
+        bundle = manager._load_bundle(name)
+        spec = get_model_spec(bundle.model_or_session, name, info)
+        return jsonify({
+            "status": "ok",
+            "model": name,
+            "path": bundle.path,
+            "engine": bundle.engine,
+            "self_describing": bool(bundle.metadata),
+            "metadata": bundle.metadata,
+            "preprocessing": bundle.spec_summary().get("preprocessing"),
+            "ood": _effective_ood(bundle),
+            "class_maps": {
+                "cattle": bundle.cattle_map,
+                "buffalo": bundle.buffalo_map,
+            },
+            "spec": spec,
+        })
+    except LookupError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.error(f"Model inspect failed for '{name}': {exc}")
+        return jsonify({"error": f"Inspect failed: {exc}"}), 500
+
+
+@models_bp.route('/api/models/embed', methods=['POST'])
+def embed_selected_model():
+    """Embed class maps / preprocessing / OOD into a model file or a copy."""
+    payload = request.get_json(silent=True) or {}
+    name = payload.get("model")
+    embed_ood = bool(payload.get("embed_ood", True))
+    make_copy = bool(payload.get("copy", True))
+
+    try:
+        manager, info = _model_or_404(name)
+        source = info["path"]
+        ext = os.path.splitext(source)[1].lower()
+        if ext not in (".pt", ".pth", ".onnx"):
+            return jsonify({"error": f"Unsupported model format: {ext}"}), 400
+
+        # Use the already-loaded bundle when present so ONNX/baked-normalization
+        # detection and class maps stay identical to what inference uses.
+        bundle = manager.bundles.get(name)
+        if bundle is None:
+            bundle = inspect_and_load(source, device=manager.device)
+
+        ood_payload = _effective_ood(bundle) if embed_ood else None
+        if ext == ".onnx":
+            meta = build_model_metadata(
+                spec=dict(bundle.spec),
+                image_size=bundle.image_size,
+                normalization_baked=bundle.normalization_baked,
+                input_dtype=bundle.input_dtype,
+                cattle_classes=bundle.cattle_map,
+                buffalo_classes=bundle.buffalo_map,
+                ood=ood_payload,
+                source_checkpoint=source,
+                extra={"embedded_by": "dev-console"},
+            )
+        else:
+            ckpt = torch.load(source, map_location="cpu", weights_only=False)
+            state = extract_state_dict(ckpt)
+            if not state:
+                return jsonify({"error": "Checkpoint has no state_dict"}), 400
+            meta = build_model_metadata(
+                state_dict=state,
+                split_dir=SPLIT_DIR,
+                ood=ood_payload,
+                source_checkpoint=source,
+                extra={"embedded_by": "dev-console"},
+            )
+
+        if not embed_ood:
+            meta.pop("ood", None)
+            meta["ood_embedded"] = False
+        else:
+            meta["ood_embedded"] = True
+
+        if make_copy:
+            dest_dir = os.path.join(EXPORT_DIR, "embedded")
+            os.makedirs(dest_dir, exist_ok=True)
+            stem = os.path.splitext(os.path.basename(source))[0]
+            suffix = "__embedded" if embed_ood else "__no_ood"
+            dest = unique_path(os.path.join(dest_dir, f"{stem}{suffix}{ext}"))
+            shutil.copy2(source, dest)
+        else:
+            # Replacing an ONNX file while an ORT session has it mapped can fail
+            # on Windows; drop the cache first.
+            manager.bundles.pop(name, None)
+            info["model"] = None
+            dest = source
+
+        stored = embed_model_metadata(dest, meta=meta, overwrite=True)
+        manager._discover_models()
+
+        new_name = next(
+            (candidate for candidate, data in manager.models.items()
+             if os.path.abspath(data["path"]) == os.path.abspath(dest)),
+            None,
+        )
+        logger = get_logger()
+        if logger:
+            logger.info(
+                f"Model metadata embedded: {os.path.basename(dest)} "
+                f"(ood={embed_ood}, copy={make_copy}, model={new_name or dest})")
+        return jsonify({
+            "status": "ok",
+            "copied": make_copy,
+            "path": dest,
+            "model": new_name,
+            "ood_embedded": embed_ood,
+            "metadata": stored,
+        })
+    except LookupError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.error(f"Model embed failed for '{name}': {exc}")
+        return jsonify({"error": f"Embed failed: {exc}"}), 500
+
+
+@models_bp.route('/api/models/test', methods=['POST'])
+def test_selected_model():
+    """Run only the selected model on one image (no advisory/CLIP overhead)."""
+    if 'image' not in request.files:
+        return jsonify({"error": "No image provided"}), 400
+    model_name = request.form.get("model", "")
+    try:
+        repeats = int(float(request.form.get("repeats", 1)))
+    except (TypeError, ValueError):
+        repeats = 1
+
+    try:
+        result = run_model_test(
+            get_manager(), model_name,
+            request.files['image'].read(), repeats=repeats)
+        return jsonify(result)
+    except LookupError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.error(f"Model test failed for '{model_name}': {exc}")
+        return jsonify({"error": f"Model test failed: {exc}"}), 500

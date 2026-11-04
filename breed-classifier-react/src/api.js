@@ -79,6 +79,34 @@ export async function getModelSpec(modelName) {
   return readJsonResponse(r, "Failed to load model specification");
 }
 
+// --- Developer Console model tools ---
+export async function inspectModel(modelName) {
+  const r = await fetch("/api/models/inspect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: modelName }),
+  });
+  return readJsonResponse(r, "Failed to inspect model");
+}
+
+export async function embedModel({ model, embedOod = true, copy = true }) {
+  const r = await fetch("/api/models/embed", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model, embed_ood: embedOod, copy }),
+  });
+  return readJsonResponse(r, "Failed to embed model metadata");
+}
+
+export async function testModel({ model, file, repeats = 1 }) {
+  const form = new FormData();
+  form.append("image", file);
+  form.append("model", model);
+  form.append("repeats", String(repeats));
+  const r = await fetch("/api/models/test", { method: "POST", body: form });
+  return readJsonResponse(r, "Model test failed");
+}
+
 export async function getImageInfo(file, filename) {
   const form = new FormData();
   form.append("image", file);

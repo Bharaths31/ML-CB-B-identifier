@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDevInfo, getEscalations, resolveEscalation } from "../../breed-classifier-react/src/api.js";
 import { useSocket } from "../../breed-classifier-react/src/hooks/useSocket.js";
+import { useSharedConfig } from "../../breed-classifier-react/src/hooks/useSharedConfig.js";
 import { useI18n } from "../../breed-classifier-react/src/i18n/I18nProvider.jsx";
 import ThemeToggle from "../../breed-classifier-react/src/components/ThemeToggle.jsx";
 import LanguageToggle from "../../breed-classifier-react/src/components/LanguageToggle.jsx";
+import UserVisibilityPanel from "./UserVisibilityPanel.jsx";
 
 const MAIN_APP_URL = import.meta.env.VITE_MAIN_APP_URL || "http://localhost:5173";
 const DEV_APP_URL = import.meta.env.VITE_DEV_APP_URL || `${MAIN_APP_URL}/dev`;
@@ -287,12 +289,14 @@ function EscalationCard({ record, devInfo, onResolved, t }) {
 
 export default function ExpertPage() {
   const { t } = useI18n();
+  const [tab, setTab] = useState("queue");
   const [filter, setFilter] = useState("pending");
   const [data, setData] = useState(null);
   const [devInfo, setDevInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { connected, escalationEvent } = useSocket();
+  const { connected, escalationEvent, socket } = useSocket();
+  const { config, updateConfig } = useSharedConfig(socket);
 
   const load = useCallback(async (status = filter) => {
     setLoading(true);
@@ -353,50 +357,75 @@ export default function ExpertPage() {
         </div>
       </header>
 
-      <main className="expert-main">
-        <section className="expert-metrics">
-          {metricCards(counts, t).map((metric) => (
-            <div key={metric.key} className={`expert-metric metric-${metric.tone}`}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </div>
-          ))}
-        </section>
-
-        <div className="expert-toolbar">
-          <h2>{t("expert.queue")}</h2>
-          <div className="expert-filters">
-            {FILTERS.map((status) => (
-              <button
-                key={status}
-                type="button"
-                className={`preset-chip ${filter === status ? "active" : ""}`}
-                onClick={() => setFilter(status)}
-              >
-                {t(`expert.filter.${status}`)}
-              </button>
-            ))}
-            <button type="button" className="btn btn-sm btn-outline" onClick={() => load(filter)} disabled={loading}>
-              {t("actions.refresh")}
-            </button>
-          </div>
+      <nav className="expert-toolbar expert-subnav">
+        <div className="expert-filters">
+          <button
+            type="button"
+            className={`preset-chip ${tab === "queue" ? "active" : ""}`}
+            onClick={() => setTab("queue")}
+          >
+            Review Queue
+          </button>
+          <button
+            type="button"
+            className={`preset-chip ${tab === "user-page" ? "active" : ""}`}
+            onClick={() => setTab("user-page")}
+          >
+            User Page
+          </button>
         </div>
+      </nav>
 
-        {error && <div className="error-banner">{error}</div>}
-        {loading && <div className="expert-loading">{t("expert.loading")}</div>}
-        {!loading && escalations.length === 0 && <div className="expert-empty">{t("expert.empty")}</div>}
+      <main className="expert-main">
+        {tab === "user-page" ? (
+          <UserVisibilityPanel config={config} onUpdateConfig={updateConfig} />
+        ) : (
+          <>
+            <section className="expert-metrics">
+              {metricCards(counts, t).map((metric) => (
+                <div key={metric.key} className={`expert-metric metric-${metric.tone}`}>
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                </div>
+              ))}
+            </section>
 
-        <section className="expert-grid">
-          {escalations.map((record) => (
-            <EscalationCard
-              key={record.id}
-              record={record}
-              devInfo={devInfo}
-              t={t}
-              onResolved={() => load(filter)}
-            />
-          ))}
-        </section>
+            <div className="expert-toolbar">
+              <h2>{t("expert.queue")}</h2>
+              <div className="expert-filters">
+                {FILTERS.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`preset-chip ${filter === status ? "active" : ""}`}
+                    onClick={() => setFilter(status)}
+                  >
+                    {t(`expert.filter.${status}`)}
+                  </button>
+                ))}
+                <button type="button" className="btn btn-sm btn-outline" onClick={() => load(filter)} disabled={loading}>
+                  {t("actions.refresh")}
+                </button>
+              </div>
+            </div>
+
+            {error && <div className="error-banner">{error}</div>}
+            {loading && <div className="expert-loading">{t("expert.loading")}</div>}
+            {!loading && escalations.length === 0 && <div className="expert-empty">{t("expert.empty")}</div>}
+
+            <section className="expert-grid">
+              {escalations.map((record) => (
+                <EscalationCard
+                  key={record.id}
+                  record={record}
+                  devInfo={devInfo}
+                  t={t}
+                  onResolved={() => load(filter)}
+                />
+              ))}
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

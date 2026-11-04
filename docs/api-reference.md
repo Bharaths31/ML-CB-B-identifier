@@ -414,6 +414,9 @@ The React app and the Colab workflows use the same HTTP contract.
 | GET | `/api/models` | Model registry (name, backbone, size, type) |
 | POST | `/api/select-model` | Switch the active model for every client |
 | GET | `/api/model-spec?model=` | Parameter counts, per-layer breakdown, ONNX input/output shapes |
+| POST | `/api/models/inspect` | Full self-describing contract: metadata, preprocessing, class maps, OOD |
+| POST | `/api/models/embed` | Embed metadata into the model or a copy (`embed_ood`, `copy`) |
+| POST | `/api/models/test` | Run only the selected model on an image (`image`, `model`, `repeats`) |
 | POST | `/api/upload-model` | Register a new checkpoint (`model_file`) |
 | GET | `/api/ood/profiles` | Calibration profiles with thresholds and metadata |
 | GET | `/api/ood/active` | Active profile plus the resolved detector status |

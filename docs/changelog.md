@@ -1,5 +1,27 @@
 # 16. Changelog
 
+### 2026-11-04 — Developer model tools + vet-controlled user visibility
+
+- **Flask model tools**: `POST /api/models/inspect` (metadata + preprocessing +
+  class maps + effective OOD), `POST /api/models/embed` (copy/in-place,
+  optional OOD) and `POST /api/models/test` (single-model soft routing, top-5,
+  OOD, repeat latency). New `server/services/model_test.py` avoids the
+  advisory/CLIP path.
+- **React `/dev` Models tab**: shows `Self-Describing Metadata`, an **Embed
+  Metadata** card (OOD + copy toggles) and a **Test This Model** card with
+  repeats and top-5/latency output. Uses existing `dev-card`, `spec-row`,
+  `toggle-switch` and theme tokens.
+- **Vet Portal → User Page tab**: controls `display.hidden_user_sections` plus
+  species badge/confidence, escalation warning and technical-details flags.
+  These display toggles moved out of the Developer Console.
+- **Farmer view**: language/theme toggles removed from the header and mobile
+  sheet; section visibility is applied to photo guide, spec strip, herd
+  session, advanced panel, dev link, escalation, footer, voice, report card,
+  traits and advisory tabs.
+- **New utilities**: `breed-classifier-react/src/utils/userVisibility.js`,
+  `vet-portal/src/UserVisibilityPanel.jsx`; `DEFAULT_APP_CONFIG` now includes
+  `display.hidden_user_sections`.
+
 ### 2026-11-04 — Self-describing `.pt` / `.onnx` models (zero external JSON)
 
 - **`src/model_introspect.py`**: unified loading/introspection for PyTorch and

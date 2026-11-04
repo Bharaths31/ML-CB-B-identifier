@@ -244,68 +244,26 @@ export default function DevConfigPanel({ config, onUpdateConfig, onResetConfig }
             </p>
           </div>
 
-          {/* Toggles */}
-          <div className="control-setting-row">
-            <div className="setting-info">
-              <span className="setting-label">Show Species Confidence Tag</span>
-              <span className="setting-subtext">Display Cattle vs Buffalo probability badge.</span>
+          {/* User-content toggles moved to the Vet Portal */}
+          <div className="dev-subcard" style={{ marginTop: 16 }}>
+            <div className="dev-card-header" style={{ marginBottom: 8 }}>
+              <h4 className="card-heading" style={{ fontSize: "0.92rem" }}>User Page Visibility</h4>
+              <span className="badge badge-neutral">Vet Portal</span>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={display.show_species_confidence ?? true}
-                onChange={(e) => handleDisplayChange("show_species_confidence", e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-
-          <div className="control-setting-row">
-            <div className="setting-info">
-              <span className="setting-label">Show Species Badge</span>
-              <span className="setting-subtext">Display the CATTLE / BUFFALO species pill on the result card.</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={display.show_species_badge ?? true}
-                onChange={(e) => handleDisplayChange("show_species_badge", e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-
-          <div className="control-setting-row">
-            <div className="setting-info">
-              <span className="setting-label">Show Vet Escalation Warning</span>
-              <span className="setting-subtext">
-                When off, the result view only shows prediction results; Level 1–2 vet escalation
-                prompts and the manual escalate button are hidden.
-              </span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={display.show_escalation_warning ?? true}
-                onChange={(e) => handleDisplayChange("show_escalation_warning", e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </div>
-
-          <div className="control-setting-row">
-            <div className="setting-info">
-              <span className="setting-label">Always Show Technical Details</span>
-              <span className="setting-subtext">Expand latency and tensor info automatically.</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={display.show_technical_details ?? false}
-                onChange={(e) => handleDisplayChange("show_technical_details", e.target.checked)}
-              />
-              <span className="toggle-slider" />
-            </label>
+            <p className="slider-hint">
+              Species badge/confidence, escalation warnings, technical details and
+              section-level hidden content are now controlled in the Vet Portal’s
+              <strong> User Page</strong> tab.
+            </p>
+            <a
+              className="btn btn-outline"
+              style={{ marginTop: 10 }}
+              href={import.meta.env.VITE_VET_PORTAL_URL || "http://localhost:5174"}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Vet Portal ↗
+            </a>
           </div>
 
           {/* Dataset Thresholds */}

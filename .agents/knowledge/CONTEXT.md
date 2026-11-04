@@ -11,8 +11,12 @@
 > **Self-describing models**: `.pt`/`.onnx` carry class maps, resolution,
 > normalization mode and OOD thresholds (`src/model_introspect.py`,
 > `scripts/embed_metadata.py`); no external JSON is required at inference.
+> **Developer model tools**: `/dev` Models tab inspects, embeds and tests the
+> selected model (`POST /api/models/{inspect,embed,test}`). **Vet-controlled
+> visibility**: vet portal → User Page writes `display.hidden_user_sections`;
+> language/theme toggles live in the vet portal, not the farmer view.
 > See docs/verification.md, docs/model-metadata.md, docs/breed-knowledge.md,
-> docs/attributes.md and docs/image-quality.md.
+> docs/attributes.md, docs/image-quality.md and docs/react-web.md.
 
 ## Table of Contents
 

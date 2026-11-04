@@ -37,6 +37,7 @@ export default function HeroFourGrid({
   onGenderChange,
   onAgeChange,
   breedKnowledge,
+  showSpeciesConfidence = true,
 }) {
   const { t, lang, tBreed, tDynamic } = useI18n();
   const isOod = Boolean(result?.is_ood ?? result?.ood);
@@ -67,10 +68,14 @@ export default function HeroFourGrid({
           <span className="hero-species-icon" aria-hidden="true">{speciesIcon}</span>
         </header>
         <h3 className="hero-value">{speciesLabel}</h3>
-        <div className="hero-confidence-row">
-          <span>{Math.round(pct(result?.species_confidence))}% {t("hero.confidence")}</span>
-        </div>
-        <Meter value={result?.species_confidence} tone={speciesKey === "buffalo" ? "teal" : "amber"} />
+        {showSpeciesConfidence && (
+          <>
+            <div className="hero-confidence-row">
+              <span>{Math.round(pct(result?.species_confidence))}% {t("hero.confidence")}</span>
+            </div>
+            <Meter value={result?.species_confidence} tone={speciesKey === "buffalo" ? "teal" : "amber"} />
+          </>
+        )}
       </article>
 
       {/* 2 — Breed */}

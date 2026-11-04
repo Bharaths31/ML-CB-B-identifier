@@ -27,6 +27,7 @@ DEFAULT_APP_CONFIG = {
         "show_species_badge": True,
         "show_escalation_warning": True,
         "show_technical_details": False,
+        "hidden_user_sections": [],  # ids consumed by utils/userVisibility.js
         "theme": "dark",  # "dark" or "light"
     },
     "dataset": {

@@ -22,6 +22,14 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
   `python scripts/embed_metadata.py --all` bakes it in permanently. Mobile ONNX
   graphs that already contain mean/std are no longer normalized twice. See
   [docs/model-metadata.md](docs/model-metadata.md).
+- **Developer model tools:** the `/dev` Models tab now inspects the full
+  self-describing contract, embeds class maps/preprocessing/OOD (copy by
+  default) and runs a model-specific test with raw top-5, OOD and latency.
+  Powered by `POST /api/models/{inspect,embed,test}`.
+- **Vet-controlled user visibility:** the vet portal has a **User Page** tab
+  that hides specific farmer-page sections and controls species badge/
+  confidence, escalation warnings and technical details via shared config.
+  The language/theme toggles moved from the farmer view to the vet portal.
 - **Five outputs, not just a breed:** Species, Top-5 breed, Gender, Age Group
   (Calf/Young/Adult) and seven morphological traits (`hump`, `horn`, `coat`,
   `ear`, `dewlap`, `face`, `size`). Trait/gender/age run post-hoc — **no

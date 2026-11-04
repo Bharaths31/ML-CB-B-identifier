@@ -175,6 +175,9 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 | `src/i18n/dictionaries.js` | 70 breed names, trait values, dynamic terms + localized advisory templates |
 | `src/styles/themes.css` | 4 themes, native-script typography, mobile/touch rules, split-color switcher |
 | `src/components/ThemeSwitcher.jsx` | 4-theme pill persisted under `agri_theme` |
+| `src/utils/userVisibility.js` | `hidden_user_sections` ids + `isUserSectionVisible()` used by the farmer page |
+| `src/components/DevModelPanel.jsx` | Dev model registry plus **inspect / embed / model-specific test** |
+| `../vet-portal/src/UserVisibilityPanel.jsx` | Vet-controlled user-page visibility and display flags |
 | `../vet-portal/` | Standalone Veterinary Review Portal (own Vite app, port 5174) |
 | `src/components/TraitComparison.jsx` | Shared look-alike trait table |
 | `src/components/QualityBadge.jsx` | 0–100 sharpness / lighting / framing breakdown |
@@ -201,3 +204,53 @@ PyTorch `.pt` checkpoint (ONNX models return a clear error).
 * For an offline kiosk, open `/?mode=camera` to start straight in the camera.
 * The app never uploads an image the user did not submit, and the herd session
   never leaves the browser unless the user exports it.
+
+---
+
+## 8. Developer model tools (`/dev`)
+
+The **Models** tab now covers the full model lifecycle without leaving the UI:
+
+| Tool | What it does | API |
+|---|---|---|
+| **Inspect** | Shows architecture, class-map source, preprocessing, normalization mode and embedded OOD | `POST /api/models/inspect` |
+| **Embed** | Writes class maps/resolution/normalization and optional OOD into the file; defaults to a copy under `outputs/export/embedded/` | `POST /api/models/embed` |
+| **Test** | Runs **only** the selected model on a test image, with repeats, raw soft-routing top-5, OOD and latency | `POST /api/models/test` |
+
+The UI uses the existing `dev-card` / `spec-details-table` / toggle styling and
+the universal theme tokens — no bespoke styles.
+
+## 9. User-page visibility
+
+The vet portal’s **User Page** tab writes two shared-config keys:
+
+```json
+{
+  "display": {
+    "hidden_user_sections": ["herdSession", "devLink", "footer"],
+    "show_species_badge": true,
+    "show_species_confidence": true,
+    "show_escalation_warning": true,
+    "show_technical_details": false
+  }
+}
+```
+
+`hidden_user_sections` accepts the ids exported by
+`src/utils/userVisibility.js`:
+
+`photoGuide`, `specStrip`, `herdSession`, `advanced`, `devLink`, `escalation`,
+`footer`, `voice`, `reportCard`, `traits`, `advisory`, `photoGuidance`.
+
+Hidden blocks are removed from the DOM (not merely collapsed) and every
+connected user page updates instantly over `/ws` `config_changed`. The
+language/theme toggles were removed from the farmer view and live in the vet
+portal header.
+
+For one-off/kiosk links, append a comma-separated list:
+
+```
+/?hide=herdSession,footer,devLink
+```
+
+The URL list is merged with the vet-controlled `hidden_user_sections`.

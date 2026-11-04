@@ -4,8 +4,6 @@ import ImageUpload from "../components/ImageUpload.jsx";
 import CameraCapture from "../components/CameraCapture.jsx";
 import ResultWorkspace from "../components/ResultWorkspace.jsx";
 import PhotoGuideModal from "../components/PhotoGuideModal.jsx";
-import ThemeToggle from "../components/ThemeToggle.jsx";
-import LanguageToggle from "../components/LanguageToggle.jsx";
 import HerdSessionDrawer from "../components/HerdSessionDrawer.jsx";
 import AdvancedPanel from "../components/AdvancedPanel.jsx";
 import { predict } from "../api.js";
@@ -31,6 +29,7 @@ import {
   syncOutbox,
 } from "../utils/escalationQueue.js";
 import { createEscalation } from "../api.js";
+import { isUserSectionVisible } from "../utils/userVisibility.js";
 
 export default function UserPage() {
   const { t } = useI18n();
@@ -60,6 +59,8 @@ export default function UserPage() {
 
   const { connected, serverStatus, predictionEvent, socket } = useSocket();
   const { config } = useSharedConfig(socket);
+  const display = config?.display || {};
+  const visible = (sectionId) => isUserSectionVisible(config, sectionId);
 
   // A new model input (new upload, crop, or fit change) invalidates the
   // previous prediction. This keeps the explicit classify action visible.
@@ -253,19 +254,21 @@ export default function UserPage() {
                 <span className="telemetry-model-name">{shortModel(activeModelDisplay)}</span>
               </button>
               <span className="telemetry-sep" aria-hidden="true" />
-              <button
-                type="button"
-                className="telemetry-item telemetry-herd"
-                onClick={() => setSessionOpen(true)}
-                title={t("actions.openSession")}
-              >
-                <span className="telemetry-label">{t("session.tab")}: {stats.total}</span>
-              </button>
+              {visible("herdSession") && (
+                <button
+                  type="button"
+                  className="telemetry-item telemetry-herd"
+                  onClick={() => setSessionOpen(true)}
+                  title={t("actions.openSession")}
+                >
+                  <span className="telemetry-label">{t("session.tab")}: {stats.total}</span>
+                </button>
+              )}
             </div>
           </div>
 
           <div className="utility-zone">
-            {queuedEscalations > 0 && (
+            {visible("escalation") && queuedEscalations > 0 && (
               <button
                 type="button"
                 className="escalation-outbox-badge"
@@ -280,32 +283,29 @@ export default function UserPage() {
             {syncNotice && <span className="sync-notice">{syncNotice}</span>}
 
             <div className="nav-actions-group">
-              <button
-                type="button"
-                className={`ghost-btn advanced-trigger ${advancedOpen ? "is-active" : ""}`}
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                title={t("advanced.title")}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                <span>{t("advanced.open")}</span>
-              </button>
+              {visible("advanced") && (
+                <button
+                  type="button"
+                  className={`ghost-btn advanced-trigger ${advancedOpen ? "is-active" : ""}`}
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  title={t("advanced.title")}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  <span>{t("advanced.open")}</span>
+                </button>
+              )}
 
-              <Link to="/dev" className="ghost-btn dev-portal-btn" title={t("header.dev")}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                </svg>
-                <span>{t("header.dev")}</span>
-              </Link>
-            </div>
-
-            <span className="nav-group-sep" aria-hidden="true" />
-
-            <div className="nav-prefs-group">
-              <LanguageToggle />
-              <ThemeToggle />
+              {visible("devLink") && (
+                <Link to="/dev" className="ghost-btn dev-portal-btn" title={t("header.dev")}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                  </svg>
+                  <span>{t("header.dev")}</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -370,34 +370,40 @@ export default function UserPage() {
             </div>
 
             <div className="mobile-sheet-actions">
-              <button
-                type="button"
-                className="mobile-sheet-action"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setAdvancedOpen(true);
-                }}
-              >
-                ⚙ {t("advanced.open")}
-              </button>
-              <button
-                type="button"
-                className="mobile-sheet-action"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setSessionOpen(true);
-                }}
-              >
-                ▤ {t("session.tab")}
-              </button>
-              <Link
-                to="/dev"
-                className="mobile-sheet-action"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t("header.dev")}
-              </Link>
-              {queuedEscalations > 0 && (
+              {visible("advanced") && (
+                <button
+                  type="button"
+                  className="mobile-sheet-action"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setAdvancedOpen(true);
+                  }}
+                >
+                  ⚙ {t("advanced.open")}
+                </button>
+              )}
+              {visible("herdSession") && (
+                <button
+                  type="button"
+                  className="mobile-sheet-action"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setSessionOpen(true);
+                  }}
+                >
+                  ▤ {t("session.tab")}
+                </button>
+              )}
+              {visible("devLink") && (
+                <Link
+                  to="/dev"
+                  className="mobile-sheet-action"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t("header.dev")}
+                </Link>
+              )}
+              {visible("escalation") && queuedEscalations > 0 && (
                 <button
                   type="button"
                   className="mobile-sheet-action"
@@ -407,29 +413,26 @@ export default function UserPage() {
                 </button>
               )}
             </div>
-
-            <div className="mobile-sheet-controls">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
           </section>
         </div>
       )}
 
       <main className="user-main-content">
         <section className="input-panel-section">
-          <div className="photo-guide-strip">
-            <span className="photo-guide-strip-text">
-              📸 {t("photoGuide.subtitle")}
-            </span>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={() => setGuideOpen(true)}
-            >
-              {t("photoGuide.button")}
-            </button>
-          </div>
+          {visible("photoGuide") && (
+            <div className="photo-guide-strip">
+              <span className="photo-guide-strip-text">
+                📸 {t("photoGuide.subtitle")}
+              </span>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setGuideOpen(true)}
+              >
+                {t("photoGuide.button")}
+              </button>
+            </div>
+          )}
           <div className="card-box">
             <div className="card-tab-nav">
               <button
@@ -504,7 +507,7 @@ export default function UserPage() {
               )}
             </div>
           </div>
-          {!predictionResult && (
+          {visible("specStrip") && !predictionResult && (
             <div className="spec-strip" aria-label="System specification">
               <div className="spec-item">
                 <span className="spec-label">{t("spec.target")}</span>
@@ -529,49 +532,66 @@ export default function UserPage() {
               quality={quality}
               previewUrl={previewUrl}
               filename={optimizer.original?.name || selectedFile?.name}
+              display={display}
+              visibility={{
+                voice: visible("voice"),
+                reportCard: visible("reportCard"),
+                traits: visible("traits"),
+                advisory: visible("advisory"),
+                advanced: visible("advanced"),
+                photoGuidance: visible("photoGuidance"),
+              }}
               onReset={handleClear}
               onRetake={handleRetake}
-              onOpenAdvanced={() => setAdvancedOpen(true)}
+              onOpenAdvanced={visible("advanced") ? () => setAdvancedOpen(true) : undefined}
             />
           </section>
         )}
       </main>
 
-      <footer className="site-footer status-bar">
-        <span className="footer-specs">{t("footer.text")}</span>
-        <span className="footer-meta">
-          {shortModel(activeModelDisplay)} · {(serverStatus?.device || "cpu").toUpperCase()} · v2
-        </span>
-      </footer>
+      {visible("footer") && (
+        <footer className="site-footer status-bar">
+          <span className="footer-specs">{t("footer.text")}</span>
+          <span className="footer-meta">
+            {shortModel(activeModelDisplay)} · {(serverStatus?.device || "cpu").toUpperCase()} · v2
+          </span>
+        </footer>
+      )}
 
-      <HerdSessionDrawer
-        open={sessionOpen}
-        entries={session}
-        onClose={() => setSessionOpen(false)}
-        onCleared={() => setSession([])}
-      />
+      {visible("herdSession") && (
+        <HerdSessionDrawer
+          open={sessionOpen}
+          entries={session}
+          onClose={() => setSessionOpen(false)}
+          onCleared={() => setSession([])}
+        />
+      )}
 
-      <PhotoGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      {visible("photoGuide") && (
+        <PhotoGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      )}
 
-      <AdvancedPanel
-        open={advancedOpen}
-        onClose={() => setAdvancedOpen(false)}
-        optimizer={optimizer}
-        model={activeModelId}
-        result={predictionResult}
-        config={config}
-        quality={quality}
-        previewUrl={previewUrl}
-        modelInputUrl={optimizer.result?.dataUrl || previewUrl}
-        onEscalate={handleEscalate}
-        onOpenExpert={() => {
-          window.location.href = "/expert";
-        }}
-        onOpenCamera={() => {
-          setAdvancedOpen(false);
-          setInputMode("camera");
-        }}
-      />
+      {visible("advanced") && (
+        <AdvancedPanel
+          open={advancedOpen}
+          onClose={() => setAdvancedOpen(false)}
+          optimizer={optimizer}
+          model={activeModelId}
+          result={predictionResult}
+          config={config}
+          quality={quality}
+          previewUrl={previewUrl}
+          modelInputUrl={optimizer.result?.dataUrl || previewUrl}
+          onEscalate={handleEscalate}
+          onOpenExpert={() => {
+            window.location.href = import.meta.env.VITE_VET_PORTAL_URL || "http://localhost:5174";
+          }}
+          onOpenCamera={() => {
+            setAdvancedOpen(false);
+            setInputMode("camera");
+          }}
+        />
+      )}
     </div>
   );
 }

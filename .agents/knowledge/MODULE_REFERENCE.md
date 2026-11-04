@@ -118,6 +118,22 @@ Constants only, no functions. Side effect: creates output/log directories on imp
   config, `spec_summary()`
 - `scripts/embed_metadata.py` — `--all` / `--file` / `--inspect` CLI
 
+### `server/` (Flask API)
+- `model_manager.py` — registry, `_load_bundle`, `class_counts`, `recalibrate_ood`
+- `services/model_test.py` — `run_model_test` (single-model inference, soft
+  routing top-5, OOD, repeat latency; no advisory/CLIP)
+- `routes/models.py` — registry/activation plus `POST /api/models/inspect`,
+  `POST /api/models/embed`, `POST /api/models/test`
+- `shared_config.py` — `DEFAULT_APP_CONFIG.display.hidden_user_sections`
+
+### `breed-classifier-react/src/utils/userVisibility.js`
+- `USER_SECTION_OPTIONS`, `DISPLAY_TOGGLE_OPTIONS`
+- `hiddenUserSections`, `isUserSectionVisible`, `userVisibilitySnapshot`
+
+### `vet-portal/src/UserVisibilityPanel.jsx`
+- Vet-controlled `display.hidden_user_sections` + species badge/confidence,
+  escalation warning and technical-details flags.
+
 ### `src/evaluate.py`
 - `full_evaluation`, `_save_confusion`, `main`
 

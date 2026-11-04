@@ -23,12 +23,17 @@ export default function ResultWorkspace({
   quality,
   previewUrl,
   filename,
+  display = {},
+  visibility = {},
   onReset,
   onRetake,
   onOpenAdvanced,
 }) {
   const { t, lang, tBreed, tDynamic } = useI18n();
   const isOod = Boolean(result?.is_ood ?? result?.ood);
+  const show = (key) => visibility[key] !== false;
+  const showSpeciesBadge = display.show_species_badge !== false;
+  const showSpeciesConfidence = display.show_species_confidence !== false;
 
   const [gender, setGender] = useState(null);
   const [ageGroup, setAgeGroup] = useState(null);
@@ -173,19 +178,28 @@ export default function ResultWorkspace({
             {isOod ? t("result.oodBadge") : t("result.predictedBreed")}
           </span>
           <h2>{isOod ? t("result.oodTitle") : localizedBreed || t("hero.unknown")}</h2>
+          {showSpeciesBadge && !isOod && (
+            <span className={`badge badge-neutral workspace-species-badge species-${String(result?.predicted_species || result?.species || "cattle").toLowerCase()}`}>
+              {tDynamic("species", result?.predicted_species || result?.species)}
+            </span>
+          )}
         </div>
         <div className="workspace-actions">
-          <VoiceReaderButton result={result} advisory={advisory} />
-          <button type="button" className="btn btn-outline" onClick={handleDownload}>
-            📥 {t("result.downloadCard")}
-          </button>
-          <button type="button" className="btn btn-outline" onClick={onOpenAdvanced}>
-            ⚙ {t("advanced.openDetails")}
-          </button>
+          {show("voice") && <VoiceReaderButton result={result} advisory={advisory} />}
+          {show("reportCard") && (
+            <button type="button" className="btn btn-outline" onClick={handleDownload}>
+              📥 {t("result.downloadCard")}
+            </button>
+          )}
+          {show("advanced") && onOpenAdvanced && (
+            <button type="button" className="btn btn-outline" onClick={onOpenAdvanced}>
+              ⚙ {t("advanced.openDetails")}
+            </button>
+          )}
         </div>
       </header>
 
-      <PhotoGuidance result={result} />
+      {show("photoGuidance") && <PhotoGuidance result={result} />}
 
       <HeroFourGrid
         result={result}
@@ -194,6 +208,7 @@ export default function ResultWorkspace({
         onGenderChange={handleGender}
         onAgeChange={handleAge}
         breedKnowledge={entry}
+        showSpeciesConfidence={showSpeciesConfidence}
       />
 
       {overridden && (
@@ -207,40 +222,44 @@ export default function ResultWorkspace({
         </p>
       )}
 
-      <TraitChecklist traits={result?.traits} />
+      {show("traits") && <TraitChecklist traits={result?.traits} />}
 
-      <div className="result-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "farmer"}
-          className={`result-tab ${tab === "farmer" ? "is-active" : ""}`}
-          onClick={() => setTab("farmer")}
-        >
-          {t("result.tabs.farmer")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "public"}
-          className={`result-tab ${tab === "public" ? "is-active" : ""}`}
-          onClick={() => setTab("public")}
-        >
-          {t("result.tabs.public")}
-        </button>
-      </div>
+      {show("advisory") && (
+        <>
+          <div className="result-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "farmer"}
+              className={`result-tab ${tab === "farmer" ? "is-active" : ""}`}
+              onClick={() => setTab("farmer")}
+            >
+              {t("result.tabs.farmer")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "public"}
+              className={`result-tab ${tab === "public" ? "is-active" : ""}`}
+              onClick={() => setTab("public")}
+            >
+              {t("result.tabs.public")}
+            </button>
+          </div>
 
-      <div className="result-tab-body">
-        {tab === "farmer" ? (
-          <FarmerAdvisoryCard advisory={advisory} loading={busy} latencyMs={latency} />
-        ) : (
-          <BreedEncyclopedia
-            entry={entry}
-            summary={result?.knowledge?.breed || null}
-            loading={entryLoading}
-          />
-        )}
-      </div>
+          <div className="result-tab-body">
+            {tab === "farmer" ? (
+              <FarmerAdvisoryCard advisory={advisory} loading={busy} latencyMs={latency} />
+            ) : (
+              <BreedEncyclopedia
+                entry={entry}
+                summary={result?.knowledge?.breed || null}
+                loading={entryLoading}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       {notice && <p className="workspace-notice" role="status">{notice}</p>}
 

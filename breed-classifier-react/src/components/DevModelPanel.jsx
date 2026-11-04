@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getModels, selectModel, uploadModel, getModelSpec } from "../api.js";
+import { getModels, selectModel, uploadModel, getModelSpec, embedModel, testModel } from "../api.js";
 
 export default function DevModelPanel({ activeModel, onModelChanged }) {
   const [models, setModels] = useState([]);
@@ -14,6 +14,18 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
   const [selecting, setSelecting] = useState("");
   const [selectMessage, setSelectMessage] = useState(null);
   const [loadError, setLoadError] = useState(null);
+
+  // Developer model tools
+  const [embedOod, setEmbedOod] = useState(true);
+  const [embedCopy, setEmbedCopy] = useState(true);
+  const [embedding, setEmbedding] = useState(false);
+  const [embedResult, setEmbedResult] = useState(null);
+  const [embedError, setEmbedError] = useState(null);
+  const [testFile, setTestFile] = useState(null);
+  const [testRepeats, setTestRepeats] = useState(1);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [testError, setTestError] = useState(null);
 
   const loadModelList = async () => {
     try {
@@ -99,6 +111,52 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
       setUploading(false);
     }
   };
+
+  const handleEmbed = async () => {
+    if (!selectedSpecModel) return;
+    try {
+      setEmbedding(true);
+      setEmbedError(null);
+      setEmbedResult(null);
+      const res = await embedModel({
+        model: selectedSpecModel,
+        embedOod,
+        copy: embedCopy,
+      });
+      setEmbedResult(res);
+      await loadModelList();
+      if (res?.model) setSelectedSpecModel(res.model);
+      else setSelectedSpecModel(selectedSpecModel);
+    } catch (err) {
+      setEmbedError(err.message || "Embed failed");
+    } finally {
+      setEmbedding(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!selectedSpecModel || !testFile) return;
+    try {
+      setTesting(true);
+      setTestError(null);
+      setTestResult(null);
+      const res = await testModel({
+        model: selectedSpecModel,
+        file: testFile,
+        repeats: testRepeats,
+      });
+      setTestResult(res);
+    } catch (err) {
+      setTestError(err.message || "Model test failed");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const metadataOod = spec?.embedded_metadata?.ood || spec?.ood;
+  const oodLabel = metadataOod?.energy_threshold != null
+    ? `E ${Number(metadataOod.energy_threshold).toFixed(3)} · MSP ${Number(metadataOod.msp_threshold).toFixed(3)}`
+    : "Defaults / legacy JSON";
 
   return (
     <div className="dev-panel-content">
@@ -188,6 +246,83 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
             </label>
             {uploadMessage && <p className="upload-status-text">{uploadMessage}</p>}
           </div>
+
+          {/* Model-specific test */}
+          <div className="dev-subcard" style={{ marginTop: 16 }}>
+            <div className="dev-card-header" style={{ marginBottom: 12 }}>
+              <h4 className="card-heading" style={{ fontSize: "0.92rem" }}>Test This Model</h4>
+              <span className="badge badge-neutral">{selectedSpecModel || "none"}</span>
+            </div>
+            <p className="slider-hint" style={{ marginBottom: 12 }}>
+              Runs only the selected model (no advisory/CLIP) and reports raw
+              softmax routing, OOD and latency.
+            </p>
+            <label className="upload-btn-label">
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => setTestFile(e.target.files?.[0] || null)}
+                disabled={testing}
+              />
+              <span className="btn btn-outline btn-full">
+                {testFile ? `Image: ${testFile.name}` : "Choose a test image"}
+              </span>
+            </label>
+
+            <div className="form-group" style={{ marginTop: 10 }}>
+              <label className="form-label" htmlFor="model-test-repeats">Repeats (latency)</label>
+              <select
+                id="model-test-repeats"
+                className="form-input"
+                value={testRepeats}
+                onChange={(e) => setTestRepeats(parseInt(e.target.value, 10))}
+              >
+                {[1, 3, 5, 10].map((n) => <option key={n} value={n}>{n}×</option>)}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-full"
+              style={{ marginTop: 10 }}
+              onClick={handleTest}
+              disabled={!selectedSpecModel || !testFile || testing}
+            >
+              {testing ? "Running model test…" : "Run model test"}
+            </button>
+
+            {testError && <p className="camera-error-inline">{testError}</p>}
+            {testResult && (
+              <div className="spec-details-table" style={{ marginTop: 12 }}>
+                <div className="spec-row">
+                  <span className="spec-k">Prediction</span>
+                  <span className="spec-v">
+                    {testResult.species} · {testResult.breed} ({testResult.confidence}%)
+                  </span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-k">OOD</span>
+                  <span className="spec-v">
+                    {testResult.is_ood ? "ABSTAIN" : "in-distribution"}
+                    {` · ${Number(testResult.ood_score).toFixed(3)}`}
+                  </span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-k">Latency</span>
+                  <span className="spec-v">
+                    {testResult.latency_ms?.mean} ms mean · {testResult.latency_ms?.last} ms last
+                  </span>
+                </div>
+                {testResult.top5?.map((item, idx) => (
+                  <div className="spec-row" key={`${item.breed_slug}-${idx}`}>
+                    <span className="spec-k">#{idx + 1} {item.breed}</span>
+                    <span className="spec-v">{item.confidence}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Model Spec Inspector */}
@@ -249,6 +384,95 @@ export default function DevModelPanel({ activeModel, onModelChanged }) {
                   ))}
                 </div>
               )}
+
+              <div className="spec-tensor-section">
+                <h4 className="spec-subheading">Self-Describing Metadata</h4>
+                <div className="spec-row">
+                  <span className="spec-k">Status</span>
+                  <span className="spec-v">
+                    {spec.self_describing ? "Embedded" : "Not embedded (runtime introspection)"}
+                  </span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-k">Class map source</span>
+                  <span className="spec-v text-truncate">{spec.class_map_source || "—"}</span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-k">Normalization</span>
+                  <span className="spec-v">
+                    {spec.normalization_baked ? "Baked in graph ([0,1] input)" : "Caller-side ImageNet"}
+                  </span>
+                </div>
+                <div className="spec-row">
+                  <span className="spec-k">OOD thresholds</span>
+                  <span className="spec-v">{oodLabel}</span>
+                </div>
+                {spec.class_counts && (
+                  <div className="spec-row">
+                    <span className="spec-k">Class counts</span>
+                    <span className="spec-v">
+                      {spec.class_counts.cattle} cattle · {spec.class_counts.buffalo} buffalo
+                    </span>
+                  </div>
+                )}
+                {spec.embedded_metadata && Object.keys(spec.embedded_metadata).length > 0 && (
+                  <pre className="json-preview-code" style={{ maxHeight: 170, marginTop: 8 }}>
+                    {JSON.stringify(spec.embedded_metadata, null, 2)}
+                  </pre>
+                )}
+              </div>
+
+              <div className="spec-tensor-section">
+                <h4 className="spec-subheading">Embed Metadata</h4>
+                <p className="slider-hint" style={{ marginBottom: 10 }}>
+                  Writes class maps, resolution, normalization and (optionally) OOD
+                  thresholds into the model file. Weights are never modified.
+                </p>
+                <div className="control-setting-row">
+                  <div className="setting-info">
+                    <span className="setting-label">Embed OOD thresholds</span>
+                    <span className="setting-subtext">Bake the current calibrated thresholds into the file.</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={embedOod}
+                      onChange={(e) => setEmbedOod(e.target.checked)}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+                <div className="control-setting-row">
+                  <div className="setting-info">
+                    <span className="setting-label">Write a copy (recommended)</span>
+                    <span className="setting-subtext">Saves under outputs/export/embedded/ and leaves the original intact.</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={embedCopy}
+                      onChange={(e) => setEmbedCopy(e.target.checked)}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-full"
+                  style={{ marginTop: 10 }}
+                  onClick={handleEmbed}
+                  disabled={!selectedSpecModel || embedding || specLoading}
+                >
+                  {embedding ? "Embedding metadata…" : "Embed metadata into model"}
+                </button>
+                {embedError && <p className="camera-error-inline">{embedError}</p>}
+                {embedResult && (
+                  <p className="upload-status-text">
+                    Embedded {embedResult.ood_embedded ? "with OOD" : "without OOD"} →{" "}
+                    {embedResult.path}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

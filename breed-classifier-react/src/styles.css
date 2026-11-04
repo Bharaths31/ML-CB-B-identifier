@@ -4558,6 +4558,8 @@ input[type="range"] {
 .metric-red strong { color: var(--red); }
 .expert-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .expert-toolbar h2 { margin: 0; font-size: 1.15rem; }
+.expert-subnav { max-width: 1380px; margin: 0 auto; padding: 12px 24px 0; }
+.expert-visibility { display: flex; flex-direction: column; gap: 18px; }
 .expert-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .expert-loading, .expert-empty { padding: 34px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 14px; }
 .expert-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
@@ -5391,6 +5393,7 @@ input[type="range"] {
   color: var(--text-muted); font-weight: 700; }
 .workspace-title h2 { margin: 4px 0 0; font-size: clamp(1.4rem, 2.6vw, 2rem);
   letter-spacing: -0.02em; }
+.workspace-species-badge { margin-top: 6px; display: inline-flex; align-items: center; }
 .workspace-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .workspace-actions .btn { min-height: 44px; }
 .workspace-override-note { margin: 0; font-size: 0.78rem; color: var(--accent); }
