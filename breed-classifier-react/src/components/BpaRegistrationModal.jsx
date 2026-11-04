@@ -235,7 +235,7 @@ export default function BpaRegistrationModal({
 
       ctx.fillStyle = "#64748b";
       ctx.font = "500 20px Inter, system-ui, sans-serif";
-      ctx.fillText("BreedID Livestock Vision · Soft-routed 3-head EfficientNet-Lite", 64, 1418);
+      ctx.fillText(`${t("app.title")} · Soft-routed 3-head EfficientNet-Lite`, 64, 1418);
       ctx.fillText(`Model: ${result?.model_name || "unknown"}`, 64, 1450);
       ctx.fillText("Generated offline from the FLW device. Confirm with a veterinary officer.", 64, 1480);
 

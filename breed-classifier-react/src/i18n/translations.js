@@ -28,7 +28,7 @@ export const STORAGE_KEY = "breed-classifier-lang";
 
 export const TRANSLATIONS = {
   en: {
-  "app.title": "BreedID Livestock Vision",
+  "app.title": "Breed ID • Livestock Vision",
   "app.subtitle": "AI Breed Classification & OOD Detection",
   "footer.text": "Cattle & Buffalo Breed Classifier • ML Vision System • Soft-routed Architecture",
   "header.connected": "Connected",
@@ -108,6 +108,10 @@ export const TRANSLATIONS = {
   "advanced.addedToSession": "Added {count} animals to the herd session.",
   "advanced.images": "Images",
   "advanced.bandwidth": "Payload",
+  "advanced.tabOptimizer": "Model Input & Optimizer",
+  "advanced.tabDiagnostics": "Vision Diagnostics (CBAM)",
+  "advanced.tabBatch": "Batch Inference",
+  "advanced.noDiagnostics": "No prediction diagnostics available yet. Analyze an image first to inspect CBAM Attention X-Ray and soft-routing.",
   "optimizer.file": "File",
   "result.filename": "File",
   "optimizer.title": "Image Optimizer",
@@ -485,7 +489,7 @@ export const TRANSLATIONS = {
   "expert.reviewedAt": "Reviewed {date}"
 },
   ta: {
-  "app.title": "BreedID கால்நடை பார்வை",
+  "app.title": "இன அடையாளம் • கால்நடை பார்வை",
   "app.subtitle": "AI இன வகைப்படுத்தல் & OOD கண்டறிதல்",
   "footer.text": "மாடு & எருமை இன வகைப்படுத்தி • ML பார்வை அமைப்பு",
   "header.connected": "இணைக்கப்பட்டது",
@@ -565,6 +569,10 @@ export const TRANSLATIONS = {
   "advanced.addedToSession": "{count} விலங்குகள் மந்தை அமர்வில் சேர்க்கப்பட்டன.",
   "advanced.images": "படங்கள்",
   "advanced.bandwidth": "அளவு",
+  "advanced.tabOptimizer": "மாதிரி உள்ளீடு & உகப்பாக்கி",
+  "advanced.tabDiagnostics": "பார்வை பகுப்பாய்வு (CBAM)",
+  "advanced.tabBatch": "தொகுதி சோதனை",
+  "advanced.noDiagnostics": "முன்கணிப்பு பகுப்பாய்வு இன்னும் இல்லை. CBAM கவன X-ரே மற்றும் மென்மையான வழித்தடத்தைப் பார்க்க முதலில் ஒரு படத்தை பகுப்பாய்வு செய்யவும்.",
   "optimizer.file": "கோப்பு",
   "result.filename": "கோப்பு",
   "optimizer.title": "பட மேம்படுத்தி",
@@ -942,7 +950,7 @@ export const TRANSLATIONS = {
   "expert.reviewedAt": "பரிசீலிக்கப்பட்டது {date}"
 },
   hi: {
-  "app.title": "ब्रीडआईडी पशुधन विज़न",
+  "app.title": "नस्ल पहचान • पशुधन दृष्टि",
   "app.subtitle": "एआई नस्ल पहचान और ओओडी जाँच",
   "footer.text": "गाय और भैंस नस्ल वर्गीकरण · एमएल विज़न प्रणाली",
   "header.connected": "जुड़ा हुआ",
@@ -1192,6 +1200,10 @@ export const TRANSLATIONS = {
   "advanced.addedToSession": "झुंड सत्र में {count} पशु जोड़े गए।",
   "advanced.images": "छवियाँ",
   "advanced.bandwidth": "पेलोड",
+  "advanced.tabOptimizer": "मॉडल इनपुट और अनुकूलक",
+  "advanced.tabDiagnostics": "विज़न डायग्नोस्टिक्स (CBAM)",
+  "advanced.tabBatch": "बैच परीक्षण",
+  "advanced.noDiagnostics": "अभी कोई पूर्वानुमान जाँच उपलब्ध नहीं है। CBAM अटेंशन एक्स-रे और सॉफ्ट-रूटिंग देखने के लिए पहले एक छवि का विश्लेषण करें।",
   "xray.title": "एआई विज़न एक्स-रे (CBAM)",
   "xray.subtitle": "स्थानिक ध्यान और क्लास-एक्टिवेशन मैप। शरीर के अंग चमकें, पृष्ठभूमि फीकी रहे।",
   "xray.show": "एक्स-रे दिखाएँ",

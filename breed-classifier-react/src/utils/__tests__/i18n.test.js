@@ -50,6 +50,24 @@ describe("i18n Localization & Translation Integrity", () => {
     assert.equal(hi, "5 पशु");
   });
 
+  it("translates Breed ID properly into native language terms rather than English or transliteration", () => {
+    assert.equal(TRANSLATIONS.en["app.title"], "Breed ID • Livestock Vision");
+    assert.equal(TRANSLATIONS.ta["app.title"], "இன அடையாளம் • கால்நடை பார்வை");
+    assert.equal(TRANSLATIONS.hi["app.title"], "नस्ल पहचान • पशुधन दृष्टि");
+    assert.ok(!TRANSLATIONS.ta["app.title"].includes("BreedID"), "Tamil app.title must not contain raw English 'BreedID'");
+    assert.ok(!TRANSLATIONS.hi["app.title"].includes("ब्रीडआईडी"), "Hindi app.title must be translated, not transliterated");
+
+    assert.ok(TRANSLATIONS.en["advanced.tabOptimizer"]);
+    assert.ok(TRANSLATIONS.ta["advanced.tabOptimizer"]);
+    assert.ok(TRANSLATIONS.hi["advanced.tabOptimizer"]);
+    assert.ok(TRANSLATIONS.en["advanced.tabDiagnostics"]);
+    assert.ok(TRANSLATIONS.ta["advanced.tabDiagnostics"]);
+    assert.ok(TRANSLATIONS.hi["advanced.tabDiagnostics"]);
+    assert.ok(TRANSLATIONS.en["advanced.tabBatch"]);
+    assert.ok(TRANSLATIONS.ta["advanced.tabBatch"]);
+    assert.ok(TRANSLATIONS.hi["advanced.tabBatch"]);
+  });
+
   it("replaces transliterated loan words with authentic native Tamil livestock vocabulary", () => {
     // Check developer settings, portal, and pad translations
     assert.equal(TRANSLATIONS.ta["header.expertPortal"], "கால்நடை மருத்துவர் தளம்");
