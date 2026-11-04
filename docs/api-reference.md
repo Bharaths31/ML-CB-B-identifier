@@ -431,6 +431,7 @@ The React app and the Colab workflows use the same HTTP contract.
 | POST | `/api/config/reset` | Restore defaults |
 | GET | `/api/config/<key>` | Read a single setting |
 | GET/POST | `/api/presenter-config` | Presenter view customisation |
+| GET | `/api/guardrails/status` | 4-layer guardrail availability (OpenCV/CLIP), thresholds |
 | POST | `/api/export-odt` | ODT report from single or batch results |
 | GET | `/api/dev-info` | Cattle/buffalo class maps |
 | POST | `/api/image-info` | EXIF / dimension metadata for one image |
@@ -440,6 +441,24 @@ The React app and the Colab workflows use the same HTTP contract.
 (`/api/ood-profiles`, `/api/ood-info`, `/api/dataset-info`,
 `/api/recalibrate-ood` — an alias of `/api/ood/recalibrate`) and adds
 `/api/ood-data-dirs`.
+
+### Guardrail rejection payload
+
+When `/api/predict` rejects an image, the response includes:
+
+```json
+"is_ood": true,
+"rejection_info": {
+  "rejected": true,
+  "reason_code": "human_or_selfie",
+  "stage": "Stage 2: Human / Semantic Check",
+  "title":       {"en": "...", "ta": "...", "hi": "..."},
+  "message":     {"en": "...", "ta": "...", "hi": "..."},
+  "instruction": {"en": "...", "ta": "...", "hi": "..."}
+}
+```
+
+See [Input Guardrails](input-guardrails.md) for the full reason-code table.
 
 ### Manual OOD recalibration — request
 

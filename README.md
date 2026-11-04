@@ -30,6 +30,12 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
   that hides specific farmer-page sections and controls species badge/
   confidence, escalation warnings and technical details via shared config.
   The language/theme toggles moved from the farmer view to the vet portal.
+- **4-layer input guardrails:** offline photorealism (cartoons/screenshots),
+  human/selfie and other-animal gates, feature-entropy and the logit OOD check.
+  Rejections return a specific trilingual `rejection_info`
+  (`reason_code`, stage, title, message, instruction) instead of a generic OOD
+  banner. Optional OpenCV/CLIP stages degrade gracefully; no retraining. See
+  [docs/input-guardrails.md](docs/input-guardrails.md).
 - **Five outputs, not just a breed:** Species, Top-5 breed, Gender, Age Group
   (Calf/Young/Adult) and seven morphological traits (`hump`, `horn`, `coat`,
   `ear`, `dewlap`, `face`, `size`). Trait/gender/age run post-hoc — **no

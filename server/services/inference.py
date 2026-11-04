@@ -7,6 +7,8 @@ import torch.nn.functional as F
 from PIL import Image
 from src.config import IMAGE_SIZE, SPECIES_LABELS
 from src.model import predict_traits
+from src.input_guardrails import (get_guardrail_engine,
+                                  verdict_to_ood_explanation)
 from src.attributes_zeroshot import build_attribute_report
 from src.breed_knowledge import get_farmer_advisory
 from src.image_quality import analyze_image_quality, explain_ood_for_user
@@ -219,6 +221,75 @@ def _build_xray_payload(model, captured, combined, n_cattle, size=IMAGE_SIZE):
         }
 
 
+def _guardrail_rejection_result(model_name, verdict, quality, predict_start, filename):
+    """Build the result payload for a pre-inference guardrail rejection."""
+    info = verdict.get("rejection_info") or {}
+    explanation = verdict_to_ood_explanation(verdict)
+    total_ms = round((time.time() - predict_start) * 1000, 1)
+    result = {
+        "species": "Unknown",
+        "predicted_species": "Unknown",
+        "species_confidence": 0.0,
+        "species_prob": 0.0,
+        "top_breed": "Not a recognized animal",
+        "predicted_breed": "Not a recognized animal",
+        "confidence": 0.0,
+        "top_breed_confidence": 0.0,
+        "confidence_level": 1,
+        "confidence_band": "very_low",
+        "confidence_action": "confidence.level1.action",
+        "top5_breeds": [{
+            "breed": "Not a recognized animal",
+            "breed_slug": None,
+            "confidence": 0.0,
+        }],
+        "top_k": [],
+        "gender": {"key": None, "short_label": "Unknown", "label": "Unknown",
+                   "confidence": 0.0, "method": "skipped"},
+        "age_group": {"key": None, "short_label": "Unknown", "label": "Unknown",
+                      "confidence": 0.0, "method": "skipped"},
+        "traits": {},
+        "traits_detail": {},
+        "attributes_meta": {"skipped": True, "reason": verdict.get("reason_code")},
+        "traits_meta": {"available": False, "reason": "guardrail"},
+        "model_used": model_name,
+        "model_name": model_name,
+        "filename": filename,
+        "knowledge": {"skipped": True, "reason": "guardrail"},
+        "inference_time_ms": 0.0,
+        "attributes_time_ms": 0.0,
+        "knowledge_time_ms": 0.0,
+        "total_time_ms": total_ms,
+        "routing": "guardrail",
+        "ood": True,
+        "is_ood": True,
+        "ood_score": float(verdict.get("details", {}).get("ood_score") or 0.0),
+        "ood_details": verdict.get("details", {}),
+        "ood_explanation": explanation,
+        "rejection_info": info,
+        "guardrail": verdict,
+        "quality": quality,
+        "quality_latency_ms": quality.get("latency_ms"),
+        "attention_map_b64": None,
+        "spatial_attention_b64": None,
+        "attention_meta": {"source": "guardrail_blocked"},
+        "_raw_binary_probs": [0.0, 0.0],
+        "_raw_breed_probs_top10": [],
+    }
+    try:
+        from src.run_utils import log_event
+        log_event("prediction", category="test", model=model_name,
+                  filename=filename, species="Unknown",
+                  top_breed="Not a recognized animal",
+                  confidence=0.0, ood=True,
+                  ood_explanation=(explanation or {}).get("code"),
+                  guardrail_reason=verdict.get("reason_code"),
+                  latency_ms=total_ms, routing="guardrail")
+    except Exception:
+        pass
+    return result
+
+
 def predict_image(manager, image_bytes, model_name=None, socketio=None, filename="unknown"):
     """Run prediction on raw image bytes. Returns result dict."""
     logger = get_logger()
@@ -256,6 +327,17 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
             f"({quality['sharpness_score']} lap-var, mean luma {quality['mean_luminance']}, "
             f"{quality['latency_ms']} ms)"
         )
+
+    # Stage 1–2 guardrails run before the network: cartoons, selfies and
+    # other animals are rejected without spending inference time.
+    guardrail = get_guardrail_engine()
+    pre_verdict = guardrail.validate_visual(img) if guardrail.enabled else {"rejected": False}
+    if pre_verdict.get("rejected"):
+        result = _guardrail_rejection_result(
+            model_name, pre_verdict, quality, predict_start, filename)
+        if socketio:
+            socketio.emit("prediction_complete", {"result": result}, namespace="/ws")
+        return result
 
     if socketio:
         socketio.emit('prediction_progress', {
@@ -340,21 +422,36 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     is_ood = False
     ood_score = 0.0
     ood_details = {}
+    rejection_info = None
     db = get_shared_config(socketio)
     ood_active = db.get("ood.enabled", True)
     selected_profile = db.get("ood.selected_profile", "auto")
     # Auto mode: thresholds embedded in this exact model file. A manually
     # selected profile still wins for the Dev Console workflow.
     detector = bundle.ood_detector if selected_profile == "auto" else manager.ood_detector
-    if ood_active and detector is not None:
-        is_ood, ood_score, ood_details = detector.is_ood(
-            binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
-        )
 
-    # Farmer-facing OOD explanation: "not an animal" vs "animal but unclear
-    # breed", merged with the quality tips. Raw energy/MSP stays in .technical.
-    ood_explanation = explain_ood_for_user(is_ood, ood_details, quality)
-    if logger and ood_explanation["code"] not in ("ok",):
+    model_outputs = {
+        "binary": binary_logits.unsqueeze(0),
+        "cattle": cattle_logits.unsqueeze(0),
+        "buffalo": buffalo_logits.unsqueeze(0),
+    }
+    if pooled_features is not None:
+        model_outputs["features"] = pooled_features
+    post_verdict = guardrail.validate_model_outputs(
+        model_outputs, detector if ood_active else None)
+    post_verdict.setdefault("stages", {})["stage1_2"] = pre_verdict
+    is_ood = bool(post_verdict.get("rejected"))
+    rejection_info = post_verdict.get("rejection_info")
+    ood_details = post_verdict.get("details", {})
+    ood_score = float(ood_details.get("ood_score") or 0.0)
+    if rejection_info:
+        ood_explanation = verdict_to_ood_explanation(post_verdict)
+    else:
+        ood_explanation = explain_ood_for_user(False, ood_details, quality)
+
+    # Farmer-facing explanation: guardrail-specific copy when blocked, else the
+    # legacy OOD/quality explainer. Raw energy/MSP stays in .technical.
+    if logger and ood_explanation and ood_explanation.get("code") not in ("ok",):
         logger.info(
             f"OOD explainer: {ood_explanation['code']} "
             f"(msp={ood_details.get('msp')}, energy={ood_details.get('energy')})"
@@ -501,6 +598,8 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
         "ood_score": round(ood_score, 2) if is_ood else None,
         "ood_details": ood_details,
         "ood_explanation": ood_explanation,
+        "rejection_info": rejection_info,
+        "guardrail": post_verdict,
         "quality": quality,
         "quality_latency_ms": quality.get("latency_ms"),
         "attention_map_b64": xray.get("attention_map_b64"),

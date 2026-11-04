@@ -10,10 +10,23 @@ export default function PhotoGuidance({ result }) {
   const { lang, t, tDynamic } = useI18n();
 
   const quality = result?.quality;
-  const explanation = result?.ood_explanation;
+  const rejection = result?.rejection_info;
+  const explanation = rejection?.rejected
+    ? {
+        code: rejection.reason_code,
+        severity: "error",
+        title: rejection.title,
+        message: rejection.message,
+        tips_by_language: {
+          en: [rejection.instruction?.en].filter(Boolean),
+          ta: [rejection.instruction?.ta].filter(Boolean),
+          hi: [rejection.instruction?.hi].filter(Boolean),
+        },
+      }
+    : result?.ood_explanation;
   const isOod = Boolean(result?.is_ood ?? result?.ood);
   const qualityIssues = (quality?.issues || []).length > 0;
-  const showOod = isOod && explanation && explanation.code !== "ok";
+  const showOod = (isOod || rejection?.rejected) && explanation && explanation.code !== "ok";
 
   if (!qualityIssues && !showOod) return null;
 

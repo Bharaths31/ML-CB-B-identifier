@@ -15,8 +15,11 @@
 > selected model (`POST /api/models/{inspect,embed,test}`). **Vet-controlled
 > visibility**: vet portal → User Page writes `display.hidden_user_sections`;
 > language/theme toggles live in the vet portal, not the farmer view.
-> See docs/verification.md, docs/model-metadata.md, docs/breed-knowledge.md,
-> docs/attributes.md, docs/image-quality.md and docs/react-web.md.
+> **4-layer guardrails**: offline photorealism/human/feature-entropy/logit-OOD
+> gates with trilingual `rejection_info` (`src/input_guardrails.py`).
+> See docs/verification.md, docs/model-metadata.md, docs/input-guardrails.md,
+> docs/breed-knowledge.md, docs/attributes.md, docs/image-quality.md and
+> docs/react-web.md.
 
 ## Table of Contents
 

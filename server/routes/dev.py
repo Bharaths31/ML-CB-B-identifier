@@ -95,3 +95,10 @@ def logs():
     # Note: text/plain is what the frontend expects
     from flask import Response
     return Response(content, mimetype='text/plain')
+
+
+@dev_bp.route('/api/guardrails/status', methods=['GET'])
+def guardrails_status():
+    """4-layer input guardrail availability and thresholds."""
+    from src.input_guardrails import get_guardrail_engine
+    return jsonify(get_guardrail_engine().status())

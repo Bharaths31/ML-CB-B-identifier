@@ -78,6 +78,7 @@ from src.model import OODDetector
 from src.model import predict_traits
 from src.model_introspect import (embed_model_metadata, inspect_and_load,
                                   read_onnx_metadata, read_pt_metadata)
+from src.input_guardrails import get_guardrail_engine, verdict_to_ood_explanation
 from src.attributes_zeroshot import build_attribute_report
 from src.image_quality import analyze_image_quality, explain_ood_for_user
 
@@ -342,6 +343,59 @@ def _human_number(n):
     if n >= 1_000:
         return f"{n / 1_000:.1f}K"
     return str(n)
+
+
+def _guardrail_result(model_name, verdict, quality, predict_start, filename):
+    """Result payload for a guardrail rejection (no model inference ran)."""
+    info = verdict.get("rejection_info") or {}
+    explanation = verdict_to_ood_explanation(verdict)
+    total_ms = round((time.time() - predict_start) * 1000, 1)
+    return {
+        "species": "Unknown",
+        "predicted_species": "Unknown",
+        "species_confidence": 0.0,
+        "species_prob": 0.0,
+        "top_breed": "Not a recognized animal",
+        "predicted_breed": "Not a recognized animal",
+        "confidence": 0.0,
+        "top_breed_confidence": 0.0,
+        "confidence_level": 1,
+        "confidence_band": "very_low",
+        "top5_breeds": [{"breed": "Not a recognized animal",
+                         "breed_slug": None, "confidence": 0.0}],
+        "top_k": [],
+        "gender": {"key": None, "short_label": "Unknown", "label": "Unknown",
+                   "confidence": 0.0, "method": "skipped"},
+        "age_group": {"key": None, "short_label": "Unknown", "label": "Unknown",
+                      "confidence": 0.0, "method": "skipped"},
+        "traits": {},
+        "traits_detail": {},
+        "attributes_meta": {"skipped": True, "reason": verdict.get("reason_code")},
+        "traits_meta": {"available": False, "reason": "guardrail"},
+        "model_used": model_name,
+        "model_name": model_name,
+        "filename": filename,
+        "knowledge": {"skipped": True, "reason": "guardrail"},
+        "inference_time_ms": 0.0,
+        "attributes_time_ms": 0.0,
+        "knowledge_time_ms": 0.0,
+        "total_time_ms": total_ms,
+        "routing": "guardrail",
+        "ood": True,
+        "is_ood": True,
+        "ood_score": float(verdict.get("details", {}).get("ood_score") or 0.0),
+        "ood_details": verdict.get("details", {}),
+        "ood_explanation": explanation,
+        "rejection_info": info,
+        "guardrail": verdict,
+        "quality": quality,
+        "quality_latency_ms": quality.get("latency_ms"),
+        "attention_map_b64": None,
+        "spatial_attention_b64": None,
+        "attention_meta": {"source": "guardrail_blocked"},
+        "_raw_binary_probs": [0.0, 0.0],
+        "_raw_breed_probs_top10": [],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -737,8 +791,13 @@ class ModelManager:
         return info
 
     @torch.no_grad()
-    def predict(self, image_bytes, model_name, ood_profile="auto", filename="unknown"):
-        """Run prediction on raw image bytes. Returns result dict."""
+    def predict(self, image_bytes, model_name, ood_profile="auto", filename="unknown",
+                guardrails=True):
+        """Run prediction on raw image bytes. Returns result dict.
+
+        ``guardrails=False`` is for schema/contract tests only; production
+        callers should always leave it enabled.
+        """
         predict_start = time.time()
 
         if model_name not in self.models:
@@ -769,6 +828,22 @@ class ModelManager:
             logger.info(f"Quality gate: score={quality['score']} "
                         f"issues={','.join(quality['issues'])} "
                         f"({quality['latency_ms']} ms)")
+
+        # Stage 1–2 guardrails: reject cartoons/selfies/other animals before
+        # loading or running the network.
+        if guardrails:
+            guardrail = get_guardrail_engine()
+            pre_verdict = (guardrail.validate_visual(img) if guardrail.enabled
+                           else {"rejected": False})
+            if pre_verdict.get("rejected"):
+                if logger:
+                    logger.info(f"Guardrail rejected: {pre_verdict.get('reason_code')} "
+                                f"({pre_verdict.get('stage')})")
+                return _guardrail_result(model_name, pre_verdict, quality,
+                                         predict_start, filename)
+        else:
+            guardrail = None
+            pre_verdict = {"rejected": False}
 
         try:
             bundle = self._load_bundle(model_name)
@@ -831,19 +906,37 @@ class ModelManager:
 
         inference_time = time.time() - inference_start
 
-        # Out-Of-Distribution (OOD) check
+        # Stages 3–4: feature/entropy and the logit OODDetector.
         detector = self.get_ood_detector(model_name=model_name, ood_profile=ood_profile)
-        is_ood = False
-        ood_score = 0.0
-        ood_details = {}
-        if detector is not None:
-            is_ood, ood_score, ood_details = detector.is_ood(
-                binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
-            )
+        model_outputs = {
+            "binary": binary_logits.unsqueeze(0),
+            "cattle": cattle_logits.unsqueeze(0),
+            "buffalo": buffalo_logits.unsqueeze(0),
+        }
+        if pooled_features is not None:
+            model_outputs["features"] = pooled_features
+        if guardrails:
+            post_verdict = guardrail.validate_model_outputs(model_outputs, detector)
+            post_verdict.setdefault("stages", {})["stage1_2"] = pre_verdict
+            is_ood = bool(post_verdict.get("rejected"))
+            rejection_info = post_verdict.get("rejection_info")
+            ood_details = post_verdict.get("details", {})
+            ood_score = float(ood_details.get("ood_score") or 0.0)
+        else:
+            post_verdict = {"rejected": False, "details": {}, "stages": {}}
+            is_ood, ood_score, ood_details = False, 0.0, {}
+            if detector is not None:
+                is_ood, ood_score, ood_details = detector.is_ood(
+                    binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0),
+                    buffalo_logits.unsqueeze(0))
+            rejection_info = None
 
-        # Plain-language OOD explanation for the farmer (energy/MSP kept under
-        # .technical for developer views).
-        ood_explanation = explain_ood_for_user(is_ood, ood_details, quality)
+        # Plain-language explanation: guardrail copy wins, else the legacy
+        # OOD/quality explainer.
+        if rejection_info:
+            ood_explanation = verdict_to_ood_explanation(post_verdict)
+        else:
+            ood_explanation = explain_ood_for_user(is_ood, ood_details, quality)
 
         # --- Soft species routing -------------------------------------------
         # Instead of a hard binary argmax (which forces every sample down one
@@ -956,8 +1049,11 @@ class ModelManager:
             "total_time_ms": round(total_time * 1000, 1),
             "routing": "soft",
             "ood": is_ood,
+            "is_ood": is_ood,
             "ood_score": round(ood_score, 4) if (is_ood or ood_score != 0.0) else None,
             "ood_explanation": ood_explanation,
+            "rejection_info": rejection_info,
+            "guardrail": post_verdict,
             "quality": quality,
             "quality_latency_ms": quality.get("latency_ms"),
             "ood_profile": detector.profile_name if detector else "Disabled",
@@ -2221,7 +2317,15 @@ function showResults(data) {
       oodBanner.classList.remove('hidden');
       const pInfo = data.ood_profile ? ' [Profile: ' + data.ood_profile + ']' : '';
       const sInfo = data.ood_score != null ? ' (Score: ' + data.ood_score + ')' : '';
-      oodBanner.textContent = '⚠️ Out-of-Distribution: Not a recognized cattle or buffalo' + sInfo + pInfo;
+      const rej = data.rejection_info;
+      if (rej && rej.title) {
+        const lang = (localStorage.getItem('agri_lang') || 'en').slice(0, 2);
+        const title = rej.title[lang] || rej.title.en || 'Image rejected';
+        const message = (rej.message && (rej.message[lang] || rej.message.en)) || '';
+        oodBanner.textContent = '⚠️ ' + title + (message ? ': ' + message : '');
+      } else {
+        oodBanner.textContent = '⚠️ Out-of-Distribution: Not a recognized cattle or buffalo' + sInfo + pInfo;
+      }
     } else {
       oodBanner.classList.add('hidden');
     }

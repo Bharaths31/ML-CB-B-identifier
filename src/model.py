@@ -173,6 +173,23 @@ class BreedClassifier(nn.Module):
                               p_species[:, 1:2] * p_buffalo], dim=1)
         return combined, {"ood": False}
 
+    @torch.no_grad()
+    def predict_guarded(self, x, pil_img=None, image_bytes=None,
+                        ood_detector=None, guardrail=None):
+        """Forward pass + the 4-layer input guardrail verdict.
+
+        Returns ``(out, verdict)``. Callers can short-circuit on
+        ``verdict["rejected"]`` and use ``verdict["rejection_info"]`` for the
+        localized farmer-facing explanation.
+        """
+        out = self.forward(x)
+        if guardrail is None:
+            from .input_guardrails import get_guardrail_engine
+            guardrail = get_guardrail_engine()
+        verdict = guardrail.validate_image(
+            image_bytes, pil_img, model_outputs=out, ood_detector=ood_detector)
+        return out, verdict
+
     def freeze_backbone(self):
         for p in self.backbone.parameters():
             p.requires_grad = False

@@ -29,6 +29,7 @@ from flask_socketio import SocketIO
 from server.config import SERVER_PORT, CORS_ORIGINS, DEBUG
 from server.utils.logger import init_logger
 from server.model_manager import init_manager
+from src.input_guardrails import get_guardrail_engine
 
 # Import blueprints
 from server.routes.models import models_bp
@@ -83,11 +84,18 @@ def create_app():
 
     @app.route('/api/health', methods=['GET'])
     def health_check():
+        guardrail = get_guardrail_engine()
         return jsonify({
             "status": "ok",
             "device": manager.device.type,
             "models_count": len(manager.models),
-            "uptime_s": time.time() - logger.start_time
+            "uptime_s": time.time() - logger.start_time,
+            "guardrails": {
+                "enabled": guardrail.enabled,
+                "stages": 4,
+                "opencv": guardrail.status().get("opencv"),
+                "clip": guardrail.status().get("clip"),
+            },
         })
         
     return app, socketio

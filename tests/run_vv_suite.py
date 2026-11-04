@@ -307,7 +307,8 @@ def suite_big4(vv):
     for label, img in checks:
         data = encode(img)
         result = manager.predict(data, model_name, ood_profile="disabled",
-                                 filename=f"vv_{label.lower().replace(' ', '_')}.jpg")
+                                 filename=f"vv_{label.lower().replace(' ', '_')}.jpg",
+                                 guardrails=False)
 
         problems = []
         if result.get("error"):

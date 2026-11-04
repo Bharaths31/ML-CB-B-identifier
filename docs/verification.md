@@ -24,23 +24,24 @@ Reports: `outputs/metrics/vv_review_report.md` and `.json` (generated, ignored b
 | 1. Architecture | Forward shapes `(2,2)/(2,50)/(2,18)/(2,1280)`, finite checkpoint weights, 7 hidden `trait_heads`, soft routing sums to 1.0 |
 | 2. Big-4 | Species, breed, gender and age are present and in range; top-5 canonical breeds; full traits; `PadToSquare` keeps 4:3 and 9:16 extent |
 | 2b. External data | Real-image accuracy on `atharvadarpude/indian-buffalo-dataset` |
+| 2c. Guardrails | `tests/test_input_guardrails.py`: sketch/cartoon/solid rejection, real-photo acceptance, trilingual copy, entropy/feature/logit gates |
 | 3. OOD & quality | Noise/solid/checkerboard are flagged with trilingual guidance; blur and dark gates; explainer branches |
 | 4. Knowledge | All 68 breeds complete; female/male/calf advisories change correctly |
 | 5. i18n & themes | en/ta/hi key parity, Tamil/Devanagari script coverage, 70 breed names, hero/trait labels, 4 theme token sets |
 | 6. Performance | Cold load and warm inference against CPU/GPU budgets |
 
-## Latest run (2026-11-03)
+## Latest run (2026-11-04)
 
 ```
 PASS 30 · FAIL 0 · WARN 1
-Warm inference: 49.1 ms mean / 51.1 ms p95 (CPU)
-Cold model load: 181 ms
+Warm inference: 18.5 ms mean / 20.8 ms p95 (CPU)
+Cold model load: 0.00 s
 ```
 
-The single WARN is the external-dataset OOD abstention rate (19.1%). The Kaggle
+The single WARN is the external-dataset OOD abstention rate (36.8%). The Kaggle
 buffalo set contains diagrams, microscopy images and other non-animal files, so
-the safety gate correctly declines them; treat it as data noise, not a model
-defect.
+the 4-layer guardrails and safety gate correctly decline them; treat it as data
+noise, not a model defect.
 
 ### External validation
 
@@ -48,10 +49,10 @@ defect.
 
 | Metric | Value |
 |---|---|
-| Species accuracy | **90.0 %** |
-| Top-5 breed accuracy | **61.8 %** |
-| Top-1 breed accuracy | **18.2 %** (3.3× chance over 18 classes) |
-| False OOD abstentions | 19.1 % (WARN, see above) |
+| Species accuracy | **94.2 %** |
+| Top-5 breed accuracy | **66.3 %** |
+| Top-1 breed accuracy | **22.1 %** (4.0× chance over 18 classes) |
+| False OOD abstentions | 36.8 % (WARN, see above; includes guardrail rejections) |
 
 Download with the project's built-in Kaggle facility (never commit credentials):
 

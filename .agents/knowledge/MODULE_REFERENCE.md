@@ -118,6 +118,16 @@ Constants only, no functions. Side effect: creates output/log directories on imp
   config, `spec_summary()`
 - `scripts/embed_metadata.py` — `--all` / `--file` / `--inspect` CLI
 
+### `src/input_guardrails.py` (2026-11-04)
+- `InputGuardrailEngine` — `validate_image`, `validate_visual`,
+  `validate_model_outputs`, `status`
+- Stages: photorealism/drawing, human/selfie/semantic, feature+entropy,
+  logit OOD
+- `verdict_to_ood_explanation`, `get_guardrail_engine`
+- Trilingual `rejection_info` reason codes (cartoon, sketch, synthetic,
+  human, other animal, unrelated object, uncertain, OOD)
+- `BreedClassifier.predict_guarded()` wraps forward + verdict
+
 ### `server/` (Flask API)
 - `model_manager.py` — registry, `_load_bundle`, `class_counts`, `recalibrate_ood`
 - `services/model_test.py` — `run_model_test` (single-model inference, soft
