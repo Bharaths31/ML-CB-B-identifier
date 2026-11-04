@@ -6,8 +6,6 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from src.config import IMAGE_SIZE, SPECIES_LABELS
-from src.config import INFERENCE_PAD_TO_SQUARE
-from src.preprocess import inference_transform
 from src.model import predict_traits
 from src.attributes_zeroshot import build_attribute_report
 from src.breed_knowledge import get_farmer_advisory
@@ -15,10 +13,8 @@ from src.image_quality import analyze_image_quality, explain_ood_for_user
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config
 
-# Whole-animal preprocessing (PadToSquare) by default; see src/preprocess.py.
-# Set BREEDID_PAD_TO_SQUARE=0 for parity with the exported ONNX preprocessor.
-TRANSFORM = inference_transform(pad=INFERENCE_PAD_TO_SQUARE)
-_PREPROCESS_DESC = "PadToSquare" if INFERENCE_PAD_TO_SQUARE else "Resize+CenterCrop"
+# Preprocessing is per-model and comes from the LoadedModelBundle so mobile
+# ONNX graphs (normalization baked in) are never normalized twice.
 
 
 # ---------------------------------------------------------------------------
@@ -264,32 +260,45 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     if socketio:
         socketio.emit('prediction_progress', {
             'stage': 'preprocessing', 
-            'detail': f'{_PREPROCESS_DESC}: {img.width}x{img.height} → {IMAGE_SIZE}x{IMAGE_SIZE}'
+            'detail': f'Preprocessing {img.width}x{img.height}'
         }, namespace='/ws')
 
-    tensor = TRANSFORM(img).unsqueeze(0)
-    info = manager.models[model_name]
-
     try:
-        model = manager._load_model(model_name, socketio=socketio)
+        bundle = manager._load_bundle(model_name, socketio=socketio)
+        model = bundle.model_or_session
     except Exception as e:
         if logger:
             logger.error(f"Model load failed: {e}")
         return {"error": str(e)}
+
+    # The model's own transform (resolution + normalization mode). Mobile ONNX
+    # graphs already contain mean/std, so they must NOT be normalized twice.
+    tensor = bundle.transform(img).unsqueeze(0)
 
     inference_start = time.time()
 
     if socketio:
         socketio.emit('prediction_progress', {'stage': 'inference', 'detail': f'Running model on {manager.device.type}'}, namespace='/ws')
 
-    if info.get("type") == "onnx":
-        input_name = model.get_inputs()[0].name
-        ort_outs = model.run(None, {input_name: tensor.numpy()})
+    if bundle.is_onnx:
+        output_map = (bundle.spec or {}).get("onnx_outputs") or {}
+        input_name = bundle.onnx_input_name or model.get_inputs()[0].name
+        arr = tensor.numpy()
+        if "float16" in str(bundle.input_dtype).lower():
+            arr = arr.astype("float16")
+        ort_outs = model.run(None, {input_name: arr})
         out_names = [x.name for x in model.get_outputs()]
         out_dict = dict(zip(out_names, ort_outs))
-        binary_logits = torch.tensor(out_dict.get("binary", ort_outs[0])[0])
-        cattle_logits = torch.tensor(out_dict.get("cattle", ort_outs[1])[0])
-        buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
+
+        def _pick(kind, fallback_index):
+            name = output_map.get(kind)
+            if name and name in out_dict:
+                return out_dict[name]
+            return out_dict.get(kind, ort_outs[fallback_index])
+
+        binary_logits = torch.tensor(_pick("binary", 0)[0])
+        cattle_logits = torch.tensor(_pick("cattle", 1)[0])
+        buffalo_logits = torch.tensor(_pick("buffalo", 2)[0])
         xray_captured = {}
         pooled_features = None
     else:
@@ -333,8 +342,12 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     ood_details = {}
     db = get_shared_config(socketio)
     ood_active = db.get("ood.enabled", True)
-    if ood_active and manager.ood_detector is not None:
-        is_ood, ood_score, ood_details = manager.ood_detector.is_ood(
+    selected_profile = db.get("ood.selected_profile", "auto")
+    # Auto mode: thresholds embedded in this exact model file. A manually
+    # selected profile still wins for the Dev Console workflow.
+    detector = bundle.ood_detector if selected_profile == "auto" else manager.ood_detector
+    if ood_active and detector is not None:
+        is_ood, ood_score, ood_details = detector.is_ood(
             binary_logits.unsqueeze(0), cattle_logits.unsqueeze(0), buffalo_logits.unsqueeze(0)
         )
 
@@ -350,10 +363,8 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     binary_probs = F.softmax(binary_logits, dim=0)
     cattle_probs = F.softmax(cattle_logits, dim=0)
     buffalo_probs = F.softmax(buffalo_logits, dim=0)
-    cattle_map = manager.class_maps.get("cattle", {})
-    buffalo_map = manager.class_maps.get("buffalo", {})
-    cattle_inv = {v: k for k, v in cattle_map.items()}
-    buffalo_inv = {v: k for k, v in buffalo_map.items()}
+    cattle_inv = bundle.cattle_inv_map
+    buffalo_inv = bundle.buffalo_inv_map
     n_cattle = cattle_logits.numel()
     combined = torch.cat([binary_probs[0] * cattle_probs,
                           binary_probs[1] * buffalo_probs])
@@ -404,8 +415,9 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     top_breed_conf = top1_combined
     level = confidence_level(top_breed_conf, is_ood=is_ood)
 
-    xray = _build_xray_payload(model, xray_captured, combined, n_cattle) \
-        if info.get("type") != "onnx" else {
+    xray = _build_xray_payload(model, xray_captured, combined, n_cattle,
+                               size=bundle.image_size) \
+        if not bundle.is_onnx else {
             "attention_map_b64": None,
             "spatial_attention_b64": None,
             "attention_meta": {"source": "onnx_unavailable"},
@@ -416,7 +428,7 @@ def predict_image(manager, image_bytes, model_name=None, socketio=None, filename
     # toggles live in the shared config so the UI can flip Fast Mode live.
     attributes_start = time.time()
     trait_logits, trait_vocab, trait_meta = {}, {}, {
-        "available": False, "reason": "onnx" if info.get("type") == "onnx" else "no_trait_heads"}
+        "available": False, "reason": "onnx" if bundle.is_onnx else "no_trait_heads"}
     if pooled_features is not None and not is_ood:
         trait_logits, trait_meta = predict_traits(model, pooled_features)
         trait_vocab = getattr(getattr(model, "trait_heads", None), "vocab", {})

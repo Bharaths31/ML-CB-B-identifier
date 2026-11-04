@@ -46,11 +46,17 @@ The portable format is a self-contained folder for Python-based inference:
 
 ```
 outputs/export/portable/<backbone>_<...>_<runid>/
-├── model.pt             # torch.load() checkpoint containing state_dict
-├── cattle_classes.json  # {"amritmahal": 0, "ayrshire": 1, ...}
-├── buffalo_classes.json # {"alambadi": 0, "banni": 1, ...}
-└── model_info.json      # backbone, image_size, exported_at, usage
+├── model.pt             # checkpoint containing state_dict + model_meta
+├── cattle_classes.json  # optional duplicate of the embedded map
+├── buffalo_classes.json # optional duplicate of the embedded map
+├── ood_thresholds.json  # optional duplicate of the embedded OOD config
+└── model_info.json      # human-readable summary (backbone, image_size, usage)
 ```
+
+> **Self-describing:** `model.pt` now embeds class maps, input resolution,
+> normalization mode and OOD thresholds in `ckpt["model_meta"]`. The JSON files
+> are kept for compatibility but are **not required**. Load with
+> `src.model_introspect.inspect_and_load_pt()`.
 
 > **Note:** Portable bundles save `state_dict` (not TorchScript). Loading requires the `BreedClassifier` class from `src/model.py`. For framework-free deployment use ONNX / TFLite instead.
 

@@ -1,5 +1,35 @@
 # 16. Changelog
 
+### 2026-11-04 — Self-describing `.pt` / `.onnx` models (zero external JSON)
+
+- **`src/model_introspect.py`**: unified loading/introspection for PyTorch and
+  ONNX. Architecture is auto-detected from tensor shapes (backbone from the
+  first MBConv width, CBAM vs SE from the spatial conv, head widths/counts from
+  the final layers) and from the ONNX graph (input resolution, output widths,
+  `float16` I/O). Returns a `LoadedModelBundle` with the correct transform,
+  inverse class maps, embedded OOD thresholds and a Dev-Console spec summary.
+- **Normalization fix**: `bundle.transform` stops at `ToTensor()` when the
+  graph already bakes ImageNet mean/std (`_MobileOutputs`, `*_mobile*` ONNX),
+  eliminating double normalization. Caller-normalized `.pt` / `_RawOutputs`
+  ONNX still get `Normalize`.
+- **`scripts/embed_metadata.py`**: `--all`, `--file`, `--inspect` CLI that
+  writes class maps, preprocessing, resolution, normalization mode and OOD
+  thresholds into existing files. `.pt` metadata lives in `ckpt["model_meta"]`
+  (TorchScript uses an extra `model_meta.json`); ONNX uses
+  `metadata_props`. Writes are atomic and weights are untouched.
+- **Exports/training**: `src/export.py` embeds metadata after ONNX, ONNX-INT8
+  and FP16 exports and into portable `model.pt`; `src/train.py` embeds it in
+  every checkpoint and re-embeds calibrated OOD thresholds after training.
+- **Runtime**: `test_model.py` and `server/` now load through
+  `LoadedModelBundle`, use per-model class maps (50- and 42-class models can
+  coexist), cast `float16` ONNX inputs automatically, and prefer embedded OOD
+  thresholds (legacy JSON is still honoured for old artifacts). Uploads are
+  embedded + validated on arrival.
+- **Robustness**: legacy 7-layer binary heads (v17/v22/v9 portable bundles)
+  are rebuilt from tensor keys; class maps are only accepted when their length
+  matches the head width.
+- **Docs**: new [Self-Describing Models](model-metadata.md) page.
+
 ### 2026-11-03 — V&V suite, real-data validation, mobile UX, 4 themes, standalone Vet Portal
 
 - **Verification & Validation suite** (`python -m tests.run_vv_suite`): six

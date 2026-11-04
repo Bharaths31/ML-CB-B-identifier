@@ -3,11 +3,12 @@ import glob
 import json
 import time
 import torch
-import torch.nn.functional as F
 
-from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, IMAGE_SIZE, OOD_DIR
-from src.model import BreedClassifier, OODDetector, attach_trait_heads
+from src.config import PROJECT_ROOT, PORTABLE_EXPORT_DIR, SPLIT_DIR, OOD_DIR
+from src.model import OODDetector
 from src.config import OOD_ENABLED
+from src.model_introspect import (inspect_and_load, read_onnx_metadata,
+                                  read_pt_metadata)
 from server.utils.logger import get_logger
 from server.shared_config import get_shared_config
 
@@ -82,6 +83,7 @@ class ModelManager:
 
     def __init__(self):
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
+        self.bundles = {}         # name -> LoadedModelBundle (self-describing)
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
         self.class_map_source = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -104,9 +106,19 @@ class ModelManager:
             return None
 
         if selected_prof == "auto":
-            # Per-model profile resolution was previously skipped at startup,
-            # which silently bound the global fallback instead.
-            self.ood_detector = OODDetector(model_name=model_name) if model_name else OODDetector()
+            # Prefer thresholds embedded in the model file; fall back to the
+            # legacy per-model JSON for artifacts exported before metadata.
+            bundle = self.bundles.get(model_name)
+            if bundle is not None and bundle.metadata.get("ood"):
+                self.ood_detector = bundle.ood_detector
+                return self.ood_detector
+            embedded = self._embedded_metadata(model_name)
+            ood_meta = embedded.get("ood") if isinstance(embedded, dict) else None
+            if isinstance(ood_meta, dict):
+                self.ood_detector = OODDetector.from_embedded(
+                    {**ood_meta, "model_name": model_name})
+            else:
+                self.ood_detector = OODDetector(model_name=model_name) if model_name else OODDetector()
             return self.ood_detector
 
         prof_path = None
@@ -280,6 +292,23 @@ class ModelManager:
         ``data/splits`` only if no bundle matches.
         """
         logger = get_logger()
+        # A loaded bundle already knows its own class maps; use them directly.
+        bundle = self.bundles.get(name)
+        if bundle is not None:
+            self.class_maps = {"cattle": dict(bundle.cattle_map),
+                               "buffalo": dict(bundle.buffalo_map)}
+            self.class_map_source = f"embedded:{os.path.basename(bundle.path)}"
+            info = self.models.get(name)
+            if info is not None:
+                info["class_map_source"] = self.class_map_source
+                info["num_cattle"] = bundle.num_cattle
+                info["num_buffalo"] = bundle.num_buffalo
+            if logger:
+                logger.info(
+                    f"Bound class maps for '{name}': cattle={len(self.class_maps['cattle'])} "
+                    f"buffalo={len(self.class_maps['buffalo'])} (embedded)")
+            return self.class_maps
+
         dims = self._dims_from_model(model) if model is not None else None
         if dims is None and model is not None and not isinstance(model, torch.nn.Module):
             dims = self._dims_from_onnx(model)
@@ -348,6 +377,15 @@ class ModelManager:
         """Dynamic head/class-map counts for the active or requested model."""
         name = name or self.get_active_model_name()
         info = self.models.get(name, {}) if name else {}
+        bundle = self.bundles.get(name) if name else None
+        if bundle is not None:
+            return {
+                "cattle": bundle.num_cattle,
+                "buffalo": bundle.num_buffalo,
+                "class_map_cattle": len(bundle.cattle_map),
+                "class_map_buffalo": len(bundle.buffalo_map),
+                "class_map_source": bundle.class_map_source,
+            }
         dims = None
         model = info.get("model")
         if model is not None:
@@ -494,149 +532,74 @@ class ModelManager:
             self.ood_detector = None
         return thresholds
 
-    def _load_model(self, name, socketio=None):
-        """Load a model checkpoint into memory."""
+    def _embedded_metadata(self, name):
+        """Read embedded metadata without instantiating the network."""
+        info = self.models.get(name)
+        if not info:
+            return {}
+        try:
+            if info.get("type") == "onnx":
+                return read_onnx_metadata(info["path"])
+            return read_pt_metadata(info["path"])
+        except Exception:
+            return {}
+
+    def _load_bundle(self, name, socketio=None):
+        """Load a model as a self-describing bundle (zero external JSON)."""
         info = self.models[name]
         logger = get_logger()
-        if info["model"] is not None:
+        cached = self.bundles.get(name)
+        if cached is not None:
             if logger:
                 logger.debug(f"Model '{name}' already cached in memory")
-            return info["model"]
+            return cached
 
         load_start = time.time()
         if logger:
             logger.info(f"Loading model '{name}' from {info['path']}")
 
-        if info.get("type") == "onnx":
-            try:
-                import onnxruntime as ort
-                providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
-                session = ort.InferenceSession(info["path"], providers=providers)
-                info["model"] = session
-                self.bind_class_maps_for_model(name, model=session)
-                elapsed = time.time() - load_start
-                if logger:
-                    logger.info(f"ONNX model loaded in {elapsed:.3f}s")
-                if socketio:
-                    socketio.emit("model_loaded", {"model_name": name, "load_time_ms": elapsed * 1000}, namespace="/ws")
-                return session
-            except ImportError:
-                raise RuntimeError("onnxruntime is not installed. Please `pip install onnxruntime` to test ONNX models.")
+        bundle = inspect_and_load(info["path"], device=self.device)
+        self.bundles[name] = bundle
+        info["model"] = bundle.model_or_session
+        info["bundle"] = bundle
+        info["type"] = "onnx" if bundle.is_onnx else "pt"
+        info["backbone"] = bundle.spec.get("backbone") or info.get("backbone")
+        info["normalization_baked"] = bundle.normalization_baked
+        info["embedded_meta"] = bundle.metadata
+        info["class_map_source"] = f"embedded:{os.path.basename(info['path'])}"
+        info["num_cattle"] = bundle.num_cattle
+        info["num_buffalo"] = bundle.num_buffalo
 
-        backbone = info["backbone"]
-        try:
-            ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
-        except Exception:
-            try:
-                ckpt = torch.jit.load(info["path"], map_location="cpu")
-            except Exception as e:
-                raise RuntimeError(f"Failed to load checkpoint '{info['path']}': {e}")
-
-        # If the loaded object is already a TorchScript or PyTorch Module
-        if isinstance(ckpt, torch.nn.Module):
-            model = ckpt
-            model.to(self.device)
-            model.eval()
-            info["model"] = model
-            self.bind_class_maps_for_model(name, model=model)
-            elapsed = time.time() - load_start
-            n_params = sum(p.numel() for p in model.parameters()) if hasattr(model, "parameters") else 0
-            if logger:
-                logger.info(f"Model loaded in {elapsed:.3f}s ({self._human_number(n_params)} params, backbone={backbone})")
-            if socketio:
-                socketio.emit("model_loaded", {
-                    "model_name": name,
-                    "load_time_ms": round(elapsed * 1000, 1),
-                    "params": self._human_number(n_params)
-                }, namespace="/ws")
-            return model
-
-        # Handle different checkpoint formats
-        if isinstance(ckpt, dict) and "state_dict" in ckpt:
-            state = ckpt["state_dict"]
-        elif isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-            state = ckpt["model_state_dict"]
-        elif isinstance(ckpt, dict):
-            state = ckpt
-        else:
-            raise ValueError(f"Unsupported checkpoint format in {info['path']}: {type(ckpt)}")
-
-        # Detect architecture dimensions dynamically from checkpoint weights
-        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else 512
-        breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else 384
-
-        cattle_weights = [k for k in state if k.startswith("cattle_head.") and k.endswith(".weight")]
-        buffalo_weights = [k for k in state if k.startswith("buffalo_head.") and k.endswith(".weight")]
-
-        def _layer_num(k):
-            try:
-                return int(k.split(".")[1])
-            except (IndexError, ValueError):
-                return -1
-
-        cattle_weights.sort(key=_layer_num)
-        buffalo_weights.sort(key=_layer_num)
-
-        last_cattle = cattle_weights[-1] if cattle_weights else "cattle_head.8.weight"
-        last_buffalo = buffalo_weights[-1] if buffalo_weights else "buffalo_head.8.weight"
-
-        num_cattle = state[last_cattle].shape[0] if last_cattle in state else 46
-        num_buffalo = state[last_buffalo].shape[0] if last_buffalo in state else 11
-
-        # Detect cosine/ArcFace heads (final layer has weight but no bias)
-        cosine = False
-        if last_cattle in state:
-            bias_key = last_cattle[:-7] + ".bias"
-            if bias_key not in state:
-                cosine = True
-
-        model = BreedClassifier(
-            backbone=backbone,
-            cosine_head=cosine,
-            binary_dim=binary_dim,
-            breed_dim=breed_dim,
-            num_cattle=num_cattle,
-            num_buffalo=num_buffalo,
-        )
-
-        model_keys = set(model.state_dict().keys())
-        filtered = {k: v for k, v in state.items() if k in model_keys}
-        model.load_state_dict(filtered, strict=False)
-
-        # Trait heads (hump/horn/coat/ear/dewlap/face/size) are auxiliary and
-        # were excluded from export, but the trained tensors remain in the
-        # checkpoint. Rebuild them from the state_dict shapes.
-        try:
-            trait_heads = attach_trait_heads(model, state)
-            if trait_heads is not None and logger:
-                meta = trait_heads.trait_meta
-                logger.info(
-                    f"Attached trait heads ({len(meta['fields'])} fields, "
-                    f"in={meta['in_dim']}, hidden={meta['hidden_dim']}, "
-                    f"vocab={meta['source']})"
-                )
-        except Exception as exc:  # optional: never break model loading
-            if logger:
-                logger.warning(f"Trait heads unavailable: {exc}")
-
-        model.to(self.device)
-        model.eval()
-        info["model"] = model
-        self.bind_class_maps_for_model(name, model=model)
+        self.class_maps = {"cattle": dict(bundle.cattle_map),
+                           "buffalo": dict(bundle.buffalo_map)}
+        self.class_map_source = info["class_map_source"]
+        self._bind_ood_detector(name)
 
         elapsed = time.time() - load_start
-        n_params = sum(p.numel() for p in model.parameters())
+        n_params = 0
+        if hasattr(bundle.model_or_session, "parameters"):
+            n_params = sum(p.numel() for p in bundle.model_or_session.parameters())
         if logger:
-            logger.info(f"Model loaded in {elapsed:.3f}s ({self._human_number(n_params)} params, backbone={backbone})")
-            
+            logger.info(
+                f"Model loaded in {elapsed:.3f}s "
+                f"(engine={bundle.engine}, backbone={info['backbone']}, "
+                f"cattle={bundle.num_cattle}, buffalo={bundle.num_buffalo}, "
+                f"image={bundle.image_size}, "
+                f"normalization={'baked' if bundle.normalization_baked else 'caller'}"
+                + (f", {self._human_number(n_params)} params" if n_params else "") + ")")
         if socketio:
             socketio.emit("model_loaded", {
-                "model_name": name, 
+                "model_name": name,
                 "load_time_ms": round(elapsed * 1000, 1),
-                "params": self._human_number(n_params)
+                "params": self._human_number(n_params) if n_params else None,
+                "engine": bundle.engine,
+                "normalization_baked": bundle.normalization_baked,
             }, namespace="/ws")
+        return bundle
 
-        return model
+    def _load_model(self, name, socketio=None):
+        """Load and cache the raw model/session for a name."""
+        return self._load_bundle(name, socketio=socketio).model_or_session
 
 # Global singleton
 manager = None

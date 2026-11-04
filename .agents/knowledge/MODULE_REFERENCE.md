@@ -98,11 +98,25 @@ Constants only, no functions. Side effect: creates output/log directories on imp
 
 ### `src/export.py`
 - §1 Wrappers: `_RawOutputs`, `_MobileOutputs`
-- §2 Helpers: `_size`, `_sanitize_state_dict`, `_load_model`, `_write_label_files`,
-  `_copy_to_app_assets`, `_calibration_images`
+- §2 Helpers: `_size`, `_sanitize_state_dict`, `_load_model`,
+  `_ood_overrides_for`, `_metadata_for`, `_embed_artifact`,
+  `_write_label_files`, `_copy_to_app_assets`, `_calibration_images`
 - §3 Quantization: `export_onnx_int8`, `export_tflite`
-- §4 `create_portable_export`
+- §4 `create_portable_export` (embeds `model_meta` into `model.pt`)
 - §5 `main`
+
+### `src/model_introspect.py` (2026-11-04)
+- `sanitize_state_dict`, `extract_state_dict`, `inspect_state_dict`
+- `resolve_class_maps` (embedded → `EXPECTED_*` → local JSON → portable
+  count-match → synthetic)
+- `default_preprocess`, `default_ood_config`, `build_transform`
+- `inspect_and_load_pt`, `inspect_and_load_onnx`, `inspect_and_load`,
+  `describe_model_file`
+- `build_model_metadata`, `embed_pt_metadata`, `embed_onnx_metadata`,
+  `embed_model_metadata`, `read_pt_metadata`, `read_onnx_metadata`
+- `LoadedModelBundle` — engine, model/session, transform, inverse maps, OOD
+  config, `spec_summary()`
+- `scripts/embed_metadata.py` — `--all` / `--file` / `--inspect` CLI
 
 ### `src/evaluate.py`
 - `full_evaluation`, `_save_confusion`, `main`

@@ -33,8 +33,11 @@ from .config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGENET_MEAN, IMAGENET_STD,
                      PORTABLE_EXPORT_DIR, SPLIT_DIR, SPECIES_LABELS,
                      TFLITE_APP_ASSETS_DIR, BREED_DIM)
 from .model import BreedClassifier
-from .run_utils import (find_latest_checkpoint, make_run_id,
-                        resolve_checkpoint, timestamped, unique_path)
+from .model_introspect import (build_model_metadata, embed_model_metadata,
+                               extract_state_dict, find_ood_json,
+                               inspect_state_dict)
+from .run_utils import (make_run_id, resolve_checkpoint, timestamped,
+                        unique_path)
 
 MOBILE_INPUT_RANGE = "[0, 1] RGB float32 (NCHW), normalization baked into the graph"
 
@@ -129,10 +132,26 @@ def _sanitize_state_dict(state):
     return cleaned
 
 
-def _load_model(checkpoint_path, backbone, attention):
+def _load_model(checkpoint_path, backbone=None, attention=None):
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
     state = _sanitize_state_dict(state)
+
+    # Never trust the filename/CLI when the tensors answer the question.
+    derived = inspect_state_dict(state)
+    if derived.get("backbone"):
+        if backbone and derived["backbone"] != backbone:
+            print(f"[export] backbone overridden by tensor shapes: "
+                  f"{backbone} -> {derived['backbone']}")
+        backbone = derived["backbone"]
+    if derived.get("attention"):
+        if attention and derived["attention"] != attention:
+            print(f"[export] attention overridden by tensor shapes: "
+                  f"{attention} -> {derived['attention']}")
+        attention = derived["attention"]
+    backbone = backbone or "lite2"
+    attention = attention or "cbam"
+
     # Detect cosine/ArcFace heads: the final head layer has a weight but no bias
     # (CosineHead) instead of a Linear (weight+bias). Derive the final index
     # from a probe model so head-structure changes don't break detection.
@@ -173,6 +192,72 @@ def _load_model(checkpoint_path, backbone, attention):
             f"keys: {missing_real[:10]}")
     model.eval()
     return model
+
+
+def _ood_overrides_for(path):
+    """Read a per-model OOD JSON, if one exists, for embedding."""
+    ood_path = find_ood_json(path)
+    if not ood_path:
+        return None
+    try:
+        with open(ood_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return None
+    return {
+        "enabled": True,
+        "energy_temperature": data.get("energy_temperature", data.get("temperature")),
+        "temperature": data.get("temperature", data.get("energy_temperature")),
+        "energy_threshold": data.get("energy_threshold"),
+        "msp_threshold": data.get("msp_threshold"),
+        "binary_confidence_floor": data.get("binary_confidence_floor"),
+        "calibrated_at": data.get("calibrated_at"),
+        "percentile": data.get("percentile"),
+        "calibrated_on_samples": data.get("calibrated_on_samples"),
+        "source_file": ood_path,
+    }
+
+
+def _metadata_for(checkpoint_path, split_dir, *, normalization_baked,
+                  input_dtype="float32", pad_to_square=None,
+                  backbone=None, attention=None):
+    """Build the self-describing metadata block for an export."""
+    try:
+        ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        state = _sanitize_state_dict(extract_state_dict(ckpt))
+    except Exception:
+        state = None
+    return build_model_metadata(
+        state_dict=state or None,
+        backbone=backbone,
+        attention=attention,
+        split_dir=split_dir,
+        normalization_baked=normalization_baked,
+        input_dtype=input_dtype,
+        pad_to_square=pad_to_square,
+        ood=_ood_overrides_for(checkpoint_path),
+        source_checkpoint=checkpoint_path,
+    )
+
+
+def _embed_artifact(path, checkpoint_path, split_dir, *,
+                    normalization_baked, input_dtype="float32",
+                    pad_to_square=None, backbone=None, attention=None):
+    """Embed metadata into an exported ``.pt`` / ``.onnx`` file."""
+    try:
+        meta = _metadata_for(
+            checkpoint_path, split_dir,
+            normalization_baked=normalization_baked,
+            input_dtype=input_dtype, pad_to_square=pad_to_square,
+            backbone=backbone, attention=attention)
+        embed_model_metadata(path, meta=meta, overwrite=True)
+        print(f"[export] embedded metadata -> {os.path.basename(path)} "
+              f"(cattle={meta['num_cattle']}, buffalo={meta['num_buffalo']}, "
+              f"baked={meta['normalization_baked']})")
+        return meta
+    except Exception as exc:
+        print(f"[export] WARNING: could not embed metadata into {path}: {exc}")
+        return None
 
 
 def _write_label_files(split_dir, out_dir):
@@ -217,8 +302,6 @@ def _copy_to_app_assets(paths_by_name):
 
 def _calibration_images(split_dir, limit=500):
     """Yield (1, 3, H, W) float32 arrays in [0, 1] from the train split."""
-    import io
-
     from PIL import Image
     from torchvision import transforms
 
@@ -413,8 +496,8 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
                            export_dir=PORTABLE_EXPORT_DIR):
     """Bundle the trained model + labels + metadata into a portable folder.
 
-    The resulting folder is self-contained and can be copied/zipped for use
-    anywhere — no project dependency needed.
+    The ``model.pt`` copy is itself self-describing (metadata embedded), so the
+    folder can be used with or without the JSON files beside it.
     """
     tag = os.path.splitext(os.path.basename(checkpoint_path))[0]
     out_dir = unique_path(os.path.join(export_dir, f"{backbone}_{tag}"))
@@ -422,49 +505,73 @@ def create_portable_export(checkpoint_path, backbone, split_dir=SPLIT_DIR,
 
     print(f"[export] creating portable bundle -> {out_dir}")
 
-    # Copy checkpoint
+    # Copy checkpoint, then embed metadata into the copy (never mutate the
+    # original training checkpoint from here).
     dst_ckpt = os.path.join(out_dir, "model.pt")
     shutil.copy2(checkpoint_path, dst_ckpt)
-    print(f"[export]   model.pt ({_size(dst_ckpt):.2f} MB)")
+    meta_path = dst_ckpt
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state = _sanitize_state_dict(extract_state_dict(ckpt))
+    derived = inspect_state_dict(state) if state else {}
+    meta = build_model_metadata(
+        state_dict=state,
+        backbone=derived.get("backbone") or backbone,
+        attention=derived.get("attention") or "cbam",
+        split_dir=split_dir,
+        normalization_baked=False,
+        ood=_ood_overrides_for(checkpoint_path),
+        source_checkpoint=checkpoint_path,
+    )
+    try:
+        embed_model_metadata(meta_path, meta=meta, overwrite=True)
+        print(f"[export]   model.pt ({_size(dst_ckpt):.2f} MB, self-describing)")
+    except Exception as exc:
+        print(f"[export]   WARNING: model.pt metadata not embedded: {exc}")
 
-    # Copy class maps
+    # Copy class maps (kept for tools that still prefer plain JSON).
     for name in ("cattle_classes.json", "buffalo_classes.json"):
         src = os.path.join(split_dir, name)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(out_dir, name))
             print(f"[export]   {name}")
 
-    from .config import OOD_ENABLED, OOD_ENERGY_TEMPERATURE, OOD_ENERGY_THRESHOLD, OOD_MSP_THRESHOLD
-    from .config import NUM_CATTLE_BREEDS, NUM_BUFFALO_BREEDS
+    # Copy the matching OOD calibration (also embedded in model.pt).
+    ood_src = find_ood_json(checkpoint_path)
+    if ood_src and os.path.exists(ood_src):
+        shutil.copy2(ood_src, os.path.join(out_dir, "ood_thresholds.json"))
+        print(f"[export]   ood_thresholds.json")
 
-    # Write model info
     info = {
-        "backbone": backbone,
+        "model_meta_version": meta.get("model_meta_version"),
+        "self_describing": True,
+        "backbone": meta.get("backbone"),
+        "attention": meta.get("attention"),
         "checkpoint_source": os.path.basename(checkpoint_path),
-        "image_size": 260,
-        "num_cattle_breeds": NUM_CATTLE_BREEDS,
-        "num_buffalo_breeds": NUM_BUFFALO_BREEDS,
+        "image_size": meta.get("image_size", IMAGE_SIZE),
+        "eval_resize": meta.get("eval_resize"),
+        "pad_to_square": meta.get("pad_to_square"),
+        "normalization_baked": meta.get("normalization_baked"),
+        "imagenet_mean": meta.get("imagenet_mean"),
+        "imagenet_std": meta.get("imagenet_std"),
+        "num_cattle_breeds": meta.get("num_cattle"),
+        "num_buffalo_breeds": meta.get("num_buffalo"),
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "ood": {
-            "enabled": OOD_ENABLED,
-            "energy_temperature": OOD_ENERGY_TEMPERATURE,
-            "energy_threshold": OOD_ENERGY_THRESHOLD,
-            "msp_threshold": OOD_MSP_THRESHOLD,
-        },
+        "ood": meta.get("ood"),
         "usage": {
             "load": (
-                "model = BreedClassifier(backbone='{backbone}'); "
-                "ckpt = torch.load('model.pt', map_location='cpu'); "
-                "model.load_state_dict(ckpt['state_dict']); model.eval()"
-            ).format(backbone=backbone),
+                "from src.model_introspect import inspect_and_load_pt; "
+                "bundle = inspect_and_load_pt('model.pt'); "
+                "model = bundle.model_or_session"
+            ),
             "predict": (
-                "out = model(tensor)  # tensor: [B, 3, 260, 260]\n"
-                "species = out['binary'].argmax(1)  # 0=cattle, 1=buffalo\n"
-                "breed = out['cattle' if species==0 else 'buffalo'].argmax(1)"
+                "from src.model_introspect import inspect_and_load_pt; "
+                "bundle = inspect_and_load_pt('model.pt'); "
+                "tensor = bundle.transform(image).unsqueeze(0); "
+                "out = bundle.model_or_session(tensor)"
             ),
         },
     }
-    with open(os.path.join(out_dir, "model_info.json"), "w") as f:
+    with open(os.path.join(out_dir, "model_info.json"), "w", encoding="utf-8") as f:
         json.dump(info, f, indent=2)
     print(f"[export]   model_info.json")
 
@@ -543,6 +650,8 @@ def main():
             traced.save(path)
             print(f"[export] float16 TorchScript -> {path} "
                   f"({_size(path):.2f} MB)")
+            _embed_artifact(path, checkpoint_path, args.split_dir,
+                            normalization_baked=False, input_dtype="float16")
             log_event("artifact", category="export", mode="float16",
                       checkpoint=checkpoint_path, path=path,
                       size_mb=round(_size(path), 2))
@@ -567,6 +676,8 @@ def main():
                               opset_version=13, dynamic_axes=dynamic_axes,
                               dynamo=False)
             print(f"[export] ONNX -> {path} ({_size(path):.2f} MB)")
+            _embed_artifact(path, checkpoint_path, args.split_dir,
+                            normalization_baked=False, input_dtype="tensor(float)")
             log_event("artifact", category="export", mode="onnx",
                       checkpoint=checkpoint_path, path=path,
                       size_mb=round(_size(path), 2))
@@ -589,6 +700,8 @@ def main():
                               dynamo=False)
             print(f"[export] mobile ONNX -> {onnx_fp32} "
                   f"({_size(onnx_fp32):.2f} MB)")
+            _embed_artifact(onnx_fp32, checkpoint_path, args.split_dir,
+                            normalization_baked=True, input_dtype="tensor(float)")
         except Exception as exc:
             print(f"[export] ONNX export failed ({exc})")
             return 1
@@ -596,6 +709,8 @@ def main():
         try:
             export_onnx_int8(model, onnx_fp32, int8_path, args.split_dir,
                              calibration_images=args.calibration_images)
+            _embed_artifact(int8_path, checkpoint_path, args.split_dir,
+                            normalization_baked=True, input_dtype="tensor(float)")
             labels = _write_label_files(args.split_dir, args.out_dir)
             print(f"[export] labels written: {', '.join(labels)}")
             print(f"[export] input convention: {MOBILE_INPUT_RANGE}")
