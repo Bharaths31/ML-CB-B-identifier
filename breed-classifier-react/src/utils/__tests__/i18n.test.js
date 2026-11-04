@@ -74,6 +74,9 @@ describe("i18n Localization & Translation Integrity", () => {
     assert.ok(TRANSLATIONS.en["advanced.openCamera"]);
     assert.ok(TRANSLATIONS.ta["advanced.openCamera"]);
     assert.ok(TRANSLATIONS.hi["advanced.openCamera"]);
+    assert.ok(TRANSLATIONS.en["advanced.uploadImage"]);
+    assert.ok(TRANSLATIONS.ta["advanced.uploadImage"]);
+    assert.ok(TRANSLATIONS.hi["advanced.uploadImage"]);
   });
 
   it("replaces transliterated loan words with authentic native Tamil livestock vocabulary", () => {

@@ -5539,3 +5539,31 @@ input[type="range"] {
   .photo-guide-strip { flex-direction: column; align-items: stretch; }
   .workspace-footer .btn { flex: 1 1 100%; }
 }
+
+.advanced-source-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+.advanced-source-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.advanced-file-pill {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.advanced-file-pill strong {
+  color: var(--text-primary);
+}
