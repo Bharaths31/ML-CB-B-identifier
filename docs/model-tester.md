@@ -193,7 +193,11 @@ before.
 ## Requirements
 
 - Trained model checkpoint(s) in `outputs/checkpoints/` or `outputs/export/portable/`
-- Class maps in `data/splits/` (`cattle_classes.json`, `buffalo_classes.json`)
+- **No class-map JSON required** — maps, resolution, normalization mode and OOD
+  thresholds are read from the model itself (`src/model_introspect.py`). Legacy
+  `data/splits/*.json` / `outputs/ood/*.json` are still honoured as a fallback.
+  Run `python scripts/embed_metadata.py --all` to bake the contract into older
+  artifacts. See [Self-Describing Models](model-metadata.md).
 - Python packages: `torch`, `torchvision`, `Pillow` (installed by `local_train.py`)
 
 ---

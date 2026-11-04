@@ -48,6 +48,7 @@ python test_model.py
 | [Architecture](architecture.md) | Model architecture and data flow |
 | [Data Pipeline](data-pipeline.md) | Dataset layout, augmentation, splits |
 | [Export & Deployment](export-deployment.md) | TFLite INT8, ONNX INT8, Android deployment |
+| [Self-Describing Models](model-metadata.md) | Zero external JSON: embedded class maps, preprocessing and OOD thresholds |
 | [Google Colab Training](colab-training.md) | T4 GPU notebook setup |
 | [API Reference](api-reference.md) | Complete flag reference for all CLI tools |
 | [Configuration](config-reference.md) | `src/config.py` constants |

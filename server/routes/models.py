@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from server.model_manager import get_manager, head_out_features
 from server.utils.logger import get_logger
 from src.config import CHECKPOINT_DIR, IMAGE_SIZE
+from src.model_introspect import embed_model_metadata, inspect_and_load
 
 models_bp = Blueprint('models', __name__)
 
@@ -38,24 +39,32 @@ def get_model_spec(model, name, info):
     """Extract detailed model architecture and parameter info."""
     manager = get_manager()
     cattle_count, buffalo_count = _head_dims(model, manager, name)
+    bundle = manager.bundles.get(name)
+    image_size = bundle.image_size if bundle is not None else IMAGE_SIZE
     spec = {
         "name": name,
         "backbone": info.get("backbone", "unknown"),
         "type": info.get("type", "pt"),
         "path": info.get("path", ""),
         "device": str(next(model.parameters()).device) if hasattr(model, "parameters") else "N/A",
-        "image_size": IMAGE_SIZE,
+        "image_size": image_size,
+        "self_describing": bool(getattr(bundle, "metadata", None)),
         "class_counts": {
             "cattle": cattle_count,
             "buffalo": buffalo_count,
             "total": (cattle_count or 0) + (buffalo_count or 0),
         },
-        "class_map_source": manager.class_map_source,
+        "class_map_source": (bundle.class_map_source if bundle is not None
+                             else manager.class_map_source),
         "class_map_counts": {
             "cattle": len(manager.class_maps.get("cattle", {})),
             "buffalo": len(manager.class_maps.get("buffalo", {})),
         },
     }
+    if bundle is not None:
+        spec["embedded_metadata"] = bundle.metadata
+        spec["preprocessing"] = bundle.spec_summary().get("preprocessing")
+        spec["normalization_baked"] = bundle.normalization_baked
 
     if info.get("type") == "onnx":
         try:
@@ -209,6 +218,34 @@ def upload_model():
     save_path = os.path.join(upload_dir, safe_name)
     file.save(save_path)
 
+    # Make the upload self-describing immediately: class maps, resolution,
+    # normalization mode and OOD defaults are embedded in the file itself.
+    embedded = None
+    try:
+        embedded = embed_model_metadata(save_path, overwrite=False)
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.warning(f"Metadata embedding skipped for {safe_name}: {exc}")
+
     manager = get_manager()
     manager._discover_models()
-    return jsonify({"status": "success", "filename": safe_name, "path": save_path})
+
+    # Validate that the file loads and report its contract to the client.
+    spec = None
+    try:
+        bundle = inspect_and_load(save_path, device=manager.device)
+        spec = bundle.spec_summary()
+    except Exception as exc:
+        logger = get_logger()
+        if logger:
+            logger.warning(f"Uploaded model validation failed for {safe_name}: {exc}")
+
+    return jsonify({
+        "status": "success",
+        "filename": safe_name,
+        "path": save_path,
+        "self_describing": bool(embedded),
+        "metadata": embedded,
+        "spec": spec,
+    })

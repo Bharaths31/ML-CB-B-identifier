@@ -72,14 +72,12 @@ try:
 except Exception:
     pass
 
-from src.config import (BINARY_DIM, BREED_DIM, CHECKPOINT_DIR, EXPORT_DIR,
-                        IMAGE_SIZE, INFERENCE_PAD_TO_SQUARE, LOGS_DIR,
-                        NUM_BUFFALO_BREEDS, NUM_CATTLE_BREEDS,
+from src.config import (CHECKPOINT_DIR, EXPORT_DIR, IMAGE_SIZE, LOGS_DIR,
                         PORTABLE_EXPORT_DIR, SPLIT_DIR, OOD_ENABLED, OOD_DIR)
-from src.model import BreedClassifier
 from src.model import OODDetector
-from src.model import attach_trait_heads, predict_traits
-from src.preprocess import inference_transform
+from src.model import predict_traits
+from src.model_introspect import (embed_model_metadata, inspect_and_load,
+                                  read_onnx_metadata, read_pt_metadata)
 from src.attributes_zeroshot import build_attribute_report
 from src.image_quality import analyze_image_quality, explain_ood_for_user
 
@@ -91,14 +89,9 @@ SPECIES_LABELS = {0: "Cattle", 1: "Buffalo"}
 SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 PRESENTER_CONFIG_PATH = os.path.join(LOGS_DIR, "presenter_config.json")
 
-# Inference keeps the WHOLE animal in frame by default: PadToSquare(260) ->
-# ToTensor -> ImageNet Normalize (see src/preprocess.py). The legacy chain
-# (shortest-side resize + CenterCrop) is one env var away for bit-exact parity
-# with the exported ONNX/Flutter preprocessor:
-#     BREEDID_PAD_TO_SQUARE=0 python test_model.py
-TRANSFORM = inference_transform(pad=INFERENCE_PAD_TO_SQUARE)
-_PREPROCESS_DESC = ("PadToSquare" if INFERENCE_PAD_TO_SQUARE
-                    else "Resize+CenterCrop")
+# Inference preprocessing is model-specific and now comes from
+# src.model_introspect.LoadedModelBundle (resolution + whether the ONNX graph
+# already bakes ImageNet mean/std). No global transform is needed.
 
 
 # ---------------------------------------------------------------------------
@@ -255,17 +248,28 @@ def extract_image_metadata(image_bytes):
 
 def get_model_spec(model, name, info):
     """Extract detailed model architecture and parameter info."""
+    bundle = info.get("bundle")
+    image_size = bundle.image_size if bundle is not None else IMAGE_SIZE
     spec = {
         "name": name,
         "backbone": info.get("backbone", "unknown"),
         "type": info.get("type", "pt"),
         "path": info.get("path", ""),
         "device": str(next(model.parameters()).device) if hasattr(model, "parameters") else "N/A",
-        "image_size": IMAGE_SIZE,
+        "image_size": image_size,
+        "self_describing": bool(getattr(bundle, "metadata", None)),
+        "class_map_source": getattr(bundle, "class_map_source", None),
     }
+    if bundle is not None:
+        spec["embedded_metadata"] = bundle.metadata
+        spec["preprocessing"] = bundle.spec_summary().get("preprocessing")
+        spec["class_counts"] = {"cattle": bundle.num_cattle,
+                                "buffalo": bundle.num_buffalo,
+                                "total": bundle.num_cattle + bundle.num_buffalo}
+        spec["normalization_baked"] = bundle.normalization_baked
 
     if info.get("type") == "onnx":
-        # ONNX models — limited introspection
+        # ONNX models — graph introspection + embedded metadata.
         try:
             spec["inputs"] = [{"name": i.name, "shape": str(i.shape), "type": i.type}
                               for i in model.get_inputs()]
@@ -308,11 +312,13 @@ def get_model_spec(model, name, info):
                           for k, v in components.items()}
 
     # Architecture info
+    cattle_count = getattr(bundle, "num_cattle", None) if bundle is not None else None
+    buffalo_count = getattr(bundle, "num_buffalo", None) if bundle is not None else None
     spec["architecture"] = {
         "feature_dim": 1280,
         "binary_head": "Linear(1280→256→2)",
-        "cattle_head": "Linear(1280→512→57) + Dropout(0.4)",
-        "buffalo_head": "Linear(1280→512→18) + Dropout(0.4)",
+        "cattle_head": f"Linear(1280→384→{cattle_count or '?'}) + Dropout(0.4)",
+        "buffalo_head": f"Linear(1280→384→{buffalo_count or '?'}) + Dropout(0.4)",
         "attention": "CBAM (after stage 3)",
         "pooling": "AdaptiveAvgPool2d(1)",
     }
@@ -387,6 +393,7 @@ class ModelManager:
 
     def __init__(self):
         self.models = {}          # name -> {"path": ..., "model": ..., "backbone": ...}
+        self.bundles = {}         # name -> LoadedModelBundle (self-describing)
         self.class_maps = {}      # "cattle" / "buffalo" -> {breed: idx}
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.ood_detectors = {}   # cache: key -> OODDetector
@@ -412,10 +419,22 @@ class ModelManager:
                 self.ood_detectors[key] = OODDetector(config_path=cand if os.path.exists(cand) else None)
             return self.ood_detectors[key]
 
-        # Auto: bind to the specific model
+        # Auto: prefer the thresholds embedded in the model file itself.
         key = f"model:{model_name}"
         if key not in self.ood_detectors:
-            self.ood_detectors[key] = OODDetector(model_name=model_name)
+            bundle = self.bundles.get(model_name)
+            if bundle is not None and bundle.metadata.get("ood"):
+                self.ood_detectors[key] = bundle.ood_detector
+            else:
+                embedded = self._embedded_metadata(model_name)
+                ood_meta = embedded.get("ood") if isinstance(embedded, dict) else None
+                if isinstance(ood_meta, dict):
+                    self.ood_detectors[key] = OODDetector.from_embedded(
+                        {**ood_meta, "model_name": model_name})
+                else:
+                    # Legacy artifacts: use a calibrated JSON if one exists,
+                    # otherwise the config defaults inside OODDetector.
+                    self.ood_detectors[key] = OODDetector(model_name=model_name)
         return self.ood_detectors[key]
 
     def _load_class_maps(self):
@@ -509,116 +528,79 @@ class ModelManager:
             })
         return result
 
-    def _load_model(self, name):
-        """Load a model checkpoint into memory."""
+    def _embedded_metadata(self, name):
+        """Read the metadata block without instantiating the network."""
+        info = self.models.get(name)
+        if not info:
+            return {}
+        try:
+            if info.get("type") == "onnx":
+                return read_onnx_metadata(info["path"])
+            return read_pt_metadata(info["path"])
+        except Exception:
+            return {}
+
+    def _load_bundle(self, name):
+        """Load a model as a self-describing :class:`LoadedModelBundle`.
+
+        Architecture, class maps, resolution, normalization mode and OOD
+        thresholds all come from the file, so no external JSON is required.
+        """
         info = self.models[name]
-        if info["model"] is not None:
+        cached = self.bundles.get(name)
+        if cached is not None:
             if logger:
                 logger.debug(f"Model '{name}' already cached in memory")
-            return info["model"]
+            return cached
 
         load_start = time.time()
         if logger:
             logger.info(f"Loading model '{name}' from {info['path']}")
 
-        if info.get("type") == "onnx":
-            try:
-                import onnxruntime as ort
-                providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
-                session = ort.InferenceSession(info["path"], providers=providers)
-                info["model"] = session
-                if logger:
-                    logger.info(f"ONNX model loaded in {time.time() - load_start:.3f}s")
-                return session
-            except ImportError:
-                raise RuntimeError("onnxruntime is not installed. Please `pip install onnxruntime` to test ONNX models.")
+        bundle = inspect_and_load(info["path"], device=self.device)
+        self.bundles[name] = bundle
+        info["model"] = bundle.model_or_session
+        info["bundle"] = bundle
+        info["type"] = "onnx" if bundle.is_onnx else "pt"
+        info["backbone"] = bundle.spec.get("backbone") or info.get("backbone")
+        info["normalization_baked"] = bundle.normalization_baked
+        info["embedded_meta"] = bundle.metadata
 
-        backbone = info["backbone"]
-        ckpt = torch.load(info["path"], map_location="cpu", weights_only=False)
-
-        # Handle different checkpoint formats
-        if "state_dict" in ckpt:
-            state = ckpt["state_dict"]
-        elif "model_state_dict" in ckpt:
-            state = ckpt["model_state_dict"]
-        else:
-            state = ckpt
-
-        # Detect cosine/ArcFace heads (final head layer has weight but no bias)
-        _probe = BreedClassifier(backbone=backbone)
-        _fi = len(_probe.cattle_head) - 1
-        del _probe
-        cosine = any(f"{h}.{_fi}.weight" in state and f"{h}.{_fi}.bias" not in state
-                     for h in ("cattle_head", "buffalo_head"))
-        
-        # Detect architecture dims from the checkpoint so models trained with a
-        # different head width still load cleanly. BREED_DIM changed over time
-        # (e.g. v25 checkpoints use 512 while the current default is 384), which
-        # otherwise triggers a size-mismatch error in load_state_dict.
-        binary_dim = state["binary_head.0.weight"].shape[0] if "binary_head.0.weight" in state else BINARY_DIM
-        breed_dim = state["cattle_head.0.weight"].shape[0] if "cattle_head.0.weight" in state else BREED_DIM
-        num_cattle = state["cattle_head.8.weight"].shape[0] if "cattle_head.8.weight" in state else NUM_CATTLE_BREEDS
-        num_buffalo = state["buffalo_head.8.weight"].shape[0] if "buffalo_head.8.weight" in state else NUM_BUFFALO_BREEDS
-
-        model = BreedClassifier(backbone=backbone, cosine_head=cosine,
-                                binary_dim=binary_dim, breed_dim=breed_dim,
-                                num_cattle=num_cattle, num_buffalo=num_buffalo)
-
-        # Filter out QAT observer keys that don't exist in the base model, and
-        # skip any tensor whose shape doesn't match the freshly-built model so a
-        # stray architecture drift can't crash the whole load.
-        model_state = model.state_dict()
-        filtered, skipped = {}, []
-        for k, v in state.items():
-            if k not in model_state:
-                continue
-            if tuple(v.shape) != tuple(model_state[k].shape):
-                skipped.append(k)
-                continue
-            filtered[k] = v
-        model.load_state_dict(filtered, strict=False)
-        if skipped and logger:
-            logger.warning(
-                f"Ignored {len(skipped)} checkpoint tensor(s) with mismatched shapes "
-                f"(breed_dim={breed_dim}, binary_dim={binary_dim}): {skipped[:5]}"
-            )
-
-        # Trait heads are auxiliary and were never exported, but their trained
-        # tensors are still in the checkpoint. Rebuild them from the state_dict
-        # shapes so hump/horn/coat/... can be predicted at inference time.
-        try:
-            trait_heads = attach_trait_heads(model, state)
-            if trait_heads is not None and logger:
-                meta = trait_heads.trait_meta
-                logger.info(
-                    f"Attached trait heads ({len(meta['fields'])} fields, "
-                    f"in={meta['in_dim']}, hidden={meta['hidden_dim']}, "
-                    f"vocab={meta['source']})"
-                )
-        except Exception as exc:  # never let optional heads break loading
-            if logger:
-                logger.warning(f"Trait heads unavailable: {exc}")
-
-        model.to(self.device)
-        model.eval()
-        info["model"] = model
+        # Bind this model's own class maps (a 50-class and a dropped-class
+        # model can therefore coexist in the same dropdown).
+        self.class_maps = {"cattle": dict(bundle.cattle_map),
+                           "buffalo": dict(bundle.buffalo_map)}
+        self.class_map_source = f"embedded:{os.path.basename(info['path'])}"
 
         if logger:
             elapsed = time.time() - load_start
-            n_params = sum(p.numel() for p in model.parameters())
-            logger.info(f"Model loaded in {elapsed:.3f}s ({_human_number(n_params)} params, backbone={backbone})")
+            n_params = 0
+            if hasattr(bundle.model_or_session, "parameters"):
+                n_params = sum(p.numel() for p in bundle.model_or_session.parameters())
+            logger.info(
+                f"Model loaded in {elapsed:.3f}s "
+                f"(engine={bundle.engine}, backbone={info['backbone']}, "
+                f"cattle={bundle.num_cattle}, buffalo={bundle.num_buffalo}, "
+                f"image={bundle.image_size}, "
+                f"normalization={'baked' if bundle.normalization_baked else 'caller'}"
+                + (f", {_human_number(n_params)} params" if n_params else "") + ")"
+            )
+        return bundle
 
-        return model
+    def _load_model(self, name):
+        """Backwards-compatible accessor returning the raw model/session."""
+        return self._load_bundle(name).model_or_session
 
     # -- OOD linkage (per model) -----------------------------------------
     def _ood_for(self, model_name):
-        """Return (and cache) the OODDetector linked to THIS model's JSON."""
+        """Return (and cache) the OODDetector linked to THIS model file."""
         if not OOD_ENABLED:
             return None
         if not hasattr(self, "_ood_cache"):
             self._ood_cache = {}
         if model_name not in self._ood_cache:
-            self._ood_cache[model_name] = OODDetector(model_name=model_name)
+            self._ood_cache[model_name] = self.get_ood_detector(
+                model_name=model_name, ood_profile="auto")
         return self._ood_cache[model_name]
 
     def ood_info(self, model_name):
@@ -779,8 +761,7 @@ class ModelManager:
             return {"error": f"Invalid image: {e}"}
 
         if logger:
-            logger.debug(f"Image decoded: {img.width}×{img.height} → "
-                         f"{_PREPROCESS_DESC} → {IMAGE_SIZE}×{IMAGE_SIZE}")
+            logger.debug(f"Image decoded: {img.width}×{img.height}")
 
         # Pre-inference quality gate (advisory, a few ms).
         quality = analyze_image_quality(img)
@@ -789,33 +770,54 @@ class ModelManager:
                         f"issues={','.join(quality['issues'])} "
                         f"({quality['latency_ms']} ms)")
 
-        tensor = TRANSFORM(img).unsqueeze(0)
-        info = self.models[model_name]
-
         try:
-            model = self._load_model(model_name)
+            bundle = self._load_bundle(model_name)
+            model = bundle.model_or_session
         except Exception as e:
             if logger:
                 logger.error(f"Model load failed: {e}")
             return {"error": str(e)}
 
+        # The model's own transform: correct resolution and, critically, no
+        # second Normalize() when the ONNX graph already bakes mean/std in.
+        tensor = bundle.transform(img).unsqueeze(0)
+
         if logger:
-            logger.debug(f"Starting inference on tensor shape {list(tensor.shape)}")
+            logger.debug(
+                f"Starting inference on tensor {list(tensor.shape)} "
+                f"(image_size={bundle.image_size}, "
+                f"normalization={'baked' if bundle.normalization_baked else 'caller'})")
 
         inference_start = time.time()
         pooled_features = None
 
-        if info.get("type") == "onnx":
-            # ONNX Inference
-            input_name = model.get_inputs()[0].name
-            ort_outs = model.run(None, {input_name: tensor.numpy()})
+        if bundle.is_onnx:
+            # ONNX Inference — names/shapes were introspected into the bundle.
+            output_map = (bundle.spec or {}).get("onnx_outputs") or {}
+            input_name = bundle.onnx_input_name or model.get_inputs()[0].name
+            arr = tensor.numpy()
+            if "float16" in str(bundle.input_dtype).lower():
+                arr = arr.astype("float16")
+            ort_outs = model.run(None, {input_name: arr})
             out_names = [x.name for x in model.get_outputs()]
             out_dict = dict(zip(out_names, ort_outs))
-            binary_logits = torch.tensor(out_dict.get("binary", ort_outs[0])[0])
-            cattle_logits = torch.tensor(out_dict.get("cattle", ort_outs[1])[0])
-            buffalo_logits = torch.tensor(out_dict.get("buffalo", ort_outs[2])[0])
+
+            def _pick(kind, fallback_index):
+                name = output_map.get(kind)
+                if name and name in out_dict:
+                    return out_dict[name]
+                return out_dict.get(kind, ort_outs[fallback_index])
+
+            binary_logits = torch.tensor(_pick("binary", 0)[0])
+            cattle_logits = torch.tensor(_pick("cattle", 1)[0])
+            buffalo_logits = torch.tensor(_pick("buffalo", 2)[0])
         else:
             # PyTorch Inference
+            first_param = next(model.parameters(), None)
+            if first_param is not None and first_param.dtype == torch.float16:
+                tensor = tensor.half()
+            else:
+                tensor = tensor.float()
             tensor = tensor.to(self.device)
             out = model(tensor)
             binary_logits = out["binary"][0]
@@ -851,10 +853,8 @@ class ModelManager:
         binary_probs = F.softmax(binary_logits, dim=0)
         cattle_probs = F.softmax(cattle_logits, dim=0)
         buffalo_probs = F.softmax(buffalo_logits, dim=0)
-        cattle_map = self.class_maps.get("cattle", {})
-        buffalo_map = self.class_maps.get("buffalo", {})
-        cattle_inv = {v: k for k, v in cattle_map.items()}
-        buffalo_inv = {v: k for k, v in buffalo_map.items()}
+        cattle_inv = bundle.cattle_inv_map
+        buffalo_inv = bundle.buffalo_inv_map
         n_cattle = cattle_logits.numel()
         combined = torch.cat([binary_probs[0] * cattle_probs,
                               binary_probs[1] * buffalo_probs])
@@ -892,7 +892,7 @@ class ModelManager:
         # Runs after the breed decision and only on in-distribution images.
         attributes_start = time.time()
         trait_logits, trait_vocab, trait_meta = {}, {}, {
-            "available": False, "reason": "onnx" if info.get("type") == "onnx"
+            "available": False, "reason": "onnx" if bundle.is_onnx
             else "no_trait_heads"}
         if pooled_features is not None and not is_ood:
             trait_logits, trait_meta = predict_traits(model, pooled_features)
@@ -2872,15 +2872,51 @@ def run_server(manager, port=8501, mode="dev"):
                 if not model_bytes:
                     self._respond(400, "application/json", json.dumps({"error": "No model file provided"}).encode())
                     return
-                
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in (".pt", ".pth", ".onnx"):
+                    self._respond(400, "application/json",
+                                  json.dumps({"error": "Only .pt/.pth/.onnx files are supported"}).encode())
+                    return
+
                 upload_dir = os.path.join(CHECKPOINT_DIR, "uploaded_models")
                 os.makedirs(upload_dir, exist_ok=True)
                 save_path = os.path.join(upload_dir, filename)
                 with open(save_path, "wb") as f:
                     f.write(model_bytes)
-                
+
+                # Make the upload self-describing immediately: class maps,
+                # resolution, normalization mode and OOD defaults go inside the
+                # file, so the user never has to upload a JSON sidecar.
+                embedded = None
+                try:
+                    embedded = embed_model_metadata(save_path, overwrite=False)
+                except Exception as exc:
+                    if logger:
+                        logger.warning(f"Metadata embedding skipped for {filename}: {exc}")
+
                 manager._discover_models()
-                self._respond(200, "application/json", json.dumps({"status": "success"}).encode())
+                # Validate that the file actually loads (surfaces bad uploads now).
+                spec = None
+                try:
+                    bundle = inspect_and_load(save_path, device=manager.device)
+                    spec = bundle.spec_summary()
+                    if logger:
+                        logger.info(
+                            f"Uploaded model ready: engine={bundle.engine}, "
+                            f"cattle={bundle.num_cattle}, buffalo={bundle.num_buffalo}, "
+                            f"image={bundle.image_size}, "
+                            f"normalization={'baked' if bundle.normalization_baked else 'caller'}")
+                except Exception as exc:
+                    if logger:
+                        logger.warning(f"Uploaded model validation failed: {exc}")
+
+                self._respond(200, "application/json", json.dumps({
+                    "status": "success",
+                    "filename": filename,
+                    "self_describing": bool(embedded),
+                    "metadata": embedded,
+                    "spec": spec,
+                }).encode())
 
             elif self.path == "/api/upload-ood":
                 content_type = self.headers.get("Content-Type", "")

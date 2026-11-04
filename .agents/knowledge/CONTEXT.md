@@ -8,8 +8,11 @@
 > knowledge/advisory, image-quality gate + human OOD explainer, en/ta/hi UI
 > with TTS, 4 bespoke themes, mobile-first header/sheet, standalone Vet Portal
 > (port 5174) and the V&V suite (python -m tests.run_vv_suite).
-> See docs/verification.md, docs/breed-knowledge.md, docs/attributes.md
-> and docs/image-quality.md.
+> **Self-describing models**: `.pt`/`.onnx` carry class maps, resolution,
+> normalization mode and OOD thresholds (`src/model_introspect.py`,
+> `scripts/embed_metadata.py`); no external JSON is required at inference.
+> See docs/verification.md, docs/model-metadata.md, docs/breed-knowledge.md,
+> docs/attributes.md and docs/image-quality.md.
 
 ## Table of Contents
 

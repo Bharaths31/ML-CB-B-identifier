@@ -26,7 +26,6 @@ import json
 import math
 import os
 import random
-import shutil
 import time
 
 import numpy as np
@@ -564,7 +563,8 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 rare_masks=None, logit_priors=None, adjust_tau=0.0,
                 contrastive_weight=0.0,
                 contrastive_temp=CONTRASTIVE_TEMPERATURE,
-                trait_module=None, trait_targets=None, trait_weight=0.0):
+                trait_module=None, trait_targets=None, trait_weight=0.0,
+                split_dir=None):
     """Train a single phase with AdamW, optional AMP, gradient accumulation,
     and label smoothing."""
     raw_model = getattr(model, '_orig_mod', model)
@@ -733,10 +733,23 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
                 best = chosen_acc
                 eval_mdl = ema_model if chosen_src == "ema" else model
                 sd = eval_mdl._orig_mod.state_dict() if hasattr(eval_mdl, "_orig_mod") else eval_mdl.state_dict()
-                torch.save({"phase": phase, "epoch": epoch,
-                            "val_top1": chosen_acc, "best_metric": best_key,
-                            "source": chosen_src, "metrics": chosen,
-                            "state_dict": sd}, checkpoint_path)
+                # Embed the self-describing contract so the checkpoint can be
+                # moved/loaded on its own (no class-map JSON sidecars).
+                try:
+                    from .model_introspect import build_model_metadata
+                    model_meta = build_model_metadata(
+                        state_dict=sd, split_dir=split_dir,
+                        source_checkpoint=checkpoint_path)
+                except Exception as exc:
+                    model_meta = None
+                    print(f"[train] checkpoint metadata skipped: {exc}")
+                payload = {"phase": phase, "epoch": epoch,
+                           "val_top1": chosen_acc, "best_metric": best_key,
+                           "source": chosen_src, "metrics": chosen,
+                           "state_dict": sd}
+                if model_meta is not None:
+                    payload["model_meta"] = model_meta
+                torch.save(payload, checkpoint_path)
                 log_event("checkpoint_saved", category="training",
                           path=checkpoint_path, phase=phase, epoch=epoch,
                           source=chosen_src, best_metric=best_key, best=chosen_acc)
@@ -766,42 +779,13 @@ def train_phase(model, loader, val_loader, device, phase, epochs, lr,
 # ---------------------------------------------------------------------------
 
 def create_portable_export(checkpoint_path, backbone, split_dir, export_dir):
-    """Bundle the trained model + labels + metadata into a portable folder."""
-    tag = os.path.splitext(os.path.basename(checkpoint_path))[0]
-    out_dir = unique_path(os.path.join(export_dir, f"{backbone}_{tag}"))
-    os.makedirs(out_dir, exist_ok=True)
+    """Delegate to the canonical exporter in :mod:`src.export`.
 
-    # Copy checkpoint
-    dst_ckpt = os.path.join(out_dir, "model.pt")
-    shutil.copy2(checkpoint_path, dst_ckpt)
-
-    # Copy class maps
-    for name in ("cattle_classes.json", "buffalo_classes.json"):
-        src = os.path.join(split_dir, name)
-        if os.path.exists(src):
-            shutil.copy2(src, os.path.join(out_dir, name))
-
-    # Write model info
-    info = {
-        "backbone": backbone,
-        "checkpoint": os.path.basename(checkpoint_path),
-        "image_size": 260,
-        "num_cattle_breeds": 57,
-        "num_buffalo_breeds": 18,
-        "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "usage": (
-            "Load with: model = BreedClassifier(backbone=info['backbone']); "
-            "ckpt = torch.load('model.pt', map_location='cpu'); "
-            "model.load_state_dict(ckpt['state_dict'])"
-        ),
-    }
-    with open(os.path.join(out_dir, "model_info.json"), "w") as f:
-        json.dump(info, f, indent=2)
-
-    print(f"[export] portable model -> {out_dir}")
-    print(f"[export]   model.pt ({os.path.getsize(dst_ckpt) / 1e6:.1f} MB)")
-    print(f"[export]   model_info.json + class maps")
-    return out_dir
+    The portable ``model.pt`` is self-describing (metadata embedded), so the
+    bundle works with or without the JSON files beside it.
+    """
+    from .export import create_portable_export as _export_bundle
+    return _export_bundle(checkpoint_path, backbone, split_dir, export_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -1313,7 +1297,7 @@ def main():
                 logit_priors=logit_priors, adjust_tau=adjust_tau,
                 contrastive_weight=0.0,
                 trait_module=trait_module, trait_targets=trait_targets,
-                trait_weight=args.trait_weight)
+                trait_weight=args.trait_weight, split_dir=args.split_dir)
 
     # --- Phase 2: Full multi-task fine-tuning ---
     model.unfreeze_all()
@@ -1366,7 +1350,7 @@ def main():
                 contrastive_weight=contrastive_weight,
                 contrastive_temp=CONTRASTIVE_TEMPERATURE,
                 trait_module=trait_module, trait_targets=trait_targets,
-                trait_weight=args.trait_weight)
+                trait_weight=args.trait_weight, split_dir=args.split_dir)
 
     # --- Phase 3: QAT (opt-in; mobile INT8 is produced by converter PTQ) ---
     best_checkpoint = ckpt_p2
@@ -1398,14 +1382,22 @@ def main():
                     logit_priors=logit_priors, adjust_tau=adjust_tau,
                     contrastive_weight=0.0,
                     trait_module=trait_module, trait_targets=trait_targets,
-                    trait_weight=args.trait_weight)
+                    trait_weight=args.trait_weight, split_dir=args.split_dir)
         if qat_ok:
             try:
                 import torch.ao.quantization as qat
                 model.eval()
                 qat.convert(model, inplace=True)
-                torch.save({"state_dict": model.state_dict(),
-                            "quantized": True}, ckpt_quant)
+                qat_sd = model.state_dict()
+                qat_payload = {"state_dict": qat_sd, "quantized": True}
+                try:
+                    from .model_introspect import build_model_metadata
+                    qat_payload["model_meta"] = build_model_metadata(
+                        state_dict=qat_sd, split_dir=args.split_dir,
+                        source_checkpoint=ckpt_quant)
+                except Exception:
+                    pass
+                torch.save(qat_payload, ckpt_quant)
                 print(f"[train] converted to INT8, saved {ckpt_quant}")
             except Exception as exc:
                 print(f"[train] INT8 conversion failed ({exc})")
@@ -1483,6 +1475,25 @@ def main():
                 with open(os.path.join(portable_out, "ood_thresholds.json"), "w", encoding="utf-8") as f:
                     json.dump(thresholds, f, indent=2)
                 print(f"[train] Bundled OOD thresholds into portable export: {portable_out}")
+
+            # Persist the calibration inside the checkpoint and the portable
+            # model.pt so OOD works with zero external JSON.
+            try:
+                from .model_introspect import build_model_metadata, embed_pt_metadata
+                bckpt_meta = torch.load(best_checkpoint, map_location="cpu",
+                                        weights_only=False)
+                meta_state = bckpt_meta.get("state_dict", bckpt_meta)
+                embedded = build_model_metadata(
+                    state_dict=meta_state, split_dir=args.split_dir,
+                    ood={**thresholds, "enabled": True},
+                    source_checkpoint=best_checkpoint)
+                embed_pt_metadata(best_checkpoint, meta=embedded, overwrite=True)
+                if portable_out and os.path.exists(portable_out):
+                    embed_pt_metadata(os.path.join(portable_out, "model.pt"),
+                                      meta=embedded, overwrite=True)
+                print("[train] OOD thresholds embedded into checkpoint + portable model.pt")
+            except Exception as exc:
+                print(f"[train] Warning: could not embed OOD thresholds ({exc})")
 
             print(f"[train]   Energy Threshold ({args.ood_percentile}%): {thresholds['energy_threshold']:.4f}")
             print(f"[train]   MSP Threshold: {thresholds['msp_threshold']:.4f}")

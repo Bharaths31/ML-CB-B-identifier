@@ -780,6 +780,36 @@ class OODDetector:
         self.binary_confidence_floor = float(binary_confidence_floor)
 
     @classmethod
+    def from_embedded(cls, config: dict) -> "OODDetector":
+        """Build a detector from thresholds embedded in a model file.
+
+        Unlike ``__init__`` this never resolves a JSON profile, so a model
+        copied on its own keeps the calibration it was exported with.
+        """
+        config = dict(config or {})
+        obj = cls.__new__(cls)
+        obj.model_name = config.get("model_name")
+        obj.source_file = config.get("source_file")
+        obj.profile_name = "embedded"
+        obj.metadata = {
+            "energy_temperature": config.get(
+                "energy_temperature", config.get("temperature", OOD_ENERGY_TEMPERATURE)),
+            "energy_threshold": config.get("energy_threshold", OOD_ENERGY_THRESHOLD),
+            "msp_threshold": config.get("msp_threshold", OOD_MSP_THRESHOLD),
+            "binary_confidence_floor": config.get(
+                "binary_confidence_floor", OOD_BINARY_CONFIDENCE_FLOOR),
+            "calibrated_at": config.get("calibrated_at"),
+            "percentile": config.get("percentile"),
+            "calibrated_on_samples": config.get("calibrated_on_samples"),
+            "source": "embedded",
+        }
+        obj.T = float(obj.metadata["energy_temperature"])
+        obj.energy_threshold = float(obj.metadata["energy_threshold"])
+        obj.msp_threshold = float(obj.metadata["msp_threshold"])
+        obj.binary_confidence_floor = float(obj.metadata["binary_confidence_floor"])
+        return obj
+
+    @classmethod
     def clean_name(cls, name: str) -> str:
         """Strip directory prefixes, file extensions, and UI tags from model name."""
         if not name:

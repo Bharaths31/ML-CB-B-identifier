@@ -15,6 +15,13 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
 
 ## What’s new (2026-11)
 
+- **Self-describing models (zero external JSON):** every `.pt`/`.onnx` file now
+  carries its class maps, input resolution, normalization mode and OOD
+  thresholds. `src/model_introspect.inspect_and_load()` derives the contract
+  from tensors/graphs for existing artifacts, and
+  `python scripts/embed_metadata.py --all` bakes it in permanently. Mobile ONNX
+  graphs that already contain mean/std are no longer normalized twice. See
+  [docs/model-metadata.md](docs/model-metadata.md).
 - **Five outputs, not just a breed:** Species, Top-5 breed, Gender, Age Group
   (Calf/Young/Adult) and seven morphological traits (`hump`, `horn`, `coat`,
   `ear`, `dewlap`, `face`, `size`). Trait/gender/age run post-hoc — **no
