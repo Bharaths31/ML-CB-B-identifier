@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Breed Classifier</string>
+    <string name="title_activity_main">Breed Classifier</string>
+    <string name="package_name">com.agritech.breedclassifier</string>
+    <string name="custom_url_scheme">com.agritech.breedclassifier</string>
+</resources>

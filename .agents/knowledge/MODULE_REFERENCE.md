@@ -144,6 +144,26 @@ Constants only, no functions. Side effect: creates output/log directories on imp
 - Vet-controlled `display.hidden_user_sections` + species badge/confidence,
   escalation warning and technical-details flags.
 
+### `breed-classifier-react/src/services/` (Android)
+- `onDeviceInference.js` — IndexedDB stores, ONNX Runtime Web sessions,
+  preprocessing, soft routing, embedded-OOD parsing, gender/age heuristic,
+  online breed-tips fetch.
+- `imagePrep.js` — gallery crop modes (pad/center/manual) and Auto/Train Match
+  downscale; camera uses the fixed default pipeline.
+- `breedCatalog.js` — canonical 50 cattle / 18 buffalo slugs + constants.
+
+### `breed-classifier-react/src/pages/AndroidUserPage.jsx`
+- Single native portal: gallery/camera, preview, four result cards, recent
+  scans, share/haptics, settings drawer, breed-tips modal.
+
+### `breed-classifier-react/src/components/SettingsModal.jsx`
+- Online mode + backend URL, 4 themes, language, OOD toggle/thresholds/profile,
+  ONNX/`.pt` upload, downscale mode, OOD JSON upload.
+
+### `breed-classifier-react/src/components/CameraCapture.jsx`
+- Guided silhouette HUD; `androidMode` hides manual crop/fit and uses a
+  full-screen cover stage.
+
 ### `src/evaluate.py`
 - `full_evaluation`, `_save_confusion`, `main`
 

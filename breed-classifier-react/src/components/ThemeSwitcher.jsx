@@ -3,49 +3,49 @@ import { useI18n } from "../i18n/I18nProvider.jsx";
 
 export const THEMES = [
   {
-    id: "field-parchment",
-    name: "Field Parchment",
-    desc: "Warm daylight editorial",
+    id: "emerald-obsidian",
+    name: "Emerald Obsidian",
+    desc: "Fresh green & light black",
+    canvas: "#121714",
+    accent: "#3FA66B",
+  },
+  {
+    id: "meadow-daylight",
+    name: "Meadow Daylight",
+    desc: "Fresh meadow daylight",
     canvas: "#F4F1EA",
-    accent: "#2A4D3E",
+    accent: "#2F7D4A",
   },
   {
-    id: "obsidian-loam",
-    name: "Obsidian Loam",
-    desc: "Warm dark barn / lab",
-    canvas: "#121110",
-    accent: "#D48C46",
+    id: "earthy-harvest",
+    name: "Earthy Harvest",
+    desc: "Golden harvest & charcoal",
+    canvas: "#1C1813",
+    accent: "#D9A441",
   },
   {
-    id: "clinical-slate",
-    name: "Clinical Slate",
-    desc: "Veterinary daylight instrument",
-    canvas: "#EEF1F4",
-    accent: "#0F4C5C",
-  },
-  {
-    id: "night-telemetry",
-    name: "Night Telemetry",
-    desc: "Naval-grade dark instrumentation",
-    canvas: "#0B0F14",
-    accent: "#38BDF8",
+    id: "aqua-pasture",
+    name: "Aqua Pasture",
+    desc: "Monsoon breeze",
+    canvas: "#EEF4F4",
+    accent: "#0F6F73",
   },
 ];
 
 const STORAGE_KEY = "agri_theme";
 const LEGACY_KEY = "breed-classifier-theme";
-const DEFAULT_THEME = "field-parchment";
+const DEFAULT_THEME = "emerald-obsidian";
 
 const LEGACY_MAP = {
-  dark: "obsidian-loam",
-  light: "field-parchment",
-  emerald: "field-parchment",
-  sunset: "obsidian-loam",
-  cyber: "night-telemetry",
-  "emerald-obsidian": "field-parchment",
-  "meadow-daylight": "clinical-slate",
-  "earthy-harvest": "obsidian-loam",
-  "aqua-pasture": "night-telemetry",
+  dark: "emerald-obsidian",
+  light: "meadow-daylight",
+  emerald: "emerald-obsidian",
+  sunset: "earthy-harvest",
+  cyber: "emerald-obsidian",
+  "field-parchment": "meadow-daylight",
+  "obsidian-loam": "emerald-obsidian",
+  "clinical-slate": "aqua-pasture",
+  "night-telemetry": "emerald-obsidian",
 };
 
 export function getInitialTheme() {

@@ -169,7 +169,7 @@ check("i18n.dynamic", "Species / gender / age dynamic values localized",
 
 /* 6 — theme tokens -------------------------------------------------------- */
 const themeCss = fs.readFileSync(path.join(HERE, "styles", "themes.css"), "utf8");
-const THEMES = ["field-parchment", "obsidian-loam", "clinical-slate", "night-telemetry"];
+const THEMES = ["emerald-obsidian", "meadow-daylight", "earthy-harvest", "aqua-pasture"];
 const REQUIRED_VARS = [
   "--bg-canvas", "--bg-surface", "--bg-elevated", "--bg-recessed",
   "--text-primary", "--text-secondary", "--text-muted",
@@ -194,7 +194,7 @@ check("themes.tokens", "4 themes define the full token set",
     && themeCss.includes("Noto Sans Devanagari")
     && themeCss.includes("Plus Jakarta Sans")
     && themeCss.includes("JetBrains Mono"),
-  themeProblems.length ? themeProblems.slice(0, 6).join(" ; ") : "field-parchment / obsidian-loam / clinical-slate / night-telemetry",
+  themeProblems.length ? themeProblems.slice(0, 6).join(" ; ") : "emerald-obsidian / meadow-daylight / earthy-harvest / aqua-pasture",
   { themes: THEMES.length, variables: REQUIRED_VARS.length });
 
 /* ------------------------------------------------------------------------ */

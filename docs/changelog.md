@@ -1,5 +1,28 @@
 # 16. Changelog
 
+### 2026-11-04 — Capacitor Android app, guided camera, on-device OOD
+
+- **Single-portal Android app** (`AndroidUserPage`): on-device ONNX Runtime Web
+  inference, IndexedDB model/OOD persistence, hamburger Settings drawer, four
+  themes, trilingual UI, recent scans, share/clipboard and haptics.
+- **Guided camera:** live `getUserMedia` preview with the cattle/buffalo
+  silhouette HUD, lighting/framing/sharpness pills, torch, auto-capture, burst
+  and a full-screen Android layout. Manual crop/fit controls are hidden on
+  Android.
+- **OOD:** parses embedded ONNX `model_meta` (metadata_props) so the mutated
+  `*__ood` model applies its own energy/MSP thresholds automatically. The
+  bundled default model now embeds the calibrated v26 OOD profile. Non-OOD
+  uploads are accepted but the OOD gate stays off until a manual OOD `.json` is
+  uploaded. The result view no longer shows the large OOD banner.
+- **Result/settings:** simplified the result to four compact cards, moved the
+  gallery downscale mode into Advanced Settings, and replaced the gear with a
+  hamburger menu.
+- **Breed Tips:** added a practical-tips section tailored to species/gender/age
+  plus offline quick tips and a fetch timeout.
+- **Build:** `@capacitor/{core,cli,android}` + `onnxruntime-web`, Capacitor
+  config, Android manifest permissions, WASM copy in Vite, `npm run
+  android:assemble|android:install`.
+
 ### 2026-11-04 — Read-only gender/age, trait-confirmation block removed
 
 - **Big-4 is read-only**: the gender and age pill toggles were removed from

@@ -188,6 +188,183 @@
 }
 
 /* --------------------------------------------------------------------------
+   5. Emerald Obsidian — default: fresh green + light black
+   -------------------------------------------------------------------------- */
+:root,
+[data-theme="emerald-obsidian"] {
+  --bg-canvas: #101512;
+  --bg-surface: #171d19;
+  --bg-elevated: #1e2621;
+  --bg-recessed: #0a0e0b;
+  --text-primary: #e8f0ea;
+  --text-secondary: #9db3a4;
+  --text-muted: #6b7f72;
+  --border-subtle: #28362d;
+  --border-focus: #3fa66b;
+  --accent-primary: #3fa66b;
+  --accent-secondary: #d0a85a;
+  --accent-surface: rgba(63, 166, 107, 0.10);
+  --status-ok: #4fb47a;
+  --status-warn: #d0a85a;
+  --status-error: #e06c5a;
+  --bg: var(--bg-canvas);
+  --bg-gradient: none;
+  --surface: var(--bg-surface);
+  --surface-glass: var(--bg-surface);
+  --surface2: var(--bg-recessed);
+  --surface3: #26322a;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: transparent;
+  --green: var(--status-ok);
+  --green-gradient: none;
+  --green-bg: rgba(79, 180, 122, 0.12);
+  --amber: var(--accent-secondary);
+  --amber-bg: rgba(208, 168, 90, 0.12);
+  --red: var(--status-error);
+  --red-bg: rgba(224, 108, 90, 0.10);
+  --shadow-sm: none;
+  --shadow-card: none;
+  --radius: 10px;
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   6. Meadow Daylight — fresh meadow daylight
+   -------------------------------------------------------------------------- */
+[data-theme="meadow-daylight"] {
+  --bg-canvas: #f4f1ea;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-recessed: #ebe6dc;
+  --text-primary: #181a17;
+  --text-secondary: #52544e;
+  --text-muted: #7a7c74;
+  --border-subtle: #ddd7cc;
+  --border-focus: #2f7d4a;
+  --accent-primary: #2f7d4a;
+  --accent-secondary: #b85d3b;
+  --accent-surface: rgba(47, 125, 74, 0.08);
+  --status-ok: #2e6f40;
+  --status-warn: #b85d3b;
+  --status-error: #b3261e;
+  --bg: var(--bg-canvas);
+  --bg-gradient: none;
+  --surface: var(--bg-surface);
+  --surface-glass: var(--bg-surface);
+  --surface2: var(--bg-recessed);
+  --surface3: #e2dccf;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: transparent;
+  --green: var(--status-ok);
+  --green-gradient: none;
+  --green-bg: rgba(46, 111, 64, 0.10);
+  --amber: var(--accent-secondary);
+  --amber-bg: rgba(184, 93, 59, 0.10);
+  --red: var(--status-error);
+  --red-bg: rgba(179, 38, 30, 0.08);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --radius: 10px;
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   7. Earthy Harvest — golden harvest + charcoal
+   -------------------------------------------------------------------------- */
+[data-theme="earthy-harvest"] {
+  --bg-canvas: #1c1813;
+  --bg-surface: #262019;
+  --bg-elevated: #30281f;
+  --bg-recessed: #130f0b;
+  --text-primary: #f2e8d5;
+  --text-secondary: #bda98a;
+  --text-muted: #8a7860;
+  --border-subtle: #3d3327;
+  --border-focus: #d9a441;
+  --accent-primary: #d9a441;
+  --accent-secondary: #8fae6a;
+  --accent-surface: rgba(217, 164, 65, 0.10);
+  --status-ok: #8fae6a;
+  --status-warn: #d9a441;
+  --status-error: #e07a5f;
+  --bg: var(--bg-canvas);
+  --bg-gradient: none;
+  --surface: var(--bg-surface);
+  --surface-glass: var(--bg-surface);
+  --surface2: var(--bg-recessed);
+  --surface3: #3a3023;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: transparent;
+  --green: var(--status-ok);
+  --green-gradient: none;
+  --green-bg: rgba(143, 174, 106, 0.12);
+  --amber: var(--accent-primary);
+  --amber-bg: rgba(217, 164, 65, 0.12);
+  --red: var(--status-error);
+  --red-bg: rgba(224, 122, 95, 0.10);
+  --shadow-sm: none;
+  --shadow-card: none;
+  --radius: 10px;
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   8. Aqua Pasture — monsoon breeze
+   -------------------------------------------------------------------------- */
+[data-theme="aqua-pasture"] {
+  --bg-canvas: #eef4f4;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-recessed: #e0ebeb;
+  --text-primary: #102225;
+  --text-secondary: #47666a;
+  --text-muted: #668488;
+  --border-subtle: #c6d9da;
+  --border-focus: #0f6f73;
+  --accent-primary: #0f6f73;
+  --accent-secondary: #2b8c8f;
+  --accent-surface: rgba(15, 111, 115, 0.08);
+  --status-ok: #0d8a78;
+  --status-warn: #b0702f;
+  --status-error: #b33b3b;
+  --bg: var(--bg-canvas);
+  --bg-gradient: none;
+  --surface: var(--bg-surface);
+  --surface-glass: var(--bg-surface);
+  --surface2: var(--bg-recessed);
+  --surface3: #d4e3e4;
+  --border: var(--border-subtle);
+  --border-hover: var(--border-focus);
+  --text: var(--text-primary);
+  --accent: var(--accent-primary);
+  --accent-light: var(--accent-secondary);
+  --accent-glow: transparent;
+  --green: var(--status-ok);
+  --green-gradient: none;
+  --green-bg: rgba(13, 138, 120, 0.10);
+  --amber: var(--accent-secondary);
+  --amber-bg: rgba(43, 140, 143, 0.10);
+  --red: var(--status-error);
+  --red-bg: rgba(179, 59, 59, 0.08);
+  --shadow-sm: 0 1px 2px rgba(15, 34, 37, 0.04);
+  --shadow-card: 0 1px 3px rgba(15, 34, 37, 0.06);
+  --radius: 10px;
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
    Base typography & flat surfaces
    -------------------------------------------------------------------------- */
 html {

@@ -27,7 +27,7 @@ function analyzeFullFrame(source) {
  * zero-crop 260x260 optimizer. The optional "Adjust framing" review still
  * uses the shared cropper when a user wants manual control.
  */
-export default function CameraCapture({ onCapture, onClose }) {
+export default function CameraCapture({ onCapture, onClose, androidMode = false }) {
   const { t } = useI18n();
   const videoRef = useRef(null);
   const stageRef = useRef(null);
@@ -53,7 +53,13 @@ export default function CameraCapture({ onCapture, onClose }) {
   const [captured, setCaptured] = useState(null);
   const [fitMode, setFitMode] = useState("stretch");
   const [claheOn, setClaheOn] = useState(Boolean(initialSettings.clahe));
-  const [silhouette, setSilhouette] = useState(initialSettings.silhouette || "off");
+  const [silhouette, setSilhouette] = useState(
+    androidMode
+      ? (initialSettings.silhouette && initialSettings.silhouette !== "off"
+          ? initialSettings.silhouette
+          : "cattle")
+      : (initialSettings.silhouette || "off")
+  );
   const [silhouetteFlipped, setSilhouetteFlipped] = useState(Boolean(initialSettings.silhouetteFlipped));
   const [busy, setBusy] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
@@ -174,6 +180,9 @@ export default function CameraCapture({ onCapture, onClose }) {
 
   const videoRect = useMemo(() => {
     if (!stage.w || !stage.h || !videoDims.w || !videoDims.h) return null;
+    if (androidMode) {
+      return { left: 0, top: 0, width: stage.w, height: stage.h };
+    }
     const scale = Math.min(stage.w / videoDims.w, stage.h / videoDims.h);
     const width = videoDims.w * scale;
     const height = videoDims.h * scale;
@@ -183,7 +192,7 @@ export default function CameraCapture({ onCapture, onClose }) {
       width,
       height,
     };
-  }, [stage, videoDims]);
+  }, [stage, videoDims, androidMode]);
 
   const optimizeCanvas = useCallback(
     (canvas, mode, originalDataUrl, clahe = false) =>
@@ -448,7 +457,7 @@ export default function CameraCapture({ onCapture, onClose }) {
   const guideWidth = isBuffaloGuide ? 120 : 86;
 
   return (
-    <div className="camera-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <div className={`camera-overlay ${androidMode ? "camera-overlay-android" : ""}`} onClick={onClose} role="dialog" aria-modal="true">
       <div className="camera-modal modern-camera-modal" onClick={(event) => event.stopPropagation()}>
         <div className="camera-modal-header">
           <div className="camera-title-wrap">
@@ -487,40 +496,44 @@ export default function CameraCapture({ onCapture, onClose }) {
                 <span className="optimizer-badge">{telemetry}</span>
               </div>
 
-              <div className="optimizer-controls" role="group" aria-label={t("optimizer.fitMode")}>
-                <button
-                  type="button"
-                  className={`optimizer-mode-btn ${fitMode === "pad" ? "is-on" : ""}`}
-                  onClick={() => changeFitMode("pad")}
-                  disabled={busy}
-                >
-                  {t("optimizer.padMean")}
-                </button>
-                <button
-                  type="button"
-                  className={`optimizer-mode-btn ${fitMode === "stretch" ? "is-on" : ""}`}
-                  onClick={() => changeFitMode("stretch")}
-                  disabled={busy}
-                >
-                  {t("optimizer.stretch")}
-                </button>
-              </div>
-
-              <div className="control-setting-row clahe-row">
-                <div className="setting-info">
-                  <span className="setting-label">{t("camera.clahe")}</span>
-                  <span className="setting-subtext">{t("camera.claheHint")}</span>
-                </div>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={claheOn}
-                    onChange={(event) => changeClahe(event.target.checked)}
+              {!androidMode && (
+                <div className="optimizer-controls" role="group" aria-label={t("optimizer.fitMode")}>
+                  <button
+                    type="button"
+                    className={`optimizer-mode-btn ${fitMode === "pad" ? "is-on" : ""}`}
+                    onClick={() => changeFitMode("pad")}
                     disabled={busy}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
+                  >
+                    {t("optimizer.padMean")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`optimizer-mode-btn ${fitMode === "stretch" ? "is-on" : ""}`}
+                    onClick={() => changeFitMode("stretch")}
+                    disabled={busy}
+                  >
+                    {t("optimizer.stretch")}
+                  </button>
+                </div>
+              )}
+
+              {!androidMode && (
+                <div className="control-setting-row clahe-row">
+                  <div className="setting-info">
+                    <span className="setting-label">{t("camera.clahe")}</span>
+                    <span className="setting-subtext">{t("camera.claheHint")}</span>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={claheOn}
+                      onChange={(event) => changeClahe(event.target.checked)}
+                      disabled={busy}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+              )}
 
               <QualityBadge quality={captured.quality} />
 
@@ -565,14 +578,16 @@ export default function CameraCapture({ onCapture, onClose }) {
                 <button type="button" className="btn btn-outline" onClick={retake} disabled={busy}>
                   {t("actions.retake")}
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setAdjusting(true)}
-                  disabled={busy}
-                >
-                  {t("optimizer.adjust")}
-                </button>
+                {!androidMode && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setAdjusting(true)}
+                    disabled={busy}
+                  >
+                    {t("optimizer.adjust")}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -607,7 +622,7 @@ export default function CameraCapture({ onCapture, onClose }) {
                   </button>
                 </div>
               ) : (
-                <div className="camera-stage camera-stage-fullframe" ref={stageRef}>
+                <div className={`camera-stage camera-stage-fullframe ${androidMode ? "camera-stage-android" : ""}`} ref={stageRef}>
                   <video
                     ref={videoRef}
                     autoPlay
