@@ -1407,3 +1407,22 @@ old 85/10/5 split left many rare breeds with **zero** test images.
 **Config:**
 - Added `PORTABLE_EXPORT_DIR`, `SMOKE_SAMPLES_PER_BREED` constants
 
+## 2026-11-04 — Android production snapshot
+
+- **Android UI:** Stitch-aligned single portal (`AndroidUserPage`) with
+  Identification Dossier result, full-screen Settings, SVG icons, recent scans
+  and 3 themes beyond the default.
+- **Localization:** 621 English/Tamil/Hindi keys; species, breed, gender and age
+  use the shared website dictionaries.
+- **Settings:** language cards, theme cards, Online Mode, Advanced AI Model,
+  Result Display (show prediction view, show confidence %, 1–5 breeds).
+- **Online mode:** API base resolves from Settings URL → `VITE_BACKEND_URL` →
+  last URL that passed `/api/health` → current web origin. `/api/health` polls
+  every 15 s; the last successful backend is cached and reused when the field is
+  empty.
+- **Audio:** removed from the Android app.
+- **APK artifact:** `artifacts/android/breedid-android-debug.apk`, SHA-256
+  `C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4`,
+  built from `e29ad80`.
+- **Replication:** complete setup, build, device and testing instructions are in
+  `docs/development-history.md`.

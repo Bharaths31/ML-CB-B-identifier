@@ -35,6 +35,10 @@ A **lightweight, mobile-deployable image classifier** for **50 Indian cattle bre
   silhouette camera, hamburger Settings, embedded-OOD auto-calibration,
   recent scans, share/haptics and offline-first breed tips. See
   [breed-classifier-react/ANDROID.md](breed-classifier-react/ANDROID.md).
+- **Tracked APK + replication history:** the latest debug APK is committed under
+  [artifacts/android/](artifacts/android/) with SHA-256 and build metadata. Full
+  development history, setup commands, device testing and replication steps are
+  in [docs/development-history.md](docs/development-history.md).
 - **4-layer input guardrails:** offline photorealism (cartoons/screenshots),
   human/selfie and other-animal gates, feature-entropy and the logit OOD check.
   Rejections return a specific trilingual `rejection_info`
