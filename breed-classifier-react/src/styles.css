@@ -5948,3 +5948,33 @@ input[type="range"] {
 .tips-highlight h3 { color: var(--accent); }
 .tips-offline-tips { margin-top: 12px; text-align: left; }
 .tips-offline-tips strong { display: block; margin-bottom: 6px; color: var(--text-primary); }
+
+/* Android guided camera contrast + layout refinement */
+.camera-overlay-android .camera-zero-crop-badge { display: none; }
+.camera-overlay-android .camera-status-pills {
+  top: auto;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  gap: 6px;
+}
+.camera-overlay-android .camera-status-pill {
+  background: rgba(4, 10, 8, 0.82);
+  border-color: rgba(124, 255, 178, 0.35);
+}
+.camera-overlay-android .hud-safe-frame { stroke: rgba(255, 255, 255, 0.62); stroke-width: 2; }
+.camera-overlay-android .hud-corner { stroke: #7cffb2; stroke-width: 3.5; }
+.camera-overlay-android .hud-spine { stroke: rgba(255, 255, 255, 0.72); stroke-width: 2; }
+.camera-overlay-android .hud-horn-guide,
+.camera-overlay-android .hud-hump-guide,
+.camera-overlay-android .hud-dewlap-guide,
+.camera-overlay-android .hud-tail-guide {
+  stroke: #7cffb2;
+  stroke-width: 2.4;
+  opacity: 1;
+}
+.camera-overlay-android .hud-reticle { stroke: #7cffb2; stroke-width: 2.2; }
+.camera-overlay-android .hud-anchor { fill: #7cffb2; }
+.camera-overlay-android .hud-label rect { fill: rgba(2, 8, 6, 0.82); stroke: rgba(124, 255, 178, 0.75); }
+.camera-overlay-android .hud-label text { fill: #ffffff; font-size: 12px; }
+.camera-overlay-android .hud-axis-label { fill: rgba(255, 255, 255, 0.55); }
