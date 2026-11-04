@@ -5,7 +5,6 @@ import ImageCropper from "../components/ImageCropper.jsx";
 import CameraCapture from "../components/CameraCapture.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
 import BreedTipsModal from "../components/BreedTipsModal.jsx";
-import { AGE_OPTIONS, GENDER_OPTIONS } from "../services/breedCatalog.js";
 import { CROP_MODES, prepareImage } from "../services/imagePrep.js";
 import {
   DEFAULT_SETTINGS,
@@ -56,6 +55,7 @@ function topBars(top5 = []) {
 export default function AndroidUserPage() {
   const { t, tBreed, tDynamic } = useI18n();
   const uploadRef = useRef(null);
+  const originalUrlRef = useRef(null);
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [models, setModels] = useState([]);
@@ -78,8 +78,6 @@ export default function AndroidUserPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [toast, setToast] = useState("");
-  const [genderOverride, setGenderOverride] = useState(null);
-  const [ageOverride, setAgeOverride] = useState(null);
 
   const refreshModels = useCallback(async () => {
     const rows = await listModels();
@@ -158,6 +156,12 @@ export default function AndroidUserPage() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Release the original-preview object URL when the page goes away.
+  useEffect(() => () => {
+    if (originalUrlRef.current) URL.revokeObjectURL(originalUrlRef.current);
+    originalUrlRef.current = null;
+  }, []);
+
   const activeModel = useMemo(
     () => models.find((model) => model.name === settings.activeModel) || models[0] || null,
     [models, settings.activeModel],
@@ -175,9 +179,13 @@ export default function AndroidUserPage() {
 
   const resetResult = () => {
     setResult(null);
-    setGenderOverride(null);
-    setAgeOverride(null);
     setToast("");
+  };
+
+  const releaseOriginalUrl = () => {
+    if (!originalUrlRef.current) return;
+    URL.revokeObjectURL(originalUrlRef.current);
+    originalUrlRef.current = null;
   };
 
   const handleUpload = async (event) => {
@@ -193,14 +201,17 @@ export default function AndroidUserPage() {
         cropMode,
         scaleMode: settings.downscaleMode || "auto",
       });
-      setOriginal({ file, dataUrl: loaded.dataUrl, width: loaded.meta.originalWidth, height: loaded.meta.originalHeight });
-      // Re-read the original data URL from the source file for the preview.
-      const raw = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(file);
+      // Object URLs avoid base64-encoding the full-resolution file just for
+      // the preview; the image is already decoded once inside prepareImage.
+      releaseOriginalUrl();
+      const previewUrl = URL.createObjectURL(file);
+      originalUrlRef.current = previewUrl;
+      setOriginal({
+        file,
+        dataUrl: previewUrl,
+        width: loaded.meta.originalWidth,
+        height: loaded.meta.originalHeight,
       });
-      setOriginal({ file, dataUrl: raw, width: loaded.meta.originalWidth, height: loaded.meta.originalHeight });
       setPrepared(loaded);
       setStage("preview");
     } catch (err) {
@@ -218,6 +229,7 @@ export default function AndroidUserPage() {
     setSource("camera");
     try {
       const prepared = await prepareImage(file, { cropMode: "center", scaleMode: "auto" });
+      releaseOriginalUrl();
       setOriginal({
         file,
         dataUrl: dataUrl || prepared.dataUrl,
@@ -295,8 +307,6 @@ export default function AndroidUserPage() {
         imageMeta: prepared.meta,
       });
       setResult(res);
-      setGenderOverride(null);
-      setAgeOverride(null);
       setStage("result");
       haptic([15, 30, 15]);
       const entry = {
@@ -317,6 +327,7 @@ export default function AndroidUserPage() {
   };
 
   const startOver = () => {
+    releaseOriginalUrl();
     resetResult();
     setOriginal(null);
     setPrepared(null);
@@ -338,8 +349,8 @@ export default function AndroidUserPage() {
     const text = [
       `${result.species} · ${tBreed(result.breed_slug) || result.breed}`,
       `Confidence: ${result.confidence}%`,
-      `Gender: ${selectedGenderLabel}`,
-      `Age: ${selectedAgeLabel}`,
+      `Gender: ${gender.label}`,
+      `Age: ${age.label}`,
     ].join("\n");
     try {
       if (navigator.share) {
@@ -355,8 +366,6 @@ export default function AndroidUserPage() {
 
   const openRecent = (entry) => {
     setResult(entry);
-    setGenderOverride(null);
-    setAgeOverride(null);
     setStage("result");
     haptic(12);
   };
@@ -368,10 +377,6 @@ export default function AndroidUserPage() {
 
   const gender = result?.gender || { key: null, label: "Unknown", confidence: 0 };
   const age = result?.age_group || { key: null, label: "Unknown", confidence: 0 };
-  const selectedGender = genderOverride || gender.key;
-  const selectedAge = ageOverride || age.key;
-  const selectedGenderLabel = GENDER_OPTIONS.find((o) => o.key === selectedGender)?.label || gender.label;
-  const selectedAgeLabel = AGE_OPTIONS.find((o) => o.key === selectedAge)?.label || age.label;
 
   return (
     <div className="android-shell">
@@ -406,12 +411,22 @@ export default function AndroidUserPage() {
             <h2>Identify a Cattle or Buffalo Breed</h2>
             <p>All inference runs on this phone with ONNX Runtime Web. No internet is required.</p>
             <div className="android-source-grid">
-              <button type="button" className="android-source-btn" onClick={() => uploadRef.current?.click()}>
+              <button
+                type="button"
+                className="android-source-btn"
+                onClick={() => uploadRef.current?.click()}
+                disabled={preparing}
+              >
                 <span aria-hidden="true">🖼️</span>
-                <strong>Upload from Gallery</strong>
-                <small>Choose crop & downscale before analysis</small>
+                <strong>{preparing ? "Preparing image…" : "Upload from Gallery"}</strong>
+                <small>{preparing ? "Optimising for the model" : "Choose crop & downscale before analysis"}</small>
               </button>
-              <button type="button" className="android-source-btn" onClick={() => setCameraOpen(true)}>
+              <button
+                type="button"
+                className="android-source-btn"
+                onClick={() => setCameraOpen(true)}
+                disabled={preparing}
+              >
                 <span aria-hidden="true">📷</span>
                 <strong>Take Photo</strong>
                 <small>Guided silhouette + auto framing</small>
@@ -553,38 +568,14 @@ export default function AndroidUserPage() {
 
               <article className="android-result-card">
                 <span className="android-card-label">Gender</span>
-                <h3>{selectedGenderLabel}</h3>
+                <h3>{gender.label}</h3>
                 <span className="android-confidence">{gender.confidence}%</span>
-                <div className="android-pill-row">
-                  {GENDER_OPTIONS.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      className={`hero-pill ${selectedGender === option.key ? "hero-pill-active" : ""}`}
-                      onClick={() => setGenderOverride(option.key)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
               </article>
 
               <article className="android-result-card">
                 <span className="android-card-label">Age Group</span>
-                <h3>{selectedAgeLabel}</h3>
+                <h3>{age.label}</h3>
                 <span className="android-confidence">{age.confidence}%</span>
-                <div className="android-pill-row">
-                  {AGE_OPTIONS.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      className={`hero-pill ${selectedAge === option.key ? "hero-pill-active" : ""}`}
-                      onClick={() => setAgeOverride(option.key)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
               </article>
             </div>
 
@@ -622,8 +613,8 @@ export default function AndroidUserPage() {
         onClose={() => setTipsOpen(false)}
         settings={settings}
         result={result}
-        gender={selectedGenderLabel}
-        ageGroup={selectedAgeLabel}
+        gender={gender.label}
+        ageGroup={age.label}
       />
 
       {cameraOpen && (

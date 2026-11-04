@@ -77,6 +77,12 @@ restarts.
 - **QoL:** haptic feedback on capture/analyze/recent, screen wake-lock while the
   camera or inference is active, native share/clipboard for results, and a
   persisted **Recent scans** strip (last 5, stored locally) on the home page.
+- **Result cards:** species, breed (+ Top-3), gender and age are read-only.
+  Gender and age are always the model/heuristic output and cannot be
+  overridden from the result screen.
+- **Gallery uploads:** decoded once with `createImageBitmap` (EXIF-aware,
+  off-main-thread) and previewed via an object URL, so large photos do not
+  round-trip through base64 twice before the preview appears.
 - **Settings:** opened from the header hamburger (☰). Gallery downscale mode
   (Auto 260 / Train Match 288→260) lives under **Advanced**.
 - **OOD calibration:** a model with embedded `model_meta.ood` (the

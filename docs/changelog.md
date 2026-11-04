@@ -1,5 +1,18 @@
 # 16. Changelog
 
+### 2026-11-04 — Read-only gender/age and faster gallery uploads
+
+- **Result screen:** gender and age are now plain read-only cards. The manual
+  override pills and their state were removed from `AndroidUserPage`; share and
+  Breed Tips use the model's detected labels.
+- **Upload latency:** `imagePrep.loadImageFile` now decodes with
+  `createImageBitmap` (off-main-thread, EXIF-aware) instead of a base64
+  `FileReader` round-trip, and releases the bitmap after drawing. The Android
+  upload preview uses an object URL (revoked on replace/unmount) rather than
+  reading the full-resolution file a second time.
+- **Feedback:** the gallery button shows "Preparing image…" and is disabled while
+  the preview is being generated.
+
 ### 2026-11-04 — One-shot setup for Python guardrails and the web/Android apps
 
 - **`requirements.txt`:** added `opencv-python-headless>=4.9,<5` (stage-2 Haar

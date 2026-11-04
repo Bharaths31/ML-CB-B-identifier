@@ -35,21 +35,47 @@ function canvasToDataUrl(canvas) {
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
-export async function loadImageFile(file) {
-  if (!file) throw new Error("No image file provided.");
-  const dataUrl = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error || new Error("Could not read image"));
-    reader.readAsDataURL(file);
-  });
-  const image = await new Promise((resolve, reject) => {
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Could not decode image"));
-    img.src = dataUrl;
+    img.src = src;
   });
-  return { image, dataUrl, width: image.naturalWidth || image.width, height: image.naturalHeight || image.height };
+}
+
+/**
+ * Decode an image file without round-tripping it through base64.
+ *
+ * Gallery photos are often several megabytes; reading them as a data URL and
+ * decoding that string twice is a large, main-thread-visible delay on phones.
+ * `createImageBitmap` decodes off the main thread (and applies EXIF rotation),
+ * with an object-URL image element as the fallback for older WebViews.
+ */
+export async function loadImageFile(file) {
+  if (!file) throw new Error("No image file provided.");
+  const objectUrl = URL.createObjectURL(file);
+  let image;
+  let release;
+  if (typeof createImageBitmap === "function") {
+    try {
+      image = await createImageBitmap(file, { imageOrientation: "from-image" });
+      release = () => image.close?.();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      image = await loadImageElement(objectUrl);
+      release = () => URL.revokeObjectURL(objectUrl);
+    }
+  } else {
+    image = await loadImageElement(objectUrl);
+    release = () => URL.revokeObjectURL(objectUrl);
+  }
+  return {
+    image,
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+    release,
+  };
 }
 
 function drawPrepared(image, cropMode, base) {
@@ -106,32 +132,36 @@ export async function prepareImage(file, {
 } = {}) {
   const sourceFile = manualCropFile || file;
   const loaded = await loadImageFile(sourceFile);
-  const base = scaleMode === "train" ? TRAIN_RESIZE : IMAGE_SIZE;
-  const effectiveCrop = manualCropFile ? "center" : cropMode;
-  const baseCanvas = drawPrepared(loaded.image, effectiveCrop, base);
-  const canvas = centerCrop260(baseCanvas);
-  const blob = await canvasToBlob(canvas);
-  const preparedFile = new File(
-    [blob],
-    `prepared_${Date.now()}.jpg`,
-    { type: "image/jpeg", lastModified: Date.now() },
-  );
-  return {
-    file: preparedFile,
-    dataUrl: canvasToDataUrl(canvas),
-    canvas,
-    meta: {
-      cropMode: effectiveCrop,
-      scaleMode,
-      baseSize: base,
-      originalWidth: loaded.width,
-      originalHeight: loaded.height,
-      originalAspect: loaded.width / Math.max(1, loaded.height),
-      outputWidth: IMAGE_SIZE,
-      outputHeight: IMAGE_SIZE,
-      source: "upload",
-    },
-  };
+  try {
+    const base = scaleMode === "train" ? TRAIN_RESIZE : IMAGE_SIZE;
+    const effectiveCrop = manualCropFile ? "center" : cropMode;
+    const baseCanvas = drawPrepared(loaded.image, effectiveCrop, base);
+    const canvas = centerCrop260(baseCanvas);
+    const blob = await canvasToBlob(canvas);
+    const preparedFile = new File(
+      [blob],
+      `prepared_${Date.now()}.jpg`,
+      { type: "image/jpeg", lastModified: Date.now() },
+    );
+    return {
+      file: preparedFile,
+      dataUrl: canvasToDataUrl(canvas),
+      canvas,
+      meta: {
+        cropMode: effectiveCrop,
+        scaleMode,
+        baseSize: base,
+        originalWidth: loaded.width,
+        originalHeight: loaded.height,
+        originalAspect: loaded.width / Math.max(1, loaded.height),
+        outputWidth: IMAGE_SIZE,
+        outputHeight: IMAGE_SIZE,
+        source: "upload",
+      },
+    };
+  } finally {
+    loaded.release?.();
+  }
 }
 
 /** Camera captures never expose crop/downscale controls. */

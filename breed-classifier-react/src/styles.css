@@ -5636,6 +5636,7 @@ input[type="range"] {
 .android-source-btn span { font-size: 1.6rem; }
 .android-source-btn strong { font-size: 1rem; }
 .android-source-btn small { color: var(--text-muted); font-size: 0.78rem; line-height: 1.35; }
+.android-source-btn:disabled { opacity: 0.62; cursor: progress; }
 .android-model-note { margin-top: 14px; color: var(--text-muted); font-size: 0.8rem; }
 .android-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .android-preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
