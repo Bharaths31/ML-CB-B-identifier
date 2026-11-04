@@ -494,21 +494,28 @@ button.telemetry-item:hover { color: var(--text-primary); }
 
 .advanced-subnav-bar {
   display: flex;
-  gap: 8px;
-  padding: 10px 20px 0;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-recessed);
+  flex: 0 0 auto;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.advanced-subnav-bar::-webkit-scrollbar {
+  display: none;
 }
 .advanced-nav-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  height: 38px;
+  padding: 0 16px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  border-radius: 6px;
   color: var(--text-muted);
   font-family: inherit;
   font-size: 12px;
@@ -516,6 +523,7 @@ button.telemetry-item:hover { color: var(--text-primary); }
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .advanced-nav-btn:hover {
   color: var(--text-primary);
@@ -525,6 +533,7 @@ button.telemetry-item:hover { color: var(--text-primary); }
   background: var(--accent-primary);
   color: #ffffff;
   border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Language + theme controls */
