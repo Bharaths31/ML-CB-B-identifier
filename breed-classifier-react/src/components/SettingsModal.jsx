@@ -10,6 +10,12 @@ import {
   saveOodProfile,
 } from "../services/onDeviceInference.js";
 
+const LANGUAGE_LABELS = {
+  en: { native: "English", english: "English · EN" },
+  ta: { native: "தமிழ்", english: "Tamil · TA" },
+  hi: { native: "हिन्दी", english: "Hindi · HI" },
+};
+
 function ToggleRow({ label, help, checked, onChange }) {
   return (
     <div className="control-setting-row">
@@ -217,17 +223,103 @@ export default function SettingsModal({
         onClick={(event) => event.stopPropagation()}
       >
         <header className="settings-head">
-          <div>
-            <h2>⚙️ Settings</h2>
-            <p>On-device model, online mode and appearance.</p>
+          <button
+            type="button"
+            className="settings-back"
+            onClick={onClose}
+            aria-label="Close settings"
+          >
+            ←
+          </button>
+          <div className="settings-head-copy">
+            <h2>App Settings</h2>
+            <p>On-device model, language and appearance</p>
           </div>
-          <button type="button" className="settings-close" onClick={onClose} aria-label="Close settings">✕</button>
+          <span className="settings-status-badge">
+            <i aria-hidden="true" />
+            Offline ready
+          </span>
         </header>
 
         {message && <div className="settings-message">{message}</div>}
 
+        <section className="settings-section settings-language-section">
+          <div className="settings-section-title">
+            <span className="settings-section-icon" aria-hidden="true">文</span>
+            <div>
+              <h3>Select Language</h3>
+              <p>Applies to buttons, results and breed names.</p>
+            </div>
+          </div>
+          <div className="settings-language-grid">
+            {LANGUAGES.map((item) => {
+              const active = lang === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`settings-language-card ${active ? "is-active" : ""}`}
+                  onClick={() => changeLanguage(item.id)}
+                  aria-pressed={active}
+                >
+                  <span className="settings-language-code">{item.short}</span>
+                  <span className="settings-language-copy">
+                    <strong>{LANGUAGE_LABELS[item.id]?.native || item.label}</strong>
+                    <small>{LANGUAGE_LABELS[item.id]?.english || item.label}</small>
+                  </span>
+                  <span className="settings-card-check" aria-hidden="true">
+                    {active ? "✓" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="settings-section">
-          <h3>🌐 Online Mode</h3>
+          <div className="settings-section-title">
+            <span className="settings-section-icon" aria-hidden="true">◐</span>
+            <div>
+              <h3>Theme Display</h3>
+              <p>Optimised for bright outdoor daylight and night barns.</p>
+            </div>
+          </div>
+          <div className="settings-theme-grid">
+            {THEMES.map((theme) => {
+              const active = current.theme === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`settings-theme-btn ${active ? "is-active" : ""}`}
+                  onClick={() => changeTheme(theme.id)}
+                  aria-pressed={active}
+                >
+                  <span
+                    className="settings-theme-swatch"
+                    style={{ background: `linear-gradient(135deg, ${theme.canvas} 0 50%, ${theme.accent} 50% 100%)` }}
+                  />
+                  <span className="settings-theme-copy">
+                    <strong>{theme.name}</strong>
+                    <small>{theme.desc}</small>
+                  </span>
+                  <span className="settings-card-check" aria-hidden="true">
+                    {active ? "✓" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-title">
+            <span className="settings-section-icon" aria-hidden="true">🌐</span>
+            <div>
+              <h3>Online Mode</h3>
+              <p>Only Breed Tips need the network. Inference stays on-device.</p>
+            </div>
+          </div>
           <ToggleRow
             label="Online Mode"
             help="Fetch Breed Tips & Farmer Advisory from the backend. On-device inference always works offline."
@@ -236,7 +328,7 @@ export default function SettingsModal({
           />
           <div className={`settings-online-badge ${online ? "is-online" : "is-offline"}`}>
             <span className={`telemetry-dot ${online ? "online" : "offline"}`} />
-            {online ? "🟢 Online" : "⚪ Offline"}
+            {online ? "Online" : "Offline"}
             <span className="settings-online-extra">
               {current.onlineMode ? "Online mode ON" : "Online mode OFF"}
             </span>
@@ -257,45 +349,20 @@ export default function SettingsModal({
           </p>
         </section>
 
-        <section className="settings-section">
-          <h3>🎨 Theme</h3>
-          <div className="settings-theme-grid">
-            {THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                type="button"
-                className={`settings-theme-btn ${current.theme === theme.id ? "is-active" : ""}`}
-                onClick={() => changeTheme(theme.id)}
-              >
-                <span
-                  className="settings-theme-swatch"
-                  style={{ background: `linear-gradient(135deg, ${theme.canvas} 0 50%, ${theme.accent} 50% 100%)` }}
-                />
-                <span>
-                  <strong>{theme.name}</strong>
-                  <small>{theme.desc}</small>
-                </span>
-              </button>
-            ))}
-          </div>
-          <label className="settings-field">
-            <span>Language</span>
-            <select className="form-input" value={lang} onChange={(e) => changeLanguage(e.target.value)}>
-              {LANGUAGES.map((item) => (
-                <option key={item.id} value={item.id}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-        </section>
-
-        <section className="settings-section">
+        <section className="settings-section settings-advanced-section">
           <button
             type="button"
             className={`settings-accordion-trigger ${advancedOpen ? "is-open" : ""}`}
             onClick={() => setAdvancedOpen((value) => !value)}
             aria-expanded={advancedOpen}
           >
-            <span>🛠️ Advanced Settings</span>
+            <span className="settings-section-title is-inline">
+              <span className="settings-section-icon" aria-hidden="true">⚙</span>
+              <span>
+                <strong>Advanced AI Model</strong>
+                <small>ONNX engine, OOD safety and thresholds</small>
+              </span>
+            </span>
             <span aria-hidden="true">{advancedOpen ? "▾" : "▸"}</span>
           </button>
 
@@ -443,7 +510,9 @@ export default function SettingsModal({
 
         <footer className="settings-footer">
           <span>{models.length} model(s) · {oodProfiles.length} OOD profile(s)</span>
-          <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>
+          <button type="button" className="settings-save-btn" onClick={onClose}>
+            ✓ Save & Return
+          </button>
         </footer>
       </aside>
     </div>

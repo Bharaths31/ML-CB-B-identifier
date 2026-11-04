@@ -80,11 +80,22 @@ restarts.
 - **Result cards:** species, breed (+ Top-3), gender and age are read-only.
   Gender and age are always the model/heuristic output and cannot be
   overridden from the result screen.
+- **Dossier layout:** the result is presented as an identification dossier with
+  a record ID, inference-latency strip, analysed image, species card, breed card
+  with rank/confidence/top-3 bars, and read-only gender/age cards. The top-3
+  spectrum is filtered to the predicted species.
+- **Home:** two-line brand header, online status, a header language chip
+  (`EN / த / हि`), audio-help button (speech synthesis in the selected language),
+  stacked gallery/camera ingest cards, ONNX telemetry, and a 3-column recent
+  scans ledger with confidence badges and scientific names.
 - **Gallery uploads:** decoded once with `createImageBitmap` (EXIF-aware,
   off-main-thread) and previewed via an object URL, so large photos do not
   round-trip through base64 twice before the preview appears.
-- **Settings:** opened from the header hamburger (☰). Gallery downscale mode
-  (Auto 260 / Train Match 288→260) lives under **Advanced**.
+- **Settings:** a full-screen page opened from the header hamburger (☰). It has
+  a dedicated **Select Language** section (English / தமிழ் / हिन्दी), theme
+  cards, Online Mode + backend URL, and a collapsible **Advanced AI Model**
+  section for ONNX/OOD. Gallery downscale mode lives there too.
+  **Save & Return** closes the page; all choices are persisted immediately.
 - **OOD calibration:** a model with embedded `model_meta.ood` (the
   `*__ood.onnx` mutant or the bundled default) applies its own energy/MSP
   thresholds automatically. A non-OOD model is accepted but the OOD gate is

@@ -1,5 +1,27 @@
 # 16. Changelog
 
+### 2026-11-04 — Stitch-aligned Android UI, dossier result and in-app language picker
+
+- **Home:** two-line `BreedID / LIVESTOCK VISION` brand, online pill, language
+  chip and hamburger; audio-help banner using on-device speech synthesis; stacked
+  ingest cards with a FAST camera badge; ONNX telemetry card (model, WASM/SIMD,
+  size, last latency, engine state); 3-column recent scans with confidence
+  badges, scientific names and an empty state; local-inference footer.
+- **Result:** replaced the four compact cards with an **Identification Dossier**:
+  record ID, inference strip, analysed image, species card, breed card with
+  rank/confidence/top-3 spectrum, read-only gender and age cards, and the
+  tips/share/identify actions. Top-3 now filters to the predicted species.
+- **Settings:** full-screen page with a back button and offline-ready badge;
+  dedicated **Select Language** cards (English / தமிழ் / हिन्दी) wired to the
+  existing i18n provider and saved settings; 2×2 theme cards; online mode;
+  collapsible advanced ONNX/OOD controls; sticky **Save & Return**.
+- **Language access:** the header now exposes the active language (`EN / த / हि`)
+  and opens Settings directly to the language section.
+- **Scroll/focus:** stage changes reset scroll; manual scroll restoration avoids
+  the dossier opening mid-page.
+- **Verification:** client tests 57/57, i18n parity/script checks pass, APK builds
+  and runs on the connected Android 16 device.
+
 ### 2026-11-04 — Read-only gender/age and faster gallery uploads
 
 - **Result screen:** gender and age are now plain read-only cards. The manual
