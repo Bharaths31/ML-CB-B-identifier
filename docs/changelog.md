@@ -1,5 +1,24 @@
 # 16. Changelog
 
+### 2026-11-04 — One-shot setup for Python guardrails and the web/Android apps
+
+- **`requirements.txt`:** added `opencv-python-headless>=4.9,<5` (stage-2 Haar
+  cascades; OpenCV 5 dropped the bundled XMLs) and `transformers>=4.40`
+  (CLIP guardrail stage 2c and zero-shot gender/age attributes).
+- **`setup_venv.py`:** installs the Node dependencies for
+  `breed-classifier-react/` and `vet-portal/` (`npm ci` on a fresh tree,
+  `npm install` only when `package.json`/`package-lock.json` changed), builds the
+  web bundle when needed, runs `npx cap sync android`, and optionally compiles
+  the debug APK. New flags: `--no-frontend`, `--no-android`, `--android-build`;
+  `--check` now reports frontend/Android state too. Missing Node/Android
+  toolchains warn instead of failing the Python setup.
+- **Requirements parsing:** multiple version constraints per line (`>=4.9,<5`)
+  are now honoured; an existing `opencv-python` install suppresses the headless
+  variant to avoid clobbering `cv2`.
+- **`setup.sh` / `setup.ps1` / `setup.bat`:** documented the frontend/Android
+  stages and prerequisites (Node 22+, JDK 21, Android SDK) and forward the new
+  flags.
+
 ### 2026-11-04 — Capacitor Android app, guided camera, on-device OOD
 
 - **Single-portal Android app** (`AndroidUserPage`): on-device ONNX Runtime Web

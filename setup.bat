@@ -1,4 +1,16 @@
 @echo off
+rem Smart, re-runnable Windows setup entry point.
+rem
+rem Prefers setup.ps1 (which runs setup_venv.py, installs the Python + Node
+rem dependencies and syncs the Capacitor Android project). If PowerShell is
+rem unavailable it falls back to setup_venv.py directly.
+rem
+rem Usage:
+rem   setup.bat                     Python + frontend + Capacitor sync
+rem   setup.bat --cpu --no-verify   CPU PyTorch, skip model verification
+rem   setup.bat --no-frontend       Python only
+rem   setup.bat --no-android        frontend deps, no Capacitor sync
+rem   setup.bat --android-build     also compile the debug APK
 setlocal
 set "ROOT=%~dp0"
 where powershell >nul 2>&1

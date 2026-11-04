@@ -39,6 +39,19 @@ onnxruntime>=1.16
 # (ONNX Runtime Mobile INT8 needs nothing extra: onnxruntime ships the
 #  quantisation tools used by src/export.py:export_onnx_int8.)
 
+# --- Input guardrails, CLIP attributes & gender/age --------------------------
+# Stage 2 of src/input_guardrails.py (human/selfie/other-animal) uses the
+# OpenCV Haar cascades; stage 2c and the zero-shot gender/age attributes use
+# the CLIP model (openai/clip-vit-base-patch32) through `transformers`.
+# Both degrade gracefully when absent, but installing them enables the full
+# 4-layer guardrail and CLIP-based attributes.
+# NOTE: this is the headless server build (no GUI windows). If you need
+# `cv2.imshow`/HighGUI, replace it with `opencv-python>=4.9,<5`.
+# OpenCV 5 no longer ships the Haar cascade XMLs that stage 2 loads, so the
+# guardrail pins the 4.x series.
+opencv-python-headless>=4.9,<5
+transformers>=4.40
+
 # --- Reports (ODT export) -----------------------------------------------------
 odfpy>=1.4.1
 qrcode>=8.0

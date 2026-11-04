@@ -3,9 +3,16 @@
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File setup.ps1
 #   powershell -ExecutionPolicy Bypass -File setup.ps1 --cpu --no-verify
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 --no-frontend
+#   powershell -ExecutionPolicy Bypass -File setup.ps1 --android-build
 #
-# Creates/reuses .venv, installs only missing/outdated packages, activates the
-# venv in this session and runs the project status report at the end.
+# Creates/reuses .venv, installs only missing/outdated Python packages, installs
+# Node dependencies for breed-classifier-react/ and vet-portal/, syncs the built
+# web assets into the Capacitor Android project, activates the venv in this
+# session and runs the project status report at the end.
+#
+# Prerequisites for the Android build (optional): Node.js 22+, JDK 21 and the
+# Android SDK with ANDROID_HOME (or ANDROID_SDK_ROOT) and JAVA_HOME set.
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -68,4 +75,6 @@ Write-Host "[setup] Next steps:"
 Write-Host "    .\.venv\Scripts\Activate.ps1"
 Write-Host "    python scripts\status_report.py"
 Write-Host "    python -m src.verify"
+Write-Host "    cd breed-classifier-react; npm run dev"
+Write-Host "    cd vet-portal; npm run dev"
 exit 0

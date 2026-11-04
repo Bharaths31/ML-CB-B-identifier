@@ -14,6 +14,10 @@ The installer is intentionally safe to re-run on an existing machine:
 
 Linux:   bash setup.sh
 Windows: powershell -ExecutionPolicy Bypass -File setup.ps1
+
+The same run also installs the Node dependencies for ``breed-classifier-react``
+and ``vet-portal`` and syncs the built web assets into the Capacitor Android
+project, so a fresh checkout is ready for both the web and Android builds.
 """
 
 from __future__ import annotations
@@ -44,6 +48,16 @@ PYTORCH_CUDA_INDEXES = [
 ]
 PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/{tag}"
 
+# --- Node / frontend prerequisites -------------------------------------------
+# Vite 5 needs Node 18+; Capacitor 8 (@capacitor/cli 8.6) declares Node 22+.
+MIN_NODE_MAJOR = 18
+MIN_NODE_ANDROID_MAJOR = 22
+NODE_PROJECTS = (
+    ("breed-classifier-react", "farmer web app + Capacitor Android shell"),
+    ("vet-portal", "vet portal web app"),
+)
+ANDROID_PROJECT = os.path.join(PROJECT_ROOT, "breed-classifier-react", "android")
+
 
 class SetupError(RuntimeError):
     """A recoverable setup failure with a user-facing hint."""
@@ -55,6 +69,7 @@ class Requirement:
     name: str
     operator: str
     version: str
+    constraints: tuple[tuple[str, str], ...] = ()
 
     @property
     def normalized(self) -> str:
@@ -83,12 +98,13 @@ def venv_activate_hint() -> str:
 
 
 def run_command(command: list[str], *, timeout: int | None = None,
-                capture: bool = False) -> subprocess.CompletedProcess | None:
+                capture: bool = False,
+                cwd: str | None = None) -> subprocess.CompletedProcess | None:
     """Run a command, converting OS/network/timeout failures into logs."""
     try:
         return subprocess.run(
             command,
-            cwd=PROJECT_ROOT,
+            cwd=cwd or PROJECT_ROOT,
             capture_output=capture,
             text=True,
             timeout=timeout,
@@ -239,9 +255,11 @@ def parse_requirement(line: str) -> Requirement | None:
     if not match:
         return None
     name, rest = match.group(1), match.group(2).strip()
-    op_match = re.match(r"^(===|==|>=|<=|~=|!=|>|<)\s*([A-Za-z0-9_.+!-]+)", rest)
-    if op_match:
-        return Requirement(raw=raw, name=name, operator=op_match.group(1), version=op_match.group(2))
+    constraints = tuple(re.findall(r"(===|==|>=|<=|~=|!=|>|<)\s*([A-Za-z0-9_.+!-]+)", rest))
+    if constraints:
+        operator, version = constraints[0]
+        return Requirement(raw=raw, name=name, operator=operator,
+                           version=version, constraints=constraints)
     return Requirement(raw=raw, name=name, operator="", version="")
 
 
@@ -254,6 +272,7 @@ def read_requirements() -> list[Requirement]:
             "requests>=2.31", "Flask>=3.0", "flask-cors>=4.0",
             "Flask-SocketIO>=5.3", "python-socketio>=5.10", "Werkzeug>=3.0",
             "onnx>=1.16", "onnxruntime>=1.16", "odfpy>=1.4.1", "qrcode>=8.0",
+            "opencv-python-headless>=4.9,<5", "transformers>=4.40",
         ]
         return [req for req in (parse_requirement(item) for item in defaults) if req]
 
@@ -297,13 +316,35 @@ def torch_health(py: str) -> dict:
         return {"ok": False, "version": "", "cuda": False, "error": "Could not parse torch status"}
 
 
+def filter_conflicting_requirements(requirements: Iterable[Requirement],
+                                    installed: dict[str, str]) -> list[Requirement]:
+    """Drop requirements that would fight an equivalent installed package.
+
+    ``opencv-python`` and ``opencv-python-headless`` ship the same ``cv2``
+    module; installing one over the other can corrupt the install.
+    """
+    filtered = []
+    for requirement in requirements:
+        if (requirement.normalized == "opencv-python-headless"
+                and "opencv-python" in installed):
+            log("opencv-python is already installed; skipping opencv-python-headless "
+                "(both provide cv2).")
+            continue
+        filtered.append(requirement)
+    return filtered
+
+
 def package_needs_update(requirement: Requirement, installed: dict[str, str]) -> bool:
     current = installed.get(requirement.normalized)
     if current is None:
         return True
-    if not requirement.operator or not requirement.version:
+    constraints = requirement.constraints or (
+        ((requirement.operator, requirement.version),)
+        if requirement.operator and requirement.version else ()
+    )
+    if not constraints:
         return False
-    return not satisfies(current, requirement.operator, requirement.version)
+    return not all(satisfies(current, op, ver) for op, ver in constraints)
 
 
 def install_packages(py: str, requirements: Iterable[Requirement], *,
@@ -383,7 +424,8 @@ def install_or_update(force_cpu: bool, force_gpu: bool, cuda_tag: str | None,
             log(f"PyTorch needs attention (installed={health.get('version') or 'missing'}, target={target_tag}).")
         else:
             log(f"PyTorch is healthy ({health.get('version')}, CUDA={health.get('cuda')}).")
-        pending = [req.raw for req in other_reqs if package_needs_update(req, installed)]
+        pending = [req.raw for req in filter_conflicting_requirements(other_reqs, installed)
+                   if package_needs_update(req, installed)]
         log("Requirements already satisfied." if not pending else f"Missing/outdated: {', '.join(pending)}")
         return True
 
@@ -403,7 +445,8 @@ def install_or_update(force_cpu: bool, force_gpu: bool, cuda_tag: str | None,
 
     # Refresh inventory after the possible torch install.
     installed = installed_packages(py)
-    pending = [req for req in other_reqs if package_needs_update(req, installed)]
+    pending = [req for req in filter_conflicting_requirements(other_reqs, installed)
+               if package_needs_update(req, installed)]
     if pending:
         log(f"Updating only missing/outdated packages ({len(pending)} of {len(other_reqs)}).")
         if not install_packages(py, pending):
@@ -430,6 +473,158 @@ def run_status_report() -> None:
     run_command([py, STATUS_SCRIPT], timeout=120)
 
 
+def node_install_reason(project_dir: str) -> str | None:
+    """Return why a Node project needs ``npm install``, or None if current."""
+    package_json = os.path.join(project_dir, "package.json")
+    if not os.path.isfile(package_json):
+        return "package.json missing"
+    node_modules = os.path.join(project_dir, "node_modules")
+    if not os.path.isdir(node_modules):
+        return "node_modules missing"
+    marker = os.path.join(node_modules, ".package-lock.json")
+    if not os.path.exists(marker):
+        return "npm install marker missing"
+    newest_manifest = os.path.getmtime(package_json)
+    lock = os.path.join(project_dir, "package-lock.json")
+    if os.path.exists(lock):
+        newest_manifest = max(newest_manifest, os.path.getmtime(lock))
+    if newest_manifest > os.path.getmtime(marker):
+        return "package.json/package-lock.json changed since the last install"
+    return None
+
+
+def install_node_project(npm: str, project_dir: str, reason: str) -> bool:
+    """Install/update one Node project without touching a healthy tree."""
+    has_lock = os.path.exists(os.path.join(project_dir, "package-lock.json"))
+    fresh = reason == "node_modules missing" and has_lock
+    command = [npm, "ci" if fresh else "install",
+               "--no-audit", "--no-fund", "--loglevel=error"]
+    name = os.path.basename(project_dir)
+    log(f"{'Installing' if fresh else 'Updating'} Node dependencies in {name} ({reason})")
+    result = run_command(command, cwd=project_dir, timeout=1800)
+    if result is None or result.returncode != 0:
+        log(f"npm failed in {name}; run `npm install` there manually for details.")
+        return False
+    return True
+
+
+def build_android_apk() -> bool:
+    """Compile the Capacitor Android debug APK when the SDK/JDK are present."""
+    android_dir = ANDROID_PROJECT
+    gradlew = os.path.join(android_dir, "gradlew.bat" if sys.platform == "win32" else "gradlew")
+    if not os.path.exists(gradlew):
+        log("gradlew not found; skipping the Android APK build.")
+        return False
+    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    if not sdk or not os.environ.get("JAVA_HOME"):
+        log("ANDROID_HOME/ANDROID_SDK_ROOT and JAVA_HOME (JDK 21) are required "
+            "to compile the APK; web assets were synced but the APK was not built.")
+        return True
+    log("Building the Android debug APK (gradlew assembleDebug)...")
+    command = [gradlew, "assembleDebug"] if sys.platform == "win32" else ["sh", gradlew, "assembleDebug"]
+    result = run_command(command, cwd=android_dir, timeout=3600)
+    if result is None or result.returncode != 0:
+        log("Android build failed; open breed-classifier-react/android in Android Studio "
+            "or run gradlew assembleDebug there for details.")
+        return False
+    apk = os.path.join(android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
+    if os.path.exists(apk):
+        log(f"Android APK ready: {apk}")
+    return True
+
+
+def sync_android(npm: str, build_apk: bool, force_build: bool = False) -> bool:
+    """Build the web bundle (if missing/stale) and copy it into Android."""
+    project_dir = os.path.join(PROJECT_ROOT, "breed-classifier-react")
+    if force_build or not os.path.isdir(os.path.join(project_dir, "dist")):
+        log("Building the web app before the Capacitor sync...")
+        result = run_command([npm, "run", "build"], cwd=project_dir, timeout=900)
+        if result is None or result.returncode != 0:
+            log("Web build failed; skipping the Capacitor sync.")
+            return False
+    npx = shutil.which("npx")
+    if not npx:
+        log("npx not found; skipping the Capacitor sync.")
+        return False
+    log("Syncing web assets into the Android project (npx cap sync android)...")
+    result = run_command([npx, "cap", "sync", "android"], cwd=project_dir, timeout=900)
+    if result is None or result.returncode != 0:
+        log("Capacitor sync failed; the Android project was left intact.")
+        return False
+    if build_apk:
+        return build_android_apk()
+    log("Android web assets synced (pass --android-build to compile the debug APK).")
+    return True
+
+
+def setup_frontend(check_only: bool = False, skip_android: bool = False,
+                   android_build: bool = False) -> bool:
+    """Install Node dependencies and refresh the Capacitor Android project.
+
+    Missing Node.js is a warning, not a failure: the Python app works without
+    the web apps, and a fresh checkout may not have Node installed yet.
+    """
+    node = shutil.which("node")
+    npm = shutil.which("npm")
+    if not node or not npm:
+        log("Node.js/npm not found; skipping frontend/Android dependencies.")
+        log("Install Node.js 22+ (https://nodejs.org) and re-run setup to prepare the web apps.")
+        return True
+
+    node_version = command_version(node, "--version")
+    npm_version = command_version(npm, "--version")
+    node_major = major_version(node_version)
+    log(f"Node.js {node_version or '?'} / npm {npm_version or '?'}")
+    if node_major is not None and node_major < MIN_NODE_MAJOR:
+        log(f"Node.js >= {MIN_NODE_MAJOR} is required by Vite {npm_version or ''}; "
+            "upgrade Node.js and re-run.")
+        return False
+
+    ok = True
+    changed = False
+    for name, description in NODE_PROJECTS:
+        project_dir = os.path.join(PROJECT_ROOT, name)
+        if not os.path.isfile(os.path.join(project_dir, "package.json")):
+            log(f"Skipping {name}: package.json not found ({description}).")
+            continue
+        reason = node_install_reason(project_dir)
+        if check_only:
+            log(f"{name}: {'dependencies up to date' if reason is None else reason}")
+        elif reason is not None:
+            changed = True
+            if not install_node_project(npm, project_dir, reason):
+                ok = False
+                break
+
+    if not ok or skip_android:
+        return ok
+    if not os.path.isdir(ANDROID_PROJECT):
+        log("Capacitor Android project not found; skipping the Android sync.")
+        return True
+    if node_major is not None and node_major < MIN_NODE_ANDROID_MAJOR:
+        log(f"Capacitor 8 needs Node.js >= {MIN_NODE_ANDROID_MAJOR}; skipping the Android "
+            "sync (upgrade Node.js to build the APK).")
+        return True
+    if check_only:
+        log("Android: Capacitor project present; run setup without --check to sync "
+            "the built web assets.")
+        return True
+    return sync_android(npm, android_build, force_build=changed)
+
+
+def command_version(command: str, *args: str) -> str | None:
+    result = run_command([command, *args], capture=True, timeout=30)
+    if result is None or result.returncode != 0:
+        return None
+    lines = (result.stdout or "").strip().splitlines()
+    return lines[0] if lines else None
+
+
+def major_version(version: str | None) -> int | None:
+    match = re.match(r"v?(\d+)", version or "")
+    return int(match.group(1)) if match else None
+
+
 def print_activation_hint() -> None:
     hint = venv_activate_hint()
     print()
@@ -445,6 +640,11 @@ def print_activation_hint() -> None:
     print("    python -m src.evaluate --help        # evaluation")
     print("    python -m src.export --help          # export")
     print("    python scripts/status_report.py      # project/git/model/venv report")
+    print()
+    print("Web / Android apps (dependencies are installed by this setup):")
+    print("    cd breed-classifier-react && npm run dev        # farmer web app")
+    print("    cd vet-portal && npm run dev                    # vet portal")
+    print("    cd breed-classifier-react && npm run android:assemble")
 
 
 def main() -> int:
@@ -464,6 +664,12 @@ def main() -> int:
                         help="Report missing/outdated packages without changing anything")
     parser.add_argument("--report", action="store_true",
                         help="Run the project status report after setup")
+    parser.add_argument("--no-frontend", action="store_true",
+                        help="Skip the Node/npm installs for breed-classifier-react and vet-portal")
+    parser.add_argument("--no-android", action="store_true",
+                        help="Skip `npx cap sync android` (implies leaving the APK untouched)")
+    parser.add_argument("--android-build", action="store_true",
+                        help="After the sync, run gradlew assembleDebug (needs JDK 21 + Android SDK)")
     args = parser.parse_args()
 
     if not check_python():
@@ -473,31 +679,51 @@ def main() -> int:
     if not args.check and not ensure_pip(venv_python(), upgrade=args.reinstall):
         return 1
 
-    if args.check and not os.path.exists(venv_python()):
+    venv_ready = os.path.exists(venv_python())
+    if args.check and not venv_ready:
         log("Virtual environment does not exist yet; run setup to create it.")
+
+    if not args.check or venv_ready:
+        try:
+            if not install_or_update(
+                force_cpu=args.force_cpu,
+                force_gpu=args.force_gpu,
+                cuda_tag=args.cuda_tag,
+                reinstall=args.reinstall,
+                check_only=args.check,
+            ):
+                return 1
+        except SetupError as exc:
+            log(str(exc))
+            return 1
+        except KeyboardInterrupt:
+            log("Setup interrupted by user.")
+            return 130
+        except Exception as exc:  # last-resort guard: never dump a raw traceback
+            log(f"Unexpected setup error: {type(exc).__name__}: {exc}")
+            log("The venv was left intact. Re-run with --reinstall if the package state is corrupt.")
+            return 1
+
+    if not args.no_frontend:
+        try:
+            if not setup_frontend(
+                check_only=args.check,
+                skip_android=args.no_android,
+                android_build=args.android_build,
+            ):
+                return 1
+        except KeyboardInterrupt:
+            log("Setup interrupted by user.")
+            return 130
+        except Exception as exc:
+            log(f"Frontend setup failed: {type(exc).__name__}: {exc}")
+            return 1
+
+    if args.check:
+        log("Check complete; no changes were made.")
         return 0
 
-    try:
-        if not install_or_update(
-            force_cpu=args.force_cpu,
-            force_gpu=args.force_gpu,
-            cuda_tag=args.cuda_tag,
-            reinstall=args.reinstall,
-            check_only=args.check,
-        ):
-            return 1
-    except SetupError as exc:
-        log(str(exc))
-        return 1
-    except KeyboardInterrupt:
-        log("Setup interrupted by user.")
-        return 130
-    except Exception as exc:  # last-resort guard: never dump a raw traceback
-        log(f"Unexpected setup error: {type(exc).__name__}: {exc}")
-        log("The venv was left intact. Re-run with --reinstall if the package state is corrupt.")
-        return 1
-
-    if not args.check and not args.no_verify:
+    if not args.no_verify:
         try:
             if not run_verification():
                 log("Verification failed. The venv is intact; fix the reported issue and re-run.")

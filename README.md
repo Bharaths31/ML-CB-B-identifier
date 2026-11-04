@@ -268,9 +268,12 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 # or: setup.bat
 ```
 
-The smart setup creates/reuses `.venv`, installs only missing/outdated packages,
-handles CPU/GPU PyTorch selection, activates the environment and prints a
-project status report (git, VERSION.txt, active/newest model, venv health).
+The smart setup creates/reuses `.venv`, installs only missing/outdated Python
+packages (including the OpenCV guardrail and CLIP/transformers extras), handles
+CPU/GPU PyTorch selection, installs the Node dependencies for
+`breed-classifier-react/` and `vet-portal/`, syncs the built web assets into the
+Capacitor Android project, activates the environment and prints a project status
+report (git, VERSION.txt, active/newest model, venv health).
 
 Then run the full pipeline (or use `local_train.py` to do setup + training):
 ```powershell
@@ -326,10 +329,13 @@ bash setup.sh
 bash setup.sh --check
 ```
 
-The smart setup creates/reuses `.venv`, installs only missing/outdated packages,
-handles CPU/GPU PyTorch selection, activates the environment in the current
-shell and prints a project status report (git, VERSION.txt, active/newest model,
-venv health).
+The smart setup creates/reuses `.venv`, installs only missing/outdated Python
+packages (including the OpenCV guardrail and CLIP/transformers extras), handles
+CPU/GPU PyTorch selection, installs the Node dependencies for
+`breed-classifier-react/` and `vet-portal/`, syncs the built web assets into the
+Capacitor Android project, activates the environment in the current shell and
+prints a project status report (git, VERSION.txt, active/newest model, venv
+health).
 
 Then run the full pipeline (or use `local_train.py` to do setup + training):
 ```bash
@@ -351,8 +357,23 @@ installs only missing/outdated packages. It does not wipe a working environment.
 | `setup.sh` | Linux/macOS wrapper: run installer, activate venv, print status report |
 | `setup.ps1` | Windows PowerShell wrapper with the same behaviour |
 | `setup.bat` | Windows batch wrapper |
-| `setup_venv.py` | Core installer: venv creation, package diffing, PyTorch backend selection, error handling |
+| `setup_venv.py` | Core installer: Python venv/package diffing, Node/npm installs, Capacitor sync, PyTorch backend selection, error handling |
 | `scripts/status_report.py` | Git / VERSION.txt / model / venv / package health report |
+
+Node.js is required only for the web/Android apps: **Node 22+** for Capacitor 8
+(the web apps alone need Node 18+). If Node is missing, the installer still
+completes the Python setup and prints a warning instead of failing.
+
+| Frontend / Android prerequisite | Needed for |
+|---|---|
+| Node.js 22+ and npm | `breed-classifier-react`, `vet-portal`, Capacitor CLI |
+| JDK 21 (`JAVA_HOME`) | Compiling the Android APK |
+| Android SDK (`ANDROID_HOME` or `ANDROID_SDK_ROOT`) | Compiling the Android APK |
+| `adb` (platform-tools) | Installing the APK on a device |
+
+`npx cap sync android` only copies the built web bundle into the Android
+project; it does not need the SDK. Add `--android-build` to also run
+`gradlew assembleDebug` when the JDK/SDK are configured.
 
 ### Environment Setup — Linux / macOS
 
@@ -381,12 +402,15 @@ python scripts/status_report.py
 Useful setup modes:
 
 ```bash
-bash setup.sh --check                 # show missing/outdated packages, change nothing
+bash setup.sh --check                 # show missing/outdated Python + Node deps, change nothing
 bash setup.sh --cpu                   # force CPU PyTorch
 bash setup.sh --gpu                   # force GPU PyTorch (defaults to cu124)
 bash setup.sh --cuda-tag cu121        # explicit PyTorch CUDA wheel tag
 bash setup.sh --reinstall             # repair torch + refresh all requirements
 bash setup.sh --no-verify             # skip src.verify
+bash setup.sh --no-frontend           # Python only; skip Node/npm/Capacitor
+bash setup.sh --no-android            # install Node deps, skip `npx cap sync android`
+bash setup.sh --android-build         # sync + compile the debug APK (needs JDK 21 + Android SDK)
 bash setup.sh --report                # run status report from setup_venv.py too
 ```
 
@@ -434,6 +458,8 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 --check
 powershell -ExecutionPolicy Bypass -File setup.ps1 --cpu
 powershell -ExecutionPolicy Bypass -File setup.ps1 --cuda-tag cu121
 powershell -ExecutionPolicy Bypass -File setup.ps1 --reinstall
+powershell -ExecutionPolicy Bypass -File setup.ps1 --no-frontend
+powershell -ExecutionPolicy Bypass -File setup.ps1 --android-build
 ```
 
 If PowerShell blocks scripts, use the per-process bypass shown above or run
@@ -451,6 +477,9 @@ If PowerShell blocks scripts, use the per-process bypass shown above or run
 | `--cuda-tag TAG` | auto | Explicit wheel tag: `cu118`, `cu121`, `cu124`, or `cpu` |
 | `--reinstall` | off | Reinstall PyTorch and refresh all requirements |
 | `--no-verify` | off | Skip `python -m src.verify` |
+| `--no-frontend` | off | Skip the Node/npm installs for `breed-classifier-react` and `vet-portal` |
+| `--no-android` | off | Skip `npx cap sync android` (web deps are still installed) |
+| `--android-build` | off | After the sync, run `gradlew assembleDebug` (requires JDK 21 + Android SDK) |
 | `--report` | off | Run `scripts/status_report.py` after setup |
 
 What the installer does internally:
@@ -462,8 +491,12 @@ What the installer does internally:
 5. Detects NVIDIA/CUDA and selects the matching PyTorch wheel.
 6. Reinstalls PyTorch only if missing, broken, outdated, or backend-mismatched.
 7. Installs only missing/outdated non-PyTorch packages.
-8. Runs verification unless `--no-verify`.
-9. Prints OS-specific activation instructions.
+8. Checks Node/npm, then runs `npm ci` (fresh tree) or `npm install` (only when
+   `package.json`/`package-lock.json` changed) in each frontend project.
+9. Builds the web bundle if `dist/` is missing and runs `npx cap sync android`.
+10. Optionally builds the APK with `--android-build`.
+11. Runs verification unless `--no-verify`.
+12. Prints OS-specific activation instructions.
 
 ### Status Report
 
@@ -1325,6 +1358,19 @@ pip install torch>=2.1.0 torchvision>=0.16.0
 pip install numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
 ```
 
+Or install everything at once (includes ONNX Runtime, the OpenCV guardrail and
+CLIP/transformers attributes):
+```cmd
+pip install -r requirements.txt
+```
+
+**Step 2b — Optional web / Android dependencies (Node.js 22+):**
+```cmd
+npm install --prefix breed-classifier-react
+npm install --prefix vet-portal
+cd breed-classifier-react && npx cap sync android
+```
+
 **Step 3 — Download dataset:**
 ```cmd
 curl -L -o breed-cattle-buffalo.zip https://www.kaggle.com/api/v1/datasets/download/algsoch/breed-cattle-buffalo
@@ -1366,9 +1412,16 @@ pip install torch>=2.1.0 torchvision>=0.16.0
 pip install numpy pandas matplotlib scikit-learn tqdm Pillow requests onnx
 ```
 
-Or install everything at once:
+Or install everything at once (includes ONNX Runtime, the OpenCV guardrail and
+CLIP/transformers attributes):
 ```bash
 pip install -r requirements.txt
+```
+
+Optional web / Android dependencies (Node.js 22+):
+```bash
+cd breed-classifier-react && npm install && npx cap sync android && cd ..
+cd vet-portal && npm install && cd ..
 ```
 
 

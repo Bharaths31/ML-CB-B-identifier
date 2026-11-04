@@ -6,10 +6,17 @@ with a Settings drawer. `/dev` is not routed on Android.
 
 ## Prerequisites
 
-- Node 18+
+- Node 22+ (Capacitor 8 requirement; the web build alone needs Node 18+)
 - JDK 21
 - Android SDK (platform 36+, build-tools 36+)
 - A device with USB debugging, or an emulator
+
+The repository setup script does the Node install and Capacitor sync for you:
+
+```bash
+bash setup.sh                 # or setup.ps1 / setup.bat on Windows
+bash setup.sh --android-build # also compile the debug APK (JDK + SDK required)
+```
 
 Set the SDK/JDK for a terminal:
 

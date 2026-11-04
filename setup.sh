@@ -2,9 +2,18 @@
 # Smart, re-runnable Linux/macOS setup wrapper.
 #
 # - creates or reuses .venv
-# - installs only missing/outdated dependencies
+# - installs only missing/outdated Python dependencies
+# - installs Node dependencies for breed-classifier-react/ and vet-portal/
+# - builds the web app (when needed) and syncs it into the Android project
 # - never exits before printing the project status report
 # - works both when executed (`bash setup.sh`) and sourced (`source setup.sh`)
+#
+# Usage:
+#   bash setup.sh                     # Python + frontend + Capacitor sync
+#   bash setup.sh --cpu --no-verify   # CPU PyTorch, skip model verification
+#   bash setup.sh --no-frontend       # Python only
+#   bash setup.sh --no-android        # frontend deps, no Capacitor sync
+#   bash setup.sh --android-build     # also compile the debug APK
 #
 # Windows: use setup.ps1 or setup.bat.
 set -u
@@ -120,4 +129,6 @@ echo "[setup] Next steps:"
 echo "    source .venv/bin/activate"
 echo "    python scripts/status_report.py"
 echo "    python -m src.verify"
+echo "    cd breed-classifier-react && npm run dev"
+echo "    cd vet-portal && npm run dev"
 exit 0
