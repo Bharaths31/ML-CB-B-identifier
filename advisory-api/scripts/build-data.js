@@ -81,6 +81,7 @@ function compactEntry(entry, species) {
       hi: local.hi || entry.display_name,
     },
     origin: entry.origin_region || "",
+    utility_type: normalizeUtility(entry.utility_type),
     utility: normalizeUtility(entry.utility_type),
     milk_yield: milk.daily_liters
       ? {

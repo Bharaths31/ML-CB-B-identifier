@@ -703,6 +703,7 @@ function breedFacts(entry, lang) {
     species: entry.species,
     origin: entry.origin,
     utility: UTILITY[lang]?.[entry.utility] || entry.utility,
+    utility_type: UTILITY[lang]?.[entry.utility] || entry.utility,
     milk_yield: entry.milk_yield
       ? {
           daily_liters: entry.milk_yield.daily_liters,
