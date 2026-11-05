@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BreedID Advisory API</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07110d;
+      --panel: #0e1a15;
+      --panel-2: #12231b;
+      --line: #233a2e;
+      --text: #eef7f1;
+      --muted: #9bb8a7;
+      --green: #4ade80;
+      --green-2: #22c55e;
+      --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(900px 500px at 15% -10%, #123326 0%, transparent 60%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 40px 20px 64px; }
+    .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .logo {
+      width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center;
+      background: linear-gradient(145deg, #163b29, #0b1a13); border: 1px solid #2a4b39;
+      font-size: 26px;
+    }
+    h1 { font-size: clamp(28px, 4vw, 42px); margin: 0; letter-spacing: -0.03em; }
+    .sub { color: var(--muted); margin: 6px 0 0; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 999px;
+      background: #0d2118; border: 1px solid #234535; color: #c9f7d9; font-size: 13px; font-weight: 600;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; margin-top: 26px; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: linear-gradient(180deg, rgba(20, 40, 31, .94), rgba(12, 26, 20, .94));
+      border: 1px solid var(--line); border-radius: 18px; padding: 20px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, .22);
+    }
+    .card h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: -0.01em; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+    label { display: block; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 6px; }
+    input, select {
+      width: 100%; padding: 11px 12px; border-radius: 11px; border: 1px solid #2a4637;
+      background: #0a1711; color: var(--text); font-size: 15px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--green-2); box-shadow: 0 0 0 3px rgba(34, 197, 94, .14); }
+    .field { margin-bottom: 13px; }
+    button {
+      width: 100%; border: 0; border-radius: 12px; padding: 13px 16px; margin-top: 4px;
+      background: linear-gradient(135deg, #4ade80, #22c55e); color: #052e16; font-size: 15px; font-weight: 800;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .65; cursor: wait; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .examples a {
+      color: #bff7d0; text-decoration: none; font-size: 12px; padding: 7px 10px;
+      border: 1px solid #2a4b39; border-radius: 999px; background: #0d2118;
+    }
+    .examples a:hover { border-color: var(--green); }
+    .out { min-height: 240px; }
+    .status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid #2a4b39; border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .advisory-title { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; }
+    .advisory-summary { color: #c8ded2; line-height: 1.55; margin: 0 0 16px; }
+    .pill { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #86efac; background: #123322; border: 1px solid #245c3b; border-radius: 999px; padding: 5px 9px; margin-bottom: 10px; }
+    .card-item { border-top: 1px solid #203a2c; padding: 13px 0; }
+    .card-item h3 { margin: 0 0 5px; font-size: 15px; color: #d8ffe5; }
+    .card-item p { margin: 0; color: #a9c7b7; line-height: 1.5; font-size: 14px; }
+    .facts { margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .facts b { color: #d7f5e3; }
+    .error { color: #fecaca; background: #2a1113; border: 1px solid #7f1d1d; padding: 12px; border-radius: 10px; font-size: 14px; }
+    .footer { margin-top: 26px; color: #6f8b7c; font-size: 12px; line-height: 1.6; }
+    code { color: #b7f7c9; background: #0b1b13; border: 1px solid #234535; border-radius: 6px; padding: 2px 6px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand">
+      <div class="logo" aria-hidden="true">🐄</div>
+      <div>
+        <h1>BreedID Advisory API</h1>
+        <p class="sub">Free breed tips and farmer advisory for 68 cattle and buffalo breeds.</p>
+        <div class="badges">
+          <span class="badge"><span class="dot"></span> Live</span>
+          <span class="badge">68 breeds</span>
+          <span class="badge">CORS enabled</span>
+          <span class="badge">No API key</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Try the advisory</h2>
+        <form id="form">
+          <div class="row">
+            <div class="field">
+              <label for="species">Species</label>
+              <select id="species">
+                <option value="Cattle">Cattle</option>
+                <option value="Buffalo">Buffalo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="breed">Breed slug</label>
+              <input id="breed" value="gir" autocomplete="off" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="gender">Gender</label>
+              <select id="gender">
+                <option>Female</option>
+                <option>Male</option>
+                <option>Unknown</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="age">Age group</label>
+              <select id="age">
+                <option>Adult</option>
+                <option>Young</option>
+                <option>Calf</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="lang">Language</label>
+            <select id="lang">
+              <option value="en">English</option>
+              <option value="ta">தமிழ்</option>
+              <option value="hi">हिन्दी</option>
+            </select>
+          </div>
+          <button id="go" type="submit">Get Breed Advisory</button>
+        </form>
+        <div class="examples">
+          <a href="?species=Cattle&breed=gir&gender=Female&age=Adult&lang=en">Gir · female · adult</a>
+          <a href="?species=Buffalo&breed=murrah&gender=Female&age=Adult&lang=en">Murrah · female · adult</a>
+          <a href="?species=Cattle&breed=hallikar&gender=Male&age=Calf&lang=en">Hallikar · male · calf</a>
+        </div>
+      </div>
+
+      <div class="card out" id="out">
+        <h2>Response</h2>
+        <div class="status"><span class="spinner"></span> Loading a live advisory…</div>
+      </div>
+    </section>
+
+    <p class="footer">
+      Endpoint: <code>/api/advisory?species=Cattle&amp;breed=gir&amp;gender=Female&amp;age=Adult&amp;lang=en</code><br />
+      Static knowledge base · NBAGR/ICAR breed descriptions · typical ranges only. Confirm feed, prices and vaccination timing locally.
+    </p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const form = $("form");
+    const out = $("out");
+    const go = $("go");
+
+    function render(data) {
+      const a = data.advisory || {};
+      const b = data.breed || {};
+      const cards = (a.cards || []).map((card) => `
+        <div class="card-item">
+          <h3>${escapeHtml(card.title)}</h3>
+          <p>${escapeHtml(card.body)}</p>
+        </div>`).join("");
+      const schemes = (a.schemes?.items || []).map((item) =>
+        `<li><b>${escapeHtml(item.name)}</b>${item.description ? ` — ${escapeHtml(item.description)}` : ""}</li>`
+      ).join("");
+      out.innerHTML = `
+        <h2>Response</h2>
+        <span class="pill">${escapeHtml(b.utility_type || "")}</span>
+        <h3 class="advisory-title">${escapeHtml(b.name || data.query.breed)}</h3>
+        <p class="advisory-summary">${escapeHtml(a.summary || "")}</p>
+        <div class="facts"><b>${escapeHtml(a.title || "")}</b></div>
+        ${cards}
+        ${schemes ? `<div class="card-item"><h3>${escapeHtml(a.schemes?.title || "Schemes")}</h3><ul>${schemes}</ul></div>` : ""}
+        <div class="facts">
+          <b>Origin:</b> ${escapeHtml(b.origin || "—")}<br />
+          <b>Market price:</b> ${escapeHtml(b.market_price || "—")}<br />
+          <b>Language:</b> ${escapeHtml(data.query.lang)} · <b>Latency:</b> ${data.meta.latency_ms} ms
+        </div>
+        <p class="footer">${escapeHtml(a.disclaimer || data.meta.disclaimer || "")}</p>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[char]));
+    }
+
+    async function load() {
+      const params = new URLSearchParams({
+        species: $("species").value,
+        breed: $("breed").value.trim(),
+        gender: $("gender").value,
+        age: $("age").value,
+        lang: $("lang").value,
+      });
+      go.disabled = true;
+      out.innerHTML = `<h2>Response</h2><div class="status"><span class="spinner"></span> Loading ${escapeHtml(params.get("breed"))}…</div>`;
+      try {
+        const response = await fetch(`/api/advisory?${params.toString()}`);
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
+        render(data);
+      } catch (error) {
+        out.innerHTML = `<h2>Response</h2><div class="error"><b>Could not load advisory.</b><br />${escapeHtml(error.message)}</div>`;
+      } finally {
+        go.disabled = false;
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      load();
+    });
+
+    const query = new URLSearchParams(window.location.search);
+    for (const key of ["species", "breed", "gender", "age", "lang"]) {
+      if (query.get(key)) {
+        const el = $(key);
+        if (el) el.value = query.get(key);
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
