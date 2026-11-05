@@ -712,7 +712,10 @@ function breedFacts(entry, lang) {
         }
       : null,
     physical_markers: entry.physical_markers,
+    feeding: entry.feeding,
+    climate: entry.climate,
     market_price: formatPrice(entry, lang),
+    price_range_inr: entry.price_range_inr,
     schemes: localizedSchemes(entry.scheme_codes, lang),
     labels: copy.labels,
   };

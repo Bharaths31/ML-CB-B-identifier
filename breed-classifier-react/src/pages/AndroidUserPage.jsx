@@ -372,10 +372,6 @@ export default function AndroidUserPage() {
       setToast(t("android.offlineTips"));
       return;
     }
-    if (backendStatus !== "connected") {
-      setToast(t("android.backendUnavailable"));
-      return;
-    }
     setTipsOpen(true);
   };
 

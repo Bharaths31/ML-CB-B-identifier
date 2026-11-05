@@ -85,32 +85,33 @@ npm run build:data
 
 ## Deploy to Vercel (free)
 
-Run from the `advisory-api` folder:
+The live production endpoint for this repository is:
+
+```text
+https://advisory-api-rho.vercel.app/api/advisory
+```
+
+It is already used as the default in
+`breed-classifier-react/src/services/onlineAdvisory.js`.
+
+To deploy future changes yourself, run from the `advisory-api` folder:
 
 ```powershell
 cd advisory-api
 npm i -g vercel
 vercel login
-vercel
+vercel --prod
 ```
 
-Accept the defaults. The first deploy is a preview; promote it to production:
+Accept the defaults. The project is already linked in `.vercel/` after the first
+deployment, so later deploys only need:
 
 ```powershell
 vercel --prod
 ```
 
-Vercel prints the live URL, for example:
-
-```text
-https://breedid-advisory.vercel.app
-```
-
-Your endpoint is then:
-
-```text
-https://breedid-advisory.vercel.app/api/advisory
-```
+Vercel prints the production URL. The current alias is
+`https://advisory-api-rho.vercel.app`.
 
 No environment variables, database, model, or paid add-on is required. The only
 runtime dependency is Node.js 20+ (provided by Vercel).
@@ -136,7 +137,7 @@ const tips = await fetchAdvisoryData(
   gender.key,              // "Female" | "Male" | "Unknown"
   age.key,                 // "Calf" | "Young" | "Adult"
   settings.language,       // "en" | "ta" | "hi"
-  "https://breedid-advisory.vercel.app/api/advisory",
+  "https://advisory-api-rho.vercel.app/api/advisory",
 );
 
 if (tips.ok) {
@@ -151,7 +152,7 @@ if (tips.ok) {
 Set the default in `breed-classifier-react/.env` (optional):
 
 ```text
-VITE_ADVISORY_API_URL=https://breedid-advisory.vercel.app/api/advisory
+VITE_ADVISORY_API_URL=https://advisory-api-rho.vercel.app/api/advisory
 ```
 
 ## Data notes

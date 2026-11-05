@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
-import { fetchBreedKnowledgeOnline } from "../services/onDeviceInference.js";
+import {
+  DEFAULT_ADVISORY_API_URL,
+  fetchAdvisoryData,
+} from "../services/onlineAdvisory.js";
 
 function KeyValues({ data }) {
   if (!data || typeof data !== "object") return null;
@@ -22,7 +25,20 @@ function KeyValues({ data }) {
 
 function List({ items }) {
   if (!Array.isArray(items) || !items.length) return null;
-  return <ul className="tips-list">{items.map((item, index) => <li key={index}>{item}</li>)}</ul>;
+  return (
+    <ul className="tips-list">
+      {items.map((item, index) => (
+        <li key={index}>
+          {typeof item === "string" ? item : (
+            <>
+              <strong>{item.name}</strong>
+              {item.description ? ` — ${item.description}` : ""}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default function BreedTipsModal({ open, onClose, settings, result, gender, ageGroup }) {
@@ -33,23 +49,31 @@ export default function BreedTipsModal({ open, onClose, settings, result, gender
     if (!open || !result) return undefined;
     let cancelled = false;
     setState({ loading: true, error: null, data: null });
-    fetchBreedKnowledgeOnline({
-      settings,
-      species: result.species,
-      breedSlug: result.breed_slug,
+    const apiUrl = settings?.advisoryApiUrl || DEFAULT_ADVISORY_API_URL;
+    fetchAdvisoryData(
+      result.species,
+      result.breed_slug,
       gender,
       ageGroup,
-    })
-      .then((data) => {
+      settings?.language || "en",
+      apiUrl,
+    )
+      .then((payload) => {
         if (cancelled) return;
-        if (!data.available) {
-          setState({ loading: false, error: data.reason || "offline", data: null });
+        if (!payload?.ok) {
+          setState({ loading: false, error: payload, data: null });
           return;
         }
-        setState({ loading: false, error: null, data });
+        setState({ loading: false, error: null, data: payload });
       })
       .catch((err) => {
-        if (!cancelled) setState({ loading: false, error: err.message, data: null });
+        if (!cancelled) {
+          setState({
+            loading: false,
+            error: { message: err.message, error: "advisory_network_error" },
+            data: null,
+          });
+        }
       });
     return () => { cancelled = true; };
   }, [open, result, settings, gender, ageGroup]);
@@ -63,32 +87,23 @@ export default function BreedTipsModal({ open, onClose, settings, result, gender
 
   if (!open) return null;
 
+  const breed = state.data?.breed || {};
   const advisory = state.data?.advisory || {};
-  const knowledge = state.data?.knowledge || {};
-  const breed = advisory.breed || knowledge.breed || {};
+  const cards = Array.isArray(advisory.cards) ? advisory.cards : [];
+  const schemes = advisory.schemes?.items || breed.schemes || [];
+  const vaccination = advisory.vaccination_schedule;
+  const context = advisory.context || {};
+  const marketPrice = breed.market_price || "";
+  const milk = breed.milk_yield;
+  const feeding = breed.feeding || {};
+  const climate = breed.climate || {};
   const localNames = breed.local_names || {};
 
-  const fieldTips = [
+  const fallbackTips = [
     "Photograph the full side profile in daylight, 2–3 m away, with the animal filling the frame.",
-    ...(advisory.priority_actions || []),
+    "Provide clean water and a mineral mixture daily, and record milk yield to spot sudden drops.",
+    "Keep vaccination and deworming dates in a notebook or phone reminder.",
   ];
-  const genderKey = String(gender || "").toLowerCase();
-  const ageKey = String(ageGroup || "").toLowerCase();
-  if (genderKey.includes("female") && ageKey.includes("adult")) {
-    fieldTips.push("Check the udder daily for heat, swelling or clots; use the CMT monthly for mastitis.");
-  } else if (genderKey.includes("female") && (ageKey.includes("young") || ageKey.includes("calf"))) {
-    fieldTips.push("Record heat cycles and target breeding weight; do not breed before the breed's recommended age.");
-  } else if (genderKey.includes("male") && ageKey.includes("adult")) {
-    fieldTips.push("Inspect the yoke, harness and hooves before work; provide shade and water during draught use.");
-  } else if (ageKey.includes("calf")) {
-    fieldTips.push("Colostrum within 1–2 hours, then 10% of body weight in milk daily; keep bedding dry.");
-  }
-  if (String(result?.species || "").toLowerCase().includes("buff")) {
-    fieldTips.push("Buffaloes need shade and wallowing water in hot weather; bathe before milking for cleaner milk.");
-  }
-  fieldTips.push("Provide clean water and a mineral mixture daily, and record milk yield to spot sudden drops.");
-  if (advisory.warning) fieldTips.push(advisory.warning);
-  const uniqueTips = Array.from(new Set(fieldTips.filter(Boolean)));
 
   return (
     <div className="tips-overlay" role="presentation" onClick={onClose}>
@@ -96,8 +111,8 @@ export default function BreedTipsModal({ open, onClose, settings, result, gender
         <header className="tips-head">
           <div>
             <span className="workspace-kicker">Breed Tips & Farmer Advisory</span>
-            <h2>{tBreed(result?.breed_slug) || result?.breed || "Breed"}</h2>
-            <p>{breed.utility_type || ""} {localNames.en && localNames.en !== breed.display_name ? `· ${localNames.en}` : ""}</p>
+            <h2>{breed.name || tBreed(result?.breed_slug) || result?.breed || "Breed"}</h2>
+            <p>{breed.utility_type || ""}</p>
           </div>
           <button type="button" className="settings-close" onClick={onClose} aria-label="Close">✕</button>
         </header>
@@ -106,30 +121,34 @@ export default function BreedTipsModal({ open, onClose, settings, result, gender
 
         {!state.loading && state.error && (
           <div className="tips-offline">
-            <strong>📡 Offline Mode Active</strong>
-            <p>
-              Turn ON “Online Mode” in Settings and connect to the internet to load detailed
-              Breed Tips & Farmer Advisory data.
-            </p>
+            <strong>📡 {state.error.offline ? "Offline Mode Active" : "Breed tips unavailable"}</strong>
+            <p>{state.error.message || "The on-device result is still valid. Check your connection and try again."}</p>
             <div className="tips-offline-tips">
               <strong>Quick tips while offline</strong>
-              <List items={uniqueTips.slice(0, 4)} />
+              <List items={fallbackTips} />
             </div>
-            {state.error !== "offline_mode" && <small>{StateError(state.error)}</small>}
+            {state.error.error && <small>{state.error.error}</small>}
           </div>
         )}
 
         {!state.loading && !state.error && state.data && (
           <div className="tips-body">
             <section className="tips-section tips-highlight">
-              <h3>💡 Practical tips for this animal</h3>
-              <List items={uniqueTips} />
+              <h3>💡 {advisory.title}</h3>
+              <p>{advisory.summary}</p>
             </section>
+
+            {cards.map((card) => (
+              <section className="tips-section" key={card.id}>
+                <h3>{card.title}</h3>
+                <p>{card.body}</p>
+              </section>
+            ))}
 
             <section className="tips-section">
               <h3>🌍 Origin & Identity</h3>
               <KeyValues data={{
-                origin: breed.origin_region,
+                origin: breed.origin,
                 utility: breed.utility_type,
                 local_names: localNames.en || undefined,
               }} />
@@ -137,45 +156,57 @@ export default function BreedTipsModal({ open, onClose, settings, result, gender
 
             <section className="tips-section">
               <h3>🥛 Milk, Yield & Economics</h3>
-              <KeyValues data={advisory.production || knowledge.production} />
-              <KeyValues data={advisory.economics || knowledge.economics} />
-              {knowledge.estimated_market_price_inr && (
-                <p className="tips-note">Market price: {knowledge.estimated_market_price_inr}</p>
+              {context.milk_yield_visible && milk ? (
+                <KeyValues data={{
+                  daily_liters: milk.daily_liters,
+                  lactation_yield: milk.lactation_yield,
+                  fat_percentage: milk.fat_percentage,
+                }} />
+              ) : (
+                <p className="tips-note">Milk yield is hidden for this gender/age group.</p>
               )}
+              {marketPrice && <p className="tips-note">Market price: {marketPrice}</p>}
             </section>
 
             <section className="tips-section">
               <h3>🌾 Fodder & Feeding</h3>
-              <KeyValues data={advisory.nutrition || knowledge.feeding_and_care} />
+              <KeyValues data={feeding} />
             </section>
 
             <section className="tips-section">
               <h3>🛡️ Health & Disease Resistance</h3>
-              <KeyValues data={advisory.health || knowledge.climate_and_disease_resistance} />
-              <List items={advisory.health?.watch_for || knowledge.climate_and_disease_resistance?.watch_for} />
+              <KeyValues data={climate} />
             </section>
+
+            {vaccination?.items?.length > 0 && (
+              <section className="tips-section">
+                <h3>💉 {vaccination.title}</h3>
+                <div className="tips-kv">
+                  {vaccination.items.map((item, index) => (
+                    <div className="tips-kv-row" key={index}>
+                      <span>{item.age}</span>
+                      <strong>{item.item}{item.note ? ` — ${item.note}` : ""}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="tips-section">
-              <h3>🏛️ Government Schemes</h3>
-              <List items={advisory.schemes || knowledge.govt_schemes} />
+              <h3>🏛️ {advisory.schemes?.title || "Government Schemes"}</h3>
+              <p className="tips-note">{advisory.schemes?.note}</p>
+              <List items={schemes} />
             </section>
 
-            {advisory.warning && <p className="tips-note">{advisory.warning}</p>}
             {advisory.disclaimer && <p className="tips-note tips-disclaimer">{advisory.disclaimer}</p>}
           </div>
         )}
 
         <footer className="tips-footer">
-          <span>{gender} · {ageGroup} · Online mode</span>
+          <span>{gender} · {ageGroup} · Live advisory</span>
           <button type="button" className="btn btn-primary" onClick={onClose}>Close</button>
         </footer>
       </section>
     </div>
   );
-}
-
-function StateError(error) {
-  if (error === "no_backend") return "Set a Backend URL in Settings.";
-  if (error === "offline_mode") return "";
-  return error;
 }

@@ -13,6 +13,10 @@
 - Added `breed-classifier-react/src/services/onlineAdvisory.js` with
   `fetchAdvisoryData(...)`; it never throws and degrades to an on-device-only
   message when offline or slow.
+- Deployed the API to Vercel production at
+  `https://advisory-api-rho.vercel.app/api/advisory` and wired that URL as the
+  default advisory endpoint in the Android client. The Breed Tips modal now
+  renders the live advisory cards, vaccination timeline and schemes.
 - Verified with 7 API tests, a live local HTTP request, and a browser import of
   the Android client.
 
