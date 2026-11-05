@@ -7,10 +7,10 @@ Tracked debug APK for the BreedID Livestock Vision Capacitor app.
 | App ID | `com.agritech.breedclassifier` |
 | Version | `1.0` (`versionCode 1`) |
 | Min / target SDK | 24 / 36 |
-| Built from | `e29ad80` |
+| Built from | `7aab043` |
 | File | `breedid-android-debug.apk` |
-| Size | 34,062,941 bytes |
-| SHA-256 | `C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4` |
+| Size | 34,307,942 bytes |
+| SHA-256 | `D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259` |
 
 ## Install
 
@@ -34,7 +34,7 @@ Get-Content artifacts\android\SHA256SUMS.txt
 Expected hash:
 
 ```text
-C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4
+D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259
 ```
 
 ## Rebuild

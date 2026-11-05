@@ -1422,7 +1422,7 @@ old 85/10/5 split left many rare breeds with **zero** test images.
   empty.
 - **Audio:** removed from the Android app.
 - **APK artifact:** `artifacts/android/breedid-android-debug.apk`, SHA-256
-  `C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4`,
-  built from `e29ad80`.
+  `D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259`,
+  built from `7aab043`.
 - **Replication:** complete setup, build, device and testing instructions are in
   `docs/development-history.md`.

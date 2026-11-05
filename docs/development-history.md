@@ -4,6 +4,7 @@
 Flask backend and a standalone Capacitor Android app.
 
 **Last updated:** 2026-11-05  
+**Built from:** `7aab043`  
 **Current Android artifact:** `artifacts/android/breedid-android-debug.apk`  
 **Artifact SHA-256:** `D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259`
 

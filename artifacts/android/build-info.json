@@ -3,16 +3,16 @@
     "apk":  "breedid-android-debug.apk",
     "node":  "22+",
     "compileSdk":  36,
-    "builtAt":  "2026-11-04T15:43:39+05:30",
+    "builtAt":  "2026-11-05T10:40:28+05:30",
     "appId":  "com.agritech.breedclassifier",
-    "fullCommit":  "e29ad803eb0abc6ae50aa5c3b9006dc6cb9bab08",
+    "fullCommit":  "7aab04301ba4eed70db7598f1fb6a32b465dd030",
     "versionCode":  1,
     "jdk":  "21",
     "minSdk":  24,
     "targetSdk":  36,
-    "sizeBytes":  34062941,
+    "sizeBytes":  34307942,
     "packageName":  "Breed Classifier",
-    "commit":  "e29ad80",
+    "commit":  "7aab043",
     "versionName":  "1.0",
-    "sha256":  "C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4"
+    "sha256":  "D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259"
 }
