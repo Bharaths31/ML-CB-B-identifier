@@ -1,0 +1,1624 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the ML-CB-B-identifier project">
+      
+      
+      
+        <link rel="canonical" href="https://docs.mr-ragnarok.tech/attributes/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Post-hoc Attributes — Gender, Age Group & Morphological Traits - Cattle & Buffalo Breed Classifier</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#post-hoc-attributes-gender-age-group-morphological-traits" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-header__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Cattle & Buffalo Breed Classifier
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Post-hoc Attributes — Gender, Age Group &amp; Morphological Traits
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation & Setup
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../local-training/" class="md-tabs__link">
+          
+  
+  
+  Training
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../model-tester/" class="md-tabs__link">
+          
+  
+  
+  Model & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../data-pipeline/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data & Processing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../export-deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Export & Deployment
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-nav__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Cattle & Buffalo Breed Classifier
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation & Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Training
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Training (Automated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model & Testing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Model & Testing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-tester/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Tester GUI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../react-web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Application (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data & Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../constraints-gotchas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints & Gotchas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-whole-animal-preprocessing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Whole-animal preprocessing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-trait-heads-already-trained-now-exposed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Trait heads (already trained, now exposed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gender-age-estimation-srcattributes_zeroshotpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gender &amp; age estimation (src/attributes_zeroshot.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Gender &amp; age estimation (src/attributes_zeroshot.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#engine-a-clip-zero-shot-primary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine A — CLIP zero-shot (primary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-b-morphological-heuristic-fallback-fast-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine B — morphological heuristic (fallback / Fast Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-response-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Response schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-clip-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing CLIP (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-verifying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Verifying
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-limitations-read-before-quoting-a-farmer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Limitations (read before quoting a farmer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Bharaths31/ML-CB-B-identifier/edit/master/docs/attributes.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="post-hoc-attributes-gender-age-group-morphological-traits">Post-hoc Attributes — Gender, Age Group &amp; Morphological Traits</h1>
+<p>Five outputs from one existing checkpoint, with <strong>no retraining</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Output</th>
+<th>Source</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Species (Cattle / Buffalo)</td>
+<td><code>BreedClassifier.binary_head</code></td>
+<td><code>species_confidence</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Breed Top-1 / Top-5</td>
+<td><code>cattle_head</code> / <code>buffalo_head</code> (soft routing)</td>
+<td><code>top_breed_confidence</code>, <code>top5_breeds[].confidence</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Gender</td>
+<td>CLIP zero-shot, else morphological heuristic</td>
+<td><code>gender.confidence</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Age group</td>
+<td>CLIP zero-shot, else morphological heuristic</td>
+<td><code>age_group.confidence</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Traits (<code>hump</code>, <code>horn</code>, <code>coat</code>, <code>ear</code>, <code>dewlap</code>, <code>face</code>, <code>size</code>)</td>
+<td><code>trait_heads</code> already inside the checkpoint</td>
+<td><code>traits_detail[].confidence</code></td>
+</tr>
+</tbody>
+</table>
+<p>The checkpoint is <code>lite2_phase2_best_v26_1012-2332_f9ce.pt</code> (or any checkpoint
+that contains <code>trait_heads.*</code> tensors). ONNX exports keep working unchanged.</p>
+<hr />
+<h2 id="1-whole-animal-preprocessing">1. Whole-animal preprocessing</h2>
+<p>Training-eval used shortest-side resize + <code>CenterCrop(260)</code>. On a 4:3 phone
+photo that discards ~25% of the width — the strip that carries horns, udder and
+tail. Inference now uses <code>PadToSquare(260)</code> (long side → 260, short side padded
+with the ImageNet mean, which becomes ≈0 after normalization), so the whole
+body profile reaches the network.</p>
+<p>Implemented once in <code>src/preprocess.py</code> and used by both entry points
+(<code>test_model.py</code>, <code>server/services/inference.py</code>); <code>src/data_pipeline.py</code>
+re-exports the same class as <code>_PadToSquare</code> so training and inference cannot
+drift.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># default: keep the whole frame</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python<span class="w"> </span>run.py
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># legacy parity with the exported ONNX/Flutter preprocessor</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">BREEDID_PAD_TO_SQUARE</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>python<span class="w"> </span>run.py
+</code></pre></div>
+<p>Toggle: <code>src/config.py → INFERENCE_PAD_TO_SQUARE</code> (env override above).</p>
+<blockquote>
+<p>Expect slightly different — not necessarily worse — probabilities on crops
+where the animal already filled the centre: the network now also sees the
+padded border. Compare both settings with <code>scripts/verify_attributes.py</code> and
+your own validation images before shipping.</p>
+</blockquote>
+<hr />
+<h2 id="2-trait-heads-already-trained-now-exposed">2. Trait heads (already trained, now exposed)</h2>
+<p><code>src/train.py</code> attaches a <code>TraitClassifier</code> only while <code>--trait-weight &gt; 0</code>, and
+<code>src/export.py</code> excludes it from the exported graph — but the trained tensors
+remain in the <code>.pt</code> file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>trait_heads.heads.{hump,horn,coat,ear,dewlap,face,size}.0.{weight,bias}   # Linear(1280, 256)
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>trait_heads.heads.{...}.3.{weight,bias}                                    # Linear(256, N_field)
+</code></pre></div>
+<p>On load, <code>src.model.attach_trait_heads()</code>:</p>
+<ol>
+<li>reads each field's <code>in_dim</code>, <code>hidden_dim</code> and <code>out_dim</code> <strong>from the
+   checkpoint tensors</strong> (no hardcoded widths),</li>
+<li>rebuilds a <code>TraitClassifier</code> with exactly those shapes,</li>
+<li>loads every <code>trait_heads.*</code> tensor,</li>
+<li>stores the module as <code>model.trait_heads</code> and keeps the vocab/metadata in
+   <code>model.trait_heads.trait_meta</code>.</li>
+</ol>
+<p>During <code>predict()</code>, the pooled 1280-d feature vector is passed to those heads
+(<code>src.model.predict_traits</code>), and <code>src.attributes_zeroshot.decode_traits()</code>
+turns the argmax indices into display strings using
+<code>data/breed_traits.json</code> — the same sorted vocabulary <code>build_trait_vocab()</code>
+produced at training time.</p>
+<p><strong>Vocabulary drift guard.</strong> If <code>data/breed_traits.json</code> gains/loses values so a
+field's vocabulary length no longer matches the checkpoint's <code>out_dim</code>, that
+field falls back to opaque <code>class_&lt;i&gt;</code> labels rather than silently mapping an
+index to the wrong trait. <code>traits_meta.source</code> reports
+<code>breed_traits.json</code> / <code>partial_fallback</code> / <code>fallback</code>.</p>
+<p><strong>Missing JSON.</strong> <code>TRAIT_GENERIC_LABELS</code> in <code>src/attributes_zeroshot.py</code>
+provides ordered human labels (Hump: <em>Absent/Small/Medium/Large/…</em>, Dewlap:
+<em>Minimal/Moderate/Large &amp; Pendulous</em>, Size: <em>Small/Compact → Large</em>).</p>
+<p><strong>ONNX</strong> models do not expose pooled features, so <code>traits</code> is <code>{}</code> and
+<code>traits_meta.reason = "onnx"</code>; gender/age still work from the heuristic.</p>
+<hr />
+<h2 id="3-gender-age-estimation-srcattributes_zeroshotpy">3. Gender &amp; age estimation (<code>src/attributes_zeroshot.py</code>)</h2>
+<p>Runs <strong>after</strong> the breed decision and <strong>only when <code>is_ood == False</code></strong>.</p>
+<h3 id="engine-a-clip-zero-shot-primary">Engine A — CLIP zero-shot (primary)</h3>
+<ul>
+<li>Lazy-loads <code>openai/clip-vit-base-patch32</code> through <code>transformers</code>
+  (<code>CLIPProcessor</code>, <code>CLIPModel</code>), FP16 on CUDA and FP32 on CPU.</li>
+<li>Looks in the local HF cache first (<code>local_files_only=True</code>), then optionally
+  downloads. Every failure is captured: no package, no cache, no network, bad
+  weights → the heuristic engine is used and <code>attributes_meta.clip.error</code>
+  explains why.</li>
+<li>Concurrent requests never queue behind a download: while the model is
+  loading, other requests use the heuristic immediately.</li>
+<li>Prompt-conditioned on the predicted species (<code>cattle</code> / <code>buffalo</code>):</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Labels</th>
+<th>Prompt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gender</td>
+<td>Female</td>
+<td>"a side profile photo of a female dairy {species} cow with an udder, slender neck, and feminine face"</td>
+</tr>
+<tr>
+<td>gender</td>
+<td>Male</td>
+<td>"a side profile photo of a muscular male {species} bull or ox with a heavy neck, large hump, and broad head"</td>
+</tr>
+<tr>
+<td>age</td>
+<td>Calf (&lt; 1 yr)</td>
+<td>"a photo of a small young baby calf with short legs, small head, and no horn development"</td>
+</tr>
+<tr>
+<td>age</td>
+<td>Young (1–3 yrs)</td>
+<td>"a photo of a medium-sized young heifer or sub-adult {species} with developing horns and lean body"</td>
+</tr>
+<tr>
+<td>age</td>
+<td>Adult (&gt; 3 yrs)</td>
+<td>"a photo of a fully grown mature adult {species} with full body mass and developed horns"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Probabilities are <code>softmax(logits_per_image / temperature)</code>; temperature is
+  <code>ATTRIBUTES_CLIP_TEMPERATURE</code> (default <code>1.0</code>).</li>
+</ul>
+<h3 id="engine-b-morphological-heuristic-fallback-fast-mode">Engine B — morphological heuristic (fallback / Fast Mode)</h3>
+<p>Uses only signals already computed:</p>
+<ul>
+<li><strong>Trait activations</strong> — hump size, horn development, dewlap, body size.</li>
+<li><strong>Subject geometry</strong> — foreground bounding box from border-colour
+  segmentation (<code>subject_stats</code>): a compact, tall silhouette nudges toward
+  calf/young.</li>
+<li><strong>Breed prior</strong> — dairy breeds (<code>DAIRY_BREEDS</code>: Gir, Sahiwal, Murrah,
+  Mehsana, …) start from an ≈85% adult-female prior, matching commercial dairy
+  imagery.</li>
+</ul>
+<p>Scores are additive log-odds → softmax, then <strong>shrunk toward uncertainty</strong>
+(confidence ceiling ≈ 88% gender / 82% age) because this is a prior, not a
+measurement. The payload is marked <code>method: "morphological_heuristic"</code> and
+<code>requires_confirmation: true</code> so the UI can ask the farmer to confirm with one
+tap.</p>
+<hr />
+<h2 id="4-response-schema">4. Response schema</h2>
+<p><code>POST /api/predict</code> (both <code>test_model.py</code> and <code>server/app.py</code>) adds:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"species"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cattle"</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"species_confidence"</span><span class="p">:</span><span class="w"> </span><span class="mf">98.4</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">"top_breed"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Gir"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">"top_breed_confidence"</span><span class="p">:</span><span class="w"> </span><span class="mf">91.2</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">"top5_breeds"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"breed"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Gir"</span><span class="p">,</span><span class="w"> </span><span class="nt">"confidence"</span><span class="p">:</span><span class="w"> </span><span class="mf">91.2</span><span class="p">}],</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">"gender"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Female (Cow)"</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">"short_label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Female"</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">"confidence"</span><span class="p">:</span><span class="w"> </span><span class="mf">86.5</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"clip_zeroshot"</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nt">"note"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Visual estimation from body/udder profile"</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">"age_group"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Adult (&gt; 3 yrs)"</span><span class="p">,</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nt">"short_label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Adult"</span><span class="p">,</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="nt">"confidence"</span><span class="p">:</span><span class="w"> </span><span class="mf">89.1</span><span class="p">,</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"clip_zeroshot"</span><span class="p">,</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="nt">"note"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Visual stage estimate; verify via dentition (teeth) for exact age"</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="nt">"traits"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">"hump"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Large / Prominent"</span><span class="p">,</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nt">"horn"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Curved (Half-moon)"</span><span class="p">,</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">"ear"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Long &amp; Pendulous"</span><span class="p">,</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">    </span><span class="nt">"dewlap"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Large &amp; Pendulous"</span><span class="p">,</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">"size"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Medium-Large"</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">  </span><span class="nt">"ood"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="p">}</span>
+</code></pre></div>
+<p>Additional keys (safe to ignore, useful in developer views):</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>traits_detail.&lt;field&gt;.{index,token,confidence,top3}</code></td>
+<td>raw head output</td>
+</tr>
+<tr>
+<td><code>traits_meta</code></td>
+<td>which fields loaded, vocab source, mismatches</td>
+</tr>
+<tr>
+<td><code>attributes_meta</code></td>
+<td>engine used, CLIP state/error, heuristic inputs</td>
+</tr>
+<tr>
+<td><code>attributes_time_ms</code></td>
+<td>time spent after the breed forward pass</td>
+</tr>
+<tr>
+<td><code>gender.distribution</code>, <code>age_group.distribution</code></td>
+<td>full softmax</td>
+</tr>
+<tr>
+<td><code>gender.key</code>, <code>age_group.key</code></td>
+<td>machine-readable <code>female/male</code>, <code>calf/young/adult</code></td>
+</tr>
+</tbody>
+</table>
+<p>OOD inputs return <code>gender.method = "skipped"</code>, <code>age_group.method = "skipped"</code>
+and empty <code>traits</code>.</p>
+<hr />
+<h2 id="5-configuration">5. Configuration</h2>
+<p><code>src/config.py</code> / environment:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INFERENCE_PAD_TO_SQUARE</code></td>
+<td><code>True</code></td>
+<td><code>BREEDID_PAD_TO_SQUARE=0</code> restores center-crop</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_ENABLED</code></td>
+<td><code>True</code></td>
+<td>master switch</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_CLIP_ENABLED</code></td>
+<td><code>True</code></td>
+<td>never try CLIP (offline installs)</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_FAST_MODE</code></td>
+<td><code>False</code></td>
+<td>skip CLIP, use the heuristic</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_CLIP_MODEL_ID</code></td>
+<td><code>openai/clip-vit-base-patch32</code></td>
+<td>any CLIP checkpoint</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_CLIP_TEMPERATURE</code></td>
+<td><code>1.0</code></td>
+<td>softmax temperature</td>
+</tr>
+<tr>
+<td><code>ATTRIBUTES_CLIP_ALLOW_DOWNLOAD</code></td>
+<td><code>True</code></td>
+<td><code>False</code> = cache-only</td>
+</tr>
+</tbody>
+</table>
+<p>Server-side these can be toggled at runtime through the shared config DB
+(<code>outputs/app_config.json</code>, <code>server/shared_config.py</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>attributes.enabled       -&gt; ATTRIBUTES_ENABLED
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>attributes.clip_enabled  -&gt; ATTRIBUTES_CLIP_ENABLED
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>attributes.fast_mode     -&gt; ATTRIBUTES_FAST_MODE
+</code></pre></div>
+<h3 id="installing-clip-optional">Installing CLIP (optional)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>.venv<span class="se">\S</span>cripts<span class="se">\p</span>ip<span class="w"> </span>install<span class="w"> </span>transformers
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># CPU-only torch is already installed; CLIP runs fine on it.</span>
+</code></pre></div>
+<p>The first non-OOD prediction downloads ~600 MB of weights. Call
+<code>AttributeEstimator().preload()</code> at start-up if you prefer that cost outside a
+request.</p>
+<hr />
+<h2 id="6-verifying">6. Verifying</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>scripts/verify_attributes.py<span class="w">            </span><span class="c1"># synthetic 4:3 frame</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>python<span class="w"> </span>scripts/verify_attributes.py<span class="w"> </span>--image<span class="w"> </span>data/samples/gir.jpg
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>python<span class="w"> </span>scripts/verify_attributes.py<span class="w"> </span>--skip-onnx
+</code></pre></div>
+<p>Checks: checkpoint load, trait-head shapes, all five response blocks, ONNX
+regression, and OOD gating.</p>
+<hr />
+<h2 id="7-limitations-read-before-quoting-a-farmer">7. Limitations (read before quoting a farmer)</h2>
+<ul>
+<li><strong>Gender/age were not trained.</strong> They are CLIP guesses or transparent priors.
+  Treat them as triage hints, not veterinary facts; the API says so via
+  <code>method</code> / <code>requires_confirmation</code>.</li>
+<li><strong>Udder visibility</strong> is the main gender cue and is often hidden by the animal's
+  stance; the heuristic uses hump/dewlap/size proxies instead.</li>
+<li><strong>Age</strong> is a visual stage estimate. Dentition (teeth) remains the only
+  reliable field method.</li>
+<li><strong>Traits</strong> come from auxiliary heads trained on breed-level labels; they
+  describe breed-typical morphology, not this individual's exact measurements.</li>
+<li><strong>Pad-to-square</strong> changes the input distribution relative to the exported
+  ONNX preprocessor; keep <code>BREEDID_PAD_TO_SQUARE=0</code> where bit-exact parity
+  matters (e.g. ONNX parity tests).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

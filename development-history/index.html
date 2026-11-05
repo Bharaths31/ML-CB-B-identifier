@@ -1,0 +1,2101 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the ML-CB-B-identifier project">
+      
+      
+      
+        <link rel="canonical" href="https://docs.mr-ragnarok.tech/development-history/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Development History & Replication Guide - Cattle & Buffalo Breed Classifier</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#development-history-replication-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-header__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Cattle & Buffalo Breed Classifier
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development History &amp; Replication Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation & Setup
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../local-training/" class="md-tabs__link">
+          
+  
+  
+  Training
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../model-tester/" class="md-tabs__link">
+          
+  
+  
+  Model & Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../data-pipeline/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data & Processing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../export-deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Export & Deployment
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Cattle &amp; Buffalo Breed Classifier" class="md-nav__button md-logo" aria-label="Cattle & Buffalo Breed Classifier" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Cattle & Buffalo Breed Classifier
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Bharaths31/ML-CB-B-identifier" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Bharaths31/ML-CB-B-identifier
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation & Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Training
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../local-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Training (Automated)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model & Testing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Model & Testing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-tester/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Tester GUI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../react-web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Application (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colab-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Colab Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data & Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../constraints-gotchas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constraints & Gotchas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-project-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Project at a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-chronological-implementation-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Chronological implementation history
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Chronological implementation history">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-model-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Model and metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-ood-and-guardrails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 OOD and guardrails
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-web-and-vet-portal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Web and vet portal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-capacitor-android-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Capacitor Android app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-early-android-polish" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Early Android polish
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-stitch-driven-ui-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Stitch-driven UI rebuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-localization-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Localization pass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-result-display-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Result display controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#29-audio-removal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.9 Audio removal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#210-online-mode-and-backend-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.10 Online mode and backend fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#211-setup-and-venv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.11 Setup and venv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-objectmonitor-guardrail-and-biometric-agegender-2026-11-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.12 Object/monitor guardrail and biometric age/gender (2026-11-05)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#213-developer-mode-simple-ui-and-native-input-2026-11-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.13 Developer-mode simple UI and native input (2026-11-05)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#214-center-focused-guardrail-and-top-k-ood-2026-11-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.14 Center-focused guardrail and top-k OOD (2026-11-05)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#215-free-vercel-advisory-api-and-android-client-2026-11-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.15 Free Vercel advisory API and Android client (2026-11-05)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-current-repository-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Current repository map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-fresh-machine-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Fresh-machine setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Fresh-machine setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#one-command-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-command setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-build-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Android build environment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-internet-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public internet backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-verification-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Verification checklist
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Verification checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfer-test-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transfer test assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-known-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Known constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-testing-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Testing devices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Bharaths31/ML-CB-B-identifier/edit/master/docs/development-history.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="development-history-replication-guide">Development History &amp; Replication Guide</h1>
+<p><strong>Project:</strong> BreedID Livestock Vision — cattle/buffalo breed classifier with a
+Flask backend and a standalone Capacitor Android app.</p>
+<p><strong>Last updated:</strong> 2026-11-05<br />
+<strong>Built from:</strong> <code>ce30ccb</code><br />
+<strong>Current Android artifact:</strong> <code>artifacts/android/breedid-android-debug.apk</code><br />
+<strong>Artifact SHA-256:</strong> <code>F01BC06D7C88412AE4265723901E80F09AD6A421FD59F883D9DEF0E81BDC6850</code></p>
+<hr />
+<h2 id="1-project-at-a-glance">1. Project at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task</td>
+<td>68-class breed recognition: 50 cattle + 18 buffalo, plus binary species routing</td>
+</tr>
+<tr>
+<td>Backbone</td>
+<td>EfficientNet-Lite2 (default) / Lite4, CBAM or SE attention</td>
+</tr>
+<tr>
+<td>Heads</td>
+<td>Binary species, 50-class cattle, 18-class buffalo, training-only projection head</td>
+</tr>
+<tr>
+<td>Input</td>
+<td>260 × 260 RGB, pad-to-square, ImageNet normalization unless baked into the ONNX graph</td>
+</tr>
+<tr>
+<td>OOD</td>
+<td>Energy + MSP + binary-confidence floor, calibrated per model</td>
+</tr>
+<tr>
+<td>Explainability</td>
+<td>Optional X-ray/heatmap, breed traits, confidence bands</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Flask + Socket.IO, <code>/api/*</code> REST, <code>/ws</code> namespace, port 5000</td>
+</tr>
+<tr>
+<td>Web</td>
+<td>React 18 + Vite 5, farmer app and developer console; separate vet portal on 5174</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>Capacitor 8 WebView, on-device ONNX Runtime Web, IndexedDB persistence</td>
+</tr>
+<tr>
+<td>Localization</td>
+<td>English, Tamil, Hindi — 621 keys per language</td>
+</tr>
+<tr>
+<td>Themes</td>
+<td>Emerald Obsidian, Meadow Daylight, Earthy Harvest, Aqua Pasture</td>
+</tr>
+<tr>
+<td>Setup</td>
+<td>Smart Python venv + Node/npm + Capacitor sync + optional APK build</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-chronological-implementation-history">2. Chronological implementation history</h2>
+<h3 id="21-model-and-metadata">2.1 Model and metadata</h3>
+<ul>
+<li>Built the EfficientNet-Lite + CBAM/SE multi-head classifier with soft species
+  routing.</li>
+<li>Added the self-describing model contract: class maps, input resolution,
+  normalization mode and OOD thresholds embedded in <code>.pt</code> and <code>.onnx</code>.</li>
+<li>Added <code>src/model_introspect.py</code>, <code>scripts/embed_metadata.py</code>, and
+  <code>docs/model-metadata.md</code>.</li>
+<li>Exported ONNX FP32 / INT8 / FP16 and portable bundles.</li>
+<li>Added the developer model tools: inspect, embed and model-specific test via
+  <code>POST /api/models/{inspect,embed,test}</code>.</li>
+</ul>
+<h3 id="22-ood-and-guardrails">2.2 OOD and guardrails</h3>
+<ul>
+<li>Added post-hoc OOD calibration (energy, MSP, binary floor) and per-model JSON
+  profiles, later embedded into model metadata.</li>
+<li>Added four offline guardrail layers:</li>
+<li>photorealism / cartoon / screenshot rejection,</li>
+<li>human / selfie / other-animal gate (OpenCV Haar + optional CLIP),</li>
+<li>feature-entropy / logit sanity check,</li>
+<li>logit OOD check with trilingual rejection messages.</li>
+<li>Added CLIP-based zero-shot gender/age attributes with graceful fallback.</li>
+<li>Added <code>docs/input-guardrails.md</code>, <code>docs/attributes.md</code>, and
+  <code>docs/image-quality.md</code>.</li>
+</ul>
+<h3 id="23-web-and-vet-portal">2.3 Web and vet portal</h3>
+<ul>
+<li>Built the farmer web app with upload/camera, guided framing, quality report,
+  result tabs, breed encyclopedia, farmer advisory, escalation queue and ODT
+  exports.</li>
+<li>Added the developer console (<code>/dev</code>) and the standalone vet portal.</li>
+<li>Added vet-controlled user visibility, shared config, escalation database and
+  offline outbox.</li>
+<li>Added 4 themes and trilingual UI on the website.</li>
+</ul>
+<h3 id="24-capacitor-android-app">2.4 Capacitor Android app</h3>
+<ul>
+<li>Wrapped the React bundle in Capacitor 8 without a React Native/Flutter
+  migration.</li>
+<li>Added <code>AndroidUserPage</code> as a single portal: no <code>/dev</code>, no login.</li>
+<li>Added on-device ONNX Runtime Web inference with WASM files in <code>public/ort/</code>.</li>
+<li>Added IndexedDB stores for models, OOD profiles and settings.</li>
+<li>Added the bundled <code>default_model.onnx</code> with embedded calibrated OOD.</li>
+<li>Added model upload (<code>onnx</code> runs; <code>.pt</code> is visible but disabled until export).</li>
+<li>Added OOD profile upload, thresholds and profile selection.</li>
+<li>Added the guided camera with cattle/buffalo silhouette HUD, lighting/framing/
+  sharpness pills, torch, flip, auto-capture and burst.</li>
+<li>Added recent scans (last 5), share/clipboard, haptics and wake-lock.</li>
+</ul>
+<h3 id="25-early-android-polish">2.5 Early Android polish</h3>
+<ul>
+<li>Gender and age made read-only; manual override pills removed.</li>
+<li>Gallery uploads decoded once with <code>createImageBitmap</code>; preview uses object
+  URLs, removing the double base64/FileReader delay.</li>
+<li>“Preparing image…” feedback added.</li>
+<li>Result simplified to four cards; top-3 bars filtered to the predicted species.</li>
+<li>OOD banner removed from the result; embedded thresholds take precedence.</li>
+</ul>
+<h3 id="26-stitch-driven-ui-rebuild">2.6 Stitch-driven UI rebuild</h3>
+<ul>
+<li>Imported the Stitch design system/screens and rebuilt the Android visual layer:</li>
+<li>two-line <code>BreedID / LIVESTOCK VISION</code> header,</li>
+<li>language chip, online pill, hamburger,</li>
+<li>stacked gallery/camera ingest cards,</li>
+<li>ONNX telemetry card,</li>
+<li>3-column recent-scans ledger,</li>
+<li>Identification Dossier result screen,</li>
+<li>full-screen Settings page.</li>
+<li>Added a shared inline SVG icon set (<code>AndroidIcons.jsx</code>).</li>
+<li>Replaced malformed/emoji brand and action icons.</li>
+</ul>
+<h3 id="27-localization-pass">2.7 Localization pass</h3>
+<ul>
+<li>Added a full <code>android.*</code> translation namespace in English, Tamil and Hindi.</li>
+<li>Wired dashboard, dossier, settings and status messages through <code>t()</code>.</li>
+<li>Dynamic species, breed, gender and age use <code>tDynamic</code> / <code>tBreed</code>.</li>
+<li>Language is stored in localStorage and IndexedDB settings and applies
+  immediately.</li>
+<li>Fixed a double-encoded UTF-8 corruption in <code>AndroidUserPage.jsx</code>.</li>
+</ul>
+<h3 id="28-result-display-controls">2.8 Result display controls</h3>
+<ul>
+<li>Added:</li>
+<li><strong>Show prediction view</strong> — off hides the top-N spectrum and shows only the
+    main breed result.</li>
+<li><strong>Show confidence percentages</strong> — hides percentage text while keeping bars.</li>
+<li><strong>Predicted breeds to show</strong> — 1–5, or <strong>Main result only</strong> when the
+    prediction view is off.</li>
+<li>Added <code>showPredictionView</code>, <code>showConfidence</code>, <code>topBreedsCount</code> to
+  <code>DEFAULT_SETTINGS</code>.</li>
+<li>Added the matching localized strings and settings UI.</li>
+</ul>
+<h3 id="29-audio-removal">2.9 Audio removal</h3>
+<ul>
+<li>Removed the audio-help banner, speech state, speech handlers, audio icons and
+  audio CSS from the Android app.</li>
+<li>Breed Tips remain text-only.</li>
+</ul>
+<h3 id="210-online-mode-and-backend-fallback">2.10 Online mode and backend fallback</h3>
+<ul>
+<li>Online mode now mirrors the web API contract:
+  <code>Settings URL → VITE_BACKEND_URL → last successful backend → current web origin</code>.</li>
+<li><code>/api/health</code> is polled every 15 seconds while online mode is enabled.</li>
+<li>Header and Settings show <strong>Connected / Reconnecting / Offline / Not
+  configured</strong>.</li>
+<li>Breed Tips are allowed only while the backend is connected.</li>
+<li>A successful health check caches the URL in
+  <code>localStorage["breedid_last_backend_url"]</code>.</li>
+<li>Clearing the API field reuses that cached backend, so tips keep working without
+  re-entering the URL.</li>
+<li>No machine IP is hardcoded. A build-time public URL can be supplied with
+  <code>VITE_BACKEND_URL</code>.</li>
+</ul>
+<h3 id="211-setup-and-venv">2.11 Setup and venv</h3>
+<ul>
+<li><code>requirements.txt</code> now includes the guardrail/CLIP stack:
+  <code>opencv-python-headless&gt;=4.9,&lt;5</code> and <code>transformers&gt;=4.40</code>.</li>
+<li><code>setup_venv.py</code> installs Python plus Node dependencies, builds the web bundle
+  when needed, runs <code>npx cap sync android</code>, and can compile the APK with
+  <code>--android-build</code>.</li>
+<li>New flags: <code>--no-frontend</code>, <code>--no-android</code>, <code>--android-build</code>.</li>
+<li>Multi-constraint requirements (<code>&gt;=4.9,&lt;5</code>) and OpenCV/OpenCV-headless conflict
+  handling are supported.</li>
+<li><code>setup.sh</code>, <code>setup.ps1</code> and <code>setup.bat</code> forward the flags and document Node 22+,
+  JDK 21 and Android SDK prerequisites.</li>
+<li><code>scripts/status_report.py</code> now honours multi-constraint requirements.</li>
+</ul>
+<h3 id="212-objectmonitor-guardrail-and-biometric-agegender-2026-11-05">2.12 Object/monitor guardrail and biometric age/gender (2026-11-05)</h3>
+<ul>
+<li>Added <code>src/utils/imageGuardrails.js</code>:</li>
+<li>Stage A Sobel axis-edge/bezel detection, contiguous straight-edge spans,
+    screen glow/blue-cast, a 16×16 flat-block wall check with an adaptive
+    strong-edge exception, and whole-frame skin dominance to reject close-up
+    human selfies.</li>
+<li>Stage B 68-class entropy, top-logit Z-score peak, binary confidence, energy
+    and MSP checks.</li>
+<li>Rejections return no species/breed and a localized reason.</li>
+<li>Calibrated gate thresholds against the shipped <code>lite2_v27</code> model because the
+  original brief values rejected every valid test cattle image.
+  Final: <code>EDGE_SPAN_MAX 0.62</code>, entropy <code>0.76</code>, <code>Z_peak 2.0</code>, <code>Z_max 1.6</code>,
+  binary floor <code>0.60</code>, energy floor <code>-3.2004</code>.</li>
+<li>Fixed on-device MSP to use the binary species head, matching the Python
+  <code>OODDetector.compute_msp</code>; energy now uses all three heads.</li>
+<li>Added <code>src/services/biometricAgeGender.js</code>: juvenile/heavy breed logit mass,
+  torso fill, crown/horn texture, compactness, draught/dairy breed prior and
+  neck/hull ratio → age/gender with 65–94% confidence.</li>
+<li>Added rejection UI and excluded rejected scans from Recent Scans.</li>
+<li>Verified in the browser harness: 35 cattle images accepted (including the
+  <code>0.4688</code> flat-patch cases through the adaptive exception); app screenshot
+  (monitor UI), human selfie and goat image rejected. APK installed and simple
+  mode verified on the connected Android device.</li>
+</ul>
+<h3 id="213-developer-mode-simple-ui-and-native-input-2026-11-05">2.13 Developer-mode simple UI and native input (2026-11-05)</h3>
+<ul>
+<li>Removed the Active ONNX model panel from Home.</li>
+<li>Added <strong>Developer mode</strong> in Advanced Settings (default off). Off hides ONNX
+  model name, WASM/SIMD, inference latency, rank/model-match badges, top-N
+  spectrum, percentages, scientific names and OOD/model controls; on restores
+  the full diagnostic UI.</li>
+<li>Android camera now uses the native file input with <code>capture="environment"</code>;
+  gallery uses the standard file input. Both decode once and draw directly to
+  260×260.</li>
+<li>Removed the silhouette HUD/guide from <code>CameraCapture</code> and the Android camera
+  modal path. Removed the old foreground-mask biometric estimator in favour of
+  <code>dynamicAgeGender.js</code> whole-frame features.</li>
+<li>Filtered legacy recent scans that lack the new guardrail data; empty recent
+  scans are hidden in simple mode.</li>
+<li>Simple mode also hides the online/reconnecting status pill for a cleaner
+  farmer header.</li>
+<li>Added a whole-frame skin-dominance + low-edge/green gate so close-up selfies
+  are rejected before any breed prediction; localized rejection copy now
+  mentions people.</li>
+</ul>
+<h3 id="214-center-focused-guardrail-and-top-k-ood-2026-11-05">2.14 Center-focused guardrail and top-k OOD (2026-11-05)</h3>
+<ul>
+<li>Moved Stage A straight-edge and flat-patch rejection to the central 180×180
+  region (<code>CENTER_BOX</code>), with high-threshold global fallbacks. Background barn
+  roofs, fences and sky at the frame border no longer reject valid cattle.</li>
+<li>Added <code>checkHumanSelfie()</code>: <code>FaceDetector</code> when available, then a YCbCr
+  fallback using central skin ratio (150×150), median 5×5 skin luma sigma,
+  bilateral skin symmetry (±24 px axis search), dark hair cap and eye/brow
+  density. Rejections use <code>human_or_selfie</code>.</li>
+<li>Replaced single-class <code>Z_peak</code>/<code>Z_max</code> Stage B checks with top-3 (≥0.20) and
+  top-5 (≥0.30) breed-mass gates and a relaxed entropy ceiling (0.86). Binary
+  confidence, energy and MSP floors are unchanged.</li>
+<li>Verified: 34 cattle images accepted, including the <code>0.4688</code> flat-patch cases;
+  human selfie and monitor screenshot rejected; two-canvas
+  <code>verifyDynamicPredictions()</code> passes.</li>
+</ul>
+<h3 id="215-free-vercel-advisory-api-and-android-client-2026-11-05">2.15 Free Vercel advisory API and Android client (2026-11-05)</h3>
+<ul>
+<li>Added <code>advisory-api/</code> with a zero-dependency CJS serverless handler at
+  <code>api/advisory.js</code>, compact 68-breed data in <code>data/breed_knowledge.json</code>,
+  en/ta/hi copy in <code>lib/i18n.js</code>, lookup/aliases in <code>lib/knowledge.js</code>, local
+  dev server and a <code>node:test</code> suite.</li>
+<li>Dynamic rules: female adult shows lactation/milk/calcium/mastitis; male adult
+  hides milk and shows draught/breeding; calf hides milk and draught and shows
+  colostrum/starter/deworming/FMD-brucellosis schedule; young shows growth/first
+  breeding; missing gender falls back to general adult care.</li>
+<li>Added CORS <code>*</code>, <code>OPTIONS</code> 204, cached 200 responses and 400/404/405 JSON
+  errors.</li>
+<li>Added <code>breed-classifier-react/src/services/onlineAdvisory.js</code> with a 5-second
+  AbortController timeout, offline fallback and non-throwing result objects.</li>
+<li>Deployed the API to production at
+  <code>https://advisory-api-bharaths31s-projects.vercel.app/api/advisory</code>, set it as
+  the default in the Android client, and switched the Breed Tips modal from the
+  legacy Python backend to the Vercel advisory payload (cards, milk visibility,
+  feeding, climate, vaccination timeline and schemes).</li>
+<li>Added a static landing page at <code>/</code> with a live advisory form, fixed the Vercel
+  Project Root Directory to <code>advisory-api</code>, and disabled SSO deployment
+  protection so the API and landing page are publicly reachable.</li>
+<li>Breed Tips no longer requires the legacy Online Mode setting or Python backend
+  health; only an internet connection is needed, with localized offline copy.</li>
+<li>Verified: 7/7 API tests pass, live HTTP returns the expected Tamil payload,
+  and the browser client handles success, 404 and missing-URL cases. The live
+  endpoint and Breed Tips modal were also verified on the connected Android
+  device.</li>
+</ul>
+<hr />
+<h2 id="3-current-repository-map">3. Current repository map</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/model.py</code></td>
+<td>Backbone, attention, multi-head classifier, OOD detector</td>
+</tr>
+<tr>
+<td><code>src/preprocess.py</code></td>
+<td>Pad-to-square + inference transforms</td>
+</tr>
+<tr>
+<td><code>src/train.py</code></td>
+<td>Two-phase training, multi-task loss, EMA, distillation</td>
+</tr>
+<tr>
+<td><code>src/evaluate.py</code></td>
+<td>Per-class confusion matrices and metrics</td>
+</tr>
+<tr>
+<td><code>src/input_guardrails.py</code></td>
+<td>Four-layer image validation</td>
+</tr>
+<tr>
+<td><code>src/model_introspect.py</code></td>
+<td>Self-describing model contract</td>
+</tr>
+<tr>
+<td><code>src/export.py</code></td>
+<td>ONNX/TFLite/INT8/FP16/portable exports</td>
+</tr>
+<tr>
+<td><code>server/</code></td>
+<td>Flask app, routes, model manager, Socket.IO events</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/</code></td>
+<td>Farmer web app + Capacitor Android shell</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/pages/AndroidUserPage.jsx</code></td>
+<td>Native single portal</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/components/SettingsModal.jsx</code></td>
+<td>Full-screen settings</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/components/CameraCapture.jsx</code></td>
+<td>Guided camera</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/services/onDeviceInference.js</code></td>
+<td>ORT Web, IndexedDB, OOD</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/services/imagePrep.js</code></td>
+<td>Crop/resize pipeline</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/services/apiBase.js</code></td>
+<td>Public/fallback API base</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/hooks/useBackendHealth.js</code></td>
+<td><code>/api/health</code> polling</td>
+</tr>
+<tr>
+<td><code>breed-classifier-react/src/i18n/translations.js</code></td>
+<td>en/ta/hi copy</td>
+</tr>
+<tr>
+<td><code>vet-portal/</code></td>
+<td>Separate vet review app</td>
+</tr>
+<tr>
+<td><code>artifacts/android/</code></td>
+<td>Tracked APK artifact + checksums</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-fresh-machine-setup">4. Fresh-machine setup</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>Python 3.10+ (3.14 tested)</li>
+<li>Node.js 22+ and npm (Capacitor 8)</li>
+<li>JDK 21</li>
+<li>Android SDK platform/build-tools, <code>adb</code></li>
+<li>Git</li>
+</ul>
+<h3 id="one-command-setup">One-command setup</h3>
+<p>Windows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">://</span><span class="n">github</span><span class="p">.</span><span class="n">com</span><span class="p">/</span><span class="n">Bharaths31</span><span class="p">/</span><span class="n">ML-CB-B-identifier</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd </span><span class="n">ML-CB-B-identifier</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">powershell</span> <span class="n">-ExecutionPolicy</span> <span class="n">Bypass</span> <span class="o">-File</span> <span class="n">setup</span><span class="p">.</span><span class="n">ps1</span>
+</code></pre></div>
+<p>Linux/macOS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Bharaths31/ML-CB-B-identifier
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>ML-CB-B-identifier
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>bash<span class="w"> </span>setup.sh
+</code></pre></div>
+<p>What the installer does:</p>
+<ol>
+<li>Reuses or creates <code>.venv</code>.</li>
+<li>Installs only missing/outdated Python packages.</li>
+<li>Selects CPU/GPU PyTorch wheels.</li>
+<li>Installs <code>breed-classifier-react</code> and <code>vet-portal</code> Node dependencies.</li>
+<li>Builds the web bundle when needed and runs <code>npx cap sync android</code>.</li>
+<li>Optionally builds the APK with <code>--android-build</code>.</li>
+<li>Runs <code>python -m src.verify</code> unless <code>--no-verify</code>.</li>
+<li>Prints the status report.</li>
+</ol>
+<p>Useful flags:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>--check          report only, change nothing
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>--cpu / --gpu    force PyTorch backend
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>--cuda-tag TAG   cu118 / cu121 / cu124 / cpu
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>--reinstall      repair PyTorch + refresh requirements
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>--no-frontend    Python only
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>--no-android     skip Capacitor sync
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>--android-build  compile the debug APK
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>--no-verify      skip src.verify
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>--report         run scripts/status_report.py
+</code></pre></div>
+<h3 id="android-build-environment">Android build environment</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">$env:ANDROID_HOME</span><span class="p">=</span><span class="s2">"$env:LOCALAPPDATA\Android\Sdk"</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">$env:ANDROID_SDK_ROOT</span><span class="p">=</span><span class="nv">$env:ANDROID_HOME</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">$env:JAVA_HOME</span><span class="p">=</span><span class="s2">"C:\Program Files\Java\jdk-21"</span>
+</code></pre></div>
+<p>Build/install:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd </span><span class="n">breed-classifier-react</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">npm</span> <span class="n">run</span> <span class="n">build</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">npx</span> <span class="n">cap</span> <span class="n">sync</span> <span class="n">android</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">cd </span><span class="n">android</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">.\</span><span class="n">gradlew</span><span class="p">.</span><span class="n">bat</span> <span class="n">assembleDebug</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">adb</span> <span class="n">install</span> <span class="n">-r</span> <span class="n">app</span><span class="p">\</span><span class="n">build</span><span class="p">\</span><span class="n">outputs</span><span class="p">\</span><span class="n">apk</span><span class="p">\</span><span class="n">debug</span><span class="p">\</span><span class="n">app-debug</span><span class="p">.</span><span class="n">apk</span>
+</code></pre></div>
+<h3 id="public-internet-backend">Public internet backend</h3>
+<p>The Android app cannot use the PC’s LAN IP as a permanent backend. Use one of:</p>
+<ol>
+<li><strong>Build-time public URL</strong></li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">$env:VITE_BACKEND_URL</span><span class="p">=</span><span class="s2">"https://your-backend.example.com"</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd </span><span class="n">breed-classifier-react</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">npm</span> <span class="n">run</span> <span class="n">build</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">npx</span> <span class="n">cap</span> <span class="n">sync</span> <span class="n">android</span>
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Runtime Settings URL</strong>
+   <code>Settings → Online Mode → Backend URL</code>.</p>
+</li>
+<li>
+<p><strong>Cached fallback</strong>
+   With the field empty, the app reuses the last URL that successfully passed
+   <code>/api/health</code>. A successful URL is cached automatically.</p>
+</li>
+</ol>
+<p>On the web build, an empty URL falls back to the current origin, matching the PC
+website <code>/api</code> proxy behaviour.</p>
+<hr />
+<h2 id="5-verification-checklist">5. Verification checklist</h2>
+<h3 id="python">Python</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">.\.</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">setup_venv</span><span class="p">.</span><span class="n">py</span> <span class="p">-</span><span class="n">-check</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">.\.</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">src</span><span class="p">.</span><span class="n">verify</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">.\.</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">python</span><span class="p">.</span><span class="n">exe</span> <span class="n">-m</span> <span class="n">tests</span><span class="p">.</span><span class="n">run_vv_suite</span> <span class="p">-</span><span class="n">-skip-benchmark</span>
+</code></pre></div>
+<p>Expected:</p>
+<ul>
+<li>setup check: <code>Requirements already satisfied</code></li>
+<li><code>src.verify</code>: <code>VERIFICATION PASSED</code></li>
+<li>V&amp;V: <code>PASS 28, FAIL 0, WARN 2</code> (external-dataset OOD rate and skipped benchmark)</li>
+</ul>
+<h3 id="client">Client</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd </span><span class="n">breed-classifier-react</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">npm</span> <span class="n">run</span> <span class="n">build</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">npm</span> <span class="n">test</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">node</span> <span class="n">src</span><span class="p">\</span><span class="n">verify_ui_i18n</span><span class="p">.</span><span class="n">mjs</span>
+</code></pre></div>
+<p>Expected:</p>
+<ul>
+<li>build succeeds</li>
+<li>tests: 57 pass, 0 fail</li>
+<li>i18n: 621/621 keys in en/ta/hi, all script/dynamic checks pass</li>
+</ul>
+<h3 id="device-flow">Device flow</h3>
+<ol>
+<li>Install the APK.</li>
+<li>Grant camera permission.</li>
+<li>Home: confirm recent scans, model name, engine status.</li>
+<li>Upload a gallery image; confirm Original vs Model input 260×260.</li>
+<li>Try Pad, Center and Manual crop.</li>
+<li>Analyze; confirm Species, Breed (+ top-N), Gender, Age.</li>
+<li>Toggle <strong>Show prediction view</strong> and <strong>Show confidence percentages</strong> in
+   Settings → Advanced → Result Display.</li>
+<li>Switch English / தமிழ் / हिन्दी; confirm labels and breed names.</li>
+<li>Open Breed Tips with Online Mode connected.</li>
+<li>Camera: silhouette HUD, status pills, shutter, torch/flip, review.</li>
+</ol>
+<h3 id="transfer-test-assets">Transfer test assets</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">adb</span> <span class="n">shell</span> <span class="n">mkdir</span> <span class="n">-p</span> <span class="p">/</span><span class="n">sdcard</span><span class="p">/</span><span class="n">BreedClassifierTransfer</span><span class="p">/</span><span class="n">mutated_models</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">adb</span> <span class="n">shell</span> <span class="n">mkdir</span> <span class="n">-p</span> <span class="s2">"/sdcard/BreedClassifierTransfer/test_data"</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">adb</span> <span class="n">push</span> <span class="n">outputs</span><span class="p">\</span><span class="n">mutated_models</span><span class="p">\</span><span class="n">onnx</span> <span class="p">/</span><span class="n">sdcard</span><span class="p">/</span><span class="n">BreedClassifierTransfer</span><span class="p">/</span><span class="n">mutated_models</span><span class="p">/</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">adb</span> <span class="n">push</span> <span class="n">outputs</span><span class="p">\</span><span class="n">mutated_models</span><span class="p">\</span><span class="n">pt</span> <span class="p">/</span><span class="n">sdcard</span><span class="p">/</span><span class="n">BreedClassifierTransfer</span><span class="p">/</span><span class="n">mutated_models</span><span class="p">/</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">adb</span> <span class="n">push</span> <span class="n">outputs</span><span class="p">\</span><span class="n">mutated_models</span><span class="p">\</span><span class="n">manifest</span><span class="p">.</span><span class="n">json</span> <span class="p">/</span><span class="n">sdcard</span><span class="p">/</span><span class="n">BreedClassifierTransfer</span><span class="p">/</span><span class="n">mutated_models</span><span class="p">/</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">adb</span> <span class="n">push</span> <span class="s2">"test data ceck"</span> <span class="p">/</span><span class="n">sdcard</span><span class="p">/</span><span class="n">BreedClassifierTransfer</span><span class="p">/</span><span class="n">test_data</span><span class="p">/</span>
+</code></pre></div>
+<hr />
+<h2 id="6-known-constraints">6. Known constraints</h2>
+<ul>
+<li>On-device inference runs <strong>ONNX only</strong>; <code>.pt</code> files are listed but disabled.</li>
+<li>The cached backend fallback is convenient but will fail if the PC’s IP/port
+  changes. Enter a new URL or use a public <code>VITE_BACKEND_URL</code> for durable use.</li>
+<li>OOD is computed on-device but the result UI intentionally does not show a large
+  rejection banner.</li>
+<li>CLIP weights download on first use unless cached; CLIP is optional.</li>
+<li>OpenCV is pinned <code>&lt;5</code> because OpenCV 5 no longer bundles the Haar cascades.</li>
+<li>The Android WebView requires a modern Chrome/System WebView for ORT WASM and
+  <code>createImageBitmap</code>.</li>
+<li>The old emoji assets are gone; use <code>AndroidIcons.jsx</code> for new UI icons.</li>
+</ul>
+<hr />
+<h2 id="7-testing-devices">7. Testing devices</h2>
+<table>
+<thead>
+<tr>
+<th>Device</th>
+<th>Serial</th>
+<th>OS</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iQOO I2302</td>
+<td><code>10BE9S223P001KK</code></td>
+<td>Android 16, 1080×2400 @440 dpi</td>
+<td>Final APK installed and smoke-tested</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-artifacts">8. Artifacts</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>artifacts/android/breedid-android-debug.apk</code></td>
+<td>Tracked debug APK</td>
+</tr>
+<tr>
+<td><code>artifacts/android/SHA256SUMS.txt</code></td>
+<td>Integrity checksum</td>
+</tr>
+<tr>
+<td><code>artifacts/android/build-info.json</code></td>
+<td>App ID, commit, build time, size, hash</td>
+</tr>
+<tr>
+<td><code>artifacts/android/README.md</code></td>
+<td>Install and verification instructions</td>
+</tr>
+</tbody>
+</table>
+<p>Install the tracked artifact:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">adb</span> <span class="n">install</span> <span class="n">-r</span> <span class="n">artifacts</span><span class="p">\</span><span class="n">android</span><span class="p">\</span><span class="n">breedid-android-debug</span><span class="p">.</span><span class="n">apk</span>
+</code></pre></div>
+<p>Verify:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">Get-FileHash</span> <span class="n">artifacts</span><span class="p">\</span><span class="n">android</span><span class="p">\</span><span class="n">breedid-android-debug</span><span class="p">.</span><span class="n">apk</span> <span class="n">-Algorithm</span> <span class="n">SHA256</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
