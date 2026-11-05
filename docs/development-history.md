@@ -242,6 +242,8 @@ Flask backend and a standalone Capacitor Android app.
 - Added a static landing page at `/` with a live advisory form, fixed the Vercel
   Project Root Directory to `advisory-api`, and disabled SSO deployment
   protection so the API and landing page are publicly reachable.
+- Breed Tips no longer requires the legacy Online Mode setting or Python backend
+  health; only an internet connection is needed, with localized offline copy.
 - Verified: 7/7 API tests pass, live HTTP returns the expected Tamil payload,
   and the browser client handles success, 404 and missing-URL cases. The live
   endpoint and Breed Tips modal were also verified on the connected Android

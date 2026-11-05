@@ -368,7 +368,7 @@ export default function AndroidUserPage() {
   };
 
   const openTips = () => {
-    if (!settings.onlineMode || !navigator.onLine) {
+    if (!navigator.onLine) {
       setToast(t("android.offlineTips"));
       return;
     }

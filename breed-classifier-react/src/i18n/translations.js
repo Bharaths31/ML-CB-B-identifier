@@ -1894,7 +1894,7 @@ Object.assign(TRANSLATIONS.hi, {
 Object.assign(TRANSLATIONS.en, {
   "android.resultCopied": "Result copied to clipboard.",
   "android.shareUnavailable": "Sharing is unavailable on this device.",
-  "android.offlineTips": "Offline mode is active. Turn on Online Mode in Settings and connect to the internet to load detailed Breed Tips & Farmer Advisory data.",
+  "android.offlineTips": "You are offline. Connect to the internet to load detailed Breed Tips & Farmer Advisory data.",
   "android.prepareError": "Could not prepare the image.",
   "android.inferenceError": "On-device inference failed.",
   "android.chooseImageModel": "Choose an image and an ONNX model first.",
@@ -1902,7 +1902,7 @@ Object.assign(TRANSLATIONS.en, {
 Object.assign(TRANSLATIONS.ta, {
   "android.resultCopied": "முடிவு கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது.",
   "android.shareUnavailable": "இந்த சாதனத்தில் பகிர்வு கிடைக்கவில்லை.",
-  "android.offlineTips": "ஆஃப்லைன் பயன்முறை இயக்கத்தில் உள்ளது. விரிவான இன குறிப்புகள் மற்றும் விவசாயி ஆலோசனையைப் பெற Settings இல் Online Mode ஐ இயக்கி இணையத்துடன் இணைக்கவும்.",
+  "android.offlineTips": "நீங்கள் ஆஃப்லைனில் உள்ளீர்கள். விரிவான இன குறிப்புகள் மற்றும் விவசாயி ஆலோசனையைப் பெற இணையத்துடன் இணைக்கவும்.",
   "android.prepareError": "படத்தைத் தயாராக்க முடியவில்லை.",
   "android.inferenceError": "சாதன ஊகம் தோல்வியடைந்தது.",
   "android.chooseImageModel": "முதலில் ஒரு படத்தையும் ONNX மாடலையும் தேர்ந்தெடுக்கவும்.",
@@ -1910,7 +1910,7 @@ Object.assign(TRANSLATIONS.ta, {
 Object.assign(TRANSLATIONS.hi, {
   "android.resultCopied": "परिणाम क्लिपबोर्ड पर कॉपी हुआ।",
   "android.shareUnavailable": "इस डिवाइस पर साझा करना उपलब्ध नहीं है।",
-  "android.offlineTips": "ऑफ़लाइन मोड सक्रिय है। विस्तृत नस्ल सुझाव और किसान सलाह के लिए Settings में Online Mode चालू करें और इंटरनेट से जुड़ें।",
+  "android.offlineTips": "आप ऑफ़लाइन हैं। विस्तृत नस्ल सुझाव और किसान सलाह के लिए इंटरनेट से जुड़ें।",
   "android.prepareError": "फ़ोटो तैयार नहीं हो सकी।",
   "android.inferenceError": "डिवाइस पर अनुमान विफल रहा।",
   "android.chooseImageModel": "पहले एक फ़ोटो और ONNX मॉडल चुनें।",

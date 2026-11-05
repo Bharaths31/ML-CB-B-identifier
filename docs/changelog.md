@@ -13,6 +13,9 @@
 - Added `breed-classifier-react/src/services/onlineAdvisory.js` with
   `fetchAdvisoryData(...)`; it never throws and degrades to an on-device-only
   message when offline or slow.
+- Breed Tips now opens whenever the device is online; the legacy Online Mode /
+  backend-health gate was removed for this free API, and offline copy was
+  updated.
 - Deployed the API to Vercel production at
   `https://advisory-api-bharaths31s-projects.vercel.app/api/advisory` and wired
   that URL as the default advisory endpoint in the Android client. The Breed Tips
