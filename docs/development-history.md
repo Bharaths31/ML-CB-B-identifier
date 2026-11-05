@@ -177,8 +177,24 @@ Flask backend and a standalone Capacitor Android app.
   neck/hull ratio → age/gender with 65–94% confidence.
 - Added rejection UI and excluded rejected scans from Recent Scans.
 - Verified in the browser harness: 4 cattle images accepted; app screenshot
-  (monitor UI) and goat image rejected. Device was disconnected during the final
-  APK build, so install verification is pending.
+  (monitor UI) and goat image rejected. APK installed and simple mode verified on
+  the connected Android device.
+
+### 2.13 Developer-mode simple UI and native input (2026-11-05)
+
+- Removed the Active ONNX model panel from Home.
+- Added **Developer mode** in Advanced Settings (default off). Off hides ONNX
+  model name, WASM/SIMD, inference latency, rank/model-match badges, top-N
+  spectrum, percentages, scientific names and OOD/model controls; on restores
+  the full diagnostic UI.
+- Android camera now uses the native file input with `capture="environment"`;
+  gallery uses the standard file input. Both decode once and draw directly to
+  260×260.
+- Removed the silhouette HUD/guide from `CameraCapture` and the Android camera
+  modal path. Removed the old foreground-mask biometric estimator in favour of
+  `dynamicAgeGender.js` whole-frame features.
+- Filtered legacy recent scans that lack the new guardrail data; empty recent
+  scans are hidden in simple mode.
 
 ---
 

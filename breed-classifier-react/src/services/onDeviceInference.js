@@ -15,12 +15,9 @@
 
 import * as ort from "onnxruntime-web/wasm";
 import {
-  AGE_OPTIONS,
-  DAIRY_BREEDS,
   DEFAULT_OOD,
   EXPECTED_BUFFALO_BREEDS,
   EXPECTED_CATTLE_BREEDS,
-  GENDER_OPTIONS,
   IMAGE_SIZE,
   IMAGENET_MEAN,
   IMAGENET_STD,
@@ -28,7 +25,7 @@ import {
 } from "./breedCatalog.js";
 import { ENV_BACKEND_URL, resolveApiBase } from "./apiBase.js";
 import { evaluateImageGuardrails } from "../utils/imageGuardrails.js";
-import { estimateBiometricAgeGender } from "./biometricAgeGender.js";
+import { estimateDynamicAgeGender } from "./dynamicAgeGender.js";
 
 const DB_NAME = "BreedClassifierDB";
 const DB_VERSION = 1;
@@ -55,7 +52,7 @@ export const DEFAULT_SETTINGS = {
   theme: "emerald-obsidian",
   language: "en",
   backendUrl: ENV_BACKEND_URL,
-  downscaleMode: "auto",
+  developerMode: false,
   showConfidence: true,
   topBreedsCount: 3,
   showPredictionView: true,
@@ -492,69 +489,6 @@ export function preprocessToTensor(canvasOrImage, normalizationBaked = false) {
   return tensor;
 }
 
-function canvasStats(canvasOrImage) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 96;
-  canvas.height = 96;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  ctx.drawImage(canvasOrImage, 0, 0, 96, 96);
-  const { data } = ctx.getImageData(0, 0, 96, 96);
-  let dark = 0;
-  let green = 0;
-  let sum = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    sum += luma;
-    if (luma < 0.28) dark += 1;
-    if (g > r * 1.08 && g > b * 0.96) green += 1;
-  }
-  const total = data.length / 4 || 1;
-  return {
-    mean_luma: sum / total,
-    dark_ratio: dark / total,
-    green_ratio: green / total,
-  };
-}
-
-export function estimateGenderAge({ breedSlug, canvas, imageMeta = {} }) {
-  const stats = canvasStats(canvas);
-  const aspect = Number(imageMeta.originalAspect || 1);
-  const dairy = DAIRY_BREEDS.has(String(breedSlug || "").toLowerCase());
-
-  const femaleScore = (dairy ? 0.68 : 0.56)
-    + (aspect < 1 ? 0.03 : 0)
-    + (stats.dark_ratio > 0.35 ? 0.02 : 0);
-  const female = femaleScore >= 0.5;
-  const genderConfidence = Math.round(Math.min(0.78, Math.abs(femaleScore - 0.5) * 2 * 0.4 + 0.52) * 100);
-
-  let ageKey = "adult";
-  let ageConfidence = 62;
-  if (stats.dark_ratio < 0.18 && stats.mean_luma > 0.58) {
-    ageKey = "calf";
-    ageConfidence = 61;
-  } else if (stats.dark_ratio < 0.32 || stats.green_ratio > 0.22) {
-    ageKey = "young";
-    ageConfidence = 59;
-  }
-
-  return {
-    gender: {
-      key: female ? "female" : "male",
-      label: female ? "Female" : "Male",
-      confidence: genderConfidence,
-      method: "on-device morphology + breed prior",
-    },
-    age_group: {
-      key: ageKey,
-      label: AGE_OPTIONS.find((item) => item.key === ageKey)?.label || ageKey,
-      confidence: ageConfidence,
-      method: "on-device body-size / coat prior",
-    },
-    stats,
-  };
-}
-
 function classListFromModel(record, key, fallback) {
   const meta = record?.metadata || {};
   const map = meta.classMaps || {};
@@ -726,15 +660,13 @@ export async function runOnDeviceInference({
     };
   }
 
-  const attrs = estimateBiometricAgeGender({
+  const attrs = estimateDynamicAgeGender({
     canvas,
     breedSlug: top.breed_slug,
-    species,
     cattleLogits,
     buffaloLogits,
     cattleClasses,
     buffaloClasses,
-    combinedProbs: combined,
   });
 
   return {
@@ -757,7 +689,7 @@ export async function runOnDeviceInference({
     ood: isOod,
     ood_score: Number(energy.toFixed(4)),
     ood_details: oodDetails,
-    image_stats: attrs.body,
+    image_stats: attrs.features,
   };
 }
 
@@ -818,6 +750,60 @@ export async function fetchBreedKnowledgeOnline({
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function verifyDynamicPredictions({
+  canvases = [],
+  settings,
+  model = null,
+} = {}) {
+  const valid = canvases.filter((canvas) => canvas && canvas.width === IMAGE_SIZE && canvas.height === IMAGE_SIZE);
+  const canvas260 = valid.length === canvases.length;
+
+  if (valid.length < 2) {
+    return {
+      ok: false,
+      canvas260,
+      unique: false,
+      silhouetteFree: typeof document === "undefined" || !document.querySelector(".camera-silhouette"),
+      error: "Provide at least two 260x260 canvases.",
+      results: [],
+    };
+  }
+
+  const results = [];
+  for (const canvas of valid.slice(0, 4)) {
+    const result = await runOnDeviceInference({
+      canvas,
+      model,
+      settings,
+      imageMeta: { source: "verifyDynamicPredictions" },
+    });
+    results.push({
+      rejected: result.rejected,
+      reason_code: result.reason_code || null,
+      age: result.age_group
+        ? { key: result.age_group.key, confidence: result.age_group.confidence }
+        : null,
+      gender: result.gender
+        ? { key: result.gender.key, confidence: result.gender.confidence }
+        : null,
+      breed: result.breed,
+      confidence: result.confidence,
+      ood_score: result.ood_score,
+    });
+  }
+
+  const signatures = results.map((item) => JSON.stringify(item));
+  const unique = new Set(signatures).size === signatures.length;
+  const silhouetteFree =
+    typeof document === "undefined" || !document.querySelector(".camera-silhouette");
+  const report = { ok: canvas260 && unique && silhouetteFree, canvas260, unique, silhouetteFree, results };
+
+  if (import.meta.env.DEV) {
+    console.log("[verifyDynamicPredictions]", report);
+  }
+  return report;
 }
 
 export const ON_DEVICE_MODEL_NAME = DEFAULT_MODEL_NAME;

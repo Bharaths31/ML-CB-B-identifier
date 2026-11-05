@@ -379,8 +379,8 @@ export default function SettingsModal({
             <span className="settings-section-title is-inline">
               <span className="settings-section-icon" aria-hidden="true"><SlidersIcon /></span>
               <span>
-                <strong>{t("android.advanced")}</strong>
-                <small>{t("android.advancedDesc")}</small>
+                <strong>{current.developerMode ? t("android.advanced") : t("android.advancedSettings")}</strong>
+                <small>{current.developerMode ? t("android.advancedDesc") : t("android.developerModeHelp")}</small>
               </span>
             </span>
             <span aria-hidden="true">{advancedOpen ? "▾" : "▸"}</span>
@@ -388,6 +388,17 @@ export default function SettingsModal({
 
           {advancedOpen && (
             <div className="settings-advanced">
+              <ToggleRow
+                label={t("android.developerMode")}
+                help={t("android.developerModeHelp")}
+                checked={current.developerMode === true}
+                onChange={(value) => update({ developerMode: value })}
+              />
+              {!current.developerMode && (
+                <p className="settings-hint">{t("android.developerHidden")}</p>
+              )}
+              {current.developerMode && (
+                <>
               <h4>{t("android.resultDisplay")}</h4>
               <ToggleRow
                 label={t("android.showPredictionView")}
@@ -488,18 +499,7 @@ export default function SettingsModal({
               </div>
 
               <h4>{t("android.onDeviceModel")}</h4>
-              <label className="settings-field">
-                <span>{t("android.downscaleResolution")}</span>
-                <select
-                  className="form-input"
-                  value={current.downscaleMode || "auto"}
-                  onChange={(e) => update({ downscaleMode: e.target.value })}
-                >
-                  <option value="auto">{t("android.downscaleAuto")}</option>
-                  <option value="train">{t("android.downscaleTrain")}</option>
-                </select>
-              </label>
-              <p className="settings-hint">{t("android.downscaleHint")}</p>
+              <p className="settings-hint">{t("android.directDownscale")}</p>
               <label className="settings-field">
                 <span>{t("android.activeModelLabel")}</span>
                 <select
@@ -552,12 +552,16 @@ export default function SettingsModal({
                   </div>
                 ))}
               </div>
+                </>
+              )}
             </div>
           )}
         </section>
 
         <footer className="settings-footer">
-          <span>{t("android.modelsCount", { models: models.length, ood: oodProfiles.length })}</span>
+          {current.developerMode && (
+            <span>{t("android.modelsCount", { models: models.length, ood: oodProfiles.length })}</span>
+          )}
           <button type="button" className="settings-save-btn" onClick={onClose}>
             ✓ {t("android.saveReturn")}
           </button>

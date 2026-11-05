@@ -6,7 +6,7 @@
  * manual UI, matching the server's Resize(260) + CenterCrop(260) behaviour.
  */
 
-import { IMAGE_SIZE, IMAGENET_MEAN, TRAIN_RESIZE } from "./breedCatalog.js";
+import { IMAGE_SIZE, IMAGENET_MEAN } from "./breedCatalog.js";
 
 const PAD_FILL = `rgb(${Math.round(IMAGENET_MEAN[0] * 255)}, ${Math.round(IMAGENET_MEAN[1] * 255)}, ${Math.round(IMAGENET_MEAN[2] * 255)})`;
 
@@ -14,11 +14,6 @@ export const CROP_MODES = [
   { id: "pad", label: "Pad to Square (Full Body)" },
   { id: "center", label: "Center Crop (260×260)" },
   { id: "manual", label: "Manual Drag Crop" },
-];
-
-export const SCALE_MODES = [
-  { id: "auto", label: "Auto (Shortest-side 260px)" },
-  { id: "train", label: "Train Match (288px → 260px)" },
 ];
 
 function canvasToBlob(canvas, mimeType = "image/jpeg", quality = 0.92) {
@@ -78,10 +73,10 @@ export async function loadImageFile(file) {
   };
 }
 
-function drawPrepared(image, cropMode, base) {
+function drawPrepared(image, cropMode) {
   const canvas = document.createElement("canvas");
-  canvas.width = base;
-  canvas.height = base;
+  canvas.width = IMAGE_SIZE;
+  canvas.height = IMAGE_SIZE;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -91,32 +86,18 @@ function drawPrepared(image, cropMode, base) {
   if (!w || !h) throw new Error("Image has no dimensions.");
 
   if (cropMode === "pad") {
-    const scale = base / Math.max(w, h);
+    const scale = IMAGE_SIZE / Math.max(w, h);
     const dw = Math.max(1, Math.round(w * scale));
     const dh = Math.max(1, Math.round(h * scale));
     ctx.fillStyle = PAD_FILL;
-    ctx.fillRect(0, 0, base, base);
-    ctx.drawImage(image, Math.round((base - dw) / 2), Math.round((base - dh) / 2), dw, dh);
+    ctx.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
+    ctx.drawImage(image, Math.round((IMAGE_SIZE - dw) / 2), Math.round((IMAGE_SIZE - dh) / 2), dw, dh);
   } else {
-    // center / manual: cover the square and clip the overflow.
-    const scale = base / Math.min(w, h);
+    const scale = IMAGE_SIZE / Math.min(w, h);
     const dw = Math.max(1, Math.round(w * scale));
     const dh = Math.max(1, Math.round(h * scale));
-    ctx.drawImage(image, Math.round((base - dw) / 2), Math.round((base - dh) / 2), dw, dh);
+    ctx.drawImage(image, Math.round((IMAGE_SIZE - dw) / 2), Math.round((IMAGE_SIZE - dh) / 2), dw, dh);
   }
-  return canvas;
-}
-
-function centerCrop260(baseCanvas) {
-  if (baseCanvas.width === IMAGE_SIZE && baseCanvas.height === IMAGE_SIZE) {
-    return baseCanvas;
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = IMAGE_SIZE;
-  canvas.height = IMAGE_SIZE;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  const offset = Math.round((baseCanvas.width - IMAGE_SIZE) / 2);
-  ctx.drawImage(baseCanvas, offset, offset, IMAGE_SIZE, IMAGE_SIZE, 0, 0, IMAGE_SIZE, IMAGE_SIZE);
   return canvas;
 }
 
@@ -127,16 +108,13 @@ function centerCrop260(baseCanvas) {
  */
 export async function prepareImage(file, {
   cropMode = "pad",
-  scaleMode = "auto",
   manualCropFile = null,
 } = {}) {
   const sourceFile = manualCropFile || file;
   const loaded = await loadImageFile(sourceFile);
   try {
-    const base = scaleMode === "train" ? TRAIN_RESIZE : IMAGE_SIZE;
     const effectiveCrop = manualCropFile ? "center" : cropMode;
-    const baseCanvas = drawPrepared(loaded.image, effectiveCrop, base);
-    const canvas = centerCrop260(baseCanvas);
+    const canvas = drawPrepared(loaded.image, effectiveCrop);
     const blob = await canvasToBlob(canvas);
     const preparedFile = new File(
       [blob],
@@ -149,8 +127,7 @@ export async function prepareImage(file, {
       canvas,
       meta: {
         cropMode: effectiveCrop,
-        scaleMode,
-        baseSize: base,
+        directDownscale: true,
         originalWidth: loaded.width,
         originalHeight: loaded.height,
         originalAspect: loaded.width / Math.max(1, loaded.height),
@@ -164,7 +141,7 @@ export async function prepareImage(file, {
   }
 }
 
-/** Camera captures never expose crop/downscale controls. */
+/** Camera captures use the same direct center-crop path. */
 export async function prepareCameraImage(file) {
-  return prepareImage(file, { cropMode: "center", scaleMode: "auto" });
+  return prepareImage(file, { cropMode: "center" });
 }

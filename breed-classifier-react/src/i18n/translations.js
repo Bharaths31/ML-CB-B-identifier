@@ -1558,7 +1558,7 @@ Object.assign(TRANSLATIONS.en, {
   "android.preparingHint": "Optimising for the model",
   "android.takePhoto": "Take photo",
   "android.fast": "FAST",
-  "android.cameraHint": "Guided silhouette · direct on-device scan",
+  "android.cameraHint": "Direct on-device scan · 260×260 input",
   "android.activeModel": "Active ONNX model",
   "android.noModel": "No model loaded",
   "android.size": "Size",
@@ -1674,7 +1674,7 @@ Object.assign(TRANSLATIONS.ta, {
   "android.preparingHint": "மாடலுக்கு உகந்ததாக மாற்றப்படுகிறது",
   "android.takePhoto": "புகைப்படம் எடு",
   "android.fast": "விரைவு",
-  "android.cameraHint": "வழிகாட்டும் நிழற்படம் · சாதனத்தில் நேரடி ஸ்கேன்",
+  "android.cameraHint": "சாதனத்தில் நேரடி ஸ்கேன் · 260×260 உள்ளீடு",
   "android.activeModel": "செயலில் உள்ள ONNX மாடல்",
   "android.noModel": "மாடல் ஏற்றப்படவில்லை",
   "android.size": "அளவு",
@@ -1790,7 +1790,7 @@ Object.assign(TRANSLATIONS.hi, {
   "android.preparingHint": "मॉडल के लिए अनुकूलित किया जा रहा है",
   "android.takePhoto": "फ़ोटो लें",
   "android.fast": "तेज़",
-  "android.cameraHint": "मार्गदर्शित सिल्हूट · डिवाइस पर सीधा स्कैन",
+  "android.cameraHint": "डिवाइस पर सीधा स्कैन · 260×260 इनपुट",
   "android.activeModel": "सक्रिय ONNX मॉडल",
   "android.noModel": "कोई मॉडल लोड नहीं है",
   "android.size": "आकार",
@@ -1994,28 +1994,99 @@ Object.assign(TRANSLATIONS.hi, {
 
 Object.assign(TRANSLATIONS.en, {
   "android.rejectionTitle": "No cattle or buffalo detected",
-  "android.rejectionBody": "Point the camera at a real cow or buffalo. Screens, monitors, furniture and other man-made objects are not accepted.",
+  "android.rejectionBody": "Point the camera at a real cow or buffalo. Screens, monitors, furniture, people and other man-made objects are not accepted.",
   "android.rejectionHint": "Move closer, fill the frame with the animal's side profile and try again in good light.",
   "android.tryAgain": "Try another photo",
-  "android.rejectScreen": "Screen, monitor or man-made object detected",
+  "android.rejectScreen": "Screen, man-made object or person detected",
   "android.rejectUnrelated": "Unrelated object or low-detail scene",
   "android.rejectUncertain": "Prediction confidence is too low",
 });
 Object.assign(TRANSLATIONS.ta, {
   "android.rejectionTitle": "மாடு அல்லது எருமை கண்டறியப்படவில்லை",
-  "android.rejectionBody": "கேமராவை உண்மையான மாடு அல்லது எருமையை நோக்கி வைக்கவும். திரைகள், மானிட்டர்கள், தளவாடங்கள் மற்றும் பிற செயற்கைப் பொருட்கள் ஏற்கப்படாது.",
+  "android.rejectionBody": "கேமராவை உண்மையான மாடு அல்லது எருமையை நோக்கி வைக்கவும். திரைகள், மானிட்டர்கள், தளவாடங்கள், மனிதர்கள் மற்றும் பிற செயற்கைப் பொருட்கள் ஏற்கப்படாது.",
   "android.rejectionHint": "அருகில் சென்று, விலங்கின் பக்கத் தோற்றத்தை சட்டகத்தில் நிரப்பி, நல்ல வெளிச்சத்தில் மீண்டும் முயற்சிக்கவும்.",
   "android.tryAgain": "மற்றொரு படத்தை முயற்சிக்கவும்",
-  "android.rejectScreen": "திரை, மானிட்டர் அல்லது செயற்கைப் பொருள் கண்டறியப்பட்டது",
+  "android.rejectScreen": "திரை, செயற்கைப் பொருள் அல்லது மனிதர் கண்டறியப்பட்டது",
   "android.rejectUnrelated": "தொடர்பில்லாத பொருள் அல்லது தெளிவற்ற காட்சி",
   "android.rejectUncertain": "கணிப்பு நம்பிக்கை மிகக் குறைவு",
 });
 Object.assign(TRANSLATIONS.hi, {
   "android.rejectionTitle": "कोई गाय या भैंस नहीं मिली",
-  "android.rejectionBody": "कैमरे को असली गाय या भैंस की ओर करें। स्क्रीन, मॉनिटर, फर्नीचर और अन्य मानव-निर्मित वस्तुएँ स्वीकार नहीं की जाती हैं।",
+  "android.rejectionBody": "कैमरे को असली गाय या भैंस की ओर करें। स्क्रीन, मॉनिटर, फर्नीचर, लोग और अन्य मानव-निर्मित वस्तुएँ स्वीकार नहीं की जाती हैं।",
   "android.rejectionHint": "पास जाएँ, जानवर का साइड प्रोफाइल फ्रेम में भरें और अच्छी रोशनी में फिर कोशिश करें।",
   "android.tryAgain": "दूसरी फ़ोटो आज़माएँ",
-  "android.rejectScreen": "स्क्रीन, मॉनिटर या मानव-निर्मित वस्तु मिली",
+  "android.rejectScreen": "स्क्रीन, मानव-निर्मित वस्तु या व्यक्ति मिला",
   "android.rejectUnrelated": "असंबंधित वस्तु या अस्पष्ट दृश्य",
   "android.rejectUncertain": "अनुमान का विश्वास बहुत कम है",
 });
+
+Object.assign(TRANSLATIONS.en, {
+  "android.directDownscale": "All camera and gallery inputs are resized directly to 260×260.",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.directDownscale": "கேமரா மற்றும் கேலரி உள்ளீடுகள் அனைத்தும் நேரடியாக 260×260 ஆக மாற்றப்படும்.",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.directDownscale": "कैमरा और गैलरी के सभी इनपुट सीधे 260×260 में बदले जाते हैं।",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.developerMode": "Developer mode",
+  "android.developerModeHelp": "Show model diagnostics, OOD controls and advanced display settings.",
+  "android.developerHidden": "Developer information is hidden. Turn on Developer mode to access model and OOD controls.",
+  "android.simpleHomeBody": "Upload or take a clear side-profile photo of a cow or buffalo.",
+  "android.readyToAnalyze": "Ready to analyze",
+  "android.resultTitle": "Result",
+  "android.mainBreedResult": "Main breed identification",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.developerMode": "டெவலப்பர் பயன்முறை",
+  "android.developerModeHelp": "மாடல் கண்டறிதல், OOD கட்டுப்பாடுகள் மற்றும் மேம்பட்ட காட்சி அமைப்புகளைக் காட்டு.",
+  "android.developerHidden": "டெவலப்பர் தகவல் மறைக்கப்பட்டுள்ளது. மாடல் மற்றும் OOD கட்டுப்பாடுகளுக்கு Developer mode ஐ இயக்கவும்.",
+  "android.simpleHomeBody": "மாடு அல்லது எருமையின் தெளிவான பக்கத் தோற்ற புகைப்படத்தை பதிவேற்றவும் அல்லது எடுக்கவும்.",
+  "android.readyToAnalyze": "பகுப்பாய்வுக்கு தயார்",
+  "android.resultTitle": "முடிவு",
+  "android.mainBreedResult": "முதன்மை இன அடையாளம்",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.developerMode": "डेवलपर मोड",
+  "android.developerModeHelp": "मॉडल डायग्नोस्टिक्स, OOD नियंत्रण और उन्नत प्रदर्शन सेटिंग्स दिखाएँ।",
+  "android.developerHidden": "डेवलपर जानकारी छिपी है। मॉडल और OOD नियंत्रण के लिए Developer mode चालू करें।",
+  "android.simpleHomeBody": "गाय या भैंस की साफ़ साइड-प्रोफाइल फ़ोटो अपलोड करें या लें।",
+  "android.readyToAnalyze": "विश्लेषण के लिए तैयार",
+  "android.resultTitle": "परिणाम",
+  "android.mainBreedResult": "मुख्य नस्ल पहचान",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.shareResult": "Share result",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.shareResult": "முடிவைப் பகிர்",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.shareResult": "परिणाम साझा करें",
+});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.uploadSimpleHint": "Choose a photo from your gallery.",
+  "android.cameraSimpleHint": "Take a photo with the camera.",
+  "android.methodGenderDynamic": "Dynamic dimorphism logits + anterior/posterior energy",
+  "android.methodAgeDynamic": "Dynamic logit + whole-frame moments",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.uploadSimpleHint": "உங்கள் கேலரியிலிருந்து புகைப்படத்தைத் தேர்ந்தெடுக்கவும்.",
+  "android.cameraSimpleHint": "கேமராவில் புகைப்படம் எடுக்கவும்.",
+  "android.methodGenderDynamic": "மாறும் பாலின வேறுபாட்டு லாகிட்கள் + முன்/பின் ஆற்றல்",
+  "android.methodAgeDynamic": "மாறும் லॉजिट் + முழு சட்டக தருணங்கள்",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.uploadSimpleHint": "अपनी गैलरी से फ़ोटो चुनें।",
+  "android.cameraSimpleHint": "कैमरे से फ़ोटो लें।",
+  "android.methodGenderDynamic": "गतिशील द्विरूपता लॉजिट + अग्र/पश्च ऊर्जा",
+  "android.methodAgeDynamic": "गतिशील लॉजिट + पूरे फ्रेम के क्षण",
+});
+
+Object.assign(TRANSLATIONS.en, {"android.advancedSettings": "Advanced settings"});
+Object.assign(TRANSLATIONS.ta, {"android.advancedSettings": "மேம்பட்ட அமைப்புகள்"});
+Object.assign(TRANSLATIONS.hi, {"android.advancedSettings": "उन्नत सेटिंग्स"});

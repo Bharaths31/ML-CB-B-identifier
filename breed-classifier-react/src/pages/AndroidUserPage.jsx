@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider.jsx";
 import { applyStoredTheme } from "../components/ThemeSwitcher.jsx";
 import ImageCropper from "../components/ImageCropper.jsx";
-import CameraCapture from "../components/CameraCapture.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
 import BreedTipsModal from "../components/BreedTipsModal.jsx";
 import {
@@ -29,6 +28,7 @@ import {
   runOnDeviceInference,
   saveSettings,
   fetchBreedKnowledgeOnline,
+  verifyDynamicPredictions,
 } from "../services/onDeviceInference.js";
 
 const RECENT_KEY = "breedid_recent_scans";
@@ -53,7 +53,9 @@ function haptic(pattern = 20) {
 function readRecent() {
   try {
     const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((entry) => entry && !entry.rejected && entry.guardrail).slice(0, 5)
+      : [];
   } catch {
     return [];
   }
@@ -82,6 +84,7 @@ function topBars(top5 = []) {
 export default function AndroidUserPage() {
   const { t, tBreed, tDynamic, lang } = useI18n();
   const uploadRef = useRef(null);
+  const cameraRef = useRef(null);
   const originalUrlRef = useRef(null);
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -89,7 +92,6 @@ export default function AndroidUserPage() {
   const [oodProfiles, setOodProfiles] = useState([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tipsOpen, setTipsOpen] = useState(false);
-  const [cameraOpen, setCameraOpen] = useState(false);
   const [recent, setRecent] = useState(readRecent);
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const wakeLockRef = useRef(null);
@@ -152,6 +154,7 @@ export default function AndroidUserPage() {
         getSettings,
         saveSettings,
         fetchBreedKnowledgeOnline,
+        verifyDynamicPredictions,
       };
     }
   }, []);
@@ -170,7 +173,7 @@ export default function AndroidUserPage() {
   useEffect(() => {
     let cancelled = false;
     const acquire = async () => {
-      if (!(cameraOpen || analyzing) || !navigator.wakeLock?.request) return;
+      if (!analyzing || !navigator.wakeLock?.request) return;
       try {
         const lock = await navigator.wakeLock.request("screen");
         if (!cancelled) wakeLockRef.current = lock;
@@ -182,7 +185,7 @@ export default function AndroidUserPage() {
       try { wakeLockRef.current?.release?.(); } catch { /* ignore */ }
       wakeLockRef.current = null;
     };
-  }, [cameraOpen, analyzing]);
+  }, [analyzing]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -233,21 +236,16 @@ export default function AndroidUserPage() {
     originalUrlRef.current = null;
   };
 
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  const processFile = async (file, nextSource) => {
     if (!file) return;
     setError("");
     setPreparing(true);
     resetResult();
-    setSource("file");
+    setSource(nextSource);
     try {
       const loaded = await prepareImage(file, {
-        cropMode,
-        scaleMode: settings.downscaleMode || "auto",
+        cropMode: nextSource === "camera" ? "center" : cropMode,
       });
-      // Object URLs avoid base64-encoding the full-resolution file just for
-      // the preview; the image is already decoded once inside prepareImage.
       releaseOriginalUrl();
       const previewUrl = URL.createObjectURL(file);
       originalUrlRef.current = previewUrl;
@@ -259,6 +257,7 @@ export default function AndroidUserPage() {
       });
       setPrepared(loaded);
       setStage("preview");
+      if (nextSource === "camera") haptic(25);
     } catch (err) {
       setError(err.message || t("android.prepareError"));
     } finally {
@@ -266,29 +265,16 @@ export default function AndroidUserPage() {
     }
   };
 
-  const handleCameraCapture = async (file, dataUrl, meta, report) => {
-    setCameraOpen(false);
-    setError("");
-    setPreparing(true);
-    resetResult();
-    setSource("camera");
-    try {
-      const prepared = await prepareImage(file, { cropMode: "center", scaleMode: "auto" });
-      releaseOriginalUrl();
-      setOriginal({
-        file,
-        dataUrl: dataUrl || prepared.dataUrl,
-        width: meta?.originalWidth || 260,
-        height: meta?.originalHeight || 260,
-      });
-      setPrepared(prepared);
-      setStage("preview");
-      haptic(25);
-    } catch (err) {
-      setError(err.message || t("android.prepareError"));
-    } finally {
-      setPreparing(false);
-    }
+  const handleUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    processFile(file, "file");
+  };
+
+  const handleCameraUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    processFile(file, "camera");
   };
 
   const rePrepare = async (nextCrop = cropMode) => {
@@ -296,10 +282,7 @@ export default function AndroidUserPage() {
     setPreparing(true);
     setError("");
     try {
-      const loaded = await prepareImage(original.file, {
-        cropMode: nextCrop,
-        scaleMode: settings.downscaleMode || "auto",
-      });
+      const loaded = await prepareImage(original.file, { cropMode: nextCrop });
       setPrepared(loaded);
     } catch (err) {
       setError(err.message || t("android.prepareError"));
@@ -324,7 +307,6 @@ export default function AndroidUserPage() {
     try {
       const loaded = await prepareImage(original.file, {
         cropMode: "center",
-        scaleMode: settings.downscaleMode || "auto",
         manualCropFile: file,
       });
       setPrepared(loaded);
@@ -405,7 +387,9 @@ export default function AndroidUserPage() {
     if (!result || result.rejected) return;
     const text = [
       `${tDynamic("species", result.species)} · ${tBreed(result.breed_slug) || result.breed}`,
-      ...(settings.showConfidence !== false ? [`${t("result.confidence")}: ${result.confidence}%`] : []),
+      ...(settings.developerMode === true && settings.showConfidence !== false
+        ? [`${t("result.confidence")}: ${result.confidence}%`]
+        : []),
       `${t("hero.gender")}: ${tDynamic("gender", gender.label || "Unknown")}`,
       `${t("hero.age")}: ${tDynamic("age", age.key || age.label || "Unknown")}`,
     ].join("\n");
@@ -436,9 +420,9 @@ export default function AndroidUserPage() {
   const age = result?.age_group || { key: null, label: "Unknown", confidence: 0 };
   const resultImage = result?.thumbnail || prepared?.dataUrl || original?.dataUrl || null;
   const resultLatency = result?.inference_time_ms ?? result?.total_time_ms ?? lastLatency;
-  const modelLatency = lastLatency ?? recent[0]?.inference_time_ms ?? null;
   const showConfidence = settings.showConfidence !== false;
   const showPredictionView = settings.showPredictionView !== false;
+  const developerMode = settings.developerMode === true;
   const topBreedsCount = Math.min(5, Math.max(1, Number(settings.topBreedsCount) || 3));
   const onlineModeActive = Boolean(settings.onlineMode && online);
   const headerConnected = onlineModeActive && backendStatus === "connected";
@@ -450,6 +434,7 @@ export default function AndroidUserPage() {
         ? t("header.connected")
         : t("header.reconnecting");
   const rejectionReasonKey = result?.reason_code === "screen_or_manmade_object"
+    || result?.reason_code === "manmade_object_or_screen"
     ? "android.rejectScreen"
     : result?.reason_code === "unrelated_object"
       ? "android.rejectUnrelated"
@@ -472,7 +457,7 @@ export default function AndroidUserPage() {
             ←
           </button>
           <div className="android-dossier-title">
-            <h1>{t("android.dossier")}</h1>
+            <h1>{developerMode ? t("android.dossier") : t("android.resultTitle")}</h1>
             <span>{formatRecordId(result.scanned_at)}</span>
           </div>
           <button
@@ -496,10 +481,12 @@ export default function AndroidUserPage() {
             </div>
           </div>
           <div className="android-header-actions">
-            <span className={`android-online-pill ${headerConnected ? "is-online" : "is-offline"}`}>
-              <span className={`telemetry-dot ${headerConnected ? "online" : "offline"}`} />
-              {headerStatusLabel}
-            </span>
+            {developerMode && (
+              <span className={`android-online-pill ${headerConnected ? "is-online" : "is-offline"}`}>
+                <span className={`telemetry-dot ${headerConnected ? "online" : "offline"}`} />
+                {headerStatusLabel}
+              </span>
+            )}
             <button
               type="button"
               className="android-lang-chip"
@@ -527,15 +514,17 @@ export default function AndroidUserPage() {
         {stage === "input" && (
           <>
             <section className="android-card android-hero-card">
-              <div className="android-engine-row">
-                <span className="android-engine-state">
-                  <i aria-hidden="true" />
-                  {t("android.visionActive")}
-                </span>
-                <span className="android-engine-tag">ONNX · WASM</span>
-              </div>
+              {developerMode && (
+                <div className="android-engine-row">
+                  <span className="android-engine-state">
+                    <i aria-hidden="true" />
+                    {t("android.visionActive")}
+                  </span>
+                  <span className="android-engine-tag">ONNX · WASM</span>
+                </div>
+              )}
               <h2>{t("android.identifyTitle")}</h2>
-              <p>{t("android.identifyBody")}</p>
+              <p>{developerMode ? t("android.identifyBody") : t("android.simpleHomeBody")}</p>
             </section>
 
             <div className="android-source-stack">
@@ -549,7 +538,7 @@ export default function AndroidUserPage() {
                 <span className="android-source-copy">
                   <strong>{preparing ? t("android.preparing") : t("android.uploadGallery")}</strong>
                   <small>
-                    {preparing ? t("android.preparingHint") : t("android.uploadHint")}
+                    {preparing ? t("android.preparingHint") : developerMode ? t("android.uploadHint") : t("android.uploadSimpleHint")}
                   </small>
                 </span>
                 <span className="android-source-arrow" aria-hidden="true">›</span>
@@ -558,7 +547,7 @@ export default function AndroidUserPage() {
               <button
                 type="button"
                 className="android-source-btn is-primary"
-                onClick={() => setCameraOpen(true)}
+                onClick={() => cameraRef.current?.click()}
                 disabled={preparing}
               >
                 <span className="android-source-icon" aria-hidden="true"><CameraIcon /></span>
@@ -567,7 +556,7 @@ export default function AndroidUserPage() {
                     {t("android.takePhoto")}
                     <em className="android-fast-badge">{t("android.fast")}</em>
                   </strong>
-                  <small>{t("android.cameraHint")}</small>
+                  <small>{developerMode ? t("android.cameraHint") : t("android.cameraSimpleHint")}</small>
                 </span>
                 <span className="android-source-arrow" aria-hidden="true">›</span>
               </button>
@@ -580,24 +569,17 @@ export default function AndroidUserPage() {
               hidden
               onChange={handleUpload}
             />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={handleCameraUpload}
+            />
             {error && <div className="error-banner">{error}</div>}
 
-            <section className="android-telemetry-card">
-              <div className="android-telemetry-top">
-                <span>{t("android.activeModel")}</span>
-                <span className="android-telemetry-ready"><i aria-hidden="true" />WASM / SIMD</span>
-              </div>
-              <div className="android-model-name">{activeModel?.name || t("android.noModel")}</div>
-              <div className="android-telemetry-bottom">
-                <span>
-                  {t("android.size")}: {activeModel ? Number(activeModel.size_mb || 0).toFixed(1) : "—"} MB
-                  {" · "}
-                  {t("android.latency")}: {modelLatency ? `${Math.round(modelLatency)}ms` : "—"}
-                </span>
-                <strong>{activeModel ? t("android.engineReady") : t("android.modelMissing")}</strong>
-              </div>
-            </section>
-
+            {(recent.length > 0 || developerMode) && (
             <section className="android-recent-block">
               <div className="android-recent-head">
                 <div className="android-recent-title">
@@ -624,14 +606,14 @@ export default function AndroidUserPage() {
                         {entry.thumbnail
                           ? <img src={entry.thumbnail} alt="" />
                           : <span className="android-recent-placeholder" aria-hidden="true"><BrandMark /></span>}
-                        {showConfidence && (
+                        {developerMode && showConfidence && (
                           <b className={entry.confidence < 90 ? "is-warn" : ""}>
                             {entry.confidence}%
                           </b>
                         )}
                       </span>
                       <strong>{tBreed(entry.breed_slug) || entry.breed}</strong>
-                      <small>{SCIENTIFIC_NAME[entry.species] || entry.species}</small>
+                      <small>{developerMode ? (SCIENTIFIC_NAME[entry.species] || entry.species) : entry.species}</small>
                     </button>
                   ))}
                 </div>
@@ -643,11 +625,14 @@ export default function AndroidUserPage() {
                 </div>
               )}
             </section>
+            )}
 
-            <div className="android-privacy-strip">
-              <span><LockIcon /> {t("android.localInference")}</span>
-              <span>{t("android.noCloudSync")}</span>
-            </div>
+            {developerMode && (
+              <div className="android-privacy-strip">
+                <span><LockIcon /> {t("android.localInference")}</span>
+                <span>{t("android.noCloudSync")}</span>
+              </div>
+            )}
           </>
         )}
 
@@ -677,7 +662,7 @@ export default function AndroidUserPage() {
                 <img src={original?.dataUrl} alt={t("android.original")} />
               </figure>
               <figure className="android-preview-frame">
-                <span className="android-frame-tag is-accent">{t("android.modelInput")}</span>
+                <span className="android-frame-tag is-accent">{developerMode ? t("android.modelInput") : t("android.readyToAnalyze")}</span>
                 <img src={prepared?.dataUrl} alt={t("android.modelInput")} />
               </figure>
             </div>
@@ -698,11 +683,9 @@ export default function AndroidUserPage() {
                     </button>
                   ))}
                 </div>
-                <p className="android-option-hint">
-                  {t("android.downscale")}: {(settings.downscaleMode || "auto") === "train"
-                    ? t("android.downscaleTrain")
-                    : t("android.downscaleAuto")} · {t("android.changeInSettings")}
-                </p>
+                {developerMode && (
+                  <p className="android-option-hint">{t("android.directDownscale")}</p>
+                )}
               </div>
             )}
 
@@ -743,7 +726,9 @@ export default function AndroidUserPage() {
             <span className="android-step-kicker">OOD GUARDRAIL</span>
             <h2>{t("android.rejectionTitle")}</h2>
             <p>{t("android.rejectionBody")}</p>
-            <div className="android-rejection-reason">{t(rejectionReasonKey)}</div>
+            {developerMode && (
+              <div className="android-rejection-reason">{t(rejectionReasonKey)}</div>
+            )}
             <p className="android-rejection-hint">{t("android.rejectionHint")}</p>
             <button type="button" className="android-primary-btn" onClick={startOver}>
               <CameraIcon /> {t("android.tryAgain")}
@@ -756,21 +741,23 @@ export default function AndroidUserPage() {
 
         {stage === "result" && result && !result.rejected && (
           <section className="android-results android-dossier">
-            <div className="android-inference-strip">
-              <span className="android-inference-state">
-                <i aria-hidden="true" />
-                {t("android.inferenceComplete")}
-              </span>
-              <span>
-                {resultLatency ? `${Math.round(resultLatency)}ms` : "on-device"}
-                {" · "}{t("android.onDeviceNeural")}
-              </span>
-            </div>
+            {developerMode && (
+              <div className="android-inference-strip">
+                <span className="android-inference-state">
+                  <i aria-hidden="true" />
+                  {t("android.inferenceComplete")}
+                </span>
+                <span>
+                  {resultLatency ? `${Math.round(resultLatency)}ms` : "on-device"}
+                  {" · "}{t("android.onDeviceNeural")}
+                </span>
+              </div>
+            )}
 
             {resultImage && (
               <figure className="android-dossier-image">
-                <img src={resultImage} alt={t("android.dossier")} />
-                <figcaption>◉ {t("android.modelInput")}</figcaption>
+                <img src={resultImage} alt={t("android.resultTitle")} />
+                {developerMode && <figcaption>◉ {t("android.modelInput")}</figcaption>}
               </figure>
             )}
 
@@ -778,28 +765,32 @@ export default function AndroidUserPage() {
               <div className="android-species-copy">
                 <span className="android-card-label">{t("android.species")}</span>
                 <h2>{speciesLabel}</h2>
-                <small>{SCIENTIFIC_NAME[result.species] || result.species}</small>
+                {developerMode && <small>{SCIENTIFIC_NAME[result.species] || result.species}</small>}
               </div>
-              <span className="android-verified-badge">◉ {t("android.modelMatch")}</span>
+              {developerMode && (
+                <span className="android-verified-badge">◉ {t("android.modelMatch")}</span>
+              )}
             </article>
 
             <article className="android-breed-dossier">
               <div className="android-dossier-breed-top">
-                <span className="android-card-label">{t("android.identifiedBreed")}</span>
-                <span className="android-rank-pill">{t("android.rank1")}</span>
+                <span className="android-card-label">{developerMode ? t("android.identifiedBreed") : t("hero.breed")}</span>
+                {developerMode && <span className="android-rank-pill">{t("android.rank1")}</span>}
               </div>
               <div className="android-breed-title-row">
                 <h2>{breedLabel}</h2>
-                {showConfidence && <strong>{result.confidence}%</strong>}
+                {developerMode && showConfidence && <strong>{result.confidence}%</strong>}
               </div>
               <span className="android-breed-subtitle">
-                {speciesLabel} · {t("android.breedMatch")}
+                {developerMode ? `${speciesLabel} · ${t("android.breedMatch")}` : speciesLabel}
               </span>
               <p className="android-breed-desc">
-                {showPredictionView ? t("android.breedDesc") : t("android.breedDescMain")}
+                {developerMode
+                  ? (showPredictionView ? t("android.breedDesc") : t("android.breedDescMain"))
+                  : t("android.mainBreedResult")}
               </p>
 
-              {showPredictionView && (
+              {developerMode && showPredictionView && (
                 <div className="android-spectrum">
                   <div className="android-spectrum-head">
                     <span>{t("android.topBreeds", { count: topBreedsCount })}</span>
@@ -831,29 +822,29 @@ export default function AndroidUserPage() {
                   <span className="android-attr-icon" aria-hidden="true">
                     {gender.key === "female" ? <FemaleIcon /> : <MaleIcon />}
                   </span>
-                  <span className="android-card-label">{t("android.predictedGender")}</span>
+                  <span className="android-card-label">{developerMode ? t("android.predictedGender") : t("hero.gender")}</span>
                 </div>
                 <h3>{genderLabel}</h3>
-                {showConfidence && (
+                {developerMode && showConfidence && (
                   <strong className="android-attr-confidence">
                     {gender.confidence}% {t("android.heuristic")}
                   </strong>
                 )}
-                <small>{t("android.methodGender")}</small>
+                {developerMode && <small>{t("android.methodGenderDynamic")}</small>}
               </article>
 
               <article className="android-attr-card">
                 <div className="android-attr-head">
                   <span className="android-attr-icon" aria-hidden="true"><AgeIcon /></span>
-                  <span className="android-card-label">{t("android.estimatedAge")}</span>
+                  <span className="android-card-label">{developerMode ? t("android.estimatedAge") : t("hero.age")}</span>
                 </div>
                 <h3>{ageLabel}</h3>
-                {showConfidence && (
+                {developerMode && showConfidence && (
                   <strong className="android-attr-confidence">
                     {age.confidence}% {t("android.heuristic")}
                   </strong>
                 )}
-                <small>{t("android.methodAge")}</small>
+                {developerMode && <small>{t("android.methodAgeDynamic")}</small>}
               </article>
             </div>
 
@@ -862,7 +853,7 @@ export default function AndroidUserPage() {
                 <BookIcon /> {t("android.breedTips")}
               </button>
               <button type="button" className="android-secondary-btn" onClick={shareCurrent}>
-                <ShareIcon /> {t("android.shareDossier")}
+                <ShareIcon /> {developerMode ? t("android.shareDossier") : t("android.shareResult")}
               </button>
               <button type="button" className="android-ghost-btn" onClick={startOver}>
                 <TargetIcon /> {t("android.identifyAnother")}
@@ -895,13 +886,6 @@ export default function AndroidUserPage() {
         ageGroup={ageLabel}
       />
 
-      {cameraOpen && (
-        <CameraCapture
-          androidMode
-          onCapture={handleCameraCapture}
-          onClose={() => setCameraOpen(false)}
-        />
-      )}
     </div>
   );
 }

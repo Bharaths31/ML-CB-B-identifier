@@ -1,5 +1,30 @@
 # 16. Changelog
 
+### 2026-11-05 — Direct 260×260 input, native camera, developer-mode simple UI
+
+- **Camera/silhouette removal:** Android now uses native
+  `<input type="file" accept="image/*" capture="environment">` for Take Photo and
+  the gallery file input for Upload. The custom getUserMedia camera modal,
+  silhouette HUD, foreground/contour guidance and Android camera optimization
+  path were removed from the Android flow. The shared web `CameraCapture`
+  silhouette overlay was also removed.
+- **Direct downscale:** both input paths decode once and draw directly to the
+  `260×260` model canvas. Gallery pad/center/manual crop remains; the
+  Auto/Train-Match downscale setting was removed.
+- **Active ONNX model field removed:** the home model/WASM/size/latency panel is
+  gone.
+- **Developer mode:** Advanced Settings has a **Developer mode** switch
+  (default off). Off = simplified home/result/settings: no ONNX/WASM, model
+  telemetry, inference strip, rank/model-match badges, top-N Softmax spectrum,
+  confidence percentages, scientific names or method text. On = full diagnostics,
+  OOD/model controls and display settings. Recent scans are hidden when empty in
+  simple mode and old scans without guardrail data are filtered from the ledger.
+- **Zero-static estimator retained:** the dynamic guardrail and
+  `dynamicAgeGender.js` compute all values from the current `260×260` pixels and
+  68 logits; no breed-lookup age/gender fallback.
+- **Verification:** build, tests and i18n pass; simple/developer modes verified in
+  the browser harness and on the connected Android device.
+
 ### 2026-11-05 — Multi-stage object/monitor guardrail and biometric age/gender
 
 - **Stage A image gate** (`src/utils/imageGuardrails.js`): Sobel-based

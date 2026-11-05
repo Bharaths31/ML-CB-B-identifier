@@ -1,39 +1,21 @@
-const GRADIENT_THRESHOLD = 45;
-const AXIS_TOLERANCE = 4;
-const AXIS_EDGE_RATIO_MAX = 0.32;
-const EDGE_SPAN_MAX = 0.62;
+const GRADIENT_THRESHOLD = 48;
+const ANGLE_TOLERANCE = 4;
+const STRAIGHT_EDGE_MAX = 0.33;
 const BLOCK_SIZE = 16;
-const FLAT_BLOCK_STD = 3.2;
-const FLAT_BLOCK_RATIO_MAX = 0.42;
-const BLUE_DOMINANCE_MAX = 0.28;
+const FLAT_BLOCK_SIGMA = 3.0;
+const FLAT_PATCH_MAX = 0.42;
 const ENTROPY_MAX = 0.76;
 const Z_PEAK_MIN = 2.0;
 const Z_MAX_MIN = 1.6;
-const BINARY_FLOOR_MIN = 0.72;
+const BINARY_FLOOR_MIN = 0.60;
 const MSP_FLOOR_MIN = 0.5863;
 const ENERGY_FLOOR_MIN = -3.2004;
+const HUMAN_SKIN_MAX = 0.70;
+const HUMAN_SKIN_EDGE_MAX = 0.32;
+const HUMAN_SKIN_GREEN_MAX = 0.02;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
-}
-
-function luma(r, g, b) {
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function isAxisAligned(degrees) {
-  const nearHorizontalGradient =
-    degrees < AXIS_TOLERANCE ||
-    degrees > 360 - AXIS_TOLERANCE ||
-    Math.abs(degrees - 180) < AXIS_TOLERANCE;
-  const nearVerticalGradient =
-    Math.abs(degrees - 90) < AXIS_TOLERANCE ||
-    Math.abs(degrees - 270) < AXIS_TOLERANCE;
-  return {
-    axis: nearHorizontalGradient || nearVerticalGradient,
-    verticalLine: nearHorizontalGradient,
-    horizontalLine: nearVerticalGradient,
-  };
 }
 
 function geometryGate(canvas) {
@@ -46,40 +28,29 @@ function geometryGate(canvas) {
   const { data } = ctx.getImageData(0, 0, width, height);
   const count = width * height;
   const gray = new Float32Array(count);
-
-  let sum = 0;
-  let sumSq = 0;
-  let bright = 0;
-  let blueBright = 0;
+  let skinPixels = 0;
+  let greenPixels = 0;
 
   for (let i = 0, p = 0; i < count; i += 1, p += 4) {
-    const r = data[p];
-    const g = data[p + 1];
-    const b = data[p + 2];
-    const y = luma(r, g, b);
-    gray[i] = y;
-    sum += y;
-    sumSq += y * y;
-    if (y > 180) {
-      bright += 1;
-      if (b > r + 25) blueBright += 1;
+    const r = data[p] / 255;
+    const g = data[p + 1] / 255;
+    const b = data[p + 2] / 255;
+    gray[i] = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
+
+    const y = 0.299 * r + 0.587 * g + 0.114 * b;
+    const cb = -0.168736 * r - 0.331264 * g + 0.5 * b;
+    const cr = 0.5 * r - 0.418688 * g - 0.081312 * b;
+    if (y > 0.25 && cb >= -0.15 && cb <= 0.1 && cr >= 0.02 && cr <= 0.22) {
+      skinPixels += 1;
     }
+    if (g > r * 1.05 && g > b * 1.05) greenPixels += 1;
   }
 
-  const meanLuma = sum / count;
-  const variance = Math.max(0, sumSq / count - meanLuma * meanLuma);
-  const blueDominance = bright ? blueBright / bright : 0;
-
   let strongEdges = 0;
-  let axisEdges = 0;
-  const currentColumnRun = new Uint16Array(width);
-  const longestColumnRun = new Uint16Array(width);
-  let longestRowRun = 0;
-  let rowRun = 0;
+  let straightEdges = 0;
 
   for (let y = 1; y < height - 1; y += 1) {
     const row = y * width;
-    rowRun = 0;
     for (let x = 1; x < width - 1; x += 1) {
       const i = row + x;
       const gx =
@@ -89,127 +60,66 @@ function geometryGate(canvas) {
       const gy =
         -gray[i - width - 1] - 2 * gray[i - width] - gray[i - width + 1]
         + gray[i + width - 1] + 2 * gray[i + width] + gray[i + width + 1];
-      const magnitude = Math.abs(gx) + Math.abs(gy);
-      if (magnitude <= GRADIENT_THRESHOLD) {
-        rowRun = 0;
-        currentColumnRun[x] = 0;
-        continue;
-      }
+      const magnitude = Math.sqrt(gx * gx + gy * gy);
+      if (magnitude <= GRADIENT_THRESHOLD) continue;
 
       strongEdges += 1;
-      let degrees = (Math.atan2(gy, gx) * 180) / Math.PI;
-      if (degrees < 0) degrees += 360;
-      const alignment = isAxisAligned(degrees);
-      if (alignment.axis) {
-        axisEdges += 1;
-        if (alignment.horizontalLine) {
-          rowRun += 1;
-          if (rowRun > longestRowRun) longestRowRun = rowRun;
-        } else {
-          rowRun = 0;
-        }
-        if (alignment.verticalLine) {
-          currentColumnRun[x] += 1;
-          if (currentColumnRun[x] > longestColumnRun[x]) {
-            longestColumnRun[x] = currentColumnRun[x];
-          }
-        } else {
-          currentColumnRun[x] = 0;
-        }
-      } else {
-        rowRun = 0;
-        currentColumnRun[x] = 0;
+      const theta = Math.abs((Math.atan2(gy, gx) * 180) / Math.PI);
+      if (
+        theta <= ANGLE_TOLERANCE ||
+        Math.abs(theta - 90) <= ANGLE_TOLERANCE ||
+        Math.abs(theta - 180) <= ANGLE_TOLERANCE
+      ) {
+        straightEdges += 1;
       }
     }
   }
-
-  let longestColumn = 0;
-  for (let i = 0; i < longestColumnRun.length; i += 1) {
-    if (longestColumnRun[i] > longestColumn) longestColumn = longestColumnRun[i];
-  }
-  const longestRow = longestRowRun;
 
   let flatBlocks = 0;
   let blockCount = 0;
   for (let by = 0; by + BLOCK_SIZE <= height; by += BLOCK_SIZE) {
     for (let bx = 0; bx + BLOCK_SIZE <= width; bx += BLOCK_SIZE) {
-      let blockSum = 0;
-      let blockSq = 0;
+      let sum = 0;
+      let sq = 0;
       for (let yy = 0; yy < BLOCK_SIZE; yy += 1) {
         const row = (by + yy) * width + bx;
         for (let xx = 0; xx < BLOCK_SIZE; xx += 1) {
           const value = gray[row + xx];
-          blockSum += value;
-          blockSq += value * value;
+          sum += value;
+          sq += value * value;
         }
       }
-      const blockMean = blockSum / (BLOCK_SIZE * BLOCK_SIZE);
-      const blockVar = Math.max(0, blockSq / (BLOCK_SIZE * BLOCK_SIZE) - blockMean * blockMean);
-      if (Math.sqrt(blockVar) < FLAT_BLOCK_STD) flatBlocks += 1;
+      const mean = sum / (BLOCK_SIZE * BLOCK_SIZE);
+      const variance = Math.max(0, sq / (BLOCK_SIZE * BLOCK_SIZE) - mean * mean);
+      if (Math.sqrt(variance) < FLAT_BLOCK_SIGMA) flatBlocks += 1;
       blockCount += 1;
     }
   }
 
-  const flatRatio = blockCount ? flatBlocks / blockCount : 0;
-  const axisRatio = strongEdges ? axisEdges / strongEdges : 0;
-  const rowSpan = longestRow / width;
-  const columnSpan = longestColumn / height;
-
-  const inner = 0.25;
-  const outer = 0.08;
-  let centerSum = 0;
-  let centerCount = 0;
-  let borderSum = 0;
-  let borderCount = 0;
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const value = gray[y * width + x];
-      const inCenter =
-        x >= width * inner && x <= width * (1 - inner) &&
-        y >= height * inner && y <= height * (1 - inner);
-      const inBorder =
-        x < width * outer || x > width * (1 - outer) ||
-        y < height * outer || y > height * (1 - outer);
-      if (inCenter) {
-        centerSum += value;
-        centerCount += 1;
-      }
-      if (inBorder) {
-        borderSum += value;
-        borderCount += 1;
-      }
-    }
-  }
-
-  const centerLuma = centerCount ? centerSum / centerCount : meanLuma;
-  const borderLuma = borderCount ? borderSum / borderCount : meanLuma;
-  const glowContrast = centerLuma - borderLuma;
-  const screenGlow =
-    blueDominance > BLUE_DOMINANCE_MAX ||
-    (borderLuma < 70 && glowContrast > 55 && flatRatio > 0.2);
-
+  const straightEdgeRatio = strongEdges ? straightEdges / strongEdges : 0;
+  const flatPatchRatio = blockCount ? flatBlocks / blockCount : 0;
+  const edgeDensity = count ? strongEdges / count : 0;
+  const skinRatio = count ? skinPixels / count : 0;
+  const greenRatio = count ? greenPixels / count : 0;
   const details = {
-    mean_luma: Number(meanLuma.toFixed(2)),
-    luma_std: Number(Math.sqrt(variance).toFixed(2)),
     strong_edges: strongEdges,
-    axis_edge_ratio: Number(axisRatio.toFixed(4)),
-    longest_row_span: Number(rowSpan.toFixed(4)),
-    longest_column_span: Number(columnSpan.toFixed(4)),
-    flat_block_ratio: Number(flatRatio.toFixed(4)),
-    blue_dominance_ratio: Number(blueDominance.toFixed(4)),
-    center_luma: Number(centerLuma.toFixed(2)),
-    border_luma: Number(borderLuma.toFixed(2)),
-    glow_contrast: Number(glowContrast.toFixed(2)),
+    straight_edge_ratio: Number(straightEdgeRatio.toFixed(4)),
+    flat_patch_ratio: Number(flatPatchRatio.toFixed(4)),
+    skin_ratio: Number(skinRatio.toFixed(4)),
+    green_ratio: Number(greenRatio.toFixed(4)),
   };
 
-  if (axisRatio > AXIS_EDGE_RATIO_MAX || rowSpan > EDGE_SPAN_MAX || columnSpan > EDGE_SPAN_MAX) {
-    return { rejected: true, reason_code: "screen_or_manmade_object", details };
-  }
-  if (screenGlow) {
-    return { rejected: true, reason_code: "screen_or_manmade_object", details };
-  }
-  if (flatRatio > 0.55 || (flatRatio > FLAT_BLOCK_RATIO_MAX && strongEdges < 6000)) {
-    return { rejected: true, reason_code: "unrelated_object", details };
+  if (
+    straightEdgeRatio > STRAIGHT_EDGE_MAX ||
+    flatPatchRatio > 0.55 ||
+    (flatPatchRatio > FLAT_PATCH_MAX && strongEdges < 6000) ||
+    (
+      skinRatio > HUMAN_SKIN_MAX &&
+      edgeDensity < HUMAN_SKIN_EDGE_MAX &&
+      greenRatio < HUMAN_SKIN_GREEN_MAX
+    )
+  ) {
+    return { rejected: true, reason_code: "manmade_object_or_screen", details };
   }
   return { rejected: false, details };
 }
@@ -278,6 +188,7 @@ export function evaluateImageGuardrails({
   const binaryCutoff = Math.max(Number(binaryFloor) || 0, BINARY_FLOOR_MIN);
   const mspCutoff = Math.max(Number(mspThreshold) || 0, MSP_FLOOR_MIN);
   const energyCutoff = Math.max(Number(energyThreshold) || 0, ENERGY_FLOOR_MIN);
+
   const details = {
     ...geometry.details,
     normalized_entropy: Number(entropy.toFixed(4)),

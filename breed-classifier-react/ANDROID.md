@@ -69,14 +69,14 @@ restarts.
 
 ## Runtime notes
 
-- **Guided camera:** the camera opens the live `getUserMedia` preview with the
-  cattle/buffalo silhouette HUD (head, hump/dorsal ridge, dewlap, tail), live
-  lighting/framing/sharpness pills, torch, facing, auto-capture and burst.
-  Android mode hides the manual crop/fit controls; the captured 260×260 frame
-  flows straight to analysis.
-- **QoL:** haptic feedback on capture/analyze/recent, screen wake-lock while the
-  camera or inference is active, native share/clipboard for results, and a
-  persisted **Recent scans** strip (last 5, stored locally) on the home page.
+- **Camera and uploads:** the Android app uses the native file/camera input
+  (`capture="environment"`) for Take Photo and a gallery file input for Upload.
+  Both paths decode once and downscale directly to the model's `260×260` canvas;
+  no silhouette overlay, foreground mask, contour extraction or custom Android
+  camera constraint/HUD is used.
+- **QoL:** haptic feedback on capture/analyze/recent, screen wake-lock while
+  inference is active, native share/clipboard for results, and a persisted
+  **Recent scans** strip (last 5, stored locally) on the home page.
 - **Result cards:** species, breed (+ Top-3), gender and age are read-only.
   Gender and age are always the model/heuristic output and cannot be
   overridden from the result screen.
@@ -85,8 +85,14 @@ restarts.
   with rank/confidence/top-3 bars, and read-only gender/age cards. The top-3
   spectrum is filtered to the predicted species.
 - **Home:** two-line brand header, online status, a header language chip
-  (`EN / த / हि`), stacked gallery/camera ingest cards, ONNX telemetry, and a
-  3-column recent scans ledger with confidence badges and scientific names.
+  (`EN / த / हि`), stacked gallery/camera ingest cards and a recent-scans ledger.
+  The **Active ONNX model** panel was removed. A **Developer mode** switch in
+  Advanced Settings controls whether model/OOD diagnostics are visible.
+- **Simple mode (default):** with Developer mode off, the home page shows only
+  the title, two source buttons and recent scans (when present); the result shows
+  only species, breed, gender, age and actions. ONNX model name, WASM/SIMD,
+  latency, rank, model-match badge, inference strip, Softmax/top-N spectrum,
+  percentages, scientific names and method text are hidden.
 - **Online mode:** matches the website’s connection model. It uses the same
   `/api` contract, resolving the base from the Settings URL, then
   `VITE_BACKEND_URL`, then the **last backend URL that passed `/api/health`**,
@@ -100,8 +106,9 @@ restarts.
   round-trip through base64 twice before the preview appears.
 - **Settings:** a full-screen page opened from the header hamburger (☰). It has
   a dedicated **Select Language** section (English / தமிழ் / हिन्दी), theme
-  cards, Online Mode + backend URL, and a collapsible **Advanced AI Model**
-  section for ONNX/OOD. Gallery downscale mode lives there too.
+  cards, Online Mode + backend URL, and an **Advanced settings** section with a
+  **Developer mode** switch. When Developer mode is off, model, OOD, result
+  display and diagnostic controls are hidden; turning it on reveals them.
   **Save & Return** closes the page; all choices are persisted immediately.
 - **Result display:** Advanced Settings includes *Show prediction view*,
   *Show confidence percentages* and *Predicted breeds to show* (1–5, default 3).
