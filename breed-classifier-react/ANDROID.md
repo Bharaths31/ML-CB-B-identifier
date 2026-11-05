@@ -145,6 +145,9 @@ restarts.
   disabled until you upload a matching OOD `.json` in Settings.
 - **Online mode:** only Breed Tips use the network. The Android image pipeline is
   fully local; `server/app.py` inference is not called by the app.
+  `src/services/onlineAdvisory.js` can fetch the free Vercel advisory API with a
+  5-second timeout and an offline fallback. The on-device breed result is always
+  shown even when the advisory call fails.
 - Preprocessing: `260×260`, `pixel/255`, then ImageNet mean/std unless the model
   name contains `mobile`/`int8` (baked normalization).
 - Breed Tips use the public backend only when Online Mode is ON, the device has

@@ -220,6 +220,23 @@ Flask backend and a standalone Capacitor Android app.
   human selfie and monitor screenshot rejected; two-canvas
   `verifyDynamicPredictions()` passes.
 
+### 2.15 Free Vercel advisory API and Android client (2026-11-05)
+
+- Added `advisory-api/` with a zero-dependency CJS serverless handler at
+  `api/advisory.js`, compact 68-breed data in `data/breed_knowledge.json`,
+  en/ta/hi copy in `lib/i18n.js`, lookup/aliases in `lib/knowledge.js`, local
+  dev server and a `node:test` suite.
+- Dynamic rules: female adult shows lactation/milk/calcium/mastitis; male adult
+  hides milk and shows draught/breeding; calf hides milk and draught and shows
+  colostrum/starter/deworming/FMD-brucellosis schedule; young shows growth/first
+  breeding; missing gender falls back to general adult care.
+- Added CORS `*`, `OPTIONS` 204, cached 200 responses and 400/404/405 JSON
+  errors.
+- Added `breed-classifier-react/src/services/onlineAdvisory.js` with a 5-second
+  AbortController timeout, offline fallback and non-throwing result objects.
+- Verified: 7/7 API tests pass, live HTTP returns the expected Tamil payload,
+  and the browser client handles success, 404 and missing-URL cases.
+
 ---
 
 ## 3. Current repository map

@@ -1,5 +1,21 @@
 # 16. Changelog
 
+### 2026-11-05 — Free Vercel breed advisory API and Android client
+
+- Added `advisory-api/`, a dependency-free Vercel Node.js function
+  (`GET /api/advisory`) serving all 68 breeds with origin, utility, milk yield,
+  physical markers, market price and schemes.
+- Added dynamic female-adult, male-adult, calf, young and fallback advisory
+  cards; calf responses include a vaccination/deworming timeline. Milk yield is
+  hidden for males and calves; draught advice is hidden for females and calves.
+- Added en/ta/hi copy, localized breed names and scheme names, CORS `*`, 5-second
+  client timeout and offline fallback.
+- Added `breed-classifier-react/src/services/onlineAdvisory.js` with
+  `fetchAdvisoryData(...)`; it never throws and degrades to an on-device-only
+  message when offline or slow.
+- Verified with 7 API tests, a live local HTTP request, and a browser import of
+  the Android client.
+
 ### 2026-11-05 — Center-focused guardrail, top-k OOD and selfie blocker
 
 - **Center-focused Stage A:** straight-edge and flat-patch checks now run on the
