@@ -113,10 +113,24 @@ restarts.
 - **Icons:** a shared inline SVG set (`AndroidIcons.jsx`) replaces the mixed
   emoji marks for the brand, gallery, camera, lock, trash, language, theme,
   online, advanced, gender, age and result actions.
+- **Guardrail:** every on-device prediction passes a multi-stage gate
+  (`src/utils/imageGuardrails.js`):
+  - Stage A: axis-aligned Sobel edges/bezels, contiguous straight-edge spans,
+    screen blue-cast/glow and flat-block wall detection on the 260×260 canvas.
+  - Stage B: 68-class normalized entropy, top-logit Z-score peak,
+    binary-confidence floor, energy and MSP.
+  - Rejected images return no species/breed and show a localized
+    “No cattle or buffalo detected” card; rejected scans are not saved to recent.
+- **Age/gender:** `src/services/biometricAgeGender.js` fuses juvenile/heavy breed
+  logit mass, foreground torso fill, crown/horn texture, and draught/dairy breed
+  priors to produce read-only age and gender estimates with 65–94% confidence.
+  On-device MSP uses the binary species head, matching the Python OOD detector.
 - **OOD calibration:** a model with embedded `model_meta.ood` (the
   `*__ood.onnx` mutant or the bundled default) applies its own energy/MSP
   thresholds automatically. A non-OOD model is accepted but the OOD gate is
   disabled until you upload a matching OOD `.json` in Settings.
+- **Online mode:** only Breed Tips use the network. The Android image pipeline is
+  fully local; `server/app.py` inference is not called by the app.
 - Preprocessing: `260×260`, `pixel/255`, then ImageNet mean/std unless the model
   name contains `mobile`/`int8` (baked normalization).
 - Breed Tips use the public backend only when Online Mode is ON, the device has

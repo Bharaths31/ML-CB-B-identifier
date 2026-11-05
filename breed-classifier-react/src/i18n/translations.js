@@ -1991,3 +1991,31 @@ Object.assign(TRANSLATIONS.ta, {
 Object.assign(TRANSLATIONS.hi, {
   "android.backendFallback": "अंतिम सफल बैकएंड: {url}",
 });
+
+Object.assign(TRANSLATIONS.en, {
+  "android.rejectionTitle": "No cattle or buffalo detected",
+  "android.rejectionBody": "Point the camera at a real cow or buffalo. Screens, monitors, furniture and other man-made objects are not accepted.",
+  "android.rejectionHint": "Move closer, fill the frame with the animal's side profile and try again in good light.",
+  "android.tryAgain": "Try another photo",
+  "android.rejectScreen": "Screen, monitor or man-made object detected",
+  "android.rejectUnrelated": "Unrelated object or low-detail scene",
+  "android.rejectUncertain": "Prediction confidence is too low",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.rejectionTitle": "மாடு அல்லது எருமை கண்டறியப்படவில்லை",
+  "android.rejectionBody": "கேமராவை உண்மையான மாடு அல்லது எருமையை நோக்கி வைக்கவும். திரைகள், மானிட்டர்கள், தளவாடங்கள் மற்றும் பிற செயற்கைப் பொருட்கள் ஏற்கப்படாது.",
+  "android.rejectionHint": "அருகில் சென்று, விலங்கின் பக்கத் தோற்றத்தை சட்டகத்தில் நிரப்பி, நல்ல வெளிச்சத்தில் மீண்டும் முயற்சிக்கவும்.",
+  "android.tryAgain": "மற்றொரு படத்தை முயற்சிக்கவும்",
+  "android.rejectScreen": "திரை, மானிட்டர் அல்லது செயற்கைப் பொருள் கண்டறியப்பட்டது",
+  "android.rejectUnrelated": "தொடர்பில்லாத பொருள் அல்லது தெளிவற்ற காட்சி",
+  "android.rejectUncertain": "கணிப்பு நம்பிக்கை மிகக் குறைவு",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.rejectionTitle": "कोई गाय या भैंस नहीं मिली",
+  "android.rejectionBody": "कैमरे को असली गाय या भैंस की ओर करें। स्क्रीन, मॉनिटर, फर्नीचर और अन्य मानव-निर्मित वस्तुएँ स्वीकार नहीं की जाती हैं।",
+  "android.rejectionHint": "पास जाएँ, जानवर का साइड प्रोफाइल फ्रेम में भरें और अच्छी रोशनी में फिर कोशिश करें।",
+  "android.tryAgain": "दूसरी फ़ोटो आज़माएँ",
+  "android.rejectScreen": "स्क्रीन, मॉनिटर या मानव-निर्मित वस्तु मिली",
+  "android.rejectUnrelated": "असंबंधित वस्तु या अस्पष्ट दृश्य",
+  "android.rejectUncertain": "अनुमान का विश्वास बहुत कम है",
+});

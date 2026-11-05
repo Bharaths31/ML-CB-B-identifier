@@ -356,16 +356,18 @@ export default function AndroidUserPage() {
       setLastLatency(res.inference_time_ms ?? res.total_time_ms ?? null);
       setStage("result");
       haptic([15, 30, 15]);
-      const entry = {
-        ...res,
-        scanned_at: scannedAt,
-        thumbnail: prepared.dataUrl,
-      };
-      setRecent((previous) => {
-        const next = [entry, ...previous].slice(0, 5);
-        writeRecent(next);
-        return next;
-      });
+      if (!res.rejected) {
+        const entry = {
+          ...res,
+          scanned_at: scannedAt,
+          thumbnail: prepared.dataUrl,
+        };
+        setRecent((previous) => {
+          const next = [entry, ...previous].slice(0, 5);
+          writeRecent(next);
+          return next;
+        });
+      }
     } catch (err) {
       setError(err.message || t("android.inferenceError"));
     } finally {
@@ -400,7 +402,7 @@ export default function AndroidUserPage() {
   };
 
   const shareCurrent = async () => {
-    if (!result) return;
+    if (!result || result.rejected) return;
     const text = [
       `${tDynamic("species", result.species)} · ${tBreed(result.breed_slug) || result.breed}`,
       ...(settings.showConfidence !== false ? [`${t("result.confidence")}: ${result.confidence}%`] : []),
@@ -447,6 +449,11 @@ export default function AndroidUserPage() {
       : headerConnected
         ? t("header.connected")
         : t("header.reconnecting");
+  const rejectionReasonKey = result?.reason_code === "screen_or_manmade_object"
+    ? "android.rejectScreen"
+    : result?.reason_code === "unrelated_object"
+      ? "android.rejectUnrelated"
+      : "android.rejectUncertain";
   const speciesLabel = tDynamic("species", result?.species || "");
   const breedLabel = tBreed(result?.breed_slug) || result?.breed || "";
   const genderLabel = tDynamic("gender", gender.label || "Unknown");
@@ -728,7 +735,26 @@ export default function AndroidUserPage() {
           </section>
         )}
 
-        {stage === "result" && result && (
+        {stage === "result" && result?.rejected && (
+          <section className="android-card android-rejection-card">
+            <div className="android-rejection-icon" aria-hidden="true">
+              <CameraIcon />
+            </div>
+            <span className="android-step-kicker">OOD GUARDRAIL</span>
+            <h2>{t("android.rejectionTitle")}</h2>
+            <p>{t("android.rejectionBody")}</p>
+            <div className="android-rejection-reason">{t(rejectionReasonKey)}</div>
+            <p className="android-rejection-hint">{t("android.rejectionHint")}</p>
+            <button type="button" className="android-primary-btn" onClick={startOver}>
+              <CameraIcon /> {t("android.tryAgain")}
+            </button>
+            <button type="button" className="android-secondary-btn" onClick={openSettings}>
+              {t("android.appSettings")}
+            </button>
+          </section>
+        )}
+
+        {stage === "result" && result && !result.rejected && (
           <section className="android-results android-dossier">
             <div className="android-inference-strip">
               <span className="android-inference-state">

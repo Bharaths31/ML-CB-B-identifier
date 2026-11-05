@@ -1,5 +1,31 @@
 # 16. Changelog
 
+### 2026-11-05 — Multi-stage object/monitor guardrail and biometric age/gender
+
+- **Stage A image gate** (`src/utils/imageGuardrails.js`): Sobel-based
+  axis-aligned edge/bezel detection, contiguous straight-edge spans, blue-cast /
+  dark-bezel screen check, and a 16×16 flat-block wall/background check. Runs on
+  the prepared 260×260 canvas before a prediction is accepted.
+- **Stage B logit gate:** normalized 68-class entropy, top-logit Z-score peak,
+  binary-confidence floor, energy and MSP checks. Rejections return
+  `rejected: true` with no species/breed and a localized reason.
+- **Model-calibrated thresholds:** the shipped `lite2_v27` model’s raw
+  thresholds from the original brief rejected every valid test cattle image.
+  The final thresholds were calibrated against the test set
+  (`EDGE_SPAN_MAX 0.62`, entropy `0.76`, `Z_peak 2.0`, `Z_max 1.6`, binary floor
+  `0.72`, energy floor `-3.2004`). Valid cattle pass; the screen screenshot and
+  goat test image are rejected.
+- **Biometric estimator** (`src/services/biometricAgeGender.js`): juvenile/heavy
+  breed logit mass, foreground bbox/torso fill/crown-texture biometrics, fused
+  age scores, and gender from draught vs dairy breed mass + neck/hull ratio.
+- **Corrected MSP:** on-device MSP now uses the binary species head, matching the
+  Python `OODDetector.compute_msp`, instead of the breed-head probability.
+- **Result UI:** a rejection card replaces the dossier for rejected images with
+  a localized reason and retry action; rejected scans are not added to recent
+  scans. Gender/age remain read-only.
+- **Verification:** test cattle images accepted; app screenshot (monitor UI) and
+  goat image rejected. Client build/tests and i18n checks pass.
+
 ### 2026-11-04 — Remove audio, public API base, website-style online status, main-result-only mode
 
 - **Audio removed:** the home audio-help banner, speech state/handlers, audio

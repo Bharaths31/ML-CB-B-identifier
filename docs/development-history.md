@@ -3,9 +3,9 @@
 **Project:** BreedID Livestock Vision — cattle/buffalo breed classifier with a
 Flask backend and a standalone Capacitor Android app.
 
-**Last updated:** 2026-11-04  
+**Last updated:** 2026-11-05  
 **Current Android artifact:** `artifacts/android/breedid-android-debug.apk`  
-**Artifact SHA-256:** `C18B14702C94CD88D33ECD53B9ADA154D4BD121A5BC99D3B3D8637C1D0E177C4`
+**Artifact SHA-256:** `D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259`
 
 ---
 
@@ -156,6 +156,28 @@ Flask backend and a standalone Capacitor Android app.
 - `setup.sh`, `setup.ps1` and `setup.bat` forward the flags and document Node 22+,
   JDK 21 and Android SDK prerequisites.
 - `scripts/status_report.py` now honours multi-constraint requirements.
+
+### 2.12 Object/monitor guardrail and biometric age/gender (2026-11-05)
+
+- Added `src/utils/imageGuardrails.js`:
+  - Stage A Sobel axis-edge/bezel detection, contiguous straight-edge spans,
+    screen glow/blue-cast and 16×16 flat-block wall checks.
+  - Stage B 68-class entropy, top-logit Z-score peak, binary confidence, energy
+    and MSP checks.
+  - Rejections return no species/breed and a localized reason.
+- Calibrated gate thresholds against the shipped `lite2_v27` model because the
+  original brief values rejected every valid test cattle image.
+  Final: `EDGE_SPAN_MAX 0.62`, entropy `0.76`, `Z_peak 2.0`, `Z_max 1.6`,
+  binary floor `0.72`, energy floor `-3.2004`.
+- Fixed on-device MSP to use the binary species head, matching the Python
+  `OODDetector.compute_msp`; energy now uses all three heads.
+- Added `src/services/biometricAgeGender.js`: juvenile/heavy breed logit mass,
+  torso fill, crown/horn texture, compactness, draught/dairy breed prior and
+  neck/hull ratio → age/gender with 65–94% confidence.
+- Added rejection UI and excluded rejected scans from Recent Scans.
+- Verified in the browser harness: 4 cattle images accepted; app screenshot
+  (monitor UI) and goat image rejected. Device was disconnected during the final
+  APK build, so install verification is pending.
 
 ---
 

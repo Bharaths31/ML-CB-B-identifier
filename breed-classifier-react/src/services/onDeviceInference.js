@@ -27,6 +27,8 @@ import {
   breedDisplayName,
 } from "./breedCatalog.js";
 import { ENV_BACKEND_URL, resolveApiBase } from "./apiBase.js";
+import { evaluateImageGuardrails } from "../utils/imageGuardrails.js";
+import { estimateBiometricAgeGender } from "./biometricAgeGender.js";
 
 const DB_NAME = "BreedClassifierDB";
 const DB_VERSION = 1;
@@ -624,7 +626,6 @@ export async function runOnDeviceInference({
 
   // OOD: embedded metadata (mutated OOD model) > selected JSON > settings.
   const activeLogits = speciesIndex === 1 ? buffaloLogits : cattleLogits;
-  const activeProbs = speciesIndex === 1 ? buffaloProbs : cattleProbs;
   const embeddedOod = record.metadata?.ood && typeof record.metadata.ood === "object"
     ? record.metadata.ood
     : null;
@@ -643,8 +644,10 @@ export async function runOnDeviceInference({
       ?? settings?.binaryConfidenceFloor
       ?? DEFAULT_OOD.binaryConfidenceFloor
   );
-  const energy = -temperature * logSumExp(activeLogits.map((v) => v / temperature));
-  const msp = Math.max(...activeProbs);
+  const energy = -temperature * logSumExp(
+    [...binaryLogits, ...cattleLogits, ...buffaloLogits].map((value) => value / temperature)
+  );
+  const msp = Math.max(...binaryProbs);
   const binaryConfidence = Math.max(...binaryProbs);
   const hasCalibration = Boolean(embeddedOod || oodProfile)
     || record.metadata?.source === "bundled";
@@ -659,12 +662,85 @@ export async function runOnDeviceInference({
   const oodByMsp = msp < mspThreshold;
   const isOod = Boolean(oodEnabled && (oodByFloor || oodByEnergy || oodByMsp));
 
-  const attrs = estimateGenderAge({ breedSlug: top.breed_slug, canvas, imageMeta });
+  const oodDetails = {
+    energy: Number(energy.toFixed(4)),
+    energy_threshold: energyThreshold,
+    msp: Number(msp.toFixed(4)),
+    msp_threshold: mspThreshold,
+    binary_confidence: Number(binaryConfidence.toFixed(4)),
+    binary_confidence_floor: binaryFloor,
+    ood_by_energy: oodByEnergy,
+    ood_by_msp: oodByMsp,
+    ood_by_binary_floor: oodByFloor,
+    temperature,
+    profile: embeddedOod ? "embedded" : (oodProfile?.filename || settings?.activeOodProfile || "auto"),
+    ood_source: embeddedOod ? "embedded" : (oodProfile?.filename ? "profile" : "defaults"),
+    requires_calibration: requiresCalibration,
+  };
 
-  return {
+  const guardrail = evaluateImageGuardrails({
+    canvas,
+    combinedProbs: combined,
+    activeLogits,
+    binaryProbs,
+    energy,
+    msp,
+    energyThreshold,
+    mspThreshold,
+    binaryFloor,
+    oodEnabled,
+  });
+
+  const baseResult = {
     model_name: record.name,
     model_source: record.metadata?.source || "uploaded",
     normalization_baked: normalizationBaked,
+    inference_time_ms: Math.round(latencyMs * 10) / 10,
+    total_time_ms: Math.round((performance.now() - started) * 10) / 10,
+    routing: "on-device soft routing",
+  };
+
+  if (guardrail.rejected) {
+    return {
+      ...baseResult,
+      rejected: true,
+      reason_code: guardrail.reason_code,
+      guardrail: guardrail.details,
+      species: null,
+      predicted_species: null,
+      species_confidence: 0,
+      species_prob: 0,
+      breed: null,
+      top_breed: null,
+      breed_slug: null,
+      confidence: 0,
+      top_breed_confidence: 0,
+      top5_breeds: [],
+      gender: null,
+      age_group: null,
+      is_ood: true,
+      ood: true,
+      ood_score: Number(energy.toFixed(4)),
+      ood_details: oodDetails,
+      image_stats: {},
+    };
+  }
+
+  const attrs = estimateBiometricAgeGender({
+    canvas,
+    breedSlug: top.breed_slug,
+    species,
+    cattleLogits,
+    buffaloLogits,
+    cattleClasses,
+    buffaloClasses,
+    combinedProbs: combined,
+  });
+
+  return {
+    ...baseResult,
+    rejected: false,
+    guardrail: guardrail.details,
     species,
     predicted_species: species,
     species_confidence: speciesConfidence,
@@ -680,25 +756,8 @@ export async function runOnDeviceInference({
     is_ood: isOod,
     ood: isOod,
     ood_score: Number(energy.toFixed(4)),
-    ood_details: {
-      energy: Number(energy.toFixed(4)),
-      energy_threshold: energyThreshold,
-      msp: Number(msp.toFixed(4)),
-      msp_threshold: mspThreshold,
-      binary_confidence: Number(binaryConfidence.toFixed(4)),
-      binary_confidence_floor: binaryFloor,
-      ood_by_energy: oodByEnergy,
-      ood_by_msp: oodByMsp,
-      ood_by_binary_floor: oodByFloor,
-      temperature,
-      profile: embeddedOod ? "embedded" : (oodProfile?.filename || settings?.activeOodProfile || "auto"),
-      ood_source: embeddedOod ? "embedded" : (oodProfile?.filename ? "profile" : "defaults"),
-      requires_calibration: requiresCalibration,
-    },
-    inference_time_ms: Math.round(latencyMs * 10) / 10,
-    total_time_ms: Math.round((performance.now() - started) * 10) / 10,
-    routing: "on-device soft routing",
-    image_stats: attrs.stats,
+    ood_details: oodDetails,
+    image_stats: attrs.body,
   };
 }
 
