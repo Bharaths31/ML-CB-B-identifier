@@ -122,10 +122,17 @@ restarts.
   online, advanced, gender, age and result actions.
 - **Guardrail:** every on-device prediction passes a multi-stage gate
   (`src/utils/imageGuardrails.js`):
-  - Stage A: axis-aligned Sobel edges/bezels, contiguous straight-edge spans,
-    screen blue-cast/glow and flat-block wall detection on the 260×260 canvas.
-  - Stage B: 68-class normalized entropy, top-logit Z-score peak,
-    binary-confidence floor, energy and MSP.
+  - Human gate: `FaceDetector` when available, then a YCbCr fallback using
+    central skin ratio, 5×5 skin smoothness, bilateral symmetry, dark hair cap
+    and eye/brow density; close-up selfies return `human_or_selfie`.
+  - Stage A: center-focused (180×180) Sobel straight-edge/bezel and flat-block
+    checks, so barn roofs, fences and sky at the frame border do not reject a
+    valid animal. A high-threshold global fallback still catches full-screen
+    monitors/walls.
+  - Stage B: 68-class normalized entropy (≤0.86), top-3 (≥0.20) / top-5 (≥0.30)
+    breed mass, binary-confidence floor, energy and MSP. Top-k mass replaces the
+    old single-class `Z_peak`/`Z_max` checks so visually similar breeds are not
+    rejected when probability splits across the top classes.
   - Rejected images return no species/breed and show a localized
     “No cattle or buffalo detected” card; rejected scans are not saved to recent.
 - **Age/gender:** `src/services/biometricAgeGender.js` fuses juvenile/heavy breed

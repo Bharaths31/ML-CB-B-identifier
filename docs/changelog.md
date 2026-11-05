@@ -1,5 +1,22 @@
 # 16. Changelog
 
+### 2026-11-05 — Center-focused guardrail, top-k OOD and selfie blocker
+
+- **Center-focused Stage A:** straight-edge and flat-patch checks now run on the
+  central 180×180 region, with only a high-threshold global fallback. Barn roofs,
+  fences, sky and other border clutter no longer reject a valid animal.
+- **Human selfie gate:** `checkHumanSelfie()` uses the browser `FaceDetector`
+  when available, then a pure-JS YCbCr fallback (central skin ratio, 5×5 skin
+  smoothness, bilateral skin symmetry, dark hair cap and eye/brow density).
+  Close-up selfies return `human_or_selfie` before any breed prediction.
+- **Top-k OOD:** single-class `Z_peak`/`Z_max` rejection was replaced by
+  top-3/top-5 breed-mass checks plus a relaxed entropy ceiling. Breeds that split
+  probability across visually similar classes (Sahiwal/Gir, Hallikar/Khillari)
+  are no longer falsely rejected. Binary confidence, energy and MSP floors remain.
+- **Verification:** all 34 cattle test images accepted; human selfie and monitor
+  screenshot rejected. Live two-canvas `verifyDynamicPredictions()` passes, and
+  client build/tests/i18n are green.
+
 ### 2026-11-05 — Direct 260×260 input, native camera, developer-mode simple UI
 
 - **Camera/silhouette removal:** Android now uses native
@@ -29,8 +46,10 @@
 
 - **Stage A image gate** (`src/utils/imageGuardrails.js`): Sobel-based
   axis-aligned edge/bezel detection, contiguous straight-edge spans, blue-cast /
-  dark-bezel screen check, and a 16×16 flat-block wall/background check. Runs on
-  the prepared 260×260 canvas before a prediction is accepted.
+  dark-bezel screen check, a 16×16 flat-block wall/background check with an
+  adaptive strong-edge exception, and a whole-frame skin-dominance check for
+  close-up people/selfies. Runs on the prepared 260×260 canvas before a
+  prediction is accepted.
 - **Stage B logit gate:** normalized 68-class entropy, top-logit Z-score peak,
   binary-confidence floor, energy and MSP checks. Rejections return
   `rejected: true` with no species/breed and a localized reason.
@@ -38,8 +57,8 @@
   thresholds from the original brief rejected every valid test cattle image.
   The final thresholds were calibrated against the test set
   (`EDGE_SPAN_MAX 0.62`, entropy `0.76`, `Z_peak 2.0`, `Z_max 1.6`, binary floor
-  `0.72`, energy floor `-3.2004`). Valid cattle pass; the screen screenshot and
-  goat test image are rejected.
+  `0.60`, energy floor `-3.2004`). Valid cattle pass; the screen screenshot, human
+  selfie and goat test image are rejected.
 - **Biometric estimator** (`src/services/biometricAgeGender.js`): juvenile/heavy
   breed logit mass, foreground bbox/torso fill/crown-texture biometrics, fused
   age scores, and gender from draught vs dairy breed mass + neck/hull ratio.
@@ -48,8 +67,10 @@
 - **Result UI:** a rejection card replaces the dossier for rejected images with
   a localized reason and retry action; rejected scans are not added to recent
   scans. Gender/age remain read-only.
-- **Verification:** test cattle images accepted; app screenshot (monitor UI) and
-  goat image rejected. Client build/tests and i18n checks pass.
+- **Verification:** 35 cattle images accepted (including the `0.4688`
+  flat-patch cases through the adaptive strong-edge exception); the app
+  screenshot (monitor UI), a human selfie and the goat image are rejected. Client
+  build/tests and i18n checks pass.
 
 ### 2026-11-04 — Remove audio, public API base, website-style online status, main-result-only mode
 

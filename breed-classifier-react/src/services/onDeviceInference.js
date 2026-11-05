@@ -595,6 +595,9 @@ export async function runOnDeviceInference({
   const oodByEnergy = energy > energyThreshold;
   const oodByMsp = msp < mspThreshold;
   const isOod = Boolean(oodEnabled && (oodByFloor || oodByEnergy || oodByMsp));
+  const combinedRanked = [...combined].sort((a, b) => b - a);
+  const top3Mass = combinedRanked.slice(0, 3).reduce((sum, value) => sum + value, 0);
+  const top5Mass = combinedRanked.slice(0, 5).reduce((sum, value) => sum + value, 0);
 
   const oodDetails = {
     energy: Number(energy.toFixed(4)),
@@ -603,6 +606,8 @@ export async function runOnDeviceInference({
     msp_threshold: mspThreshold,
     binary_confidence: Number(binaryConfidence.toFixed(4)),
     binary_confidence_floor: binaryFloor,
+    top3_mass: Number(top3Mass.toFixed(4)),
+    top5_mass: Number(top5Mass.toFixed(4)),
     ood_by_energy: oodByEnergy,
     ood_by_msp: oodByMsp,
     ood_by_binary_floor: oodByFloor,
@@ -612,7 +617,7 @@ export async function runOnDeviceInference({
     requires_calibration: requiresCalibration,
   };
 
-  const guardrail = evaluateImageGuardrails({
+  const guardrail = await evaluateImageGuardrails({
     canvas,
     combinedProbs: combined,
     activeLogits,

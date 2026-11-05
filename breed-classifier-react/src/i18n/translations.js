@@ -2090,3 +2090,13 @@ Object.assign(TRANSLATIONS.hi, {
 Object.assign(TRANSLATIONS.en, {"android.advancedSettings": "Advanced settings"});
 Object.assign(TRANSLATIONS.ta, {"android.advancedSettings": "மேம்பட்ட அமைப்புகள்"});
 Object.assign(TRANSLATIONS.hi, {"android.advancedSettings": "उन्नत सेटिंग्स"});
+
+Object.assign(TRANSLATIONS.en, {
+  "android.rejectHuman": "Selfie or human portrait detected",
+});
+Object.assign(TRANSLATIONS.ta, {
+  "android.rejectHuman": "செல்ஃபி அல்லது மனிதர் படம் கண்டறியப்பட்டது",
+});
+Object.assign(TRANSLATIONS.hi, {
+  "android.rejectHuman": "सेल्फ़ी या मानव चित्र मिला",
+});

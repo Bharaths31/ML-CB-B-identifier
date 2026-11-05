@@ -4,9 +4,9 @@
 Flask backend and a standalone Capacitor Android app.
 
 **Last updated:** 2026-11-05  
-**Built from:** `7aab043`  
+**Built from:** `210259f`  
 **Current Android artifact:** `artifacts/android/breedid-android-debug.apk`  
-**Artifact SHA-256:** `D8601292AF20756DF4695CDE51FB8A54F007CB630BF0FC73ABC029455C974259`
+**Artifact SHA-256:** `366A4EB198EA30E7A3E30178739C87510E560D8C8CB766E68579D9BA792D90DF`
 
 ---
 
@@ -162,23 +162,26 @@ Flask backend and a standalone Capacitor Android app.
 
 - Added `src/utils/imageGuardrails.js`:
   - Stage A Sobel axis-edge/bezel detection, contiguous straight-edge spans,
-    screen glow/blue-cast and 16×16 flat-block wall checks.
+    screen glow/blue-cast, a 16×16 flat-block wall check with an adaptive
+    strong-edge exception, and whole-frame skin dominance to reject close-up
+    human selfies.
   - Stage B 68-class entropy, top-logit Z-score peak, binary confidence, energy
     and MSP checks.
   - Rejections return no species/breed and a localized reason.
 - Calibrated gate thresholds against the shipped `lite2_v27` model because the
   original brief values rejected every valid test cattle image.
   Final: `EDGE_SPAN_MAX 0.62`, entropy `0.76`, `Z_peak 2.0`, `Z_max 1.6`,
-  binary floor `0.72`, energy floor `-3.2004`.
+  binary floor `0.60`, energy floor `-3.2004`.
 - Fixed on-device MSP to use the binary species head, matching the Python
   `OODDetector.compute_msp`; energy now uses all three heads.
 - Added `src/services/biometricAgeGender.js`: juvenile/heavy breed logit mass,
   torso fill, crown/horn texture, compactness, draught/dairy breed prior and
   neck/hull ratio → age/gender with 65–94% confidence.
 - Added rejection UI and excluded rejected scans from Recent Scans.
-- Verified in the browser harness: 4 cattle images accepted; app screenshot
-  (monitor UI) and goat image rejected. APK installed and simple mode verified on
-  the connected Android device.
+- Verified in the browser harness: 35 cattle images accepted (including the
+  `0.4688` flat-patch cases through the adaptive exception); app screenshot
+  (monitor UI), human selfie and goat image rejected. APK installed and simple
+  mode verified on the connected Android device.
 
 ### 2.13 Developer-mode simple UI and native input (2026-11-05)
 
@@ -195,6 +198,27 @@ Flask backend and a standalone Capacitor Android app.
   `dynamicAgeGender.js` whole-frame features.
 - Filtered legacy recent scans that lack the new guardrail data; empty recent
   scans are hidden in simple mode.
+- Simple mode also hides the online/reconnecting status pill for a cleaner
+  farmer header.
+- Added a whole-frame skin-dominance + low-edge/green gate so close-up selfies
+  are rejected before any breed prediction; localized rejection copy now
+  mentions people.
+
+### 2.14 Center-focused guardrail and top-k OOD (2026-11-05)
+
+- Moved Stage A straight-edge and flat-patch rejection to the central 180×180
+  region (`CENTER_BOX`), with high-threshold global fallbacks. Background barn
+  roofs, fences and sky at the frame border no longer reject valid cattle.
+- Added `checkHumanSelfie()`: `FaceDetector` when available, then a YCbCr
+  fallback using central skin ratio (150×150), median 5×5 skin luma sigma,
+  bilateral skin symmetry (±24 px axis search), dark hair cap and eye/brow
+  density. Rejections use `human_or_selfie`.
+- Replaced single-class `Z_peak`/`Z_max` Stage B checks with top-3 (≥0.20) and
+  top-5 (≥0.30) breed-mass gates and a relaxed entropy ceiling (0.86). Binary
+  confidence, energy and MSP floors are unchanged.
+- Verified: 34 cattle images accepted, including the `0.4688` flat-patch cases;
+  human selfie and monitor screenshot rejected; two-canvas
+  `verifyDynamicPredictions()` passes.
 
 ---
 

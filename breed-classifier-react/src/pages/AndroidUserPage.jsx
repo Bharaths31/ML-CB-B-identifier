@@ -433,7 +433,9 @@ export default function AndroidUserPage() {
       : headerConnected
         ? t("header.connected")
         : t("header.reconnecting");
-  const rejectionReasonKey = result?.reason_code === "screen_or_manmade_object"
+  const rejectionReasonKey = result?.reason_code === "human_or_selfie"
+    ? "android.rejectHuman"
+    : result?.reason_code === "screen_or_manmade_object"
     || result?.reason_code === "manmade_object_or_screen"
     ? "android.rejectScreen"
     : result?.reason_code === "unrelated_object"
