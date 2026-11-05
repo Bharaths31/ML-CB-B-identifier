@@ -235,10 +235,13 @@ Flask backend and a standalone Capacitor Android app.
 - Added `breed-classifier-react/src/services/onlineAdvisory.js` with a 5-second
   AbortController timeout, offline fallback and non-throwing result objects.
 - Deployed the API to production at
-  `https://advisory-api-rho.vercel.app/api/advisory`, set it as the default in
-  the Android client, and switched the Breed Tips modal from the legacy Python
-  backend to the Vercel advisory payload (cards, milk visibility, feeding,
-  climate, vaccination timeline and schemes).
+  `https://advisory-api-bharaths31s-projects.vercel.app/api/advisory`, set it as
+  the default in the Android client, and switched the Breed Tips modal from the
+  legacy Python backend to the Vercel advisory payload (cards, milk visibility,
+  feeding, climate, vaccination timeline and schemes).
+- Added a static landing page at `/` with a live advisory form, fixed the Vercel
+  Project Root Directory to `advisory-api`, and disabled SSO deployment
+  protection so the API and landing page are publicly reachable.
 - Verified: 7/7 API tests pass, live HTTP returns the expected Tamil payload,
   and the browser client handles success, 404 and missing-URL cases. The live
   endpoint and Breed Tips modal were also verified on the connected Android

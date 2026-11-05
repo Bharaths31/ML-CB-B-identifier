@@ -6,7 +6,7 @@
  */
 
 export const ADVISORY_TIMEOUT_MS = 5000;
-export const DEFAULT_ADVISORY_API_URL = "https://advisory-api-rho.vercel.app/api/advisory";
+export const DEFAULT_ADVISORY_API_URL = "https://advisory-api-bharaths31s-projects.vercel.app/api/advisory";
 
 const ENV_ADVISORY_API_URL = String(
   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADVISORY_API_URL)

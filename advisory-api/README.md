@@ -1,4 +1,4 @@
-# BreedID Advisory API (Vercel)
+﻿# BreedID Advisory API (Vercel)
 
 A free, dependency-free Vercel Node.js serverless API that serves breed tips and
 farmer advisory cards for the 68 BreedID classes (50 cattle + 18 buffalo). It
@@ -9,20 +9,20 @@ Vercel free tier.
 
 ```text
 advisory-api/
-├─ api/
-│  └─ advisory.js              # GET /api/advisory — CORS, validation, response
-├─ data/
-│  └─ breed_knowledge.json     # 68 breeds: origin, utility, milk, markers, price, schemes
-├─ lib/
-│  ├─ i18n.js                  # en / ta / hi copy, card logic, price/scheme formatting
-│  └─ knowledge.js             # lookup, aliases, species normalization
-├─ scripts/
-│  ├─ build-data.js            # regenerate data/breed_knowledge.json from project data
-│  └─ dev-server.js            # local HTTP server on port 3001
-├─ test/
-│  └─ advisory.test.js         # node:test suite (no dependencies)
-├─ package.json
-└─ vercel.json
+â”œâ”€ api/
+â”‚  â””â”€ advisory.js              # GET /api/advisory â€” CORS, validation, response
+â”œâ”€ data/
+â”‚  â””â”€ breed_knowledge.json     # 68 breeds: origin, utility, milk, markers, price, schemes
+â”œâ”€ lib/
+â”‚  â”œâ”€ i18n.js                  # en / ta / hi copy, card logic, price/scheme formatting
+â”‚  â””â”€ knowledge.js             # lookup, aliases, species normalization
+â”œâ”€ scripts/
+â”‚  â”œâ”€ build-data.js            # regenerate data/breed_knowledge.json from project data
+â”‚  â””â”€ dev-server.js            # local HTTP server on port 3001
+â”œâ”€ test/
+â”‚  â””â”€ advisory.test.js         # node:test suite (no dependencies)
+â”œâ”€ package.json
+â””â”€ vercel.json
 ```
 
 ## API
@@ -55,7 +55,7 @@ The function returns:
   health. Milk yield is hidden; draught power is visible.
 - **Calf (< 1 year):** colostrum, calf starter, deworming, FMD/brucellosis
   vaccination and calf housing. Milk yield and draught power are hidden.
-- **Young (1–3 years):** growth diet, first breeding, deworming and routine
+- **Young (1â€“3 years):** growth diet, first breeding, deworming and routine
   health.
 - **Missing gender:** general adult care.
 
@@ -88,10 +88,17 @@ npm run build:data
 The live production endpoint for this repository is:
 
 ```text
-https://advisory-api-rho.vercel.app/api/advisory
+https://advisory-api-bharaths31s-projects.vercel.app/api/advisory
 ```
 
-It is already used as the default in
+The browser landing page is:
+
+```text
+https://advisory-api-bharaths31s-projects.vercel.app/
+```
+
+Both are also reachable through the alias
+`https://advisory-api-rho.vercel.app`. The API is used as the default in
 `breed-classifier-react/src/services/onlineAdvisory.js`.
 
 To deploy future changes yourself, run from the `advisory-api` folder:
@@ -137,7 +144,7 @@ const tips = await fetchAdvisoryData(
   gender.key,              // "Female" | "Male" | "Unknown"
   age.key,                 // "Calf" | "Young" | "Adult"
   settings.language,       // "en" | "ta" | "hi"
-  "https://advisory-api-rho.vercel.app/api/advisory",
+  "https://advisory-api-bharaths31s-projects.vercel.app/api/advisory",
 );
 
 if (tips.ok) {
@@ -152,7 +159,7 @@ if (tips.ok) {
 Set the default in `breed-classifier-react/.env` (optional):
 
 ```text
-VITE_ADVISORY_API_URL=https://advisory-api-rho.vercel.app/api/advisory
+VITE_ADVISORY_API_URL=https://advisory-api-bharaths31s-projects.vercel.app/api/advisory
 ```
 
 ## Data notes

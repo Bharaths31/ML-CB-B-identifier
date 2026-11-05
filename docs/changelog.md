@@ -14,9 +14,11 @@
   `fetchAdvisoryData(...)`; it never throws and degrades to an on-device-only
   message when offline or slow.
 - Deployed the API to Vercel production at
-  `https://advisory-api-rho.vercel.app/api/advisory` and wired that URL as the
-  default advisory endpoint in the Android client. The Breed Tips modal now
-  renders the live advisory cards, vaccination timeline and schemes.
+  `https://advisory-api-bharaths31s-projects.vercel.app/api/advisory` and wired
+  that URL as the default advisory endpoint in the Android client. The Breed Tips
+  modal now renders the live advisory cards, vaccination timeline and schemes.
+- Added a browser landing page at `/` so the deployment base URL is no longer a
+  404, and disabled Vercel Authentication protection for public API access.
 - Verified with 7 API tests, a live local HTTP request, and a browser import of
   the Android client.
 

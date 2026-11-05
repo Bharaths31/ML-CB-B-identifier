@@ -64,3 +64,5 @@ breed-classifier-react/*.local
 breed-classifier-react/.env
 breed-classifier-react/.env.*
 breed-classifier-react/.DS_Store
+.vercel
+.env*
